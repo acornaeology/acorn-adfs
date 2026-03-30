@@ -1091,10 +1091,10 @@ oscli                                           = &fff7
 .scsi_wait_for_req
     pha                                                               ; 830f: 48          H              ; Save A on stack
 ; &8310 referenced 1 time by &8315
-.loop_c8310
+.poll_req_loop
     jsr scsi_get_status                                               ; 8310: 20 56 80     V.            ; Read SCSI status; Read SCSI status with settling
     and #&20 ; ' '                                                    ; 8313: 29 20       )              ; Check REQ bit (bit 5)
-    beq loop_c8310                                                    ; 8315: f0 f9       ..             ; Loop until REQ asserted
+    beq poll_req_loop                                                 ; 8315: f0 f9       ..             ; Loop until REQ asserted
     pla                                                               ; 8317: 68          h              ; Restore A
     bit zp_scsi_status                                                ; 8318: 24 cc       $.             ; Test C/D and MSG bits via BIT
     rts                                                               ; 831a: 60          `              ; Return
@@ -1316,13 +1316,13 @@ oscli                                           = &fff7
 .hex_number_error_100_y
     pha                                                               ; 842d: 48          H              ; Save byte value
     lsr a                                                             ; 842e: 4a          J              ; Shift high nibble to low nibble
-    lsr a                                                             ; 842f: 4a          J              ; Shift high nibble into low position
-    lsr a                                                             ; 8430: 4a          J              ; 4 shifts total
-    lsr a                                                             ; 8431: 4a          J              ; 4th shift
-    jsr sub_c8436                                                     ; 8432: 20 36 84     6.            ; Output high nibble as hex digit
+    lsr a                                                             ; 842f: 4a          J              ; (continued)
+    lsr a                                                             ; 8430: 4a          J              ; (continued)
+    lsr a                                                             ; 8431: 4a          J              ; (continued)
+    jsr store_hex_nibble                                              ; 8432: 20 36 84     6.            ; Output high nibble as hex digit
     pla                                                               ; 8435: 68          h              ; Restore original byte
 ; &8436 referenced 1 time by &8432
-.sub_c8436
+.store_hex_nibble
     jsr hex_digit                                                     ; 8436: 20 3e 84     >.            ; Convert low nibble and output; Convert 4-bit value to ASCII hex digit
     iny                                                               ; 8439: c8          .              ; Advance position in error block
     sta l0100,y                                                       ; 843a: 99 00 01    ...            ; Store hex digit character
@@ -1402,22 +1402,22 @@ oscli                                           = &fff7
     ldx #&0c                                                          ; 8476: a2 0c       ..             ; X=&0C: clear 12 workspace bytes
     lda #&ff                                                          ; 8478: a9 ff       ..             ; A=&FF: invalid marker
 ; &847a referenced 1 time by &8481
-.loop_c847a
+.invalidate_sectors_loop
     sta wksp_102b,x                                                   ; 847a: 9d 2b 10    .+.            ; Invalidate drive/sector workspace
     sta wksp_csd_sector,x                                             ; 847d: 9d 13 11    ...            ; Invalidate CSD/lib/prev sectors
     dex                                                               ; 8480: ca          .              ; Next byte
-    bne loop_c847a                                                    ; 8481: d0 f7       ..             ; Loop for 12 bytes
-    jsr copy_default_dir_name                                         ; 8483: 20 49 a1     I.            ; Call sub_ca149 twice; Copy default directory name to workspace
+    bne invalidate_sectors_loop                                       ; 8481: d0 f7       ..             ; Loop for 12 bytes
+    jsr copy_default_dir_name                                         ; 8483: 20 49 a1     I.            ; Reset CSD name to default; Copy default directory name to workspace
     jsr copy_default_dir_name                                         ; 8486: 20 49 a1     I.            ; Copy default directory name to workspace
     ldy #0                                                            ; 8489: a0 00       ..             ; Y=0: loop counter
     tya                                                               ; 848b: 98          .              ; A=0: zero fill; A=&00
 ; &848c referenced 1 time by &8496
-.loop_c848c
+.zero_buffers_loop
     sta fsm_sector_1,y                                                ; 848c: 99 00 0f    ...            ; Zero FSM sector 1 buffer
     sta fsm_sector_0,y                                                ; 848f: 99 00 0e    ...            ; Zero FSM sector 0 buffer
     sta dir_buffer,y                                                  ; 8492: 99 00 12    ...            ; Zero directory buffer
     iny                                                               ; 8495: c8          .              ; Next byte
-    bne loop_c848c                                                    ; 8496: d0 f4       ..             ; Loop for 256 bytes
+    bne zero_buffers_loop                                             ; 8496: d0 f4       ..             ; Loop for 256 bytes
     rts                                                               ; 8498: 60          `              ; Return
 
 .str_exec_abbrev
@@ -1923,27 +1923,27 @@ oscli                                           = &fff7
 .check_filename_length
     ldy #&0a                                                          ; 872d: a0 0a       ..             ; Y=&0A: check up to 10 characters
 ; &872f referenced 1 time by &8735
-.loop_c872f
+.check_name_char_loop
     jsr check_char_is_terminator                                      ; 872f: 20 1a 87     ..            ; Check next character; Check if character is a filename terminator
-    beq c8744                                                         ; 8732: f0 10       ..             ; Terminator found, ok
+    beq name_length_ok                                                ; 8732: f0 10       ..             ; Terminator found, ok
     dey                                                               ; 8734: 88          .              ; Decrement character count
-    bpl loop_c872f                                                    ; 8735: 10 f8       ..             ; Continue checking
+    bpl check_name_char_loop                                          ; 8735: 10 f8       ..             ; Continue checking
 ; &8737 referenced 6 times by &8785, &8849, &8bd0, &8ddb, &a4e2, &a86c
-.c8737
+.bad_name_error
     jsr reload_fsm_and_dir_then_brk                                   ; 8737: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &cc                                                          ; 873a: cc          .
     equs "Bad name", 0                                                ; 873b: 42 61 64... Bad
 
 ; &8744 referenced 1 time by &8732
-.c8744
+.name_length_ok
     ldy #9                                                            ; 8744: a0 09       ..             ; Y=9: copy 10 bytes of entry name
 ; &8746 referenced 1 time by &874e
-.loop_c8746
+.copy_entry_name_loop
     lda (zp_b6),y                                                     ; 8746: b1 b6       ..             ; Get name byte from directory entry
     and #&7f                                                          ; 8748: 29 7f       ).             ; Strip bit 7 (access bit)
     sta wksp_object_name,y                                            ; 874a: 99 62 10    .b.            ; Store in object name workspace
     dey                                                               ; 874d: 88          .              ; Next byte in entry name
-    bpl loop_c8746                                                    ; 874e: 10 f6       ..             ; Loop for 10 bytes
+    bpl copy_entry_name_loop                                          ; 874e: 10 f6       ..             ; Loop for 10 bytes
     iny                                                               ; 8750: c8          .              ; Y=1: start of object name
     ldx #0                                                            ; 8751: a2 00       ..             ; X=0: pattern index
 ; ***************************************************************************************
@@ -1994,7 +1994,7 @@ oscli                                           = &fff7
 ; &8782 referenced 1 time by &8765
 .c8782
     jsr check_char_is_terminator                                      ; 8782: 20 1a 87     ..            ; Check if character is a filename terminator
-    bne c8737                                                         ; 8785: d0 b0       ..             ; Pattern check failed: Bad name
+    bne bad_name_error                                                ; 8785: d0 b0       ..             ; Pattern check failed: Bad name
 ; &8787 referenced 3 times by &876a, &8779, &8793
 .c8787
     jsr check_char_is_terminator                                      ; 8787: 20 1a 87     ..            ; Check if character is a filename terminator
@@ -2140,7 +2140,7 @@ oscli                                           = &fff7
 
 ; &8849 referenced 4 times by &8824, &882e, &8832, &884f
 .c8849
-    jmp c8737                                                         ; 8849: 4c 37 87    L7.            ; Invalid: Bad name error
+    jmp bad_name_error                                                ; 8849: 4c 37 87    L7.            ; Invalid: Bad name error
 
 ; &884c referenced 2 times by &8bb3, &8fdf
 .sub_c884c
@@ -2704,7 +2704,7 @@ oscli                                           = &fff7
     bne c8bd3                                                         ; 8bce: d0 03       ..             ; No, check '@'
 ; &8bd0 referenced 1 time by &8bd5
 .loop_c8bd0
-    jmp c8737                                                         ; 8bd0: 4c 37 87    L7.            ; Bad name error (^ or @ in context)
+    jmp bad_name_error                                                ; 8bd0: 4c 37 87    L7.            ; Bad name error (^ or @ in context)
 
 ; &8bd3 referenced 1 time by &8bce
 .c8bd3
@@ -3058,7 +3058,7 @@ oscli                                           = &fff7
     bne return_17                                                     ; 8dd9: d0 fa       ..             ; Return character in A
 ; &8ddb referenced 4 times by &8d77, &8d83, &8da2, &8db5
 .c8ddb
-    jmp c8737                                                         ; 8ddb: 4c 37 87    L7.            ; Wild cards found: Bad name error
+    jmp bad_name_error                                                ; 8ddb: 4c 37 87    L7.            ; Wild cards found: Bad name error
 
 ; &8dde referenced 2 times by &8dc6, &8dca
 .c8dde
@@ -4217,14 +4217,14 @@ oscli                                           = &fff7
 ; &94e7 referenced 1 time by &99f4
 .star_info
     jsr sub_c8fdf                                                     ; 94e7: 20 df 8f     ..            ; Find first matching file
-    beq c94ef                                                         ; 94ea: f0 03       ..             ; Found? Print its info
+    beq print_info_loop                                               ; 94ea: f0 03       ..             ; Found? Print its info
     jmp c8bc8                                                         ; 94ec: 4c c8 8b    L..            ; Not found: report error
 
 ; &94ef referenced 2 times by &94ea, &94f5
-.c94ef
+.print_info_loop
     jsr print_entry_info                                              ; 94ef: 20 01 95     ..            ; Print this entry's catalogue info; Print full catalogue info for one directory entry
     jsr c895e                                                         ; 94f2: 20 5e 89     ^.            ; Find next matching file
-    beq c94ef                                                         ; 94f5: f0 f8       ..             ; More matches? Continue loop
+    beq print_info_loop                                               ; 94f5: f0 f8       ..             ; More matches? Continue loop
     jmp c89d3                                                         ; 94f7: 4c d3 89    L..            ; No more matches: save and return
 
 ; &94fa referenced 2 times by &8c62, &99bb
@@ -6238,10 +6238,10 @@ l9dd3 = sub_c9dd2+1
     jsr skip_spaces                                                   ; a0f5: 20 cf a4     ..            ; Skip leading spaces; Skip leading spaces in command argument
     ldy wksp_current_drive                                            ; a0f8: ac 17 11    ...            ; Get current drive
     iny                                                               ; a0fb: c8          .              ; Drive uninitialised (&FF)?
-    beq ca0ff                                                         ; a0fc: f0 01       ..             ; Yes, use 0 instead
+    beq store_default_drive                                           ; a0fc: f0 01       ..             ; Yes, use 0 instead
     dey                                                               ; a0fe: 88          .              ; Decrement Y (was INY+1)
 ; &a0ff referenced 1 time by &a0fc
-.ca0ff
+.store_default_drive
     sty l106f                                                         ; a0ff: 8c 6f 10    .o.            ; Store default drive number
     ldy #0                                                            ; a102: a0 00       ..             ; Y=0: check for argument
     lda (zp_b4),y                                                     ; a104: b1 b4       ..             ; Get first argument char
@@ -6442,22 +6442,22 @@ la154 = sub_ca153+1
     jsr skip_spaces                                                   ; a258: 20 cf a4     ..            ; Skip leading spaces in argument; Skip leading spaces in command argument
     ldy #0                                                            ; a25b: a0 00       ..             ; Y=0: index into title string
 ; &a25d referenced 1 time by &a271
-.loop_ca25d
+.copy_title_loop
     lda (zp_b4),y                                                     ; a25d: b1 b4       ..             ; Get next character
     and #&7f                                                          ; a25f: 29 7f       ).             ; Strip bit 7
     cmp #&22 ; '"'                                                    ; a261: c9 22       ."             ; Double-quote terminates title
-    beq ca269                                                         ; a263: f0 04       ..             ; Yes, pad with CR
+    beq pad_title_with_cr                                             ; a263: f0 04       ..             ; Yes, pad with CR
     cmp #&20 ; ' '                                                    ; a265: c9 20       .              ; Control char terminates title
-    bcs ca26b                                                         ; a267: b0 02       ..             ; Printable, store it
+    bcs store_title_char                                              ; a267: b0 02       ..             ; Printable, store it
 ; &a269 referenced 1 time by &a263
-.ca269
+.pad_title_with_cr
     lda #&0d                                                          ; a269: a9 0d       ..             ; Use CR as padding character
 ; &a26b referenced 1 time by &a267
-.ca26b
+.store_title_char
     sta dir_title,y                                                   ; a26b: 99 d9 16    ...            ; Store in directory title field
     iny                                                               ; a26e: c8          .              ; Next character
     cpy #&13                                                          ; a26f: c0 13       ..             ; Title is 19 characters max
-    bne loop_ca25d                                                    ; a271: d0 ea       ..             ; Loop for all 19 characters
+    bne copy_title_loop                                               ; a271: d0 ea       ..             ; Loop for all 19 characters
     jmp c8f86                                                         ; a273: 4c 86 8f    L..            ; Write directory back to disc
 
 ; ***************************************************************************************
@@ -6869,17 +6869,17 @@ la154 = sub_ca153+1
 .skip_filename
     ldy #0                                                            ; a4b7: a0 00       ..             ; Y=0: start scanning
 ; &a4b9 referenced 1 time by &a4bf
-.loop_ca4b9
+.scan_filename_loop
     jsr check_char_is_terminator                                      ; a4b9: 20 1a 87     ..            ; Check if char is a terminator; Check if character is a filename terminator
-    beq ca4c1                                                         ; a4bc: f0 03       ..             ; Yes, check if it's a dot
+    beq check_dot_separator                                           ; a4bc: f0 03       ..             ; Yes, check if it's a dot
 ; &a4be referenced 1 time by &a4c3
-.loop_ca4be
+.advance_past_char
     iny                                                               ; a4be: c8          .              ; Advance past non-terminator
-    bne loop_ca4b9                                                    ; a4bf: d0 f8       ..             ; Loop scanning characters
+    bne scan_filename_loop                                            ; a4bf: d0 f8       ..             ; Loop scanning characters
 ; &a4c1 referenced 1 time by &a4bc
-.ca4c1
+.check_dot_separator
     cmp #&2e ; '.'                                                    ; a4c1: c9 2e       ..             ; Is terminator a dot?
-    beq loop_ca4be                                                    ; a4c3: f0 f9       ..             ; Yes, skip dot and continue
+    beq advance_past_char                                             ; a4c3: f0 f9       ..             ; Yes, skip dot and continue
     tya                                                               ; a4c5: 98          .              ; Y = number of chars scanned
     clc                                                               ; a4c6: 18          .              ; Clear carry for addition
     adc zp_b4                                                         ; a4c7: 65 b4       e.             ; Add to (&B4) to advance pointer
@@ -6911,7 +6911,7 @@ la154 = sub_ca153+1
     bne end_of_spaces                                                 ; a4dd: d0 0b       ..             ; No, end of argument
     plp                                                               ; a4df: 28          (              ; Restore C (quote tracking flag)
     bcc enter_quoted_string                                           ; a4e0: 90 03       ..             ; C=0 first quote: start quoted str
-    jmp c8737                                                         ; a4e2: 4c 37 87    L7.            ; C=1 second quote: bad name error
+    jmp bad_name_error                                                ; a4e2: 4c 37 87    L7.            ; C=1 second quote: bad name error
 
 ; &a4e5 referenced 1 time by &a4e0
 .enter_quoted_string
@@ -7329,10 +7329,10 @@ la154 = sub_ca153+1
     tya                                                               ; a71f: 98          .              ; A=&FD: initial accumulator; A=&fd
     clc                                                               ; a720: 18          .              ; Clear carry for addition
 ; &a721 referenced 1 time by &a724
-.loop_ca721
+.sum_workspace_loop
     adc (zp_ba),y                                                     ; a721: 71 ba       q.             ; Add workspace byte to checksum
     dey                                                               ; a723: 88          .              ; Next byte down
-    bne loop_ca721                                                    ; a724: d0 fb       ..             ; Loop until Y wraps to 0
+    bne sum_workspace_loop                                            ; a724: d0 fb       ..             ; Loop until Y wraps to 0
     adc (zp_ba),y                                                     ; a726: 71 ba       q.             ; Add byte 0
     ldy #&fe                                                          ; a728: a0 fe       ..             ; Y=&FE: index of checksum byte
     rts                                                               ; a72a: 60          `              ; Return
@@ -7572,7 +7572,7 @@ la868 = sub_ca867+1
     jsr check_char_is_terminator                                      ; a867: 20 1a 87     ..            ; Check if character is a filename terminator
 ; &a868 referenced 1 time by &9dd2
     bne ca86f                                                         ; a86a: d0 03       ..             ; Found destination dir?
-    jmp c8737                                                         ; a86c: 4c 37 87    L7.            ; Bad name: invalid destination
+    jmp bad_name_error                                                ; a86c: 4c 37 87    L7.            ; Bad name: invalid destination
 
 ; &a86f referenced 1 time by &a86a
 .ca86f
@@ -11455,7 +11455,7 @@ save pydis_start, pydis_end
 ;     zp_a5:                                              7
 ;     zp_a6:                                              7
 ;     zp_c1:                                              7
-;     c8737:                                              6
+;     bad_name_error:                                     6
 ;     c8d69:                                              6
 ;     cb24d:                                              6
 ;     cb8db:                                              6
@@ -11711,7 +11711,6 @@ save pydis_start, pydis_end
 ;     c93dc:                                              2
 ;     c941c:                                              2
 ;     c9439:                                              2
-;     c94ef:                                              2
 ;     c95a4:                                              2
 ;     c95b7:                                              2
 ;     c9666:                                              2
@@ -11845,6 +11844,7 @@ save pydis_start, pydis_end
 ;     parse_drive_specifier:                              2
 ;     print_decimal_digit:                                2
 ;     print_entry_field_loop:                             2
+;     print_info_loop:                                    2
 ;     print_space_value:                                  2
 ;     ra_buffer_1:                                        2
 ;     return_11:                                          2
@@ -11905,6 +11905,7 @@ save pydis_start, pydis_end
 ;     zp_bf:                                              2
 ;     zp_c7:                                              2
 ;     advance_and_continue:                               1
+;     advance_past_char:                                  1
 ;     branch_to_floppy_error:                             1
 ;     c8111:                                              1
 ;     c8114:                                              1
@@ -11949,7 +11950,6 @@ save pydis_start, pydis_end
 ;     c86b8:                                              1
 ;     c86f1:                                              1
 ;     c86fa:                                              1
-;     c8744:                                              1
 ;     c877d:                                              1
 ;     c8782:                                              1
 ;     c87c9:                                              1
@@ -12091,10 +12091,7 @@ save pydis_start, pydis_end
 ;     ca00a:                                              1
 ;     ca061:                                              1
 ;     ca0ce:                                              1
-;     ca0ff:                                              1
 ;     ca189:                                              1
-;     ca269:                                              1
-;     ca26b:                                              1
 ;     ca2ab:                                              1
 ;     ca2ea:                                              1
 ;     ca2fd:                                              1
@@ -12107,7 +12104,6 @@ save pydis_start, pydis_end
 ;     ca3e9:                                              1
 ;     ca401:                                              1
 ;     ca41e:                                              1
-;     ca4c1:                                              1
 ;     ca517:                                              1
 ;     ca540:                                              1
 ;     ca544:                                              1
@@ -12265,8 +12261,10 @@ save pydis_start, pydis_end
 ;     cbff1:                                              1
 ;     check_adfs_prefix:                                  1
 ;     check_at_sign:                                      1
+;     check_dot_separator:                                1
 ;     check_field_boundary:                               1
 ;     check_multi_sector_range:                           1
+;     check_name_char_loop:                               1
 ;     check_tube_for_nmi:                                 1
 ;     check_workspace_claimed:                            1
 ;     claim_nmi:                                          1
@@ -12278,11 +12276,13 @@ save pydis_start, pydis_end
 ;     copy_csd_sector_loop:                               1
 ;     copy_default_name_loop:                             1
 ;     copy_dir_name_loop:                                 1
+;     copy_entry_name_loop:                               1
 ;     copy_lib_name_loop:                                 1
 ;     copy_lib_sector_loop:                               1
 ;     copy_nmi_code_loop:                                 1
 ;     copy_prev_dir_name_loop:                            1
 ;     copy_result_loop:                                   1
+;     copy_title_loop:                                    1
 ;     copy_tube_addr_loop:                                1
 ;     copy_tube_read_nmi_loop:                            1
 ;     copy_tube_write_nmi_loop:                           1
@@ -12324,6 +12324,7 @@ save pydis_start, pydis_end
 ;     hd_command:                                         1
 ;     hd_command_partial_sector:                          1
 ;     hd_data_transfer_256:                               1
+;     invalidate_sectors_loop:                            1
 ;     jmp_indirect_fscv:                                  1
 ;     l00ef:                                              1
 ;     l00f1:                                              1
@@ -12375,15 +12376,12 @@ save pydis_start, pydis_end
 ;     loop_c8228:                                         1
 ;     loop_c824c:                                         1
 ;     loop_c8252:                                         1
-;     loop_c8310:                                         1
 ;     loop_c8339:                                         1
 ;     loop_c8361:                                         1
 ;     loop_c8376:                                         1
 ;     loop_c8385:                                         1
 ;     loop_c83ac:                                         1
 ;     loop_c83c3:                                         1
-;     loop_c847a:                                         1
-;     loop_c848c:                                         1
 ;     loop_c84c3:                                         1
 ;     loop_c84cf:                                         1
 ;     loop_c84ec:                                         1
@@ -12405,8 +12403,6 @@ save pydis_start, pydis_end
 ;     loop_c86bf:                                         1
 ;     loop_c86d1:                                         1
 ;     loop_c86dd:                                         1
-;     loop_c872f:                                         1
-;     loop_c8746:                                         1
 ;     loop_c87a9:                                         1
 ;     loop_c87c6:                                         1
 ;     loop_c8898:                                         1
@@ -12523,12 +12519,9 @@ save pydis_start, pydis_end
 ;     loop_ca083:                                         1
 ;     loop_ca0d3:                                         1
 ;     loop_ca116:                                         1
-;     loop_ca25d:                                         1
 ;     loop_ca31f:                                         1
 ;     loop_ca3cc:                                         1
 ;     loop_ca42f:                                         1
-;     loop_ca4b9:                                         1
-;     loop_ca4be:                                         1
 ;     loop_ca534:                                         1
 ;     loop_ca53d:                                         1
 ;     loop_ca560:                                         1
@@ -12548,7 +12541,6 @@ save pydis_start, pydis_end
 ;     loop_ca6b0:                                         1
 ;     loop_ca6bb:                                         1
 ;     loop_ca6e6:                                         1
-;     loop_ca721:                                         1
 ;     loop_ca75a:                                         1
 ;     loop_ca77c:                                         1
 ;     loop_ca79b:                                         1
@@ -12610,6 +12602,7 @@ save pydis_start, pydis_end
 ;     loop_cbef4:                                         1
 ;     match_command_loop:                                 1
 ;     my_osargs:                                          1
+;     name_length_ok:                                     1
 ;     next_entry_byte:                                    1
 ;     nmi_0d05:                                           1
 ;     nmi_0d34:                                           1
@@ -12625,6 +12618,8 @@ save pydis_start, pydis_end
 ;     osfile_dispatch_lo:                                 1
 ;     osrdch:                                             1
 ;     osword:                                             1
+;     pad_title_with_cr:                                  1
+;     poll_req_loop:                                      1
 ;     print_name_char_loop:                               1
 ;     print_newline_return:                               1
 ;     ra_buffer_2:                                        1
@@ -12668,6 +12663,7 @@ save pydis_start, pydis_end
 ;     return_8:                                           1
 ;     return_9:                                           1
 ;     save_workspace_and_return:                          1
+;     scan_filename_loop:                                 1
 ;     scan_spaces_loop:                                   1
 ;     scsi_read_settle_loop:                              1
 ;     scsi_request_sense:                                 1
@@ -12691,12 +12687,14 @@ save pydis_start, pydis_end
 ;     star_remove:                                        1
 ;     step_rate_fast:                                     1
 ;     store_csd_drive:                                    1
+;     store_default_drive:                                1
 ;     store_digit:                                        1
+;     store_hex_nibble:                                   1
 ;     store_nmi_completion:                               1
+;     store_title_char:                                   1
 ;     str_at:                                             1
 ;     str_on_channel:                                     1
 ;     str_yes:                                            1
-;     sub_c8436:                                          1
 ;     sub_c87e7:                                          1
 ;     sub_c8851:                                          1
 ;     sub_c8b04:                                          1
@@ -12721,6 +12719,7 @@ save pydis_start, pydis_end
 ;     sub_cba0c:                                          1
 ;     sub_cbda6:                                          1
 ;     sub_cbe84:                                          1
+;     sum_workspace_loop:                                 1
 ;     swap_csd_to_lib_loop:                               1
 ;     swap_dir_sectors_loop:                              1
 ;     system_via_t1c_l:                                   1
@@ -12737,6 +12736,7 @@ save pydis_start, pydis_end
 ;     wksp_105e:                                          1
 ;     wksp_osword_block:                                  1
 ;     wksp_tube_transfer_addr:                            1
+;     zero_buffers_loop:                                  1
 
 ; Automatically generated labels:
 ;     c80af
@@ -12799,8 +12799,6 @@ save pydis_start, pydis_end
 ;     c86f1
 ;     c86fa
 ;     c8703
-;     c8737
-;     c8744
 ;     c877d
 ;     c8782
 ;     c8787
@@ -12929,7 +12927,6 @@ save pydis_start, pydis_end
 ;     c9492
 ;     c9497
 ;     c94a8
-;     c94ef
 ;     c95a4
 ;     c95b7
 ;     c95c3
@@ -13023,12 +13020,9 @@ save pydis_start, pydis_end
 ;     ca016
 ;     ca061
 ;     ca0ce
-;     ca0ff
 ;     ca12f
 ;     ca179
 ;     ca189
-;     ca269
-;     ca26b
 ;     ca29b
 ;     ca2ab
 ;     ca2bf
@@ -13046,7 +13040,6 @@ save pydis_start, pydis_end
 ;     ca401
 ;     ca41e
 ;     ca434
-;     ca4c1
 ;     ca517
 ;     ca540
 ;     ca544
@@ -13429,15 +13422,12 @@ save pydis_start, pydis_end
 ;     loop_c8228
 ;     loop_c824c
 ;     loop_c8252
-;     loop_c8310
 ;     loop_c8339
 ;     loop_c8361
 ;     loop_c8376
 ;     loop_c8385
 ;     loop_c83ac
 ;     loop_c83c3
-;     loop_c847a
-;     loop_c848c
 ;     loop_c84c3
 ;     loop_c84cf
 ;     loop_c84ec
@@ -13459,8 +13449,6 @@ save pydis_start, pydis_end
 ;     loop_c86bf
 ;     loop_c86d1
 ;     loop_c86dd
-;     loop_c872f
-;     loop_c8746
 ;     loop_c87a9
 ;     loop_c87c6
 ;     loop_c8898
@@ -13577,12 +13565,9 @@ save pydis_start, pydis_end
 ;     loop_ca083
 ;     loop_ca0d3
 ;     loop_ca116
-;     loop_ca25d
 ;     loop_ca31f
 ;     loop_ca3cc
 ;     loop_ca42f
-;     loop_ca4b9
-;     loop_ca4be
 ;     loop_ca534
 ;     loop_ca53d
 ;     loop_ca560
@@ -13602,7 +13587,6 @@ save pydis_start, pydis_end
 ;     loop_ca6b0
 ;     loop_ca6bb
 ;     loop_ca6e6
-;     loop_ca721
 ;     loop_ca75a
 ;     loop_ca77c
 ;     loop_ca79b
@@ -13712,7 +13696,6 @@ save pydis_start, pydis_end
 ;     return_8
 ;     return_9
 ;     sub_c81dd
-;     sub_c8436
 ;     sub_c8609
 ;     sub_c8632
 ;     sub_c8708

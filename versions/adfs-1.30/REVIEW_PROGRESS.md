@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 43 / 115
-- Auto-labels renamed: 65 / 940
+- Reviewed: 57 / 115
+- Auto-labels renamed: 82 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -71,26 +71,26 @@ before their callers.
 
 | Addr | Name | Items | Auto Labels | Status |
 |------|------|-------|-------------|--------|
-| &8065 | scsi_start_command | 13 | 1 | |
-| &830F | scsi_wait_for_req | 7 | 1 | |
-| &842D | hex_number_error_100_y | 11 | 2 | |
-| &8476 | invalidate_fsm_and_dir | 19 | 3 | |
+| &8065 | scsi_start_command | 13 | 1 | REVIEWED |
+| &830F | scsi_wait_for_req | 7 | 1 | REVIEWED |
+| &842D | hex_number_error_100_y | 11 | 2 | REVIEWED |
+| &8476 | invalidate_fsm_and_dir | 19 | 3 | REVIEWED |
 | &84B5 | release_disc_space | 295 | 46 | |
-| &872D | check_filename_length | 14 | 3 | |
+| &872D | check_filename_length | 14 | 3 | REVIEWED |
 | &9471 | parse_dir_argument | 42 | 9 | |
-| &94E7 | star_info | 11 | 1 | |
+| &94E7 | star_info | 11 | 1 | REVIEWED |
 | &993D | star_access | 79 | 14 | |
 | &9E7F | star_cmd | 79 | 6 | |
-| &A0F5 | parse_drive_argument | 13 | 2 | |
-| &A252 | star_title | 16 | 2 | |
-| &A47F | star_lcat | 4 | 0 | |
-| &A48B | star_lex | 4 | 0 | |
-| &A4B7 | skip_filename | 13 | 2 | |
+| &A0F5 | parse_drive_argument | 13 | 2 | REVIEWED |
+| &A252 | star_title | 16 | 2 | REVIEWED |
+| &A47F | star_lcat | 4 | 0 | REVIEWED |
+| &A48B | star_lex | 4 | 0 | REVIEWED |
+| &A4B7 | skip_filename | 13 | 2 | REVIEWED |
 | &A503 | star_rename | 218 | 32 | |
-| &A6C7 | check_dir_loaded | 4 | 0 | |
-| &A71A | calc_wksp_checksum | 13 | 2 | |
+| &A6C7 | check_dir_loaded | 4 | 0 | REVIEWED |
+| &A71A | calc_wksp_checksum | 13 | 2 | REVIEWED |
 | &A81D | star_copy | 120 | 17 | |
-| &A93C | fsc6_new_filing_system | 12 | 1 | |
+| &A93C | fsc6_new_filing_system | 12 | 1 | REVIEWED |
 | &AD16 | compare_ext_to_ptr | 31 | 5 | |
 | &B08F | my_osbput | 117 | 16 | |
 | &BF86 | floppy_calc_track_sector_from_b0_block | 15 | 2 | |
