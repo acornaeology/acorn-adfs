@@ -7102,9 +7102,9 @@ l9ee5 = tbl_commands+2
     sta wksp_current_drive                                            ; a0d0: 8d 17 11    ...            ; Set as current drive
 ; &a0d3 referenced 1 time by &a0e3
 .close_each_drive_loop
-    ldx #&ea                                                          ; a0d3: a2 ea       ..             ; Point to dismount control block
-    ldy #&a0                                                          ; a0d5: a0 a0       ..             ; Y=&A0: control block page
-    jsr command_exec_xy                                               ; a0d7: 20 89 80     ..            ; Execute dismount disc operation; Execute disc command with control block at (X,Y)
+    ldx #&ea                                                          ; a0d3: a2 ea       ..             ; X=&EA: scsi_cmd_park control block low
+    ldy #&a0                                                          ; a0d5: a0 a0       ..             ; Y=&A0: scsi_cmd_park control block high
+    jsr command_exec_xy                                               ; a0d7: 20 89 80     ..            ; Park heads on this drive; Execute disc command with control block at (X,Y)
     lda wksp_current_drive                                            ; a0da: ad 17 11    ...            ; Get current drive ID
     sec                                                               ; a0dd: 38          8              ; Set carry for subtraction
     sbc #&20 ; ' '                                                    ; a0de: e9 20       .              ; Next drive (subtract &20)
@@ -7114,7 +7114,29 @@ l9ee5 = tbl_commands+2
     sta wksp_current_drive                                            ; a0e6: 8d 17 11    ...            ; Store back as current drive
     rts                                                               ; a0e9: 60          `              ; Return
 
-    equb 0, 0, &17, &ff, &ff, &1b, 0, 0, 0, 0, 0                      ; a0ea: 00 00 17... ...
+; ***************************************************************************************
+; SCSI park heads disc operation control block
+; 
+; Disc operation control block used by *BYE to park the hard
+; drive heads on shutdown. Referenced indirectly as X=&EA, Y=&A0
+; from the close_each_drive_loop. Issues SCSI command &1B
+; (Start/Stop Unit) with count=0 (stop/park). The companion
+; block at scsi_cmd_unpark (&A19F) has count=1 (start/unpark)
+; and is used by *MOUNT.
+; 
+; ***************************************************************************************
+.scsi_cmd_park
+    equb 0                                                            ; a0ea: 00          .              ; Result: &00
+    equb 0                                                            ; a0eb: 00          .              ; Memory address low: &00
+    equb &17                                                          ; a0ec: 17          .              ; Memory address high: &17 (buffer page)
+    equb &ff                                                          ; a0ed: ff          .              ; Memory address byte 3: &FF (host memory)
+    equb &ff                                                          ; a0ee: ff          .              ; Memory address byte 4: &FF (host memory)
+    equb &1b                                                          ; a0ef: 1b          .              ; Command: &1B (SCSI Start/Stop Unit)
+    equb 0                                                            ; a0f0: 00          .              ; Sector high: &00
+    equb 0                                                            ; a0f1: 00          .              ; Sector mid: &00
+    equb 0                                                            ; a0f2: 00          .              ; Sector low: &00
+    equb 0                                                            ; a0f3: 00          .              ; Sector count: &00 (stop/park heads)
+    equb 0                                                            ; a0f4: 00          .              ; Control: &00
 
 ; ***************************************************************************************
 ; Parse optional drive number argument

@@ -1082,6 +1082,31 @@ byte(0x9641)
 comment(0x9641, "Data end byte 4: &FF (host memory)", inline=True)
 stringcr(0x993B)
 comment(0x993B, 'Unused "^" + CR: dead remnant', inline=True)
+# SCSI park heads control block (used by *BYE via X=&EA, Y=&A0)
+label(0xA0EA, "scsi_cmd_park")
+entry(0xA0EA)
+byte(0xA0EA)
+comment(0xA0EA, "Result: &00", inline=True)
+byte(0xA0EB)
+comment(0xA0EB, "Memory address low: &00", inline=True)
+byte(0xA0EC)
+comment(0xA0EC, "Memory address high: &17 (buffer page)", inline=True)
+byte(0xA0ED)
+comment(0xA0ED, "Memory address byte 3: &FF (host memory)", inline=True)
+byte(0xA0EE)
+comment(0xA0EE, "Memory address byte 4: &FF (host memory)", inline=True)
+byte(0xA0EF)
+comment(0xA0EF, "Command: &1B (SCSI Start/Stop Unit)", inline=True)
+byte(0xA0F0)
+comment(0xA0F0, "Sector high: &00", inline=True)
+byte(0xA0F1)
+comment(0xA0F1, "Sector mid: &00", inline=True)
+byte(0xA0F2)
+comment(0xA0F2, "Sector low: &00", inline=True)
+byte(0xA0F3)
+comment(0xA0F3, "Sector count: &00 (stop/park heads)", inline=True)
+byte(0xA0F4)
+comment(0xA0F4, "Control: &00", inline=True)
 entry(0x9316)
 entry(0x9A46)
 label(0x9A46, "default_workspace_data")
@@ -7608,8 +7633,9 @@ comment(0xA0C9, "Yes, skip close", inline=True)
 comment(0xA0CB, "Close all open files", inline=True)
 comment(0xA0CE, "Start with drive 3 (ID = &60)", inline=True)
 comment(0xA0D0, "Set as current drive", inline=True)
-comment(0xA0D3, "Point to dismount control block", inline=True)
-comment(0xA0D7, "Execute dismount disc operation", inline=True)
+comment(0xA0D3, "X=&EA: scsi_cmd_park control block low", inline=True)
+comment(0xA0D5, "Y=&A0: scsi_cmd_park control block high", inline=True)
+comment(0xA0D7, "Park heads on this drive", inline=True)
 comment(0xA0DA, "Get current drive ID", inline=True)
 comment(0xA0DD, "Set carry for subtraction", inline=True)
 comment(0xA0DE, "Next drive (subtract &20)", inline=True)
@@ -8655,7 +8681,6 @@ comment(0xA049, "Return", inline=True)
 
 # star_bye - remaining items
 comment(0xA0C6, "Save current drive on stack", inline=True)
-comment(0xA0D5, "Y=&A0: control block page", inline=True)
 comment(0xA0E9, "Return", inline=True)
 
 # star_dismount - remaining items
@@ -10657,6 +10682,17 @@ subroutine(0xA0C3, "star_bye",
     description="""\
 Close all open files and dismount all drives. Equivalent
 to *CLOSE followed by *DISMOUNT for all drives.
+""")
+
+subroutine(0xA0EA, "scsi_cmd_park",
+    title="SCSI park heads disc operation control block",
+    description="""\
+Disc operation control block used by *BYE to park the hard
+drive heads on shutdown. Referenced indirectly as X=&EA, Y=&A0
+from the close_each_drive_loop. Issues SCSI command &1B
+(Start/Stop Unit) with count=0 (stop/park). The companion
+block at scsi_cmd_unpark (&A19F) has count=1 (start/unpark)
+and is used by *MOUNT.
 """)
 
 subroutine(0xA111, "star_dismount",
