@@ -12016,14 +12016,21 @@ la868 = check_dest_terminator+1
 
 ; &bcdf referenced 1 time by &bc62
 .nmi_write_code
-    equb &ad, &ff, &ff, &8d, &87, &fe, &ee, &0b, &0d, &d0, 3, &ee     ; bcdf: ad ff ff... ...
-    equb &0c, &0d                                                     ; bceb: 0c 0d       ..
+    equb &ad, &ff, &ff                                                ; bcdf: ad ff ff    ...            ; &0D0A: LDA &FFFF (patched source addr)
+    equb &8d, &87, &fe                                                ; bce2: 8d 87 fe    ...            ; &0D0D: STA &FE87 (write to WD1770 data)
+    equb &ee, &0b, &0d                                                ; bce5: ee 0b 0d    ...            ; &0D10: INC &0D0B (increment source low)
+    equb &d0, 3                                                       ; bce8: d0 03       ..             ; &0D13: BNE +3 (skip high byte increment)
+    equb &ee, &0c, &0d                                                ; bcea: ee 0c 0d    ...            ; &0D15: INC &0D0C (increment source high)
 ; &bced referenced 1 time by &bc46
 .nmi_tube_write_code
-    equb &ad, &e5, &fe, &8d, &87, &fe, &b0, 6                         ; bced: ad e5 fe... ...
+    equb &ad, &e5, &fe                                                ; bced: ad e5 fe    ...            ; &0D0A: LDA &FEE5 (read Tube R3 data)
+    equb &8d, &87, &fe                                                ; bcf0: 8d 87 fe    ...            ; &0D0D: STA &FE87 (write to WD1770 data)
+    equb &b0, 6                                                       ; bcf3: b0 06       ..             ; &0D10: BCS +6 (branch to completion)
 ; &bcf5 referenced 1 time by &bc52
 .nmi_tube_read_code
-    equb &ad, &87, &fe, &8d, &e5, &fe, &b0, 6                         ; bcf5: ad 87 fe... ...
+    equb &ad, &87, &fe                                                ; bcf5: ad 87 fe    ...            ; &0D0A: LDA &FE87 (read WD1770 data)
+    equb &8d, &e5, &fe                                                ; bcf8: 8d e5 fe    ...            ; &0D0D: STA &FEE5 (write to Tube R3)
+    equb &b0, 6                                                       ; bcfb: b0 06       ..             ; &0D10: BCS +6 (branch to completion)
 
 ; ***************************************************************************************
 ; Select and issue FDC read/write command
