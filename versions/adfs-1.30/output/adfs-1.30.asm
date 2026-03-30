@@ -4548,8 +4548,8 @@ lffff                                           = &ffff
     ldx #&0a                                                          ; 93bb: a2 0a       ..             ; X=&0A: print 10-char library name
     jsr print_padded_name                                             ; 93bd: 20 87 92     ..            ; Print library directory name
     jsr print_inline_string                                           ; 93c0: 20 a0 92     ..            ; Print bit-7-terminated inline string
-    equs &0d                                                          ; 93c3: 0d          .
-    equb &8d                                                          ; 93c4: 8d          .
+    equs &0d                                                          ; 93c3: 0d          .              ; CR: end of library name line
+    equb &8d                                                          ; 93c4: 8d          .              ; CR + bit 7: blank line after header
 
 ; &93c5 referenced 3 times by &87ea, &97be, &98da
 .print_catalogue_header
