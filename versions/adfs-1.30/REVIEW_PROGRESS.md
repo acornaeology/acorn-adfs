@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 101 / 115
-- Auto-labels renamed: 490 / 940
+- Reviewed: 106 / 115
+- Auto-labels renamed: 601 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
