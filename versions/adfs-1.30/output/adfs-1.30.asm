@@ -581,27 +581,27 @@ oscli                                           = &fff7
     cmp #&1b                                                          ; 809b: c9 1b       ..             ; Seek?
     beq command_exec_start_exec                                       ; 809d: f0 27       .'             ; Yes, skip retries
     jsr command_set_retries                                           ; 809f: 20 80 80     ..            ; Set default retry count; Set retry count for disc operation
-    bpl c80be                                                         ; 80a2: 10 1a       ..             ; Always branch (retry count >= 0)
+    bpl dispatch_hd_or_floppy                                         ; 80a2: 10 1a       ..             ; Always branch (retry count >= 0)
 ; &80a4 referenced 1 time by &80c4
 .command_exec_retry_loop
     jsr command_exec_start_exec                                       ; 80a4: 20 c6 80     ..            ; Execute the disc operation
     beq return_3                                                      ; 80a7: f0 d6       ..             ; Success, return
     cmp #4                                                            ; 80a9: c9 04       ..             ; Not-ready error?
-    bne c80be                                                         ; 80ab: d0 11       ..             ; No, check if retries exhausted
+    bne dispatch_hd_or_floppy                                         ; 80ab: d0 11       ..             ; No, check if retries exhausted
     ldy #&19                                                          ; 80ad: a0 19       ..             ; Delay loop for not-ready
 ; &80af referenced 3 times by &80b6, &80b9, &80bc
-.c80af
+.check_escape_during_retry
     bit l00ff                                                         ; 80af: 24 ff       $.             ; Check for Escape during delay
     bmi escape_during_retry                                           ; 80b1: 30 d3       0.             ; Escape pressed, abort
     sec                                                               ; 80b3: 38          8              ; Set carry for subtraction
     sbc #1                                                            ; 80b4: e9 01       ..             ; Decrement delay low byte
-    bne c80af                                                         ; 80b6: d0 f7       ..             ; Inner loop not done
+    bne check_escape_during_retry                                     ; 80b6: d0 f7       ..             ; Inner loop not done
     dex                                                               ; 80b8: ca          .              ; Decrement delay mid byte
-    bne c80af                                                         ; 80b9: d0 f4       ..             ; Mid loop not done
+    bne check_escape_during_retry                                     ; 80b9: d0 f4       ..             ; Mid loop not done
     dey                                                               ; 80bb: 88          .              ; Decrement delay high byte
-    bne c80af                                                         ; 80bc: d0 f1       ..             ; Outer loop not done
+    bne check_escape_during_retry                                     ; 80bc: d0 f1       ..             ; Outer loop not done
 ; &80be referenced 2 times by &80a2, &80ab
-.c80be
+.dispatch_hd_or_floppy
     cmp #&40 ; '@'                                                    ; 80be: c9 40       .@             ; Drive-not-present error?
     beq command_exec_start_exec                                       ; 80c0: f0 04       ..             ; Yes, no point retrying
     dec zp_retry_count                                                ; 80c2: c6 ce       ..             ; Decrement retry counter
@@ -768,31 +768,31 @@ oscli                                           = &fff7
 .command_done
     jsr release_tube                                                  ; 818a: 20 43 80     C.            ; Release Tube if claimed; Release Tube if in use
 ; &818d referenced 1 time by &819c
-.loop_c818d
+.wait_status_phase
     jsr scsi_wait_for_req                                             ; 818d: 20 0f 83     ..            ; Wait for SCSI REQ (status phase); Wait for SCSI REQ signal
     lda fred_hard_drive_0                                             ; 8190: ad 40 fc    .@.            ; Read status byte from SCSI data
     jsr scsi_wait_for_req                                             ; 8193: 20 0f 83     ..            ; Wait for SCSI REQ (message phase); Wait for SCSI REQ signal
     tay                                                               ; 8196: a8          .              ; Save status in Y
     jsr scsi_get_status                                               ; 8197: 20 56 80     V.            ; Read SCSI status register; Read SCSI status with settling
     and #1                                                            ; 819a: 29 01       ).             ; Check BSY still asserted
-    beq loop_c818d                                                    ; 819c: f0 ef       ..             ; Loop until bus free
+    beq wait_status_phase                                             ; 819c: f0 ef       ..             ; Loop until bus free
     tya                                                               ; 819e: 98          .              ; Retrieve status byte
     ldx fred_hard_drive_0                                             ; 819f: ae 40 fc    .@.            ; Read final data byte
-    beq c81a7                                                         ; 81a2: f0 03       ..             ; Status OK?
-    jmp c8282                                                         ; 81a4: 4c 82 82    L..            ; No, return error &FF
+    beq check_scsi_error_bit                                          ; 81a2: f0 03       ..             ; Status OK?
+    jmp unrecoverable_scsi_error                                      ; 81a4: 4c 82 82    L..            ; No, return error &FF
 
 ; &81a7 referenced 1 time by &81a2
-.c81a7
+.check_scsi_error_bit
     tax                                                               ; 81a7: aa          .              ; Transfer status to X
     and #2                                                            ; 81a8: 29 02       ).             ; Check error bit in status
-    beq c81af                                                         ; 81aa: f0 03       ..             ; No error, return success
+    beq return_scsi_result                                            ; 81aa: f0 03       ..             ; No error, return success
     jmp scsi_request_sense                                            ; 81ac: 4c 3a 82    L:.            ; Error: do SCSI Request Sense; SCSI Request Sense command
 
 ; &81af referenced 1 time by &81aa
-.c81af
+.return_scsi_result
     lda #0                                                            ; 81af: a9 00       ..             ; A=0: success return code
 ; &81b1 referenced 2 times by &827f, &8284
-.c81b1
+.mask_error_code
     ldx zp_b0                                                         ; 81b1: a6 b0       ..             ; Restore control block pointer
     ldy zp_b1                                                         ; 81b3: a4 b1       ..             ; Restore Y
     and #&7f                                                          ; 81b5: 29 7f       ).             ; Mask to 7-bit error code
@@ -814,7 +814,7 @@ oscli                                           = &fff7
 .hd_data_transfer_256
     ldy #0                                                            ; 81b8: a0 00       ..             ; Y=0: byte counter
     bit zp_flags                                                      ; 81ba: 24 cd       $.             ; Tube in use?
-    bvs c81fc                                                         ; 81bc: 70 3e       p>             ; Yes, use Tube 256-byte transfer
+    bvs setup_tube_write_256                                          ; 81bc: 70 3e       p>             ; Yes, use Tube 256-byte transfer
 ; &81be referenced 2 times by &81cf, &81db
 .wait_req_and_transfer
     jsr scsi_wait_for_req                                             ; 81be: 20 0f 83     ..            ; Wait for SCSI REQ; Wait for SCSI REQ signal
@@ -880,50 +880,50 @@ oscli                                           = &fff7
     rts                                                               ; 81fb: 60          `              ; Return (also used as delay)
 
 ; &81fc referenced 1 time by &81bc
-.c81fc
+.setup_tube_write_256
     ldx #&27 ; '''                                                    ; 81fc: a2 27       .'             ; X=&27: Tube workspace addr low
     ldy #&10                                                          ; 81fe: a0 10       ..             ; Y=&10: Tube workspace page
 ; &8200 referenced 2 times by &8220, &8238
-.c8200
+.wait_tube_data_phase
     jsr scsi_wait_for_req                                             ; 8200: 20 0f 83     ..            ; Wait for SCSI REQ; Wait for SCSI REQ signal
-    bpl c8208                                                         ; 8203: 10 03       ..             ; Data phase?
+    bpl set_tube_write_direction                                      ; 8203: 10 03       ..             ; Data phase?
     jmp command_done                                                  ; 8205: 4c 8a 81    L..            ; No, status phase - done; Complete SCSI command and read status
 
 ; &8208 referenced 1 time by &8203
-.c8208
-    bvs c8222                                                         ; 8208: 70 18       p.             ; I/O bit: reading from SCSI?
+.set_tube_write_direction
+    bvs set_tube_read_direction                                       ; 8208: 70 18       p.             ; I/O bit: reading from SCSI?
     php                                                               ; 820a: 08          .              ; Save flags before SEI
     lda #6                                                            ; 820b: a9 06       ..             ; Tube transfer type 6 (write)
     jsr tube_start_xfer_sei                                           ; 820d: 20 ef 81     ..            ; Start Tube transfer with SEI; Start Tube transfer with interrupts disabled
 ; &8210 referenced 1 time by &821a
-.loop_c8210
+.tube_write_byte_loop
     nop                                                               ; 8210: ea          .              ; NOP timing delay for Tube
     nop                                                               ; 8211: ea          .              ; NOP timing delay
     nop                                                               ; 8212: ea          .              ; NOP timing delay
     lda tube_data_register_3                                          ; 8213: ad e5 fe    ...            ; Read byte from Tube R3
     sta fred_hard_drive_0                                             ; 8216: 8d 40 fc    .@.            ; Write to SCSI data register
     iny                                                               ; 8219: c8          .              ; Next byte
-    bne loop_c8210                                                    ; 821a: d0 f4       ..             ; Continue for 256 bytes
+    bne tube_write_byte_loop                                          ; 821a: d0 f4       ..             ; Continue for 256 bytes
     jsr increment_tube_xfer_addr                                      ; 821c: 20 dd 81     ..            ; Increment transfer address
     plp                                                               ; 821f: 28          (              ; Restore flags, continue transfer
-    bvc c8200                                                         ; 8220: 50 de       P.             ; Continue outer transfer loop
+    bvc wait_tube_data_phase                                          ; 8220: 50 de       P.             ; Continue outer transfer loop
 ; &8222 referenced 1 time by &8208
-.c8222
+.set_tube_read_direction
     php                                                               ; 8222: 08          .              ; Save flags for read path
     lda #7                                                            ; 8223: a9 07       ..             ; Tube transfer type 7 (read)
     jsr tube_start_xfer_sei                                           ; 8225: 20 ef 81     ..            ; Start Tube transfer with SEI; Start Tube transfer with interrupts disabled
 ; &8228 referenced 1 time by &8232
-.loop_c8228
+.tube_read_byte_loop
     nop                                                               ; 8228: ea          .              ; NOP timing delay for Tube
     nop                                                               ; 8229: ea          .              ; NOP timing delay
     nop                                                               ; 822a: ea          .              ; NOP timing delay
     lda fred_hard_drive_0                                             ; 822b: ad 40 fc    .@.            ; Read byte from SCSI data register
     sta tube_data_register_3                                          ; 822e: 8d e5 fe    ...            ; Write to Tube R3
     iny                                                               ; 8231: c8          .              ; Next byte
-    bne loop_c8228                                                    ; 8232: d0 f4       ..             ; Continue for 256 bytes
+    bne tube_read_byte_loop                                           ; 8232: d0 f4       ..             ; Continue for 256 bytes
     jsr increment_tube_xfer_addr                                      ; 8234: 20 dd 81     ..            ; Increment transfer address
     plp                                                               ; 8237: 28          (              ; Restore flags, continue transfer
-    bvs c8200                                                         ; 8238: 70 c6       p.             ; Continue outer transfer loop
+    bvs wait_tube_data_phase                                          ; 8238: 70 c6       p.             ; Continue outer transfer loop
 ; ***************************************************************************************
 ; SCSI Request Sense command
 ; 
@@ -947,17 +947,17 @@ oscli                                           = &fff7
     and #&e0                                                          ; 8247: 29 e0       ).             ; Isolate LUN (bits 5-7)
     jsr scsi_send_byte_a                                              ; 8249: 20 1b 83     ..            ; Send LUN byte; Send byte A on SCSI bus after REQ
 ; &824c referenced 1 time by &8250
-.loop_c824c
+.send_zero_bytes_loop
     jsr scsi_send_byte_a                                              ; 824c: 20 1b 83     ..            ; Send remaining zero bytes; Send byte A on SCSI bus after REQ
     dey                                                               ; 824f: 88          .              ; Decrement byte counter
-    bpl loop_c824c                                                    ; 8250: 10 fa       ..             ; Loop for 3 bytes
+    bpl send_zero_bytes_loop                                          ; 8250: 10 fa       ..             ; Loop for 3 bytes
 ; &8252 referenced 1 time by &825c
-.loop_c8252
+.receive_sense_data_loop
     jsr scsi_wait_for_req                                             ; 8252: 20 0f 83     ..            ; Receive sense data bytes; Wait for SCSI REQ signal
     lda fred_hard_drive_0                                             ; 8255: ad 40 fc    .@.            ; Read sense data from SCSI bus
     sta wksp_err_sector,x                                             ; 8258: 9d d0 10    ...            ; Store in error workspace
     dex                                                               ; 825b: ca          .              ; Next byte
-    bpl loop_c8252                                                    ; 825c: 10 f4       ..             ; Loop for 4 bytes
+    bpl receive_sense_data_loop                                       ; 825c: 10 f4       ..             ; Loop for 4 bytes
     lda wksp_current_drive_hi                                         ; 825e: ad 33 11    .3.            ; Get drive LUN bits
     and #&e0                                                          ; 8261: 29 e0       ).             ; Isolate LUN
     ora l10d2                                                         ; 8263: 0d d2 10    ...            ; Merge with error sector high byte
@@ -967,29 +967,29 @@ oscli                                           = &fff7
     lda fred_hard_drive_0                                             ; 826f: ad 40 fc    .@.            ; Read status byte
     jsr scsi_wait_for_req                                             ; 8272: 20 0f 83     ..            ; Wait for message phase; Wait for SCSI REQ signal
     ldy fred_hard_drive_0                                             ; 8275: ac 40 fc    .@.            ; Read message byte
-    bne c8282                                                         ; 8278: d0 08       ..             ; Message byte non-zero? Error
+    bne unrecoverable_scsi_error                                      ; 8278: d0 08       ..             ; Message byte non-zero? Error
     and #2                                                            ; 827a: 29 02       ).             ; Check status error bit
-    bne c8282                                                         ; 827c: d0 04       ..             ; Error bit set? Return error
+    bne unrecoverable_scsi_error                                      ; 827c: d0 04       ..             ; Error bit set? Return error
     txa                                                               ; 827e: 8a          .              ; Transfer error code to A
-    jmp c81b1                                                         ; 827f: 4c b1 81    L..            ; Return with error code
+    jmp mask_error_code                                               ; 827f: 4c b1 81    L..            ; Return with error code
 
 ; &8282 referenced 3 times by &81a4, &8278, &827c
-.c8282
+.unrecoverable_scsi_error
     lda #&ff                                                          ; 8282: a9 ff       ..             ; Unrecoverable SCSI error
-    jmp c81b1                                                         ; 8284: 4c b1 81    L..            ; Return &FF
+    jmp mask_error_code                                               ; 8284: 4c b1 81    L..            ; Return &FF
 
 ; &8287 referenced 8 times by &89ca, &8a1a, &8fae, &94c9, &9722, &973c, &a7f2, &a813
-.c8287
+.exec_disc_op_from_wksp
     ldx #&15                                                          ; 8287: a2 15       ..             ; Point to workspace disc op block
     ldy #&10                                                          ; 8289: a0 10       ..             ; Y=&10: workspace page
 ; &828b referenced 8 times by &8888, &88a5, &89e7, &8fd3, &97a5, &a81a, &b50a, &b571
-.c828b
+.exec_disc_command
     jsr command_exec_xy                                               ; 828b: 20 89 80     ..            ; Execute disc command; Execute disc command with control block at (X,Y)
     bne generate_error                                                ; 828e: d0 0a       ..             ; Error? Generate BRK; Generate a BRK error
     rts                                                               ; 8290: 60          `              ; Return (success)
 
 ; &8291 referenced 2 times by &829c, &82a0
-.c8291
+.restore_drive_after_op
     lda wksp_saved_drive                                              ; 8291: ad 2f 10    ./.            ; Restore saved drive number
     sta wksp_current_drive                                            ; 8294: 8d 17 11    ...            ; Set current drive
     jmp c8bd7                                                         ; 8297: 4c d7 8b    L..            ; Restore drive and raise error
@@ -1003,11 +1003,11 @@ oscli                                           = &fff7
 ; &829a referenced 6 times by &828e, &82fe, &8a42, &ab48, &ab60, &acaf
 .generate_error
     cmp #&25 ; '%'                                                    ; 829a: c9 25       .%             ; Error code &25 = drive not present?
-    beq c8291                                                         ; 829c: f0 f3       ..             ; Yes, restore drive and raise error
+    beq restore_drive_after_op                                        ; 829c: f0 f3       ..             ; Yes, restore drive and raise error
     cmp #&65 ; 'e'                                                    ; 829e: c9 65       .e             ; Error code &65 = volume error?
-    beq c8291                                                         ; 82a0: f0 ef       ..             ; Yes, restore drive and raise error
+    beq restore_drive_after_op                                        ; 82a0: f0 ef       ..             ; Yes, restore drive and raise error
     cmp #&6f ; 'o'                                                    ; 82a2: c9 6f       .o             ; Error code &6F = drive overrun?
-    bne c82b9                                                         ; 82a4: d0 13       ..             ; No, check other error codes
+    bne check_escape_condition                                        ; 82a4: d0 13       ..             ; No, check other error codes
 ; &82a6 referenced 1 time by &8086
 .error_escape_ack_invalidate_reload_fsm
     lda #osbyte_acknowledge_escape                                    ; 82a6: a9 7e       .~             ; Acknowledge Escape condition
@@ -1018,17 +1018,17 @@ oscli                                           = &fff7
     equs "Escape", 0                                                  ; 82b2: 45 73 63... Esc
 
 ; &82b9 referenced 1 time by &82a4
-.c82b9
+.check_escape_condition
     cmp #4                                                            ; 82b9: c9 04       ..             ; Error code &04 = drive not ready?
-    bne c82d1                                                         ; 82bb: d0 14       ..             ; Not drive overrun, check other codes
+    bne translate_scsi_error                                          ; 82bb: d0 14       ..             ; Not drive overrun, check other codes
     jsr reload_fsm_and_dir_then_brk                                   ; 82bd: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &cd                                                          ; 82c0: cd          .
     equs "Drive not ready", 0                                         ; 82c1: 44 72 69... Dri
 
 ; &82d1 referenced 1 time by &82bb
-.c82d1
+.translate_scsi_error
     cmp #&40 ; '@'                                                    ; 82d1: c9 40       .@             ; Error code &40 = write protected?
-    beq c82e8                                                         ; 82d3: f0 13       ..             ; Yes, generate Disc protected error
+    beq store_error_sector                                            ; 82d3: f0 13       ..             ; Yes, generate Disc protected error
     jsr c89d3                                                         ; 82d5: 20 d3 89     ..            ; Convert SCSI error to disc error
     tax                                                               ; 82d8: aa          .              ; X = suffix control
     jsr generate_error_suffix_x                                       ; 82d9: 20 53 83     S.            ; Generate error with suffix control in X
@@ -1036,7 +1036,7 @@ oscli                                           = &fff7
     equs "Disc error", 0                                              ; 82dd: 44 69 73... Dis
 
 ; &82e8 referenced 1 time by &82d3
-.c82e8
+.store_error_sector
     jsr sub_c832b                                                     ; 82e8: 20 2b 83     +.            ; Write protected: save drive state
     equb &c9                                                          ; 82eb: c9          .
     equs "Disc protected", 0                                          ; 82ec: 44 69 73... Dis
@@ -1109,34 +1109,35 @@ oscli                                           = &fff7
 ; &831b referenced 7 times by &8118, &8129, &8241, &8249, &824c, &8301, &8b77
 .scsi_send_byte_a
     jsr scsi_wait_for_req                                             ; 831b: 20 0f 83     ..            ; Wait for SCSI REQ; Wait for SCSI REQ signal
-    bvs c8326                                                         ; 831e: 70 06       p.             ; MSG phase? Abort command
+    bvs write_scsi_data_byte                                          ; 831e: 70 06       p.             ; MSG phase? Abort command
     sta fred_hard_drive_0                                             ; 8320: 8d 40 fc    .@.            ; Write data byte to SCSI bus
     lda #0                                                            ; 8323: a9 00       ..             ; A=0: success
     rts                                                               ; 8325: 60          `              ; Return (byte sent OK)
 
 ; &8326 referenced 1 time by &831e
-.c8326
+.write_scsi_data_byte
     pla                                                               ; 8326: 68          h              ; Pop 2 return addresses from stack
     pla                                                               ; 8327: 68          h              ; Pop one return address
     jmp command_done                                                  ; 8328: 4c 8a 81    L..            ; Jump to status/message phase handler; Complete SCSI command and read status
 
 ; &832b referenced 6 times by &82e8, &85c8, &8656, &8664, &8ffa, &a6f9
 .sub_c832b
+.generate_disc_error
     ldx wksp_saved_drive                                              ; 832b: ae 2f 10    ./.            ; Check if drive was already saved
     inx                                                               ; 832e: e8          .              ; X=saved_drive+1; if !=0, already set
     bne reload_fsm_and_dir_then_brk                                   ; 832f: d0 17       ..             ; Already saved, just raise the error; Reload FSM and directory then raise error
     ldx l102e                                                         ; 8331: ae 2e 10    ...            ; Check alternative workspace
     inx                                                               ; 8334: e8          .              ; Increment: non-zero?
-    bne c8342                                                         ; 8335: d0 0b       ..             ; Yes, skip CSD restore
+    bne check_for_on_channel                                          ; 8335: d0 0b       ..             ; Yes, skip CSD restore
     ldy #2                                                            ; 8337: a0 02       ..             ; Copy CSD sector info to workspace
 ; &8339 referenced 1 time by &8340
-.loop_c8339
+.copy_error_string_loop
     lda l1114,y                                                       ; 8339: b9 14 11    ...            ; Get CSD sector byte
     sta wksp_csd_drive_sector,y                                       ; 833c: 99 2c 10    .,.            ; Copy to CSD drive sector workspace
     dey                                                               ; 833f: 88          .              ; Next byte
-    bpl loop_c8339                                                    ; 8340: 10 f7       ..             ; Loop for 3 bytes
+    bpl copy_error_string_loop                                        ; 8340: 10 f7       ..             ; Loop for 3 bytes
 ; &8342 referenced 1 time by &8335
-.c8342
+.check_for_on_channel
     lda wksp_current_drive                                            ; 8342: ad 17 11    ...            ; Save current drive for error message
     sta wksp_saved_drive                                              ; 8345: 8d 2f 10    ./.            ; Save current drive for error msg
 ; ***************************************************************************************
@@ -2179,7 +2180,7 @@ oscli                                           = &fff7
     sta zp_flags                                                      ; 8882: 85 cd       ..             ; Store updated flags
     ldx #&0c                                                          ; 8884: a2 0c       ..             ; Load FSM from disc (sectors 0-1)
     ldy #&88                                                          ; 8886: a0 88       ..             ; Y=&88: FSM read control block page
-    jsr c828b                                                         ; 8888: 20 8b 82     ..            ; Read FSM from disc
+    jsr exec_disc_command                                             ; 8888: 20 8b 82     ..            ; Read FSM from disc
     lda zp_flags                                                      ; 888b: a5 cd       ..             ; Clear FSM-inconsistent flag
     and #&ef                                                          ; 888d: 29 ef       ).             ; Mask off bit 4
     sta zp_flags                                                      ; 888f: 85 cd       ..             ; Store cleared flags
@@ -2196,7 +2197,7 @@ oscli                                           = &fff7
 .c88a1
     ldy #&88                                                          ; 88a1: a0 88       ..             ; Load root directory (sector 2)
     ldx #&17                                                          ; 88a3: a2 17       ..             ; X=&17: directory read block offset
-    jsr c828b                                                         ; 88a5: 20 8b 82     ..            ; Read directory from disc
+    jsr exec_disc_command                                             ; 88a5: 20 8b 82     ..            ; Read directory from disc
     lda #2                                                            ; 88a8: a9 02       ..             ; Set root sector = 2
     sta l1114                                                         ; 88aa: 8d 14 11    ...            ; Store root sector low
     lda #0                                                            ; 88ad: a9 00       ..             ; A=0: clear mid and high bytes
@@ -2382,7 +2383,7 @@ oscli                                           = &fff7
     iny                                                               ; 89c6: c8          .              ; Next entry byte
     dex                                                               ; 89c7: ca          .              ; Next sector byte
     bpl loop_c89be                                                    ; 89c8: 10 f4       ..             ; Loop for 3 bytes
-    jsr c8287                                                         ; 89ca: 20 87 82     ..            ; Execute disc read command
+    jsr exec_disc_op_from_wksp                                        ; 89ca: 20 87 82     ..            ; Execute disc read command
     jmp c88d2                                                         ; 89cd: 4c d2 88    L..            ; Continue parsing path
 
 ; &89d0 referenced 4 times by &8c5f, &8cc6, &923b, &b360
@@ -2399,7 +2400,7 @@ oscli                                           = &fff7
     sta wksp_saved_drive                                              ; 89e0: 8d 2f 10    ./.            ; Mark saved drive as unused
     ldx #&0c                                                          ; 89e3: a2 0c       ..             ; X=&0C: FSM control block offset
     ldy #&88                                                          ; 89e5: a0 88       ..             ; Y=&88: FSM control block page
-    jsr c828b                                                         ; 89e7: 20 8b 82     ..            ; Reload FSM for original drive
+    jsr exec_disc_command                                             ; 89e7: 20 8b 82     ..            ; Reload FSM for original drive
 ; &89ea referenced 1 time by &89d9
 .c89ea
     lda l102e                                                         ; 89ea: ad 2e 10    ...            ; Check alt workspace pointer
@@ -2423,7 +2424,7 @@ oscli                                           = &fff7
     sta l101d                                                         ; 8a12: 8d 1d 10    ...            ; Store in disc op low
     lda #&ff                                                          ; 8a15: a9 ff       ..             ; A=&FF: clear alt workspace
     sta l102e                                                         ; 8a17: 8d 2e 10    ...            ; Mark as unused
-    jsr c8287                                                         ; 8a1a: 20 87 82     ..            ; Read directory from disc
+    jsr exec_disc_op_from_wksp                                        ; 8a1a: 20 87 82     ..            ; Read directory from disc
 ; &8a1d referenced 1 time by &89ef
 .c8a1d
     lda zp_flags                                                      ; 8a1d: a5 cd       ..             ; Save flags to workspace
@@ -3364,7 +3365,7 @@ oscli                                           = &fff7
     sta l101c                                                         ; 8fa5: 8d 1c 10    ...            ; Next sector byte
     lda l1116                                                         ; 8fa8: ad 16 11    ...            ; Next info byte; Loop for 3 bytes
     sta wksp_disc_op_sector                                           ; 8fab: 8d 1b 10    ...            ; Restore (&B7) from stack; Store back
-    jsr c8287                                                         ; 8fae: 20 87 82     ..            ; Write directory to disc
+    jsr exec_disc_op_from_wksp                                        ; 8fae: 20 87 82     ..            ; Write directory to disc
     lda wksp_current_drive                                            ; 8fb1: ad 17 11    ...            ; Restore (&B6) from stack; Store back
     jsr sub_cb579                                                     ; 8fb4: 20 79 b5     y.            ; Get FSM checksum byte
     lda fsm_s1_disc_id_hi                                             ; 8fb7: ad fc 0f    ...            ; Is it zero (unmodified)?; Zero: skip FSM write
@@ -3377,7 +3378,7 @@ oscli                                           = &fff7
     sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1; Get FSM sector 1 byte
     ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; X=&71: validate FSM entry count
     ldy #&90                                                          ; 8fd1: a0 90       ..             ; Add to checksum; Loop for 255 bytes
-    jsr c828b                                                         ; 8fd3: 20 8b 82     ..            ; Store sector 1 checksum
+    jsr exec_disc_command                                             ; 8fd3: 20 8b 82     ..            ; Store sector 1 checksum
     lda zp_flags                                                      ; 8fd6: a5 cd       ..             ; Write FSM back to disc
     and #&ef                                                          ; 8fd8: 29 ef       ).             ; Clear FSM-inconsistent flag
     sta zp_flags                                                      ; 8fda: 85 cd       ..             ; Return
@@ -4202,7 +4203,7 @@ oscli                                           = &fff7
     lda zp_b7                                                         ; 94c3: a5 b7       ..             ; Check if this is an *INFO call
     cmp #&94                                                          ; 94c5: c9 94       ..             ; zp_b7 = &94 means *INFO context
     beq return_21                                                     ; 94c7: f0 37       .7             ; Yes, return without reading dir
-    jmp c8287                                                         ; 94c9: 4c 87 82    L..            ; Execute disc read to load directory
+    jmp exec_disc_op_from_wksp                                        ; 94c9: 4c 87 82    L..            ; Execute disc read to load directory
 
     equb &a4, &0d, &8d, &8d, &0d, &0d, &0d, &0d, &0d, &0d, 0, 0, 0, 0 ; 94cc: a4 0d 8d... ...
     equb   0,   0,   0,   0,   0,   5,   0,   0,   2,   0, 0, 0, 0    ; 94da: 00 00 00... ...
@@ -4572,7 +4573,7 @@ oscli                                           = &fff7
     sta l101c                                                         ; 9719: 8d 1c 10    ...            ; Store in disc op
     lda l10a4                                                         ; 971c: ad a4 10    ...            ; Get source sector high + drive
     sta wksp_disc_op_sector                                           ; 971f: 8d 1b 10    ...            ; Store in disc op
-    jsr c8287                                                         ; 9722: 20 87 82     ..            ; Read from source
+    jsr exec_disc_op_from_wksp                                        ; 9722: 20 87 82     ..            ; Read from source
     lda #&0a                                                          ; 9725: a9 0a       ..             ; Write command = &0A
     sta wksp_disc_op_command                                          ; 9727: 8d 1a 10    ...            ; Store in disc op
     lda l10a8                                                         ; 972a: ad a8 10    ...            ; Get dest sector low
@@ -4581,7 +4582,7 @@ oscli                                           = &fff7
     sta l101c                                                         ; 9733: 8d 1c 10    ...            ; Store in disc op
     lda l10aa                                                         ; 9736: ad aa 10    ...            ; Get dest sector high + drive
     sta wksp_disc_op_sector                                           ; 9739: 8d 1b 10    ...            ; Store in disc op
-    jsr c8287                                                         ; 973c: 20 87 82     ..            ; Write to destination
+    jsr exec_disc_op_from_wksp                                        ; 973c: 20 87 82     ..            ; Write to destination
     lda l10a5                                                         ; 973f: ad a5 10    ...            ; Check if more sectors to copy
     ora l10a6                                                         ; 9742: 0d a6 10    ...            ; OR with mid byte
     ora l10a7                                                         ; 9745: 0d a7 10    ...            ; OR with high byte
@@ -4632,7 +4633,7 @@ oscli                                           = &fff7
     sta wksp_disc_op_sector                                           ; 979d: 8d 1b 10    ...            ; Store in disc op high
     lda #5                                                            ; 97a0: a9 05       ..             ; Read 5 sectors (full directory)
     sta wksp_disc_op_sector_count                                     ; 97a2: 8d 1e 10    ...            ; Store sector count
-    jmp c828b                                                         ; 97a5: 4c 8b 82    L..            ; Execute disc read
+    jmp exec_disc_command                                             ; 97a5: 4c 8b 82    L..            ; Execute disc read
 
 ; &97a8 referenced 2 times by &98ab, &98d7
 .c97a8
@@ -5045,38 +5046,38 @@ oscli                                           = &fff7
 
     ldx #3                                                            ; 9a0a: a2 03       ..             ; X=3: expect 4 chars (CR,Y,E,S)
 ; &9a0c referenced 1 time by &9a1e
-.loop_c9a0c
+.confirm_destroy_loop
     jsr osrdch                                                        ; 9a0c: 20 e0 ff     ..            ; Read character from keyboard; Read a character from the current input stream
     cmp #&20 ; ' '                                                    ; 9a0f: c9 20       .              ; Is it a printable char?; A=character read
-    bcc c9a16                                                         ; 9a11: 90 03       ..             ; No, don't echo control chars
+    bcc check_confirm_response                                        ; 9a11: 90 03       ..             ; No, don't echo control chars
     jsr osasci                                                        ; 9a13: 20 e3 ff     ..            ; Echo the typed character; Write character
 ; &9a16 referenced 1 time by &9a11
-.c9a16
+.check_confirm_response
     and #&df                                                          ; 9a16: 29 df       ).             ; Convert to uppercase
     cmp str_yes,x                                                     ; 9a18: dd ac 84    ...            ; Compare with "YES\r" (reversed)
     bne print_aborted_error                                           ; 9a1b: d0 ba       ..             ; Mismatch: abort with Aborted error
     dex                                                               ; 9a1d: ca          .              ; Next expected character
-    bpl loop_c9a0c                                                    ; 9a1e: 10 ec       ..             ; Loop for all 4 chars
+    bpl confirm_destroy_loop                                          ; 9a1e: 10 ec       ..             ; Loop for all 4 chars
     jsr osnewl                                                        ; 9a20: 20 e7 ff     ..            ; Print newline after YES; Write newline (characters 10 and 13)
     inx                                                               ; 9a23: e8          .              ; Clear channel for error messages
     stx wksp_cur_channel                                              ; 9a24: 8e d5 10    ...            ; Store in current channel workspace
 ; &9a27 referenced 1 time by &9a3b
-.loop_c9a27
+.delete_matching_files_loop
     lda zp_b4                                                         ; 9a27: a5 b4       ..             ; Deletion loop: save filename low
     pha                                                               ; 9a29: 48          H              ; Push low byte
     lda zp_b5                                                         ; 9a2a: a5 b5       ..             ; Save filename pointer high
     pha                                                               ; 9a2c: 48          H              ; Push high byte
     jsr sub_c8fdf                                                     ; 9a2d: 20 df 8f     ..            ; Find next matching file
-    bne c9a3e                                                         ; 9a30: d0 0c       ..             ; Not found: all deleted, finish
+    bne all_files_deleted                                             ; 9a30: d0 0c       ..             ; Not found: all deleted, finish
     jsr check_and_delete_found                                        ; 9a32: 20 28 91     (.            ; Delete this file
     pla                                                               ; 9a35: 68          h              ; Restore filename pointer high
     sta zp_b5                                                         ; 9a36: 85 b5       ..             ; Store in (&B5)
     pla                                                               ; 9a38: 68          h              ; Restore filename pointer low
     sta zp_b4                                                         ; 9a39: 85 b4       ..             ; Store in (&B4)
-    jmp loop_c9a27                                                    ; 9a3b: 4c 27 9a    L'.            ; Loop to delete next match
+    jmp delete_matching_files_loop                                    ; 9a3b: 4c 27 9a    L'.            ; Loop to delete next match
 
 ; &9a3e referenced 1 time by &9a30
-.c9a3e
+.all_files_deleted
     pla                                                               ; 9a3e: 68          h              ; Discard saved filename from stack
     pla                                                               ; 9a3f: 68          h              ; Discard second saved byte
     jmp c89d3                                                         ; 9a40: 4c d3 89    L..            ; Save workspace and return
@@ -5188,7 +5189,7 @@ oscli                                           = &fff7
 .dispatch_service_call
     pla                                                               ; 9ab9: 68          h              ; Restore service call number
     cmp #&12                                                          ; 9aba: c9 12       ..             ; Service &12: select filing system?
-    beq c9b38                                                         ; 9abc: f0 7a       .z             ; Yes, handle FS selection
+    beq select_adfs_filing_system                                     ; 9abc: f0 7a       .z             ; Yes, handle FS selection
     cmp #&0a                                                          ; 9abe: c9 0a       ..             ; Service >= &0A?
     bcs service_handler_0                                             ; 9ac0: b0 f6       ..             ; Yes, not for us, return
     tax                                                               ; 9ac2: aa          .              ; Transfer to X for table index
@@ -5214,9 +5215,9 @@ oscli                                           = &fff7
     jsr floppy_check_present                                          ; 9acf: 20 11 ba     ..            ; Check if floppy hardware present; Check floppy disc hardware present
     inx                                                               ; 9ad2: e8          .              ; Increment result counter
     bpl service_handler_1                                             ; 9ad3: 10 fa       ..             ; Service 1: absolute workspace claim
-    bcc c9ae6                                                         ; 9ad5: 90 0f       ..             ; No floppy, check hard drive
+    bcc adfs_hardware_found                                           ; 9ad5: 90 0f       ..             ; No floppy, check hard drive
     jsr hd_init_detect                                                ; 9ad7: 20 63 9a     c.            ; Check if hard drive present; Detect hard drive hardware
-    beq c9ae6                                                         ; 9ada: f0 0a       ..             ; Not present, skip ADFS init
+    beq adfs_hardware_found                                           ; 9ada: f0 0a       ..             ; Not present, skip ADFS init
     lda #&40 ; '@'                                                    ; 9adc: a9 40       .@             ; Mark ROM as having ADFS workspace
     ldx romsel_copy                                                   ; 9ade: a6 f4       ..             ; Get our ROM number
     sta nmi_0df0,x                                                    ; 9ae0: 9d f0 0d    ...            ; Store flag in ROM status table
@@ -5224,7 +5225,7 @@ oscli                                           = &fff7
     rts                                                               ; 9ae5: 60          `              ; Return A=1 (claim 1 page)
 
 ; &9ae6 referenced 2 times by &9ad5, &9ada
-.c9ae6
+.adfs_hardware_found
     lda #1                                                            ; 9ae6: a9 01       ..             ; Return A=1: claim 1 page
     ldx romsel_copy                                                   ; 9ae8: a6 f4       ..             ; Get our ROM number
     cpy #&1c                                                          ; 9aea: c0 1c       ..             ; Y < &1C (PAGE already high enough)?
@@ -5249,34 +5250,34 @@ oscli                                           = &fff7
     sta nmi_0df0,x                                                    ; 9af2: 9d f0 0d    ...            ; Store workspace page in ROM table
     pha                                                               ; 9af5: 48          H              ; Save Y on stack
     lda last_break_type                                               ; 9af6: ad 8d 02    ...            ; Check break type
-    beq c9b10                                                         ; 9af9: f0 15       ..             ; Soft break, skip workspace init
+    beq verify_workspace_checksum                                     ; 9af9: f0 15       ..             ; Soft break, skip workspace init
     jsr get_wksp_addr_ba                                              ; 9afb: 20 0e a7     ..            ; Get workspace base address; Get workspace address into &BA
     tay                                                               ; 9afe: a8          .              ; Transfer Y to A
 ; &9aff referenced 1 time by &9b0b
-.loop_c9aff
+.copy_default_workspace_loop
     lda default_workspace_data,y                                      ; 9aff: b9 46 9a    .F.            ; Get default workspace byte
     cpy #&1d                                                          ; 9b02: c0 1d       ..             ; Past initialisation data (Y>=&1D)?
-    bcc c9b08                                                         ; 9b04: 90 02       ..             ; No, use default value from table
+    bcc check_workspace_initialised                                   ; 9b04: 90 02       ..             ; No, use default value from table
     lda #0                                                            ; 9b06: a9 00       ..             ; A=0: zero for unused workspace
 ; &9b08 referenced 1 time by &9b04
-.c9b08
+.check_workspace_initialised
     sta (zp_ba),y                                                     ; 9b08: 91 ba       ..             ; Store byte in workspace
     iny                                                               ; 9b0a: c8          .              ; Next byte
-    bne loop_c9aff                                                    ; 9b0b: d0 f2       ..             ; Loop for all 256 workspace bytes
+    bne copy_default_workspace_loop                                   ; 9b0b: d0 f2       ..             ; Loop for all 256 workspace bytes
     jsr store_wksp_checksum_ba_y                                      ; 9b0d: 20 2b a7     +.            ; Store workspace checksum
 ; &9b10 referenced 1 time by &9af9
-.c9b10
+.verify_workspace_checksum
     jsr check_wksp_checksum                                           ; 9b10: 20 31 a7     1.            ; Verify workspace checksum
     iny                                                               ; 9b13: c8          .              ; Y=next byte in workspace
     lda (zp_ba),y                                                     ; 9b14: b1 ba       ..             ; Read stored workspace byte
     cmp #&ff                                                          ; 9b16: c9 ff       ..             ; Is it &FF (uninitialised)?
-    bne c9b22                                                         ; 9b18: d0 08       ..             ; No, workspace valid from soft break
+    bne claim_filing_system                                           ; 9b18: d0 08       ..             ; No, workspace valid from soft break
     ror zp_flags                                                      ; 9b1a: 66 cd       f.             ; Clear Tube-present flag (bit 7)
     clc                                                               ; 9b1c: 18          .              ; Clear carry for rotate
     rol zp_flags                                                      ; 9b1d: 26 cd       &.             ; Restore bit 0, Tube flag cleared
     jsr fsc6_new_filing_system                                        ; 9b1f: 20 3c a9     <.            ; FSC 6: new filing system selected
 ; &9b22 referenced 1 time by &9b18
-.c9b22
+.claim_filing_system
     ldx #buffer_keyboard                                              ; 9b22: a2 00       ..             ; X=0: keyboard buffer number
     lda #osbyte_flush_buffer                                          ; 9b24: a9 15       ..             ; OSBYTE &15: flush buffer
     jsr osbyte                                                        ; 9b26: 20 f4 ff     ..            ; Flush the keyboard buffer (X=0)
@@ -5293,7 +5294,7 @@ oscli                                           = &fff7
     rts                                                               ; 9b37: 60          `              ; Return
 
 ; &9b38 referenced 1 time by &9abc
-.c9b38
+.select_adfs_filing_system
     cpy #8                                                            ; 9b38: c0 08       ..             ; Service &12: select filing system?
     bne return_24                                                     ; 9b3a: d0 fb       ..             ; No, return
     tya                                                               ; 9b3c: 98          .              ; Y=8: ADFS filing system number
@@ -5392,7 +5393,7 @@ oscli                                           = &fff7
     ldx #&0f                                                          ; 9bc3: a2 0f       ..             ; X=&0F: service 15 (vectors claimed)
     ldy #&ff                                                          ; 9bc5: a0 ff       ..             ; Y=&FF
     jsr osbyte                                                        ; 9bc7: 20 f4 ff     ..            ; Issue paged ROM service call, Reason X=15 - Vectors claimed
-    jsr sub_cba0c                                                     ; 9bca: 20 0c ba     ..            ; Initialise floppy state
+    jsr mark_partial_transfer                                         ; 9bca: 20 0c ba     ..            ; Initialise floppy state
     jsr check_wksp_checksum                                           ; 9bcd: 20 31 a7     1.            ; Verify workspace checksum
     ldx #0                                                            ; 9bd0: a2 00       ..             ; X=0: clear workspace entries
     stx wksp_1008                                                     ; 9bd2: 8e 08 10    ...            ; Clear workspace byte &08
@@ -5507,7 +5508,7 @@ oscli                                           = &fff7
     inx                                                               ; 9c8e: e8          .              ; Drive = &FF?
     bne c9c97                                                         ; 9c8f: d0 06       ..             ; No, check boot option
     stx l106f                                                         ; 9c91: 8e 6f 10    .o.            ; X=0: store as drive for mount
-    jsr sub_ca161                                                     ; 9c94: 20 61 a1     a.            ; Mount drive 0
+    jsr mount_drive_setup                                             ; 9c94: 20 61 a1     a.            ; Mount drive 0
 ; &9c97 referenced 1 time by &9c8f
 .c9c97
     ldy fsm_s1_boot_option                                            ; 9c97: ac fd 0f    ...            ; Get boot option from FSM
@@ -5622,47 +5623,47 @@ oscli                                           = &fff7
     ;     A=9, Host filing system
     ;     A=10, Videodisc filing system
     cmp #8                                                            ; 9d21: c9 08       ..             ; Is it ADFS (filing system 8)?; A=filing system number
-    bne c9d6a                                                         ; 9d23: d0 45       .E             ; No, pass on to next ROM
+    bne store_result_byte                                             ; 9d23: d0 45       .E             ; No, pass on to next ROM
     lda l00ef                                                         ; 9d25: a5 ef       ..             ; Get OSWORD number from &EF
     cmp #&72 ; 'r'                                                    ; 9d27: c9 72       .r             ; Is it OSWORD &72 (disc access)?
-    bne c9d71                                                         ; 9d29: d0 46       .F             ; No, check other OSWORD numbers
+    bne check_transfer_complete                                       ; 9d29: d0 46       .F             ; No, check other OSWORD numbers
     lda l00f0                                                         ; 9d2b: a5 f0       ..             ; Get control block address from &F0
     sta zp_ba                                                         ; 9d2d: 85 ba       ..             ; Store in (&BA) for access
     lda l00f1                                                         ; 9d2f: a5 f1       ..             ; Get control block high byte
     sta zp_bb                                                         ; 9d31: 85 bb       ..             ; Store in (&BB)
     ldy #&0f                                                          ; 9d33: a0 0f       ..             ; Y=&0F: copy 16 bytes of ctrl block
 ; &9d35 referenced 1 time by &9d3b
-.loop_c9d35
+.match_osword_block_loop
     lda (zp_ba),y                                                     ; 9d35: b1 ba       ..             ; Copy control block to workspace
     sta wksp_disc_op_result,y                                         ; 9d37: 99 15 10    ...            ; Copy control block to workspace
     dey                                                               ; 9d3a: 88          .              ; Next byte
-    bpl loop_c9d35                                                    ; 9d3b: 10 f8       ..             ; Loop for 16 bytes
+    bpl match_osword_block_loop                                       ; 9d3b: 10 f8       ..             ; Loop for 16 bytes
     lda wksp_disc_op_command                                          ; 9d3d: ad 1a 10    ...            ; Get disc operation command byte
     and #&fd                                                          ; 9d40: 29 fd       ).             ; Mask out direction bit
     cmp #8                                                            ; 9d42: c9 08       ..             ; Command 8 = verify?
-    beq c9d57                                                         ; 9d44: f0 11       ..             ; Yes, handle verify specially
+    beq store_osword_result                                           ; 9d44: f0 11       ..             ; Yes, handle verify specially
 ; &9d46 referenced 1 time by &9d5a
-.loop_c9d46
+.copy_disc_op_params_loop
     ldx #&15                                                          ; 9d46: a2 15       ..             ; Set up disc op control block
     ldy #&10                                                          ; 9d48: a0 10       ..             ; Y=&10: workspace control block
     inc wksp_current_drive                                            ; 9d4a: ee 17 11    ...            ; Temporarily set drive to &FF+1=0
-    beq c9d52                                                         ; 9d4d: f0 03       ..             ; Was it already 0 (unset)?
+    beq execute_osword_disc_op                                        ; 9d4d: f0 03       ..             ; Was it already 0 (unset)?
     dec wksp_current_drive                                            ; 9d4f: ce 17 11    ...            ; No, restore original drive
 ; &9d52 referenced 1 time by &9d4d
-.c9d52
+.execute_osword_disc_op
     jsr command_exec_xy                                               ; 9d52: 20 89 80     ..            ; Execute the disc command; Execute disc command with control block at (X,Y)
-    bpl c9d5f                                                         ; 9d55: 10 08       ..             ; Success?
+    bpl copy_result_sector_loop                                       ; 9d55: 10 08       ..             ; Success?
 ; &9d57 referenced 1 time by &9d44
-.c9d57
+.store_osword_result
     lda wksp_disc_op_sector_count                                     ; 9d57: ad 1e 10    ...            ; Check sector count for verify
-    bne loop_c9d46                                                    ; 9d5a: d0 ea       ..             ; More sectors to verify
+    bne copy_disc_op_params_loop                                      ; 9d5a: d0 ea       ..             ; More sectors to verify
     jsr sub_c8a45                                                     ; 9d5c: 20 45 8a     E.            ; Process verify result
 ; &9d5f referenced 1 time by &9d55
-.c9d5f
+.copy_result_sector_loop
     ldy #0                                                            ; 9d5f: a0 00       ..             ; Y=0: store result at block+0
     sta (zp_ba),y                                                     ; 9d61: 91 ba       ..             ; Write result back to control block
 ; &9d63 referenced 4 times by &9d7f, &9d91, &9da5, &aba2
-.c9d63
+.set_result_error_code
     ldx romsel_copy                                                   ; 9d63: a6 f4       ..             ; Restore ROM number
     pla                                                               ; 9d65: 68          h              ; Restore Y
     tay                                                               ; 9d66: a8          .              ; Restore Y
@@ -5670,7 +5671,7 @@ oscli                                           = &fff7
     rts                                                               ; 9d69: 60          `              ; Return (service claimed)
 
 ; &9d6a referenced 2 times by &9d23, &9d96
-.c9d6a
+.store_result_byte
     ldx romsel_copy                                                   ; 9d6a: a6 f4       ..             ; Not our filing system
     pla                                                               ; 9d6c: 68          h              ; Restore Y
     tay                                                               ; 9d6d: a8          .              ; Transfer to Y
@@ -5678,43 +5679,43 @@ oscli                                           = &fff7
     rts                                                               ; 9d70: 60          `              ; Return (not claimed)
 
 ; &9d71 referenced 1 time by &9d29
-.c9d71
+.check_transfer_complete
     cmp #&73 ; 's'                                                    ; 9d71: c9 73       .s             ; OSWORD &73 (read last error)?
-    bne c9d81                                                         ; 9d73: d0 0c       ..             ; No, check next
+    bne adjust_partial_transfer                                       ; 9d73: d0 0c       ..             ; No, check next
     ldy #4                                                            ; 9d75: a0 04       ..             ; Y=4: copy 5 bytes of error info
 ; &9d77 referenced 1 time by &9d7d
-.loop_c9d77
+.copy_transfer_count_loop
     lda wksp_err_sector,y                                             ; 9d77: b9 d0 10    ...            ; Copy error sector+code to block
     sta (l00f0),y                                                     ; 9d7a: 91 f0       ..             ; Store error byte in control block
     dey                                                               ; 9d7c: 88          .              ; Next byte
-    bpl loop_c9d77                                                    ; 9d7d: 10 f8       ..             ; Loop for 5 error bytes
-    bmi c9d63                                                         ; 9d7f: 30 e2       0.             ; Return as claimed; ALWAYS branch
+    bpl copy_transfer_count_loop                                      ; 9d7d: 10 f8       ..             ; Loop for 5 error bytes
+    bmi set_result_error_code                                         ; 9d7f: 30 e2       0.             ; Return as claimed; ALWAYS branch
 
 ; &9d81 referenced 1 time by &9d73
-.c9d81
+.adjust_partial_transfer
     cmp #&70 ; 'p'                                                    ; 9d81: c9 70       .p             ; OSWORD &70 (read dir state)?
-    bne c9d94                                                         ; 9d83: d0 0f       ..             ; No, check next
+    bne store_adjusted_count                                          ; 9d83: d0 0f       ..             ; No, check next
     lda dir_master_sequence                                           ; 9d85: ad fa 16    ...            ; Get directory master sequence
     ldy #0                                                            ; 9d88: a0 00       ..             ; Y=0: store at block+0
     sta (l00f0),y                                                     ; 9d8a: 91 f0       ..             ; Write sequence number to block
     lda zp_flags                                                      ; 9d8c: a5 cd       ..             ; Get ADFS flags
     iny                                                               ; 9d8e: c8          .              ; Y=&01
     sta (l00f0),y                                                     ; 9d8f: 91 f0       ..             ; Write flags to block+1
-    jmp c9d63                                                         ; 9d91: 4c 63 9d    Lc.            ; Return as claimed
+    jmp set_result_error_code                                         ; 9d91: 4c 63 9d    Lc.            ; Return as claimed
 
 ; &9d94 referenced 1 time by &9d83
-.c9d94
+.store_adjusted_count
     cmp #&71 ; 'q'                                                    ; 9d94: c9 71       .q             ; OSWORD &71 (read free space)?
-    bne c9d6a                                                         ; 9d96: d0 d2       ..             ; No, not for us
+    bne store_result_byte                                             ; 9d96: d0 d2       ..             ; No, not for us
     jsr calc_total_free_space                                         ; 9d98: 20 aa a1     ..            ; Calculate free space on disc; Calculate total free space on disc
     ldy #3                                                            ; 9d9b: a0 03       ..             ; Y=3: copy 4 bytes of result
 ; &9d9d referenced 1 time by &9da3
-.loop_c9d9d
+.copy_adjusted_bytes_loop
     lda wksp_disc_op_result,y                                         ; 9d9d: b9 15 10    ...            ; Copy free space to control block
     sta (l00f0),y                                                     ; 9da0: 91 f0       ..             ; Store free space byte
     dey                                                               ; 9da2: 88          .              ; Next byte
-    bpl loop_c9d9d                                                    ; 9da3: 10 f8       ..             ; Loop for 4 bytes
-    bmi c9d63                                                         ; 9da5: 30 bc       0.             ; Return as claimed; ALWAYS branch
+    bpl copy_adjusted_bytes_loop                                      ; 9da3: 10 f8       ..             ; Loop for 4 bytes
+    bmi set_result_error_code                                         ; 9da5: 30 bc       0.             ; Return as claimed; ALWAYS branch
 
 ; ***************************************************************************************
 ; Print *HELP version header line
@@ -5741,13 +5742,13 @@ oscli                                           = &fff7
     pha                                                               ; 9dbf: 48          H              ; Save text pointer on stack
     lda (os_text_ptr),y                                               ; 9dc0: b1 f2       ..             ; Get first char of *HELP argument
     cmp #&20 ; ' '                                                    ; 9dc2: c9 20       .              ; Is it a printable char?
-    bcs c9def                                                         ; 9dc4: b0 29       .)             ; Yes, try matching 'ADFS'
+    bcs end_of_command_name                                           ; 9dc4: b0 29       .)             ; Yes, try matching 'ADFS'
     jsr help_print_header                                             ; 9dc6: 20 a7 9d     ..            ; No argument: print version banner; Print *HELP version header line
     jsr print_inline_string                                           ; 9dc9: 20 a0 92     ..            ; Print '  ADFS'; Print bit-7-terminated inline string
     equs "  ADFS"                                                     ; 9dcc: 20 20 41...   A
 
-.sub_c9dd2
-l9dd3 = sub_c9dd2+1
+.check_help_adfs_keyword
+l9dd3 = check_help_adfs_keyword+1
     sta la868                                                         ; 9dd2: 8d 68 a8    .h.            ; Store flag for help type
 ; &9dd3 referenced 2 times by &9de3, &9e10
     ldx romsel_copy                                                   ; 9dd5: a6 f4       ..             ; Get our ROM number
@@ -5757,7 +5758,7 @@ l9dd3 = sub_c9dd2+1
     rts                                                               ; 9dd9: 60          `              ; Return
 
 ; &9dda referenced 2 times by &9de5, &9dea
-.sub_c9dda
+.print_help_command_list
     iny                                                               ; 9dda: c8          .              ; Check next char of HELP argument
     lda (os_text_ptr),y                                               ; 9ddb: b1 f2       ..             ; Get next char from help text
     cmp #&20 ; ' '                                                    ; 9ddd: c9 20       .              ; Is it printable?
@@ -5767,36 +5768,36 @@ l9dd3 = sub_c9dd2+1
     bcc l9dd3                                                         ; 9de3: 90 ee       ..             ; Return to service dispatcher; ALWAYS branch
 
 ; &9de5 referenced 3 times by &9de8, &9dfc, &9e06
-.c9de5
-    jsr sub_c9dda                                                     ; 9de5: 20 da 9d     ..            ; Skip non-space chars in argument
-    bne c9de5                                                         ; 9de8: d0 fb       ..             ; Loop skipping non-space chars
+.print_next_command
+    jsr print_help_command_list                                       ; 9de5: 20 da 9d     ..            ; Skip non-space chars in argument
+    bne print_next_command                                            ; 9de8: d0 fb       ..             ; Loop skipping non-space chars
 ; &9dea referenced 1 time by &9ded
-.loop_c9dea
-    jsr sub_c9dda                                                     ; 9dea: 20 da 9d     ..            ; Skip space chars after word
-    beq loop_c9dea                                                    ; 9ded: f0 fb       ..             ; Loop skipping space chars
+.output_command_name_loop
+    jsr print_help_command_list                                       ; 9dea: 20 da 9d     ..            ; Skip space chars after word
+    beq output_command_name_loop                                      ; 9ded: f0 fb       ..             ; Loop skipping space chars
 ; &9def referenced 1 time by &9dc4
-.c9def
+.end_of_command_name
     ldx #3                                                            ; 9def: a2 03       ..             ; X=3: compare 4 chars of 'ADFS'
 ; &9df1 referenced 1 time by &9e00
-.loop_c9df1
+.pad_command_name_loop
     lda (os_text_ptr),y                                               ; 9df1: b1 f2       ..             ; Get char from argument
     cmp #&2e ; '.'                                                    ; 9df3: c9 2e       ..             ; Is it a dot (abbreviation)?
-    beq c9e08                                                         ; 9df5: f0 11       ..             ; Yes, match succeeded
+    beq check_more_commands                                           ; 9df5: f0 11       ..             ; Yes, match succeeded
     ora #&20 ; ' '                                                    ; 9df7: 09 20       .              ; Convert to lowercase for compare
     cmp str_filing_system_name,x                                      ; 9df9: dd d6 9c    ...            ; Compare with "adfs" backwards
-    bne c9de5                                                         ; 9dfc: d0 e7       ..             ; No match, skip this word
+    bne print_next_command                                            ; 9dfc: d0 e7       ..             ; No match, skip this word
     iny                                                               ; 9dfe: c8          .              ; Next char in argument
     dex                                                               ; 9dff: ca          .              ; Next char in 'ADFS'
-    bpl loop_c9df1                                                    ; 9e00: 10 ef       ..             ; Loop for 4 chars
+    bpl pad_command_name_loop                                         ; 9e00: 10 ef       ..             ; Loop for 4 chars
     lda (os_text_ptr),y                                               ; 9e02: b1 f2       ..             ; Check char after 'ADFS' match
     cmp #&21 ; '!'                                                    ; 9e04: c9 21       .!             ; More alpha chars? Not exact match
-    bcs c9de5                                                         ; 9e06: b0 dd       ..             ; Not a match, skip word
+    bcs print_next_command                                            ; 9e06: b0 dd       ..             ; Not a match, skip word
 ; &9e08 referenced 1 time by &9df5
-.c9e08
+.check_more_commands
     jsr help_print_header                                             ; 9e08: 20 a7 9d     ..            ; Print version info; Print *HELP version header line
     ldx #0                                                            ; 9e0b: a2 00       ..             ; X=0: start of command table
 ; &9e0d referenced 1 time by &9e46
-.c9e0d
+.print_help_data_commands
     lda tbl_commands,x                                                ; 9e0d: bd e3 9e    ...            ; Get command table byte
     bmi l9dd3                                                         ; 9e10: 30 c1       0.             ; Bit 7 set: end of table
     jsr print_inline_string                                           ; 9e12: 20 a0 92     ..            ; Print leading spaces; Print bit-7-terminated inline string
@@ -5805,18 +5806,18 @@ l9dd3 = sub_c9dd2+1
 
     ldy #9                                                            ; 9e17: a0 09       ..             ; Y=9: max 10 chars per command name
 ; &9e19 referenced 1 time by &9e23
-.loop_c9e19
+.print_data_cmd_name_loop
     lda tbl_commands,x                                                ; 9e19: bd e3 9e    ...            ; Get char from command table
-    bmi c9e25                                                         ; 9e1c: 30 07       0.             ; Bit 7 set: end of command name
+    bmi end_of_data_command                                           ; 9e1c: 30 07       0.             ; Bit 7 set: end of command name
     jsr osasci                                                        ; 9e1e: 20 e3 ff     ..            ; Print command name character; Write character
     inx                                                               ; 9e21: e8          .              ; Next table byte
     dey                                                               ; 9e22: 88          .              ; Decrement char counter
-    bpl loop_c9e19                                                    ; 9e23: 10 f4       ..             ; Loop for up to 10 chars
+    bpl print_data_cmd_name_loop                                      ; 9e23: 10 f4       ..             ; Loop for up to 10 chars
 ; &9e25 referenced 2 times by &9e1c, &9e29
-.c9e25
+.end_of_data_command
     jsr ca016                                                         ; 9e25: 20 16 a0     ..            ; Print space for padding
     dey                                                               ; 9e28: 88          .              ; Decrement padding counter
-    bpl c9e25                                                         ; 9e29: 10 fa       ..             ; Loop until 10 columns filled
+    bpl end_of_data_command                                           ; 9e29: 10 fa       ..             ; Loop until 10 columns filled
     txa                                                               ; 9e2b: 8a          .              ; Save table index
     pha                                                               ; 9e2c: 48          H              ; Save table index on stack
     lda l9ee5,x                                                       ; 9e2d: bd e5 9e    ...            ; Get address byte from table+2
@@ -5835,7 +5836,7 @@ l9dd3 = sub_c9dd2+1
     inx                                                               ; 9e43: e8          .              ; Skip past 3-byte entry data
     inx                                                               ; 9e44: e8          .              ; Skip past 1st dispatch byte
     inx                                                               ; 9e45: e8          .              ; Skip past 2nd dispatch byte
-    bne c9e0d                                                         ; 9e46: d0 c5       ..             ; Loop for all commands
+    bne print_help_data_commands                                      ; 9e46: d0 c5       ..             ; Loop for all commands
 ; &9e48 referenced 1 time by &9280
 .l9e48
     equb &d7, &8d, &99, &a3, &af, &b9, &c3, &d0                       ; 9e48: d7 8d 99... ...
@@ -6100,13 +6101,13 @@ l9dd3 = sub_c9dd2+1
     ldx #2                                                            ; a02e: a2 02       ..             ; X=2: subtract 3 bytes
     sec                                                               ; a030: 38          8              ; Set carry for subtraction
 ; &a031 referenced 1 time by &a03c
-.loop_ca031
+.print_used_space
     lda fsm_s0_disc_id_lo,y                                           ; a031: b9 fb 0e    ...            ; Total sectors (from FSM sector 0)
     sbc wksp_disc_op_result,y                                         ; a034: f9 15 10    ...            ; Subtract free space
     sta wksp_disc_op_result,y                                         ; a037: 99 15 10    ...            ; Store result (used space)
     iny                                                               ; a03a: c8          .              ; Next FSM byte
     dex                                                               ; a03b: ca          .              ; Decrement byte counter
-    bpl loop_ca031                                                    ; a03c: 10 f3       ..             ; Loop for 3 bytes
+    bpl print_used_space                                              ; a03c: 10 f3       ..             ; Loop for 3 bytes
     jsr print_space_value                                             ; a03e: 20 c6 a1     ..            ; Print used space with header; Print space value in hex and decimal
     jsr print_inline_string                                           ; a041: 20 a0 92     ..            ; Print "Used" + CR; Print bit-7-terminated inline string
     equs "Used"                                                       ; a044: 55 73 65... Use
@@ -6130,7 +6131,7 @@ l9dd3 = sub_c9dd2+1
 
     ldx #0                                                            ; a05f: a2 00       ..             ; X=0: start of FSM entries
 ; &a061 referenced 1 time by &a092
-.ca061
+.print_map_header
     cpx fsm_s1_total_sectors_lo                                       ; a061: ec fe 0f    ...            ; Past end of free space list?
     beq return_27                                                     ; a064: f0 e3       ..             ; Yes, done
     inx                                                               ; a066: e8          .              ; Advance X to entry+3
@@ -6139,12 +6140,12 @@ l9dd3 = sub_c9dd2+1
     stx zp_c6                                                         ; a069: 86 c6       ..             ; Save FSM index for next iteration
     ldy #2                                                            ; a06b: a0 02       ..             ; Y=2: print 3 address bytes
 ; &a06d referenced 1 time by &a075
-.loop_ca06d
+.print_fsm_entries_loop
     dex                                                               ; a06d: ca          .              ; Back up to previous byte
     lda fsm_sector_0,x                                                ; a06e: bd 00 0e    ...            ; Get address byte from FSM sector 0
     jsr sub_c931b                                                     ; a071: 20 1b 93     ..            ; Print as 2 hex digits
     dey                                                               ; a074: 88          .              ; Next byte
-    bpl loop_ca06d                                                    ; a075: 10 f6       ..             ; Loop for 3 bytes (high to low)
+    bpl print_fsm_entries_loop                                        ; a075: 10 f6       ..             ; Loop for 3 bytes (high to low)
     jsr print_inline_string                                           ; a077: 20 a0 92     ..            ; Print "  : &" separator; Print bit-7-terminated inline string
     equs "  : "                                                       ; a07a: 20 20 3a...   :
     equb &a0                                                          ; a07e: a0          .
@@ -6152,15 +6153,15 @@ l9dd3 = sub_c9dd2+1
     ldx zp_c6                                                         ; a07f: a6 c6       ..             ; Restore FSM index
     ldy #2                                                            ; a081: a0 02       ..             ; Y=2: print 3 length bytes
 ; &a083 referenced 1 time by &a08b
-.loop_ca083
+.print_entry_hex_loop
     dex                                                               ; a083: ca          .              ; Back up to previous byte
     lda fsm_sector_1,x                                                ; a084: bd 00 0f    ...            ; Get length byte from FSM sector 1
     jsr sub_c931b                                                     ; a087: 20 1b 93     ..            ; Print as 2 hex digits
     dey                                                               ; a08a: 88          .              ; Next byte
-    bpl loop_ca083                                                    ; a08b: 10 f6       ..             ; Loop for 3 bytes (high to low)
+    bpl print_entry_hex_loop                                          ; a08b: 10 f6       ..             ; Loop for 3 bytes (high to low)
     jsr osnewl                                                        ; a08d: 20 e7 ff     ..            ; Print newline after each entry; Write newline (characters 10 and 13)
     ldx zp_c6                                                         ; a090: a6 c6       ..             ; Restore FSM index for next entry
-    bne ca061                                                         ; a092: d0 cd       ..             ; Loop if more entries
+    bne print_map_header                                              ; a092: d0 cd       ..             ; Loop if more entries
 ; ***************************************************************************************
 ; Check if disc compaction is recommended
 ; 
@@ -6203,14 +6204,14 @@ l9dd3 = sub_c9dd2+1
     pha                                                               ; a0c6: 48          H              ; Save current drive on stack
     tax                                                               ; a0c7: aa          .              ; Transfer to X to check for &FF
     inx                                                               ; a0c8: e8          .              ; Drive &FF = uninitialised?
-    beq ca0ce                                                         ; a0c9: f0 03       ..             ; Yes, skip close
+    beq close_all_drives_start                                        ; a0c9: f0 03       ..             ; Yes, skip close
     jsr star_close                                                    ; a0cb: 20 b3 b1     ..            ; Close all open files; *CLOSE command handler
 ; &a0ce referenced 1 time by &a0c9
-.ca0ce
+.close_all_drives_start
     lda #&60 ; '`'                                                    ; a0ce: a9 60       .`             ; Start with drive 3 (ID = &60)
     sta wksp_current_drive                                            ; a0d0: 8d 17 11    ...            ; Set as current drive
 ; &a0d3 referenced 1 time by &a0e3
-.loop_ca0d3
+.close_each_drive_loop
     ldx #&ea                                                          ; a0d3: a2 ea       ..             ; Point to dismount control block
     ldy #&a0                                                          ; a0d5: a0 a0       ..             ; Y=&A0: control block page
     jsr command_exec_xy                                               ; a0d7: 20 89 80     ..            ; Execute dismount disc operation; Execute disc command with control block at (X,Y)
@@ -6218,7 +6219,7 @@ l9dd3 = sub_c9dd2+1
     sec                                                               ; a0dd: 38          8              ; Set carry for subtraction
     sbc #&20 ; ' '                                                    ; a0de: e9 20       .              ; Next drive (subtract &20)
     sta wksp_current_drive                                            ; a0e0: 8d 17 11    ...            ; Store updated drive ID
-    bcs loop_ca0d3                                                    ; a0e3: b0 ee       ..             ; Loop while drive ID >= 0
+    bcs close_each_drive_loop                                         ; a0e3: b0 ee       ..             ; Loop while drive ID >= 0
     pla                                                               ; a0e5: 68          h              ; Restore original drive
     sta wksp_current_drive                                            ; a0e6: 8d 17 11    ...            ; Store back as current drive
     rts                                                               ; a0e9: 60          `              ; Return
@@ -6264,13 +6265,13 @@ l9dd3 = sub_c9dd2+1
     jsr parse_drive_argument                                          ; a111: 20 f5 a0     ..            ; Parse drive number argument; Parse optional drive number argument
     ldx #9                                                            ; a114: a2 09       ..             ; X=9: check all 10 channels
 ; &a116 referenced 1 time by &a130
-.loop_ca116
+.close_drive_channels_loop
     lda wksp_ch_flags,x                                               ; a116: bd ac 11    ...            ; Get channel flags
-    beq ca12f                                                         ; a119: f0 14       ..             ; Channel not open? Skip
+    beq check_csd_on_drive                                            ; a119: f0 14       ..             ; Channel not open? Skip
     lda l11b6,x                                                       ; a11b: bd b6 11    ...            ; Get channel's drive number
     and #&e0                                                          ; a11e: 29 e0       ).             ; Isolate drive bits
     cmp l106f                                                         ; a120: cd 6f 10    .o.            ; Compare with target drive
-    bne ca12f                                                         ; a123: d0 0a       ..             ; Different drive? Skip
+    bne check_csd_on_drive                                            ; a123: d0 0a       ..             ; Different drive? Skip
     clc                                                               ; a125: 18          .              ; Clear carry for addition
     txa                                                               ; a126: 8a          .              ; Channel index to A
     adc #&30 ; '0'                                                    ; a127: 69 30       i0             ; Add &30 to get file handle
@@ -6278,18 +6279,18 @@ l9dd3 = sub_c9dd2+1
     lda #0                                                            ; a12a: a9 00       ..             ; A=0: close file
     jsr my_osfind                                                     ; a12c: 20 b6 b1     ..            ; Close this file; OSFIND handler
 ; &a12f referenced 2 times by &a119, &a123
-.ca12f
+.check_csd_on_drive
     dex                                                               ; a12f: ca          .              ; Next channel
-    bpl loop_ca116                                                    ; a130: 10 e4       ..             ; Loop for all 10 channels
+    bpl close_drive_channels_loop                                     ; a130: 10 e4       ..             ; Loop for all 10 channels
     lda wksp_current_drive                                            ; a132: ad 17 11    ...            ; Is dismounted drive the CSD drive?
     cmp l106f                                                         ; a135: cd 6f 10    .o.            ; Compare with target drive
-    bne ca179                                                         ; a138: d0 3f       .?             ; Different drive: CSD unaffected
+    bne mount_read_root_dir                                           ; a138: d0 3f       .?             ; Different drive: CSD unaffected
     lda #&ff                                                          ; a13a: a9 ff       ..             ; Mark current drive as uninitialised
     sta wksp_current_drive                                            ; a13c: 8d 17 11    ...            ; Set CSD drive to &FF (unset)
     sta l1116                                                         ; a13f: 8d 16 11    ...            ; Invalidate drive status
     ldx #0                                                            ; a142: a2 00       ..             ; X=0: reset CSD name to "Unset"
     jsr copy_default_dir_name                                         ; a144: 20 49 a1     I.            ; Copy default name to CSD workspace; Copy default directory name to workspace
-    bmi ca179                                                         ; a147: 30 30       00             ; Always branch to exit code
+    bmi mount_read_root_dir                                           ; a147: 30 30       00             ; Always branch to exit code
 ; ***************************************************************************************
 ; Copy default directory name to workspace
 ; 
@@ -6330,7 +6331,7 @@ la154 = sub_ca153+1
 .star_mount
     jsr parse_drive_argument                                          ; a15e: 20 f5 a0     ..            ; Parse drive number argument; Parse optional drive number argument
 ; &a161 referenced 1 time by &9c94
-.sub_ca161
+.mount_drive_setup
     lda l106f                                                         ; a161: ad 6f 10    .o.            ; Get drive number to mount
     sta wksp_current_drive                                            ; a164: 8d 17 11    ...            ; Set as current drive
     ldx #&9f                                                          ; a167: a2 9f       ..             ; Point to unpark command block
@@ -6342,15 +6343,15 @@ la154 = sub_ca153+1
     sta zp_b5                                                         ; a174: 85 b5       ..             ; Store path high byte
     jsr star_dir                                                      ; a176: 20 3f 95     ?.            ; Set root as CSD via *DIR; *DIR command handler
 ; &a179 referenced 2 times by &a138, &a147
-.ca179
+.mount_read_root_dir
     lda l111f                                                         ; a179: ad 1f 11    ...            ; Check if previous dir is on drive
     cmp l106f                                                         ; a17c: cd 6f 10    .o.            ; Compare with target drive
-    bne ca189                                                         ; a17f: d0 08       ..             ; Different drive, leave previous
+    bne mount_set_boot_option                                         ; a17f: d0 08       ..             ; Different drive, leave previous
     lda #&ff                                                          ; a181: a9 ff       ..             ; Invalidate previous directory
     sta l111e                                                         ; a183: 8d 1e 11    ...            ; Invalidate prev dir high byte
     sta l111f                                                         ; a186: 8d 1f 11    ...            ; Invalidate prev dir drive byte
 ; &a189 referenced 1 time by &a17f
-.ca189
+.mount_set_boot_option
     lda l111b                                                         ; a189: ad 1b 11    ...            ; Check if library is on this drive
     cmp l106f                                                         ; a18c: cd 6f 10    .o.            ; Compare with target drive
     bne return_29                                                     ; a18f: d0 0d       ..             ; Different drive, leave library
@@ -6650,7 +6651,7 @@ la154 = sub_ca153+1
     lda zp_b5                                                         ; a39d: a5 b5       ..             ; Get filename high byte
     sta zp_c1                                                         ; a39f: 85 c1       ..             ; Store in save area high
     jsr sub_c8bb3                                                     ; a3a1: 20 b3 8b     ..            ; Try to find file in CSD
-    beq ca3bc                                                         ; a3a4: f0 16       ..             ; Found in CSD, proceed to load
+    beq search_lib_for_command                                        ; a3a4: f0 16       ..             ; Found in CSD, proceed to load
     jsr c89d3                                                         ; a3a6: 20 d3 89     ..            ; Not found: save workspace state
     lda zp_c0                                                         ; a3a9: a5 c0       ..             ; Restore filename pointer
     sta zp_b4                                                         ; a3ab: 85 b4       ..             ; Restore filename low
@@ -6661,7 +6662,7 @@ la154 = sub_ca153+1
     bne restore_csd_and_error                                         ; a3b7: d0 cd       ..             ; Not in library either: Not found
     jsr restore_csd                                                   ; a3b9: 20 73 a4     s.            ; Restore CSD after library search; Restore CSD sector from saved copy
 ; &a3bc referenced 1 time by &a3a4
-.ca3bc
+.search_lib_for_command
     lda zp_b4                                                         ; a3bc: a5 b4       ..             ; Save filename address for OSFILE
     sta l10a2                                                         ; a3be: 8d a2 10    ...            ; Store filename addr for OSFILE
     lda zp_b5                                                         ; a3c1: a5 b5       ..             ; Get filename pointer high
@@ -6670,13 +6671,13 @@ la154 = sub_ca153+1
     lda (zp_b6),y                                                     ; a3c8: b1 b6       ..             ; Get exec addr byte 0
     ldx #2                                                            ; a3ca: a2 02       ..             ; X=2: AND with bytes 1 and 2
 ; &a3cc referenced 1 time by &a3d0
-.loop_ca3cc
+.copy_run_params_loop
     iny                                                               ; a3cc: c8          .              ; AND exec addr bytes together
     and (zp_b6),y                                                     ; a3cd: 31 b6       1.             ; AND exec addr bytes together
     dex                                                               ; a3cf: ca          .              ; Next byte
-    bpl loop_ca3cc                                                    ; a3d0: 10 fa       ..             ; Loop for 3 bytes
+    bpl copy_run_params_loop                                          ; a3d0: 10 fa       ..             ; Loop for 3 bytes
     cmp #&ff                                                          ; a3d2: c9 ff       ..             ; All &FF? Exec addr = &FFFFFFFF
-    bne ca3e9                                                         ; a3d4: d0 13       ..             ; No, check load address
+    bne execute_loaded_file                                           ; a3d4: d0 13       ..             ; No, check load address
     ldx zp_b6                                                         ; a3d6: a6 b6       ..             ; Exec = &FFFFFFFF: open with OSFIND
     ldy zp_b7                                                         ; a3d8: a4 b7       ..             ; Get directory entry pointer high
     lda #&40 ; '@'                                                    ; a3da: a9 40       .@             ; A=&40: open for reading
@@ -6687,7 +6688,7 @@ la154 = sub_ca153+1
     jmp oscli                                                         ; a3e6: 4c f7 ff    L..            ; Execute via OSCLI
 
 ; &a3e9 referenced 1 time by &a3d4
-.ca3e9
+.execute_loaded_file
     ldy #&0b                                                          ; a3e9: a0 0b       ..             ; Y=&0B: check load addr bytes
     lda (zp_b6),y                                                     ; a3eb: b1 b6       ..             ; Get load addr byte 1
     iny                                                               ; a3ed: c8          .              ; Y=&0c
@@ -6695,13 +6696,13 @@ la154 = sub_ca153+1
     iny                                                               ; a3f0: c8          .              ; Y=&0d
     and (zp_b6),y                                                     ; a3f1: 31 b6       1.             ; AND with byte 3
     cmp #&ff                                                          ; a3f3: c9 ff       ..             ; All &FF? Load addr = &FFFFFFFF
-    bne ca401                                                         ; a3f5: d0 0a       ..             ; No, proceed with load and execute
+    bne run_tube_transfer                                             ; a3f5: d0 0a       ..             ; No, proceed with load and execute
     jsr reload_fsm_and_dir_then_brk                                   ; a3f7: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &93                                                          ; a3fa: 93          .
     equs "Won't", 0                                                   ; a3fb: 57 6f 6e... Won
 
 ; &a401 referenced 1 time by &a3f5
-.ca401
+.run_tube_transfer
     lda #&a5                                                          ; a401: a9 a5       ..             ; Set up OSFILE block for load
     sta l10a8                                                         ; a403: 8d a8 10    ...            ; Store exec addr for later JMP
     ldx #&a2                                                          ; a406: a2 a2       ..             ; X=&A2: OSFILE block offset
@@ -6713,27 +6714,27 @@ la154 = sub_ca153+1
     lda (zp_b6),y                                                     ; a413: b1 b6       ..             ; Get exec addr high byte
     ldy #0                                                            ; a415: a0 00       ..             ; Y=0: check low byte of exec addr
     ora (zp_b6),y                                                     ; a417: 11 b6       ..             ; OR with lowest byte
-    bmi ca41e                                                         ; a419: 30 03       0.             ; Bit 7 set: I/O or Tube address
+    bmi run_set_exec_addr                                             ; a419: 30 03       0.             ; Bit 7 set: I/O or Tube address
     jmp c8bf0                                                         ; a41b: 4c f0 8b    L..            ; Host address: jump directly
 
 ; &a41e referenced 1 time by &a419
-.ca41e
+.run_set_exec_addr
     jsr sub_c8c10                                                     ; a41e: 20 10 8c     ..            ; Set up Tube transfer
     lda l10ab                                                         ; a421: ad ab 10    ...            ; Check exec addr for &FFxx (Tube)
     cmp #&ff                                                          ; a424: c9 ff       ..             ; High byte = &FF (Tube address)?
-    bne ca434                                                         ; a426: d0 0c       ..             ; No, check further
+    bne run_jump_to_file                                              ; a426: d0 0c       ..             ; No, check further
     lda l10aa                                                         ; a428: ad aa 10    ...            ; Get next exec addr byte
     cmp #&fe                                                          ; a42b: c9 fe       ..             ; Is it >= &FE (I/O space)?
-    bcc ca434                                                         ; a42d: 90 05       ..             ; No, normal Tube address
+    bcc run_jump_to_file                                              ; a42d: 90 05       ..             ; No, normal Tube address
 ; &a42f referenced 1 time by &a436
-.loop_ca42f
+.copy_exec_addr_loop
     lda #1                                                            ; a42f: a9 01       ..             ; A=1: language entry point
     jmp (l10a8)                                                       ; a431: 6c a8 10    l..            ; Jump to execution address
 
 ; &a434 referenced 2 times by &a426, &a42d
-.ca434
+.run_jump_to_file
     bit zp_flags                                                      ; a434: 24 cd       $.             ; Check if Tube present
-    bpl loop_ca42f                                                    ; a436: 10 f7       ..             ; No Tube: execute directly
+    bpl copy_exec_addr_loop                                           ; a436: 10 f7       ..             ; No Tube: execute directly
     jsr claim_tube_retry                                              ; a438: 20 3b 80     ;.            ; Tube: set up Tube transfer
     ldx #&a8                                                          ; a43b: a2 a8       ..             ; Point to exec addr block
     ldy #&10                                                          ; a43d: a0 10       ..             ; Y=&10: Tube workspace page
@@ -7484,7 +7485,7 @@ la154 = sub_ca153+1
     inx                                                               ; a7ee: e8          .              ; Next X
     dey                                                               ; a7ef: 88          .              ; Next Y (decreasing)
     bpl copy_dir_sector_loop                                          ; a7f0: 10 ef       ..             ; Loop for 4 bytes
-    jmp c8287                                                         ; a7f2: 4c 87 82    L..            ; Execute disc read command
+    jmp exec_disc_op_from_wksp                                        ; a7f2: 4c 87 82    L..            ; Execute disc read command
 
 ; &a7f5 referenced 1 time by &a8d9
 .setup_fsm_read
@@ -7508,7 +7509,7 @@ la154 = sub_ca153+1
     inx                                                               ; a80f: e8          .              ; Next X
     dey                                                               ; a810: 88          .              ; Next Y (decreasing)
     bpl copy_fsm_sector_loop                                          ; a811: 10 ef       ..             ; Loop for 4 bytes
-    jsr c8287                                                         ; a813: 20 87 82     ..            ; Execute disc read command
+    jsr exec_disc_op_from_wksp                                        ; a813: 20 87 82     ..            ; Execute disc read command
 ; ***************************************************************************************
 ; Load free space map from disc
 ; 
@@ -7519,7 +7520,7 @@ la154 = sub_ca153+1
 .load_fsm
     ldx #&0c                                                          ; a816: a2 0c       ..             ; X=&0C: control block offset
     ldy #&88                                                          ; a818: a0 88       ..             ; Y=&88: control block page
-    jmp c828b                                                         ; a81a: 4c 8b 82    L..            ; Execute disc read command
+    jmp exec_disc_command                                             ; a81a: 4c 8b 82    L..            ; Execute disc read command
 
 ; ***************************************************************************************
 ; *COPY command handler
@@ -8048,7 +8049,7 @@ la868 = check_dest_terminator+1
     jsr scsi_wait_for_req                                             ; ab99: 20 0f 83     ..            ; Wait for message phase; Wait for SCSI REQ signal
     ora fred_hard_drive_0                                             ; ab9c: 0d 40 fc    .@.            ; OR with final status byte
     sta wksp_1131                                                     ; ab9f: 8d 31 11    .1.            ; Store combined status
-    jmp c9d63                                                         ; aba2: 4c 63 9d    Lc.            ; Return to service dispatcher
+    jmp set_result_error_code                                         ; aba2: 4c 63 9d    Lc.            ; Return to service dispatcher
 
 ; &aba5 referenced 1 time by &aaf3
 .sub_caba5
@@ -9387,7 +9388,7 @@ la868 = check_dest_terminator+1
     beq return_40                                                     ; b504: f0 ee       ..             ; Same: disc not changed
     ldx #&0c                                                          ; b506: a2 0c       ..             ; Changed: reload FSM
     ldy #&88                                                          ; b508: a0 88       ..             ; Y=&88: FSM control block
-    jsr c828b                                                         ; b50a: 20 8b 82     ..            ; Read FSM from disc
+    jsr exec_disc_command                                             ; b50a: 20 8b 82     ..            ; Read FSM from disc
     jmp cb491                                                         ; b50d: 4c 91 b4    L..            ; Continue checking
 
 ; &b510 referenced 3 times by &b4a7, &b4fe, &b52e
@@ -9445,7 +9446,7 @@ la868 = check_dest_terminator+1
     beq cb574                                                         ; b56b: f0 07       ..             ; Same: no FSM reload needed
     ldx #&0c                                                          ; b56d: a2 0c       ..             ; Different: reload FSM for current
     ldy #&88                                                          ; b56f: a0 88       ..             ; Y=&88: FSM control block
-    jsr c828b                                                         ; b571: 20 8b 82     ..            ; Read FSM from disc
+    jsr exec_disc_command                                             ; b571: 20 8b 82     ..            ; Read FSM from disc
 ; &b574 referenced 2 times by &b534, &b56b
 .cb574
     pla                                                               ; b574: 68          h              ; Restore Y from stack
@@ -10166,7 +10167,7 @@ la868 = check_dest_terminator+1
     jmp exec_floppy_read_bput_sector                                  ; ba09: 4c 2a ba    L*.
 
 ; &ba0c referenced 1 time by &9bca
-.sub_cba0c
+.mark_partial_transfer
     lda #&ff                                                          ; ba0c: a9 ff       ..             ; A=&FF: mark transfer state
     sta l10e4                                                         ; ba0e: 8d e4 10    ...            ; Store in transfer workspace
 ; ***************************************************************************************
@@ -11406,10 +11407,10 @@ save pydis_start, pydis_end
 ;     wait_ensuring:                                      9
 ;     wksp_1003:                                          9
 ;     wksp_1060:                                          9
-;     c8287:                                              8
-;     c828b:                                              8
 ;     c895e:                                              8
 ;     ca016:                                              8
+;     exec_disc_command:                                  8
+;     exec_disc_op_from_wksp:                             8
 ;     l0406:                                              8
 ;     l1035:                                              8
 ;     l1041:                                              8
@@ -11462,6 +11463,7 @@ save pydis_start, pydis_end
 ;     clear_transfer_complete:                            6
 ;     command_exec_xy:                                    6
 ;     floppy_wait_nmi_finish:                             6
+;     generate_disc_error:                                6
 ;     generate_error:                                     6
 ;     l103d:                                              6
 ;     l10a3:                                              6
@@ -11519,7 +11521,6 @@ save pydis_start, pydis_end
 ;     c96a6:                                              4
 ;     c9b6e:                                              4
 ;     c9c74:                                              4
-;     c9d63:                                              4
 ;     cac62:                                              4
 ;     cb3f1:                                              4
 ;     claim_tube_retry:                                   4
@@ -11551,6 +11552,7 @@ save pydis_start, pydis_end
 ;     return_17:                                          4
 ;     return_27:                                          4
 ;     return_38:                                          4
+;     set_result_error_code:                              4
 ;     setup_osgbpb_output_buffer:                         4
 ;     sub_c8a3d:                                          4
 ;     sub_c8bb3:                                          4
@@ -11573,18 +11575,16 @@ save pydis_start, pydis_end
 ;     allocate_disc_space:                                3
 ;     bad_address_error:                                  3
 ;     begin_compaction:                                   3
-;     c80af:                                              3
-;     c8282:                                              3
 ;     c8787:                                              3
 ;     c87a8:                                              3
 ;     c8bd7:                                              3
 ;     c8bf0:                                              3
-;     c9de5:                                              3
 ;     cac5f:                                              3
 ;     cace9:                                              3
 ;     calc_total_free_space:                              3
 ;     cb446:                                              3
 ;     check_alloc_vs_ptr:                                 3
+;     check_escape_during_retry:                          3
 ;     check_full_sectors_remain:                          3
 ;     check_ptr_within_allocation:                        3
 ;     check_special_dir_char:                             3
@@ -11628,6 +11628,7 @@ save pydis_start, pydis_end
 ;     oscli_at_x:                                         3
 ;     output_dir_entry_name:                              3
 ;     print_entry_info:                                   3
+;     print_next_command:                                 3
 ;     print_padded_name:                                  3
 ;     return_10:                                          3
 ;     return_14:                                          3
@@ -11652,6 +11653,7 @@ save pydis_start, pydis_end
 ;     switch_to_library:                                  3
 ;     transfer_sector_bytes:                              3
 ;     tube_delay2:                                        3
+;     unrecoverable_scsi_error:                           3
 ;     update_ext_from_new_ptr:                            3
 ;     validate_and_set_ptr:                               3
 ;     verify_dir_integrity:                               3
@@ -11671,6 +11673,7 @@ save pydis_start, pydis_end
 ;     zp_cb:                                              3
 ;     zp_scsi_status:                                     3
 ;     add_size_to_existing_entry:                         2
+;     adfs_hardware_found:                                2
 ;     advance_channel_sector:                             2
 ;     advance_fill_sector:                                2
 ;     advance_past_command:                               2
@@ -11678,11 +11681,7 @@ save pydis_start, pydis_end
 ;     apply_head_load_flag:                               2
 ;     apply_writable_mask:                                2
 ;     broken_directory_error:                             2
-;     c80be:                                              2
 ;     c8136:                                              2
-;     c81b1:                                              2
-;     c8200:                                              2
-;     c8291:                                              2
 ;     c8798:                                              2
 ;     c87a5:                                              2
 ;     c87cf:                                              2
@@ -11718,15 +11717,9 @@ save pydis_start, pydis_end
 ;     c980c:                                              2
 ;     c98dd:                                              2
 ;     c990e:                                              2
-;     c9ae6:                                              2
 ;     c9b87:                                              2
 ;     c9ca4:                                              2
-;     c9d6a:                                              2
-;     c9e25:                                              2
 ;     c9fed:                                              2
-;     ca12f:                                              2
-;     ca179:                                              2
-;     ca434:                                              2
 ;     cab3d:                                              2
 ;     cab63:                                              2
 ;     calc_bget_sector_addr:                              2
@@ -11746,6 +11739,7 @@ save pydis_start, pydis_end
 ;     cbef0:                                              2
 ;     cbef2:                                              2
 ;     check_and_delete_found:                             2
+;     check_csd_on_drive:                                 2
 ;     check_dir_loaded:                                   2
 ;     check_drive_colon:                                  2
 ;     check_filename_length:                              2
@@ -11764,8 +11758,10 @@ save pydis_start, pydis_end
 ;     dir2_title:                                         2
 ;     dir_parent_sector:                                  2
 ;     disc_full_error:                                    2
+;     dispatch_hd_or_floppy:                              2
 ;     divide_loop:                                        2
 ;     drive_to_ascii_digit:                               2
+;     end_of_data_command:                                2
 ;     end_of_spaces:                                      2
 ;     eof_error:                                          2
 ;     fdc_1770_sector:                                    2
@@ -11814,7 +11810,9 @@ save pydis_start, pydis_end
 ;     last_break_type:                                    2
 ;     load_dir_for_drive:                                 2
 ;     load_tube_workspace_ptr:                            2
+;     mask_error_code:                                    2
 ;     match_command_char:                                 2
+;     mount_read_root_dir:                                2
 ;     my_osfind:                                          2
 ;     next_attr_char:                                     2
 ;     next_command_entry:                                 2
@@ -11832,6 +11830,7 @@ save pydis_start, pydis_end
 ;     parse_drive_specifier:                              2
 ;     print_decimal_digit:                                2
 ;     print_entry_field_loop:                             2
+;     print_help_command_list:                            2
 ;     print_info_loop:                                    2
 ;     print_next_entry_loop:                              2
 ;     print_space_value:                                  2
@@ -11839,6 +11838,7 @@ save pydis_start, pydis_end
 ;     ra_buffer_1:                                        2
 ;     read_sector_byte_loop:                              2
 ;     release_entry_space:                                2
+;     restore_drive_after_op:                             2
 ;     restore_wksp_from_save:                             2
 ;     return_11:                                          2
 ;     return_19:                                          2
@@ -11850,6 +11850,7 @@ save pydis_start, pydis_end
 ;     return_42:                                          2
 ;     return_48:                                          2
 ;     return_success:                                     2
+;     run_jump_to_file:                                   2
 ;     save_and_flush_after_transfer:                      2
 ;     save_byte_count_for_write:                          2
 ;     search_dir_for_channel:                             2
@@ -11870,6 +11871,7 @@ save pydis_start, pydis_end
 ;     skip_zero_fill:                                     2
 ;     star_close:                                         2
 ;     store_channel_flags:                                2
+;     store_result_byte:                                  2
 ;     store_wksp_checksum_ba_y:                           2
 ;     str_filing_system_name:                             2
 ;     str_hugo:                                           2
@@ -11886,7 +11888,6 @@ save pydis_start, pydis_end
 ;     sub_c905c:                                          2
 ;     sub_c92de:                                          2
 ;     sub_c932a:                                          2
-;     sub_c9dda:                                          2
 ;     sub_cabc9:                                          2
 ;     sub_cacd7:                                          2
 ;     sum_free_space:                                     2
@@ -11896,6 +11897,7 @@ save pydis_start, pydis_end
 ;     update_moved_dir_parent:                            2
 ;     validate_disc_command:                              2
 ;     wait_req_and_transfer:                              2
+;     wait_tube_data_phase:                               2
 ;     wksp:                                               2
 ;     wksp_100d:                                          2
 ;     wksp_err_code:                                      2
@@ -11908,12 +11910,14 @@ save pydis_start, pydis_end
 ;     add_size_to_prev_loop:                              1
 ;     adjacent_next_byte:                                 1
 ;     adjacent_prev_byte:                                 1
+;     adjust_partial_transfer:                            1
 ;     advance_and_continue:                               1
 ;     advance_dest_scan:                                  1
 ;     advance_entry_addr_loop:                            1
 ;     advance_entry_index:                                1
 ;     advance_past_char:                                  1
 ;     advance_past_component:                             1
+;     all_files_deleted:                                  1
 ;     already_exists_error:                               1
 ;     append_channel_suffix_loop:                         1
 ;     append_drive_sector_suffix:                         1
@@ -11931,16 +11935,6 @@ save pydis_start, pydis_end
 ;     c8170:                                              1
 ;     c8178:                                              1
 ;     c8182:                                              1
-;     c81a7:                                              1
-;     c81af:                                              1
-;     c81fc:                                              1
-;     c8208:                                              1
-;     c8222:                                              1
-;     c82b9:                                              1
-;     c82d1:                                              1
-;     c82e8:                                              1
-;     c8326:                                              1
-;     c8342:                                              1
 ;     c877d:                                              1
 ;     c8782:                                              1
 ;     c87c9:                                              1
@@ -12039,12 +12033,6 @@ save pydis_start, pydis_end
 ;     c98c9:                                              1
 ;     c992b:                                              1
 ;     c9938:                                              1
-;     c9a16:                                              1
-;     c9a3e:                                              1
-;     c9b08:                                              1
-;     c9b10:                                              1
-;     c9b22:                                              1
-;     c9b38:                                              1
 ;     c9b57:                                              1
 ;     c9b6b:                                              1
 ;     c9bbb:                                              1
@@ -12054,25 +12042,9 @@ save pydis_start, pydis_end
 ;     c9c77:                                              1
 ;     c9c85:                                              1
 ;     c9c97:                                              1
-;     c9d52:                                              1
-;     c9d57:                                              1
-;     c9d5f:                                              1
-;     c9d71:                                              1
-;     c9d81:                                              1
-;     c9d94:                                              1
-;     c9def:                                              1
-;     c9e08:                                              1
-;     c9e0d:                                              1
 ;     c9ff1:                                              1
 ;     c9ff6:                                              1
 ;     ca00a:                                              1
-;     ca061:                                              1
-;     ca0ce:                                              1
-;     ca189:                                              1
-;     ca3bc:                                              1
-;     ca3e9:                                              1
-;     ca401:                                              1
-;     ca41e:                                              1
 ;     caaf0:                                              1
 ;     cab75:                                              1
 ;     cab87:                                              1
@@ -12155,34 +12127,42 @@ save pydis_start, pydis_end
 ;     check_attr_terminator:                              1
 ;     check_buffer_state:                                 1
 ;     check_colon_suffix:                                 1
+;     check_confirm_response:                             1
 ;     check_csd_deleted:                                  1
 ;     check_dot_in_dest:                                  1
 ;     check_dot_separator:                                1
+;     check_escape_condition:                             1
 ;     check_exact_match:                                  1
 ;     check_ext_vs_allocation:                            1
 ;     check_field_boundary:                               1
+;     check_for_on_channel:                               1
 ;     check_hex_af:                                       1
 ;     check_hex_digit_valid:                              1
 ;     check_host_memory:                                  1
 ;     check_if_first_fit:                                 1
 ;     check_locked_attr_loop:                             1
 ;     check_merge_with_prev:                              1
+;     check_more_commands:                                1
 ;     check_multi_sector_range:                           1
 ;     check_name_char_loop:                               1
 ;     check_prev_dir_deleted:                             1
 ;     check_read_allocation:                              1
 ;     check_relocation_needed:                            1
 ;     check_remaining_buffered:                           1
+;     check_scsi_error_bit:                               1
 ;     check_sector_low:                                   1
 ;     check_sector_mid:                                   1
 ;     check_shadow_save:                                  1
 ;     check_special_dir:                                  1
+;     check_transfer_complete:                            1
 ;     check_triple_merge_loop:                            1
 ;     check_tube_for_nmi:                                 1
 ;     check_tube_present:                                 1
 ;     check_workspace_claimed:                            1
+;     check_workspace_initialised:                        1
 ;     check_write_ext:                                    1
 ;     check_write_ptr:                                    1
+;     claim_filing_system:                                1
 ;     claim_nmi:                                          1
 ;     claim_tube_for_output:                              1
 ;     claim_tube_for_sector:                              1
@@ -12190,6 +12170,9 @@ save pydis_start, pydis_end
 ;     clear_attr_bits_loop:                               1
 ;     clear_sector_workspace_loop:                        1
 ;     clear_side_flag:                                    1
+;     close_all_drives_start:                             1
+;     close_drive_channels_loop:                          1
+;     close_each_drive_loop:                              1
 ;     combine_hex_nibbles:                                1
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
@@ -12205,8 +12188,10 @@ save pydis_start, pydis_end
 ;     compare_size_bytes_loop:                            1
 ;     compare_src_dest_dir_loop:                          1
 ;     compare_total_vs_requested:                         1
+;     confirm_destroy_loop:                               1
 ;     convert_hex_digits_loop:                            1
 ;     convert_two_digits:                                 1
+;     copy_adjusted_bytes_loop:                           1
 ;     copy_allocated_sector_loop:                         1
 ;     copy_at_string_loop:                                1
 ;     copy_brk_block_loop:                                1
@@ -12218,9 +12203,11 @@ save pydis_start, pydis_end
 ;     copy_data_addr_loop:                                1
 ;     copy_data_addr_to_disc_op_loop:                     1
 ;     copy_default_name_loop:                             1
+;     copy_default_workspace_loop:                        1
 ;     copy_dir_name_from_entry:                           1
 ;     copy_dir_name_loop:                                 1
 ;     copy_dir_sector_loop:                               1
+;     copy_disc_op_params_loop:                           1
 ;     copy_disc_op_template:                              1
 ;     copy_disc_op_template_loop:                         1
 ;     copy_entry_metadata_loop:                           1
@@ -12230,7 +12217,9 @@ save pydis_start, pydis_end
 ;     copy_entry_sector_loop2:                            1
 ;     copy_entry_up_loop:                                 1
 ;     copy_error_msg_loop:                                1
+;     copy_error_string_loop:                             1
 ;     copy_exact_match_addr_loop:                         1
+;     copy_exec_addr_loop:                                1
 ;     copy_file_entry:                                    1
 ;     copy_fsm_sector_loop:                               1
 ;     copy_fsm_template_loop:                             1
@@ -12247,11 +12236,14 @@ save pydis_start, pydis_end
 ;     copy_prev_dir_name_loop:                            1
 ;     copy_ptr_to_channel_loop:                           1
 ;     copy_result_loop:                                   1
+;     copy_result_sector_loop:                            1
+;     copy_run_params_loop:                               1
 ;     copy_sector_addresses_loop:                         1
 ;     copy_source_name_loop:                              1
 ;     copy_start_sector_loop:                             1
 ;     copy_template_loop:                                 1
 ;     copy_title_loop:                                    1
+;     copy_transfer_count_loop:                           1
 ;     copy_tube_addr_loop:                                1
 ;     copy_tube_read_nmi_loop:                            1
 ;     copy_tube_write_nmi_loop:                           1
@@ -12259,6 +12251,7 @@ save pydis_start, pydis_end
 ;     cross_dir_rename:                                   1
 ;     decrement_fill_sector:                              1
 ;     default_workspace_data:                             1
+;     delete_matching_files_loop:                         1
 ;     dir2_master_sequence:                               1
 ;     dir2_name:                                          1
 ;     dir2_parent_sector:                                 1
@@ -12270,6 +12263,7 @@ save pydis_start, pydis_end
 ;     dispatch_service_call:                              1
 ;     do_floppy_scsi_command:                             1
 ;     do_floppy_scsi_command_ind:                         1
+;     end_of_command_name:                                1
 ;     end_of_table_name:                                  1
 ;     enter_quoted_string:                                1
 ;     error_escape_ack_invalidate_reload_fsm:             1
@@ -12280,6 +12274,8 @@ save pydis_start, pydis_end
 ;     exec_floppy_read_bput_sector_ind:                   1
 ;     exec_floppy_write_bput_sector:                      1
 ;     exec_floppy_write_bput_sector_ind:                  1
+;     execute_loaded_file:                                1
+;     execute_osword_disc_op:                             1
 ;     extend_file_allocation:                             1
 ;     extend_file_if_needed:                              1
 ;     file_is_locked:                                     1
@@ -12357,12 +12353,6 @@ save pydis_start, pydis_end
 ;     load_dest_directory:                                1
 ;     load_dir_and_list_entries:                          1
 ;     loop_c8127:                                         1
-;     loop_c818d:                                         1
-;     loop_c8210:                                         1
-;     loop_c8228:                                         1
-;     loop_c824c:                                         1
-;     loop_c8252:                                         1
-;     loop_c8339:                                         1
 ;     loop_c87a9:                                         1
 ;     loop_c87c6:                                         1
 ;     loop_c8898:                                         1
@@ -12441,9 +12431,6 @@ save pydis_start, pydis_end
 ;     loop_c989c:                                         1
 ;     loop_c98ce:                                         1
 ;     loop_c9903:                                         1
-;     loop_c9a0c:                                         1
-;     loop_c9a27:                                         1
-;     loop_c9aff:                                         1
 ;     loop_c9b9c:                                         1
 ;     loop_c9bb2:                                         1
 ;     loop_c9be4:                                         1
@@ -12451,20 +12438,6 @@ save pydis_start, pydis_end
 ;     loop_c9c48:                                         1
 ;     loop_c9c59:                                         1
 ;     loop_c9c6a:                                         1
-;     loop_c9d35:                                         1
-;     loop_c9d46:                                         1
-;     loop_c9d77:                                         1
-;     loop_c9d9d:                                         1
-;     loop_c9dea:                                         1
-;     loop_c9df1:                                         1
-;     loop_c9e19:                                         1
-;     loop_ca031:                                         1
-;     loop_ca06d:                                         1
-;     loop_ca083:                                         1
-;     loop_ca0d3:                                         1
-;     loop_ca116:                                         1
-;     loop_ca3cc:                                         1
-;     loop_ca42f:                                         1
 ;     loop_cac1f:                                         1
 ;     loop_cac99:                                         1
 ;     loop_cacab:                                         1
@@ -12484,12 +12457,16 @@ save pydis_start, pydis_end
 ;     loop_cbd89:                                         1
 ;     loop_cbd9a:                                         1
 ;     loop_cbef4:                                         1
+;     mark_partial_transfer:                              1
 ;     match_command_loop:                                 1
+;     match_osword_block_loop:                            1
 ;     match_rwl_loop:                                     1
 ;     merge_forward_loop:                                 1
 ;     merge_name_attributes_loop:                         1
 ;     merge_size_into_prev:                               1
 ;     merge_with_prev_loop:                               1
+;     mount_drive_setup:                                  1
+;     mount_set_boot_option:                              1
 ;     my_osargs:                                          1
 ;     name_length_ok:                                     1
 ;     next_entry_byte:                                    1
@@ -12512,10 +12489,12 @@ save pydis_start, pydis_end
 ;     osword:                                             1
 ;     output_boot_and_drive:                              1
 ;     output_byte_direct:                                 1
+;     output_command_name_loop:                           1
 ;     output_entries_loop:                                1
 ;     output_name_char_loop:                              1
 ;     output_title_chars_loop:                            1
 ;     output_title_length:                                1
+;     pad_command_name_loop:                              1
 ;     pad_title_with_cr:                                  1
 ;     pad_with_cr:                                        1
 ;     parse_compact_start_page:                           1
@@ -12526,8 +12505,14 @@ save pydis_start, pydis_end
 ;     prepare_dir_read:                                   1
 ;     prepare_osgbpb_return:                              1
 ;     print_aborted_error:                                1
+;     print_data_cmd_name_loop:                           1
+;     print_entry_hex_loop:                               1
+;     print_fsm_entries_loop:                             1
+;     print_help_data_commands:                           1
+;     print_map_header:                                   1
 ;     print_name_char_loop:                               1
 ;     print_newline_return:                               1
+;     print_used_space:                                   1
 ;     propagate_borrow_loop:                              1
 ;     ra_buffer_2:                                        1
 ;     ra_buffer_3:                                        1
@@ -12544,6 +12529,7 @@ save pydis_start, pydis_end
 ;     read_fsm_from_disc:                                 1
 ;     read_lib_name_handler:                              1
 ;     recalc_flags_from_base:                             1
+;     receive_sense_data_loop:                            1
 ;     reduce_count_to_available_loop:                     1
 ;     release_nmi:                                        1
 ;     release_tube_after_floppy:                          1
@@ -12599,7 +12585,10 @@ save pydis_start, pydis_end
 ;     return_eof_result:                                  1
 ;     return_eof_status:                                  1
 ;     return_error_code:                                  1
+;     return_scsi_result:                                 1
 ;     run_exec_or_spool:                                  1
+;     run_set_exec_addr:                                  1
+;     run_tube_transfer:                                  1
 ;     save_and_clear_count_loop:                          1
 ;     save_csd_for_dir_check_loop:                        1
 ;     save_csd_for_extend_loop:                           1
@@ -12627,6 +12616,9 @@ save pydis_start, pydis_end
 ;     scsi_start_command2:                                1
 ;     scsi_write_read_test:                               1
 ;     search_for_dir_entry:                               1
+;     search_lib_for_command:                             1
+;     select_adfs_filing_system:                          1
+;     send_zero_bytes_loop:                               1
 ;     service_call_handler:                               1
 ;     service_dispatch_hi:                                1
 ;     service_dispatch_lo:                                1
@@ -12642,7 +12634,9 @@ save pydis_start, pydis_end
 ;     set_ptr_from_temp:                                  1
 ;     set_read_command:                                   1
 ;     set_rwl_attribute_bit:                              1
+;     set_tube_read_direction:                            1
 ;     set_tube_transfer_flag:                             1
+;     set_tube_write_direction:                           1
 ;     setup_direct_nmi:                                   1
 ;     setup_direct_write_nmi:                             1
 ;     setup_disc_op_block:                                1
@@ -12651,6 +12645,7 @@ save pydis_start, pydis_end
 ;     setup_nmi_and_step_rate:                            1
 ;     setup_tube_nmi_transfer:                            1
 ;     setup_tube_read_nmi:                                1
+;     setup_tube_write_256:                               1
 ;     shift_entries_down_loop:                            1
 ;     shift_entries_up_loop:                              1
 ;     shift_entries_up_start:                             1
@@ -12668,16 +12663,19 @@ save pydis_start, pydis_end
 ;     star_info:                                          1
 ;     star_remove:                                        1
 ;     step_rate_fast:                                     1
+;     store_adjusted_count:                               1
 ;     store_converted_byte:                               1
 ;     store_csd_drive:                                    1
 ;     store_default_drive:                                1
 ;     store_digit:                                        1
+;     store_error_sector:                                 1
 ;     store_hex_nibble:                                   1
 ;     store_merged_name_byte:                             1
 ;     store_new_entry:                                    1
 ;     store_new_entry_loop:                               1
 ;     store_new_ptr_in_channel:                           1
 ;     store_nmi_completion:                               1
+;     store_osword_result:                                1
 ;     store_remaining_count:                              1
 ;     store_second_partial:                               1
 ;     store_title_char:                                   1
@@ -12696,12 +12694,10 @@ save pydis_start, pydis_end
 ;     sub_c93d4:                                          1
 ;     sub_c9642:                                          1
 ;     sub_c98ae:                                          1
-;     sub_ca161:                                          1
 ;     sub_caba5:                                          1
 ;     sub_cb3b6:                                          1
 ;     sub_cb468:                                          1
 ;     sub_cb47c:                                          1
-;     sub_cba0c:                                          1
 ;     sub_cbda6:                                          1
 ;     sub_cbe84:                                          1
 ;     subtract_from_length_loop:                          1
@@ -12713,13 +12709,18 @@ save pydis_start, pydis_end
 ;     switch_drive_for_extend:                            1
 ;     system_via_t1c_l:                                   1
 ;     tbl_extended_vectors:                               1
+;     translate_scsi_error:                               1
 ;     tube_byte_transfer:                                 1
+;     tube_read_byte_loop:                                1
 ;     tube_start_xfer:                                    1
+;     tube_write_byte_loop:                               1
 ;     update_control_block_addr_loop:                     1
 ;     update_parent_sector:                               1
 ;     use_best_fit_entry:                                 1
+;     verify_workspace_checksum:                          1
 ;     volume_error:                                       1
 ;     wait_bus_free_loop:                                 1
+;     wait_status_phase:                                  1
 ;     wait_target_bsy_loop:                               1
 ;     wksp_1008:                                          1
 ;     wksp_100c:                                          1
@@ -12733,14 +12734,13 @@ save pydis_start, pydis_end
 ;     write_dir_name_loop:                                1
 ;     write_new_ext:                                      1
 ;     write_parent_sector_loop:                           1
+;     write_scsi_data_byte:                               1
 ;     write_sector_byte_loop:                             1
 ;     zero_buffers_loop:                                  1
 ;     zero_entire_sector_loop:                            1
 ;     zero_fill_sector_loop:                              1
 
 ; Automatically generated labels:
-;     c80af
-;     c80be
 ;     c8111
 ;     c8114
 ;     c8129
@@ -12751,22 +12751,6 @@ save pydis_start, pydis_end
 ;     c8170
 ;     c8178
 ;     c8182
-;     c81a7
-;     c81af
-;     c81b1
-;     c81fc
-;     c8200
-;     c8208
-;     c8222
-;     c8282
-;     c8287
-;     c828b
-;     c8291
-;     c82b9
-;     c82d1
-;     c82e8
-;     c8326
-;     c8342
 ;     c877d
 ;     c8782
 ;     c8787
@@ -12917,13 +12901,6 @@ save pydis_start, pydis_end
 ;     c990e
 ;     c992b
 ;     c9938
-;     c9a16
-;     c9a3e
-;     c9ae6
-;     c9b08
-;     c9b10
-;     c9b22
-;     c9b38
 ;     c9b57
 ;     c9b6b
 ;     c9b6e
@@ -12937,34 +12914,11 @@ save pydis_start, pydis_end
 ;     c9c85
 ;     c9c97
 ;     c9ca4
-;     c9d52
-;     c9d57
-;     c9d5f
-;     c9d63
-;     c9d6a
-;     c9d71
-;     c9d81
-;     c9d94
-;     c9de5
-;     c9def
-;     c9e08
-;     c9e0d
-;     c9e25
 ;     c9fed
 ;     c9ff1
 ;     c9ff6
 ;     ca00a
 ;     ca016
-;     ca061
-;     ca0ce
-;     ca12f
-;     ca179
-;     ca189
-;     ca3bc
-;     ca3e9
-;     ca401
-;     ca41e
-;     ca434
 ;     caaf0
 ;     cab3d
 ;     cab63
@@ -13217,12 +13171,6 @@ save pydis_start, pydis_end
 ;     la154
 ;     la868
 ;     loop_c8127
-;     loop_c818d
-;     loop_c8210
-;     loop_c8228
-;     loop_c824c
-;     loop_c8252
-;     loop_c8339
 ;     loop_c87a9
 ;     loop_c87c6
 ;     loop_c8898
@@ -13301,9 +13249,6 @@ save pydis_start, pydis_end
 ;     loop_c989c
 ;     loop_c98ce
 ;     loop_c9903
-;     loop_c9a0c
-;     loop_c9a27
-;     loop_c9aff
 ;     loop_c9b9c
 ;     loop_c9bb2
 ;     loop_c9be4
@@ -13311,20 +13256,6 @@ save pydis_start, pydis_end
 ;     loop_c9c48
 ;     loop_c9c59
 ;     loop_c9c6a
-;     loop_c9d35
-;     loop_c9d46
-;     loop_c9d77
-;     loop_c9d9d
-;     loop_c9dea
-;     loop_c9df1
-;     loop_c9e19
-;     loop_ca031
-;     loop_ca06d
-;     loop_ca083
-;     loop_ca0d3
-;     loop_ca116
-;     loop_ca3cc
-;     loop_ca42f
 ;     loop_cac1f
 ;     loop_cac99
 ;     loop_cacab
@@ -13437,12 +13368,9 @@ save pydis_start, pydis_end
 ;     sub_c93d4
 ;     sub_c9642
 ;     sub_c98ae
-;     sub_c9dd2
-;     sub_c9dda
 ;     sub_c9fd8
 ;     sub_c9fdd
 ;     sub_ca153
-;     sub_ca161
 ;     sub_caaf3
 ;     sub_caba5
 ;     sub_cabc9
@@ -13457,7 +13385,6 @@ save pydis_start, pydis_end
 ;     sub_cb510
 ;     sub_cb51c
 ;     sub_cb579
-;     sub_cba0c
 ;     sub_cbac6
 ;     sub_cbda6
 ;     sub_cbe84
