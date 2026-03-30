@@ -990,6 +990,13 @@ oscli                                           = &fff7
 .exec_disc_op_from_wksp
     ldx #&15                                                          ; 8287: a2 15       ..             ; Point to workspace disc op block
     ldy #&10                                                          ; 8289: a0 10       ..             ; Y=&10: workspace page
+; ***************************************************************************************
+; Execute disc command and check for error
+; 
+; Execute disc command via command_exec_xy. On error,
+; generate a BRK. On success, restore saved drive.
+; 
+; ***************************************************************************************
 ; &828b referenced 8 times by &8888, &88a5, &89e7, &8fd3, &97a5, &a81a, &b50a, &b571
 .exec_disc_command
     jsr command_exec_xy                                               ; 828b: 20 89 80     ..            ; Execute disc command; Execute disc command with control block at (X,Y)
@@ -1295,7 +1302,7 @@ oscli                                           = &fff7
 .raise_brk_error
     lda l10ce                                                         ; 83f2: ad ce 10    ...            ; Check for additional error handling
     bne copy_brk_block_loop                                           ; 83f5: d0 03       ..             ; Non-zero: skip workspace update
-    jsr load_dir_for_drive                                            ; 83f7: 20 a2 a7     ..            ; Update workspace checksum
+    jsr load_dir_for_drive                                            ; 83f7: 20 a2 a7     ..            ; Update workspace checksum; Restore workspace and load directory
 ; &83fa referenced 1 time by &83f5
 .copy_brk_block_loop
     lda #0                                                            ; 83fa: a9 00       ..             ; Store BRK opcode at start of page 1
@@ -1550,7 +1557,7 @@ oscli                                           = &fff7
     bne check_adjacent_to_next_loop                                   ; 8501: d0 e9       ..             ; No, continue comparing
     plp                                                               ; 8503: 28          (              ; Restore carry from addition
     ldx zp_mem_ptr                                                    ; 8504: a6 b2       ..             ; Get FSM entry index back
-    beq add_size_to_existing_entry                                    ; 8506: f0 63       .c             ; Entry 0: no preceding entry to merge
+    beq add_size_to_existing_entry                                    ; 8506: f0 63       .c             ; Entry 0: no preceding entry to merge; Add released size to FSM entry
     clc                                                               ; 8508: 18          .              ; Clear carry for addition
     php                                                               ; 8509: 08          .              ; Save carry for multi-byte add
     ldy #0                                                            ; 850a: a0 00       ..             ; Y=0: compare bytes of prev+size
@@ -1564,7 +1571,7 @@ oscli                                           = &fff7
     beq adjacent_prev_byte                                            ; 8517: f0 06       ..             ; Match: prev is adjacent (merge back)
     ldx zp_mem_ptr                                                    ; 8519: a6 b2       ..             ; No match: insert new entry
     plp                                                               ; 851b: 28          (              ; Restore carry
-    jmp add_size_to_existing_entry                                    ; 851c: 4c 6b 85    Lk.            ; Not adjacent: insert new entry
+    jmp add_size_to_existing_entry                                    ; 851c: 4c 6b 85    Lk.            ; Not adjacent: insert new entry; Add released size to FSM entry
 
 ; &851f referenced 1 time by &8517
 .adjacent_prev_byte
@@ -1618,6 +1625,14 @@ oscli                                           = &fff7
     stx fsm_s1_total_sectors_lo                                       ; 8567: 8e fe 0f    ...            ; Store new end-of-list pointer
     rts                                                               ; 856a: 60          `              ; Return
 
+; ***************************************************************************************
+; Add released size to FSM entry
+; 
+; Copy the object sector address and add the released
+; block size to an existing FSM length entry, merging
+; adjacent free regions.
+; 
+; ***************************************************************************************
 ; &856b referenced 2 times by &8506, &851c
 .add_size_to_existing_entry
     ldy #0                                                            ; 856b: a0 00       ..             ; Y=0: copy+add 3-byte address+length
@@ -1642,7 +1657,7 @@ oscli                                           = &fff7
 ; &8588 referenced 1 time by &84fa
 .check_merge_with_prev
     ldx zp_mem_ptr                                                    ; 8588: a6 b2       ..             ; Get FSM entry index
-    beq insert_new_entry                                              ; 858a: f0 35       .5             ; Entry 0: no predecessor, insert new
+    beq insert_new_entry                                              ; 858a: f0 35       .5             ; Entry 0: no predecessor, insert new; Insert new entry into FSM
     clc                                                               ; 858c: 18          .              ; Clear carry for addition
     php                                                               ; 858d: 08          .              ; Save carry for multi-byte add
     ldy #0                                                            ; 858e: a0 00       ..             ; Y=0: compare prev+size with object
@@ -1655,7 +1670,7 @@ oscli                                           = &fff7
     cmp wksp_object_sector,y                                          ; 8598: d9 34 10    .4.            ; Compare with object sector byte
     beq merge_size_into_prev                                          ; 859b: f0 04       ..             ; Match: prev is adjacent
     plp                                                               ; 859d: 28          (              ; Restore carry, no match
-    jmp insert_new_entry                                              ; 859e: 4c c1 85    L..            ; Not adjacent: insert new entry
+    jmp insert_new_entry                                              ; 859e: 4c c1 85    L..            ; Not adjacent: insert new entry; Insert new entry into FSM
 
 ; &85a1 referenced 1 time by &859b
 .merge_size_into_prev
@@ -1682,6 +1697,14 @@ oscli                                           = &fff7
     plp                                                               ; 85bf: 28          (              ; Restore carry
     rts                                                               ; 85c0: 60          `              ; Return (merge with prev complete)
 
+; ***************************************************************************************
+; Insert new entry into FSM
+; 
+; Check for room in the FSM. If full, raise Map full error.
+; Otherwise shift entries up and insert the new entry at
+; the correct sorted position.
+; 
+; ***************************************************************************************
 ; &85c1 referenced 2 times by &858a, &859e
 .insert_new_entry
     lda fsm_s1_total_sectors_lo                                       ; 85c1: ad fe 0f    ...            ; Get end-of-list pointer
@@ -1725,6 +1748,13 @@ oscli                                           = &fff7
 .return_7
     rts                                                               ; 8608: 60          `              ; Return
 
+; ***************************************************************************************
+; Sum all free space in FSM
+; 
+; Walk the FSM entries accumulating the 3-byte length of
+; each free extent into workspace &105D-&105F.
+; 
+; ***************************************************************************************
 ; &8609 referenced 2 times by &8642, &a1b7
 .sum_free_space
     ldx #0                                                            ; 8609: a2 00       ..             ; X=0: start scanning FSM
@@ -1772,7 +1802,7 @@ oscli                                           = &fff7
     ldx zp_mem_ptr_h                                                  ; 863c: a6 b3       ..             ; Get best-fit index
     cpx #&ff                                                          ; 863e: e0 ff       ..             ; Still &FF (no fit found)?
     bne use_best_fit_entry                                            ; 8640: d0 3a       .:             ; Found a fit: use it
-    jsr sum_free_space                                                ; 8642: 20 09 86     ..            ; No fit: sum all free space
+    jsr sum_free_space                                                ; 8642: 20 09 86     ..            ; No fit: sum all free space; Sum all free space in FSM
     ldy #0                                                            ; 8645: a0 00       ..             ; Y=0: compare total vs requested
     ldx #2                                                            ; 8647: a2 02       ..             ; X=2: compare 3 bytes
     sec                                                               ; 8649: 38          8              ; Set carry for subtraction
@@ -2009,10 +2039,10 @@ oscli                                           = &fff7
 ; &8753 referenced 2 times by &877f, &87ba
 .compare_filename
     cpx #&0a                                                          ; 8753: e0 0a       ..             ; X >= 10? End of name reached
-    bcs check_both_exhausted                                          ; 8755: b0 41       .A             ; Yes, check pattern is also done
+    bcs check_both_exhausted                                          ; 8755: b0 41       .A             ; Yes, check pattern is also done; Check pattern and name both exhausted
     lda wksp_object_name,x                                            ; 8757: bd 62 10    .b.            ; Get object name character
     cmp #&21 ; '!'                                                    ; 875a: c9 21       .!             ; Control char in name? End of name
-    bcc check_both_exhausted                                          ; 875c: 90 3a       .:             ; Yes, name ended early
+    bcc check_both_exhausted                                          ; 875c: 90 3a       .:             ; Yes, name ended early; Check pattern and name both exhausted
     ora #&20 ; ' '                                                    ; 875e: 09 20       .              ; Convert name char to lowercase
     sta wksp_102b                                                     ; 8760: 8d 2b 10    .+.            ; Store for comparison
     cpy #&0a                                                          ; 8763: c0 0a       ..             ; Y >= 10? Pattern exhausted
@@ -2020,7 +2050,7 @@ oscli                                           = &fff7
     jsr check_char_is_terminator                                      ; 8767: 20 1a 87     ..            ; Check if pattern char is terminator; Check if character is a filename terminator
     beq check_hash_wildcard                                           ; 876a: f0 1b       ..             ; Yes, compare lengths
     cmp #&2a ; '*'                                                    ; 876c: c9 2a       .*             ; Pattern char is '*' wildcard?
-    beq begin_star_match                                              ; 876e: f0 38       .8             ; Yes, match rest of name
+    beq begin_star_match                                              ; 876e: f0 38       .8             ; Yes, match rest of name; Begin wildcard '*' matching
     cmp #&23 ; '#'                                                    ; 8770: c9 23       .#             ; Pattern char is '#' wildcard?
     beq advance_pattern_index                                         ; 8772: f0 09       ..             ; Yes, match any single char
     ora #&20 ; ' '                                                    ; 8774: 09 20       .              ; Convert pattern char to lowercase
@@ -2052,6 +2082,13 @@ oscli                                           = &fff7
     cmp #&ff                                                          ; 8795: c9 ff       ..             ; Compare &FF (force NE for no match)
     rts                                                               ; 8797: 60          `              ; Return Z clear (no match)
 
+; ***************************************************************************************
+; Check pattern and name both exhausted
+; 
+; After pattern ends, check whether the entry name has
+; also ended. Returns Z set if the match succeeds.
+; 
+; ***************************************************************************************
 ; &8798 referenced 2 times by &8755, &875c
 .check_both_exhausted
     cpy #&0a                                                          ; 8798: c0 0a       ..             ; Pattern exhausted: check name too
@@ -2059,12 +2096,19 @@ oscli                                           = &fff7
     jsr check_char_is_terminator                                      ; 879c: 20 1a 87     ..            ; Check if pattern char is terminator; Check if character is a filename terminator
     beq return_10                                                     ; 879f: f0 e0       ..             ; Terminator: name matches
     cmp #&2a ; '*'                                                    ; 87a1: c9 2a       .*             ; Trailing '*': match
-    beq begin_star_match                                              ; 87a3: f0 03       ..             ; Is it '*'? Match rest
+    beq begin_star_match                                              ; 87a3: f0 03       ..             ; Is it '*'? Match rest; Begin wildcard '*' matching
 ; &87a5 referenced 2 times by &878c, &8790
 .check_trailing_star
     cmp #0                                                            ; 87a5: c9 00       ..             ; Compare 0 with 0 to set Z flag
     rts                                                               ; 87a7: 60          `              ; Return with Z flag result
 
+; ***************************************************************************************
+; Begin wildcard '*' matching
+; 
+; Skip past '*' in pattern and try matching the rest
+; against each successive position in the entry name.
+; 
+; ***************************************************************************************
 ; &87a8 referenced 3 times by &876e, &87a3, &87e3
 .begin_star_match
     iny                                                               ; 87a8: c8          .              ; Skip past '*' in pattern
@@ -2073,9 +2117,9 @@ oscli                                           = &fff7
     lda wksp_object_name,x                                            ; 87a9: bd 62 10    .b.            ; Get object name char at X
     and #&7f                                                          ; 87ac: 29 7f       ).             ; Strip bit 7
     cmp #&21 ; '!'                                                    ; 87ae: c9 21       .!             ; Control char: end of name
-    bcc check_name_ended                                              ; 87b0: 90 1d       ..             ; End of name: check pattern trail
+    bcc check_name_ended                                              ; 87b0: 90 1d       ..             ; End of name: check pattern trail; Check name ended during '*' match
     cpx #&0a                                                          ; 87b2: e0 0a       ..             ; X >= 10: end of name
-    bcs check_name_ended                                              ; 87b4: b0 19       ..             ; End of name: check pattern trail
+    bcs check_name_ended                                              ; 87b4: b0 19       ..             ; End of name: check pattern trail; Check name ended during '*' match
     txa                                                               ; 87b6: 8a          .              ; Save X (name position)
     pha                                                               ; 87b7: 48          H              ; Push on stack
     tya                                                               ; 87b8: 98          .              ; Save Y (pattern position)
@@ -2097,25 +2141,38 @@ oscli                                           = &fff7
 .discard_saved_positions
     pla                                                               ; 87c9: 68          h              ; Match: discard saved positions
     pla                                                               ; 87ca: 68          h              ; Discard saved Y
+; ***************************************************************************************
+; Return successful wildcard match
+; 
+; Set A=0 and carry to signal a successful match.
+; 
+; ***************************************************************************************
 ; &87cb referenced 4 times by &87d1, &87d7, &87db, &87df
 .star_match_succeeded
     lda #0                                                            ; 87cb: a9 00       ..             ; A=0: set Z flag (match)
     sec                                                               ; 87cd: 38          8              ; Set carry
     rts                                                               ; 87ce: 60          `              ; Return Z set (match)
 
+; ***************************************************************************************
+; Check name ended during '*' match
+; 
+; After name is exhausted, check whether remaining pattern
+; is only terminators. Returns Z set if match succeeds.
+; 
+; ***************************************************************************************
 ; &87cf referenced 2 times by &87b0, &87b4
 .check_name_ended
     cpy #&0a                                                          ; 87cf: c0 0a       ..             ; Name ended: check pattern trail
-    bcs star_match_succeeded                                          ; 87d1: b0 f8       ..             ; Y >= 10: both exhausted, match
+    bcs star_match_succeeded                                          ; 87d1: b0 f8       ..             ; Y >= 10: both exhausted, match; Return successful wildcard match
     lda (zp_text_ptr),y                                               ; 87d3: b1 b4       ..             ; Get pattern char
     cmp #&21 ; '!'                                                    ; 87d5: c9 21       .!             ; Control char: pattern ended too
-    bcc star_match_succeeded                                          ; 87d7: 90 f2       ..             ; Pattern ended: match
+    bcc star_match_succeeded                                          ; 87d7: 90 f2       ..             ; Pattern ended: match; Return successful wildcard match
     cmp #&2e ; '.'                                                    ; 87d9: c9 2e       ..             ; Is it '.'?
-    beq star_match_succeeded                                          ; 87db: f0 ee       ..             ; Dot: match (path separator)
+    beq star_match_succeeded                                          ; 87db: f0 ee       ..             ; Dot: match (path separator); Return successful wildcard match
     cmp #&22 ; '"'                                                    ; 87dd: c9 22       ."             ; Is it '"'?
-    beq star_match_succeeded                                          ; 87df: f0 ea       ..             ; Quote: match (string end)
+    beq star_match_succeeded                                          ; 87df: f0 ea       ..             ; Quote: match (string end); Return successful wildcard match
     cmp #&2a ; '*'                                                    ; 87e1: c9 2a       .*             ; Is it '*'?
-    beq begin_star_match                                              ; 87e3: f0 c3       ..             ; Another '*': skip it and retry
+    beq begin_star_match                                              ; 87e3: f0 c3       ..             ; Another '*': skip it and retry; Begin wildcard '*' matching
     bne no_match_cleanup_loop                                         ; 87e5: d0 df       ..             ; Other char: no match (always); ALWAYS branch
 
 ; &87e7 referenced 1 time by &88ff
@@ -2163,14 +2220,14 @@ oscli                                           = &fff7
 ; &8822 referenced 2 times by &886c, &a10a
 .parse_drive_from_ascii
     cmp #&30 ; '0'                                                    ; 8822: c9 30       .0             ; Character >= '0'?
-    bcc bad_drive_name                                                ; 8824: 90 23       .#             ; Below '0': bad name
+    bcc bad_drive_name                                                ; 8824: 90 23       .#             ; Below '0': bad name; Raise Bad name error for invalid drive
     cmp #&38 ; '8'                                                    ; 8826: c9 38       .8             ; Character >= '8' (not digit)?
     bcc push_valid_drive                                              ; 8828: 90 0c       ..             ; Digit 0-7: valid drive
     ora #&20 ; ' '                                                    ; 882a: 09 20       .              ; Convert to lowercase
     cmp #&61 ; 'a'                                                    ; 882c: c9 61       .a             ; Character >= 'a'?
-    bcc bad_drive_name                                                ; 882e: 90 19       ..             ; Below 'a': bad name
+    bcc bad_drive_name                                                ; 882e: 90 19       ..             ; Below 'a': bad name; Raise Bad name error for invalid drive
     cmp #&69 ; 'i'                                                    ; 8830: c9 69       .i             ; Character >= 'i'?
-    bcs bad_drive_name                                                ; 8832: b0 15       ..             ; Above 'h': bad name
+    bcs bad_drive_name                                                ; 8832: b0 15       ..             ; Above 'h': bad name; Raise Bad name error for invalid drive
     sbc #0                                                            ; 8834: e9 00       ..             ; Subtract to get drive number
 ; &8836 referenced 1 time by &8828
 .push_valid_drive
@@ -2191,6 +2248,13 @@ oscli                                           = &fff7
     ror a                                                             ; 8847: 6a          j              ; Rotate right (bits 5-7)
     rts                                                               ; 8848: 60          `              ; Return drive ID in A
 
+; ***************************************************************************************
+; Raise Bad name error for invalid drive
+; 
+; Jump to bad name error handler for an invalid drive
+; specifier character.
+; 
+; ***************************************************************************************
 ; &8849 referenced 4 times by &8824, &882e, &8832, &884f
 .bad_drive_name
     jmp bad_name_error                                                ; 8849: 4c 37 87    L7.            ; Invalid: Bad name error
@@ -2209,7 +2273,7 @@ oscli                                           = &fff7
 ; &884c referenced 2 times by &8bb3, &8fdf
 .parse_filename_from_cmdline
     jsr parse_and_setup_search                                        ; 884c: 20 0f 87     ..            ; Get filename from (&B4); Parse argument and set up directory search
-    beq bad_drive_name                                                ; 884f: f0 f8       ..             ; Empty filename: bad name
+    beq bad_drive_name                                                ; 884f: f0 f8       ..             ; Empty filename: bad name; Raise Bad name error for invalid drive
 ; &8851 referenced 1 time by &947f
 .full_pathname_parser
     jsr parse_and_setup_search                                        ; 8851: 20 0f 87     ..            ; Get first path character; Parse argument and set up directory search
@@ -2243,7 +2307,7 @@ oscli                                           = &fff7
     sta zp_adfs_flags                                                 ; 8882: 85 cd       ..             ; Store updated flags
     ldx #&0c                                                          ; 8884: a2 0c       ..             ; Load FSM from disc (sectors 0-1)
     ldy #&88                                                          ; 8886: a0 88       ..             ; Y=&88: FSM read control block page
-    jsr exec_disc_command                                             ; 8888: 20 8b 82     ..            ; Read FSM from disc
+    jsr exec_disc_command                                             ; 8888: 20 8b 82     ..            ; Read FSM from disc; Execute disc command and check for error
     lda zp_adfs_flags                                                 ; 888b: a5 cd       ..             ; Clear FSM-inconsistent flag
     and #&ef                                                          ; 888d: 29 ef       ).             ; Mask off bit 4
     sta zp_adfs_flags                                                 ; 888f: 85 cd       ..             ; Store cleared flags
@@ -2260,7 +2324,7 @@ oscli                                           = &fff7
 .load_root_directory
     ldy #&88                                                          ; 88a1: a0 88       ..             ; Load root directory (sector 2)
     ldx #&17                                                          ; 88a3: a2 17       ..             ; X=&17: directory read block offset
-    jsr exec_disc_command                                             ; 88a5: 20 8b 82     ..            ; Read directory from disc
+    jsr exec_disc_command                                             ; 88a5: 20 8b 82     ..            ; Read directory from disc; Execute disc command and check for error
     lda #2                                                            ; 88a8: a9 02       ..             ; Set root sector = 2
     sta l1114                                                         ; 88aa: 8d 14 11    ...            ; Store root sector low
     lda #0                                                            ; 88ad: a9 00       ..             ; A=0: clear mid and high bytes
@@ -2279,7 +2343,7 @@ oscli                                           = &fff7
     and #&fd                                                          ; 88c9: 29 fd       ).             ; Mask to check for $ (ignore bit 1)
     cmp #&24 ; '$'                                                    ; 88cb: c9 24       .$             ; Is it '$' (root directory)?
     beq advance_past_colon                                            ; 88cd: f0 a3       ..             ; Yes: advance and load root
-    jsr check_drive_and_reload_fsm                                    ; 88cf: 20 f5 b4     ..            ; Not root: load current directory
+    jsr check_drive_and_reload_fsm                                    ; 88cf: 20 f5 b4     ..            ; Not root: load current directory; Check disc changed and reload FSM if needed
 ; &88d2 referenced 1 time by &89cd
 .check_special_dir_in_path
     jsr check_special_dir_char                                        ; 88d2: 20 4f 94     O.            ; Check for ^ or @ specifiers; Check for ^ (parent) or @ (current) directory
@@ -2500,7 +2564,7 @@ oscli                                           = &fff7
     sta wksp_saved_drive                                              ; 89e0: 8d 2f 10    ./.            ; Mark saved drive as unused
     ldx #&0c                                                          ; 89e3: a2 0c       ..             ; X=&0C: FSM control block offset
     ldy #&88                                                          ; 89e5: a0 88       ..             ; Y=&88: FSM control block page
-    jsr exec_disc_command                                             ; 89e7: 20 8b 82     ..            ; Reload FSM for original drive
+    jsr exec_disc_command                                             ; 89e7: 20 8b 82     ..            ; Reload FSM for original drive; Execute disc command and check for error
 ; &89ea referenced 1 time by &89d9
 .check_alt_wksp_on_return
     lda l102e                                                         ; 89ea: ad 2e 10    ...            ; Check alt workspace pointer
@@ -2539,7 +2603,7 @@ oscli                                           = &fff7
     bne save_wksp_page_loop                                           ; 8a2d: d0 f8       ..             ; Loop until Y=0
     lda wksp_csd_name                                                 ; 8a2f: ad 00 11    ...            ; Get byte at Y=0 too
     sta (zp_wksp_ptr),y                                               ; 8a32: 91 ba       ..             ; Store in saved workspace
-    jsr store_wksp_checksum_ba_y                                      ; 8a34: 20 2b a7     +.            ; Update workspace checksum
+    jsr store_wksp_checksum_ba_y                                      ; 8a34: 20 2b a7     +.            ; Update workspace checksum; Calculate and store workspace checksum
     ldx zp_osfile_ptr                                                 ; 8a37: a6 b8       ..             ; Restore X from (&B8)
     ldy zp_osfile_ptr_h                                               ; 8a39: a4 b9       ..             ; Restore Y from (&B9)
     pla                                                               ; 8a3b: 68          h              ; Restore object type from stack
@@ -2559,24 +2623,38 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 ; &8a3d referenced 4 times by &8c59, &8f77, &962c, &b7d2
 .multi_sector_disc_command
-    jsr check_disc_command_type                                       ; 8a3d: 20 45 8a     E.            ; Set up sector count and execute
+    jsr check_disc_command_type                                       ; 8a3d: 20 45 8a     E.            ; Set up sector count and execute; Check command type and adjust sector count
     beq return_13                                                     ; 8a40: f0 fa       ..             ; Success: return Z set
     jmp generate_error                                                ; 8a42: 4c 9a 82    L..            ; Generate a BRK error
 
+; ***************************************************************************************
+; Check command type and adjust sector count
+; 
+; For write commands with partial transfers, round up the
+; sector count. For reads, skip the adjustment.
+; 
+; ***************************************************************************************
 ; &8a45 referenced 2 times by &8a3d, &9d5c
 .check_disc_command_type
     lda wksp_disc_op_command                                          ; 8a45: ad 1a 10    ...            ; Get disc op command
     cmp #8                                                            ; 8a48: c9 08       ..             ; Command 8 (read)?
-    beq adjust_for_partial_xfer                                       ; 8a4a: f0 17       ..             ; Yes: check sector count
+    beq adjust_for_partial_xfer                                       ; 8a4a: f0 17       ..             ; Yes: check sector count; Execute disc transfer in batches
     lda wksp_disc_op_transfer_len                                     ; 8a4c: ad 20 10    . .            ; Get partial transfer count
-    beq adjust_for_partial_xfer                                       ; 8a4f: f0 12       ..             ; Zero: no partial, skip adjust
+    beq adjust_for_partial_xfer                                       ; 8a4f: f0 12       ..             ; Zero: no partial, skip adjust; Execute disc transfer in batches
     lda #0                                                            ; 8a51: a9 00       ..             ; Clear partial transfer count
     sta wksp_disc_op_transfer_len                                     ; 8a53: 8d 20 10    . .            ; Store zero
     inc l1021                                                         ; 8a56: ee 21 10    .!.            ; Increment full sector count
-    bne adjust_for_partial_xfer                                       ; 8a59: d0 08       ..             ; No wrap
+    bne adjust_for_partial_xfer                                       ; 8a59: d0 08       ..             ; No wrap; Execute disc transfer in batches
     inc l1022                                                         ; 8a5b: ee 22 10    .".            ; Wrap: increment mid byte
-    bne adjust_for_partial_xfer                                       ; 8a5e: d0 03       ..             ; No wrap
+    bne adjust_for_partial_xfer                                       ; 8a5e: d0 03       ..             ; No wrap; Execute disc transfer in batches
     inc l1023                                                         ; 8a60: ee 23 10    .#.            ; Wrap: increment high byte
+; ***************************************************************************************
+; Execute disc transfer in batches
+; 
+; For transfers exceeding 255 sectors, loop with full
+; batches. For the final batch, use the remaining count.
+; 
+; ***************************************************************************************
 ; &8a63 referenced 4 times by &8a4a, &8a4f, &8a59, &8a5e
 .adjust_for_partial_xfer
     ldx #&15                                                          ; 8a63: a2 15       ..             ; X=&15: disc op block offset
@@ -2698,7 +2776,7 @@ oscli                                           = &fff7
     sta l10d1                                                         ; 8b2a: 8d d1 10    ...            ; Store in error sector workspace
     lda l101d                                                         ; 8b2d: ad 1d 10    ...            ; Get sector address low byte
     sta wksp_err_sector                                               ; 8b30: 8d d0 10    ...            ; Store in error sector workspace
-    jsr calc_buffer_page_from_offset                                  ; 8b33: 20 d7 ac     ..            ; Calculate buffer offset
+    jsr calc_buffer_page_from_offset                                  ; 8b33: 20 d7 ac     ..            ; Calculate buffer offset; Calculate buffer page from channel offset
     sta wksp_1004,x                                                   ; 8b36: 9d 04 10    ...            ; Store partial transfer count
     txa                                                               ; 8b39: 8a          .              ; Channel offset to A for buffer calc
     lsr a                                                             ; 8b3a: 4a          J              ; Divide by 4 for buffer page index
@@ -2914,12 +2992,19 @@ oscli                                           = &fff7
     jsr multi_sector_disc_command                                     ; 8c59: 20 3d 8a     =.            ; Calculate sector count from length; Execute multi-sector disc command
 ; &8c5c referenced 1 time by &8f83
 .store_length_and_sector
-    jsr search_dir_for_file                                           ; 8c5c: 20 62 8c     b.            ; Validate checksum and flags
+    jsr search_dir_for_file                                           ; 8c5c: 20 62 8c     b.            ; Validate checksum and flags; Search directory for matching file
     jmp get_object_type_result                                        ; 8c5f: 4c d0 89    L..            ; Save workspace and return; Load object type and save workspace
 
+; ***************************************************************************************
+; Search directory for matching file
+; 
+; Copy catalogue data from the entry at (zp_entry_ptr) and
+; search the current directory for a matching filename.
+; 
+; ***************************************************************************************
 ; &8c62 referenced 2 times by &8c5c, &a89e
 .search_dir_for_file
-    jsr conditional_info_display                                      ; 8c62: 20 fa 94     ..            ; Display info if *OPT1 verbose
+    jsr conditional_info_display                                      ; 8c62: 20 fa 94     ..            ; Display info if *OPT1 verbose; Display file info if *OPT1 verbose
 ; &8c65 referenced 2 times by &8cc3, &9218
 .search_dir_with_wildcards
     ldy #&15                                                          ; 8c65: a0 15       ..             ; Y=&15: start of entry data in dir
@@ -2979,10 +3064,17 @@ oscli                                           = &fff7
     bne delete_existing_before_save                                   ; 8cb6: d0 0e       ..             ; Found? Copy catalogue info
     ldy #4                                                            ; 8cb8: a0 04       ..             ; Y=4: check E attribute
     lda (zp_entry_ptr),y                                              ; 8cba: b1 b6       ..             ; Get E attribute byte
-    bpl check_existing_for_save                                       ; 8cbc: 10 05       ..             ; Bit 7 clear: not E, copy info
+    bpl check_existing_for_save                                       ; 8cbc: 10 05       ..             ; Bit 7 clear: not E, copy info; Check for existing file before save
     lda #&ff                                                          ; 8cbe: a9 ff       ..             ; E attribute: return A=&FF
     jmp save_wksp_and_return                                          ; 8cc0: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
+; ***************************************************************************************
+; Check for existing file before save
+; 
+; Search directory using wildcards for an existing entry
+; matching the save filename.
+; 
+; ***************************************************************************************
 ; &8cc3 referenced 2 times by &8cbc, &90fe
 .check_existing_for_save
     jsr search_dir_with_wildcards                                     ; 8cc3: 20 65 8c     e.            ; Copy catalogue info to block
@@ -3090,30 +3182,37 @@ oscli                                           = &fff7
 ; &8d23 referenced 1 time by &8d6a
 .check_open_channel_loop
     lda wksp_ch_flags,x                                               ; 8d23: bd ac 11    ...            ; Get channel flags
-    beq no_open_files_on_drive                                        ; 8d26: f0 41       .A             ; Channel not open? Skip
+    beq no_open_files_on_drive                                        ; 8d26: f0 41       .A             ; Channel not open? Skip; No open file conflict found
     lda l11b6,x                                                       ; 8d28: bd b6 11    ...            ; Get channel's drive number
     and #&e0                                                          ; 8d2b: 29 e0       ).             ; Isolate drive bits (top 3)
     cmp wksp_current_drive                                            ; 8d2d: cd 17 11    ...            ; Compare with current drive
-    bne no_open_files_on_drive                                        ; 8d30: d0 37       .7             ; Different drive? Skip
+    bne no_open_files_on_drive                                        ; 8d30: d0 37       .7             ; Different drive? Skip; No open file conflict found
     lda l11e8,x                                                       ; 8d32: bd e8 11    ...            ; Compare sector address byte
     cmp l1114                                                         ; 8d35: cd 14 11    ...            ; With target sector
-    bne no_open_files_on_drive                                        ; 8d38: d0 2f       ./             ; No match? Skip
+    bne no_open_files_on_drive                                        ; 8d38: d0 2f       ./             ; No match? Skip; No open file conflict found
     lda l11de,x                                                       ; 8d3a: bd de 11    ...            ; Compare sector mid byte
     cmp l1115                                                         ; 8d3d: cd 15 11    ...            ; With target sector mid
-    bne no_open_files_on_drive                                        ; 8d40: d0 27       .'             ; No match? Skip
+    bne no_open_files_on_drive                                        ; 8d40: d0 27       .'             ; No match? Skip; No open file conflict found
     lda l11d4,x                                                       ; 8d42: bd d4 11    ...            ; Compare sector high byte
     cmp l1116                                                         ; 8d45: cd 16 11    ...            ; With target sector high
-    bne no_open_files_on_drive                                        ; 8d48: d0 1f       ..             ; No match? Skip
+    bne no_open_files_on_drive                                        ; 8d48: d0 1f       ..             ; No match? Skip; No open file conflict found
     ldy #&19                                                          ; 8d4a: a0 19       ..             ; Y=&19: compare sequence number
     lda (zp_entry_ptr),y                                              ; 8d4c: b1 b6       ..             ; Get entry sequence from dir
     cmp l11f2,x                                                       ; 8d4e: dd f2 11    ...            ; Compare with channel's sequence
-    bne no_open_files_on_drive                                        ; 8d51: d0 16       ..             ; Mismatch: not the same file
+    bne no_open_files_on_drive                                        ; 8d51: d0 16       ..             ; Mismatch: not the same file; No open file conflict found
 ; &8d53 referenced 1 time by &b24a
 .channel_on_same_drive
     jsr reload_fsm_and_dir_then_brk                                   ; 8d53: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &c2                                                          ; 8d56: c2          .
     equs "Can't - File open", 0                                       ; 8d57: 43 61 6e... Can
 
+; ***************************************************************************************
+; No open file conflict found
+; 
+; All channels checked with no conflicts. Continue with
+; the file operation.
+; 
+; ***************************************************************************************
 ; &8d69 referenced 6 times by &8d26, &8d30, &8d38, &8d40, &8d48, &8d51
 .no_open_files_on_drive
     dex                                                               ; 8d69: ca          .              ; Next channel
@@ -3196,9 +3295,9 @@ oscli                                           = &fff7
     lda (zp_text_ptr),y                                               ; 8dc0: b1 b4       ..             ; Save text pointer high
     and #&7f                                                          ; 8dc2: 29 7f       ).             ; Push on stack; Get text pointer low
     cmp #&2a ; '*'                                                    ; 8dc4: c9 2a       .*             ; Store for GSINIT
-    beq mark_saved_drive_unset                                        ; 8dc6: f0 16       ..             ; Get text pointer high
+    beq mark_saved_drive_unset                                        ; 8dc6: f0 16       ..             ; Raise Wild cards error; Get text pointer high
     cmp #&23 ; '#'                                                    ; 8dc8: c9 23       .#             ; Store for GSINIT high
-    beq mark_saved_drive_unset                                        ; 8dca: f0 12       ..             ; Call GSINIT to init string parsing
+    beq mark_saved_drive_unset                                        ; 8dca: f0 12       ..             ; Raise Wild cards error; Call GSINIT to init string parsing
     cmp #&2e ; '.'                                                    ; 8dcc: c9 2e       ..             ; Is it '.'?
     beq return_17                                                     ; 8dce: f0 05       ..             ; Restore text pointer high; Store back
     dey                                                               ; 8dd0: 88          .              ; Decrement index
@@ -3223,6 +3322,12 @@ oscli                                           = &fff7
 .bad_name_in_path
     jmp bad_name_error                                                ; 8ddb: 4c 37 87    L7.            ; Wild cards found: Bad name error
 
+; ***************************************************************************************
+; Raise Wild cards error
+; 
+; Reload FSM and directory then raise error &FD: Wild cards.
+; 
+; ***************************************************************************************
 ; &8dde referenced 2 times by &8dc6, &8dca
 .mark_saved_drive_unset
     jsr reload_fsm_and_dir_then_brk                                   ; 8dde: 20 48 83     H.            ; Reload FSM and directory then raise error
@@ -3560,18 +3665,18 @@ oscli                                           = &fff7
     sta wksp_disc_op_sector                                           ; 8fab: 8d 1b 10    ...            ; Restore (&B7) from stack; Store back
     jsr exec_disc_op_from_wksp                                        ; 8fae: 20 87 82     ..            ; Write directory to disc; Execute disc command from workspace control block
     lda wksp_current_drive                                            ; 8fb1: ad 17 11    ...            ; Restore (&B6) from stack; Store back
-    jsr convert_drive_to_slot                                         ; 8fb4: 20 79 b5     y.            ; Get FSM checksum byte
+    jsr convert_drive_to_slot                                         ; 8fb4: 20 79 b5     y.            ; Get FSM checksum byte; Convert drive number to slot index
     lda fsm_s1_disc_id_hi                                             ; 8fb7: ad fc 0f    ...            ; Is it zero (unmodified)?; Zero: skip FSM write
     sta wksp_1122,x                                                   ; 8fba: 9d 22 11    .".            ; A=0: zero for clear
     lda system_via_t1c_l                                              ; 8fbd: ad 44 fe    .D.            ; Clear FSM modification flag
     sta wksp_1121,x                                                   ; 8fc0: 9d 21 11    .!.            ; Y=&FF: calculate FSM checksums; Get FSM sector 0 byte
     sta fsm_s1_disc_id_lo                                             ; 8fc3: 8d fb 0f    ...            ; Add to checksum
-    jsr setup_print_hex_field                                         ; 8fc6: 20 5c 90     \.            ; Next byte; Loop for 256 bytes
+    jsr setup_print_hex_field                                         ; 8fc6: 20 5c 90     \.            ; Next byte; Calculate FSM sector checksums; Loop for 256 bytes
     stx fsm_s0_checksum                                               ; 8fc9: 8e ff 0e    ...            ; Store sector 0 checksum
     sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1; Get FSM sector 1 byte
     ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; X=&71: validate FSM entry count
     ldy #&90                                                          ; 8fd1: a0 90       ..             ; Add to checksum; Loop for 255 bytes
-    jsr exec_disc_command                                             ; 8fd3: 20 8b 82     ..            ; Store sector 1 checksum
+    jsr exec_disc_command                                             ; 8fd3: 20 8b 82     ..            ; Execute disc command and check for error; Store sector 1 checksum
     lda zp_adfs_flags                                                 ; 8fd6: a5 cd       ..             ; Write FSM back to disc
     and #&ef                                                          ; 8fd8: 29 ef       ).             ; Clear FSM-inconsistent flag
     sta zp_adfs_flags                                                 ; 8fda: 85 cd       ..             ; Return
@@ -3613,11 +3718,19 @@ oscli                                           = &fff7
 ; &8fea referenced 5 times by &8fe4, &9ffa, &a255, &a754, &a872
 .mark_directory_dirty
     jsr print_newline_and_entry                                       ; 8fea: 20 09 90     ..            ; Return search result
-    jsr setup_print_hex_field                                         ; 8fed: 20 5c 90     \.            ; Mark directory as modified
+    jsr setup_print_hex_field                                         ; 8fed: 20 5c 90     \.            ; Mark directory as modified; Calculate FSM sector checksums
     cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Verify directory
-    bne check_first_char_wildcard                                     ; 8ff3: d0 05       ..             ; Point to first entry
+    bne check_first_char_wildcard                                     ; 8ff3: d0 05       ..             ; Point to first entry; Validate FSM map checksums
     cpx fsm_s0_checksum                                               ; 8ff5: ec ff 0e    ...            ; Search for entry
     beq return_18                                                     ; 8ff8: f0 ef       ..             ; Found: return
+; ***************************************************************************************
+; Validate FSM map checksums
+; 
+; Recalculate FSM sector 0 and sector 1 checksums and
+; compare with stored values. Raises Bad FS map error
+; if either checksum does not match.
+; 
+; ***************************************************************************************
 ; &8ffa referenced 7 times by &8ff3, &9017, &901a, &9021, &903a, &9045, &904a
 .check_first_char_wildcard
     jsr generate_disc_error                                           ; 8ffa: 20 2b 83     +.            ; Bad FS map error; Generate disc error with state recovery
@@ -3634,13 +3747,13 @@ oscli                                           = &fff7
     ora nmi_0dff,x                                                    ; 9010: 1d ff 0d    ...            ; OR entry address high byte
     ora fsm_s0_checksum,x                                             ; 9013: 1d ff 0e    ...            ; OR entry length high byte
     dex                                                               ; 9016: ca          .              ; Back up one
-    beq check_first_char_wildcard                                     ; 9017: f0 e1       ..             ; At entry 0: bad FS map
+    beq check_first_char_wildcard                                     ; 9017: f0 e1       ..             ; At entry 0: bad FS map; Validate FSM map checksums
     dex                                                               ; 9019: ca          .              ; Back up more
-    beq check_first_char_wildcard                                     ; 901a: f0 de       ..             ; At entry 0: bad FS map
+    beq check_first_char_wildcard                                     ; 901a: f0 de       ..             ; At entry 0: bad FS map; Validate FSM map checksums
     dex                                                               ; 901c: ca          .              ; Back up more
     bne print_entry_name_loop                                         ; 901d: d0 f1       ..             ; Loop for all entries
     and #&e0                                                          ; 901f: 29 e0       ).             ; Check drive bits in accumulator
-    bne check_first_char_wildcard                                     ; 9021: d0 d7       ..             ; Non-zero: bad FS map
+    bne check_first_char_wildcard                                     ; 9021: d0 d7       ..             ; Non-zero: bad FS map; Validate FSM map checksums
     ldx fsm_s1_total_sectors_lo                                       ; 9023: ae fe 0f    ...            ; Get end pointer again
     cpx #6                                                            ; 9026: e0 06       ..             ; Need at least 2 entries (>= 6)
     bcc return_18                                                     ; 9028: 90 bf       ..             ; Not enough: return OK (empty disc)
@@ -3657,7 +3770,7 @@ oscli                                           = &fff7
     inx                                                               ; 9036: e8          .              ; Next byte
     dey                                                               ; 9037: 88          .              ; Next comparison byte
     bpl print_padding_spaces_loop                                     ; 9038: 10 f5       ..             ; Loop for 3 bytes
-    bcs check_first_char_wildcard                                     ; 903a: b0 be       ..             ; Carry set: overlap, bad FS map
+    bcs check_first_char_wildcard                                     ; 903a: b0 be       ..             ; Carry set: overlap, bad FS map; Validate FSM map checksums
     ldy #2                                                            ; 903c: a0 02       ..             ; Y=2: compare prev+size with next
 ; &903e referenced 1 time by &9048
 .print_access_flags_loop
@@ -3665,10 +3778,10 @@ oscli                                           = &fff7
     dex                                                               ; 903f: ca          .              ; Back up X
     cmp fsm_sector_0,x                                                ; 9040: dd 00 0e    ...            ; Compare with next entry address
     bcc print_no_access_flag                                          ; 9043: 90 07       ..             ; Below: entries are ordered OK
-    bne check_first_char_wildcard                                     ; 9045: d0 b3       ..             ; Above: bad ordering, bad FS map
+    bne check_first_char_wildcard                                     ; 9045: d0 b3       ..             ; Above: bad ordering, bad FS map; Validate FSM map checksums
     dey                                                               ; 9047: 88          .              ; Next comparison byte
     bpl print_access_flags_loop                                       ; 9048: 10 f4       ..             ; Loop for 3 bytes
-    bmi check_first_char_wildcard                                     ; 904a: 30 ae       0.             ; ALWAYS branch
+    bmi check_first_char_wildcard                                     ; 904a: 30 ae       0.             ; Validate FSM map checksums; ALWAYS branch
 
 ; &904c referenced 2 times by &9043, &904f
 .print_no_access_flag
@@ -3685,6 +3798,13 @@ oscli                                           = &fff7
     bcc print_space_after_name                                        ; 9059: 90 d1       ..             ; No: check next pair
     rts                                                               ; 905b: 60          `              ; All entries OK: return
 
+; ***************************************************************************************
+; Calculate FSM sector checksums
+; 
+; Compute 8-bit checksums of FSM sectors 0 and 1 by
+; summing all 255 bytes of each sector.
+; 
+; ***************************************************************************************
 ; &905c referenced 2 times by &8fc6, &8fed
 .setup_print_hex_field
     clc                                                               ; 905c: 18          .              ; Clear carry for checksum
@@ -3797,7 +3917,7 @@ oscli                                           = &fff7
 ; &90fb referenced 2 times by &90ad, &90cd
 .check_dir_access_bit
     jsr write_dir_and_validate                                        ; 90fb: 20 86 8f     ..            ; Write directory to disc; Write directory and FSM back to disc
-    jmp check_existing_for_save                                       ; 90fe: 4c c3 8c    L..            ; Return via catalogue info copy
+    jmp check_existing_for_save                                       ; 90fe: 4c c3 8c    L..            ; Return via catalogue info copy; Check for existing file before save
 
 .osfile_delete_handler
     jsr find_file_and_validate                                        ; 9101: 20 e5 8b     ..            ; OSFILE A=4: write attributes only
@@ -3825,10 +3945,17 @@ oscli                                           = &fff7
     sta zp_osfile_ptr_h                                               ; 911c: 85 b9       ..             ; Store control block pointer high
 .search_and_delete_entry
     jsr setup_disc_write                                              ; 911e: 20 c9 8c     ..            ; Search directory for the file; Parse filename from OSFILE block and search
-    beq check_and_delete_found                                        ; 9121: f0 05       ..             ; Found? Proceed to delete
+    beq check_and_delete_found                                        ; 9121: f0 05       ..             ; Found? Proceed to delete; Validate and delete a directory entry
     lda #0                                                            ; 9123: a9 00       ..             ; Not found: A=0 (no error)
     jmp save_wksp_and_return                                          ; 9125: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
+; ***************************************************************************************
+; Validate and delete a directory entry
+; 
+; Check file is not open, verify locked attribute, for
+; directories confirm empty, then proceed with deletion.
+; 
+; ***************************************************************************************
 ; &9128 referenced 2 times by &9121, &9a32
 .check_and_delete_found
     jsr check_file_not_open                                           ; 9128: 20 10 8d     ..            ; Check if file has open channels; Check file is not locked or open
@@ -4023,6 +4150,13 @@ oscli                                           = &fff7
     equw search_and_delete_entry-1                                    ; 9277: 1d 91       ..
     equw osfile_read_cat_info-1                                       ; 9279: 7c 8f       |.
 
+; ***************************************************************************************
+; Set up entry name pointer for star commands
+; 
+; Point (zp_entry_ptr) to a pathname format string in ROM
+; and prepare to print up to 12 characters.
+; 
+; ***************************************************************************************
 ; &927b referenced 2 times by &9e35, &9e3b
 .setup_entry_name_ptr
     tax                                                               ; 927b: aa          .              ; Transfer index to X
@@ -4048,7 +4182,7 @@ oscli                                           = &fff7
 
 ; &9299 referenced 2 times by &928f, &929d
 .pad_with_spaces
-    jsr ca016                                                         ; 9299: 20 16 a0     ..            ; Print space padding
+    jsr ca016                                                         ; 9299: 20 16 a0     ..            ; Print space padding; Print a space character
     dex                                                               ; 929c: ca          .              ; Pad with spaces
     bne pad_with_spaces                                               ; 929d: d0 fa       ..             ; Loop for remaining columns
     rts                                                               ; 929f: 60          `              ; Return
@@ -4131,7 +4265,7 @@ oscli                                           = &fff7
 .print_entry_name_and_access
     ldx #&0a                                                          ; 92de: a2 0a       ..             ; X=&0A: print up to 10 name chars
     jsr print_padded_name                                             ; 92e0: 20 87 92     ..            ; Print name characters
-    jsr ca016                                                         ; 92e3: 20 16 a0     ..            ; Print space after name
+    jsr ca016                                                         ; 92e3: 20 16 a0     ..            ; Print space after name; Print a space character
     ldy #4                                                            ; 92e6: a0 04       ..             ; Y=4: check 5 attribute bytes
     ldx #3                                                            ; 92e8: a2 03       ..             ; X=3: print RWLD attribute chars
 ; &92ea referenced 1 time by &92f7
@@ -4150,7 +4284,7 @@ oscli                                           = &fff7
 .print_access_chars_loop
     dex                                                               ; 92f9: ca          .              ; Decrement space counter
     bmi print_access_done                                             ; 92fa: 30 06       0.             ; All printed: add '/' separator
-    jsr ca016                                                         ; 92fc: 20 16 a0     ..            ; Print space for unset attribute
+    jsr ca016                                                         ; 92fc: 20 16 a0     ..            ; Print space for unset attribute; Print a space character
     jmp print_access_chars_loop                                       ; 92ff: 4c f9 92    L..            ; Continue attribute loop
 
 ; &9302 referenced 1 time by &92fa
@@ -4162,7 +4296,7 @@ oscli                                           = &fff7
     jsr print_hex_byte                                                ; 930b: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     lda #&29 ; ')'                                                    ; 930e: a9 29       .)             ; Print ')' after sequence number
     jsr oswrch                                                        ; 9310: 20 ee ff     ..            ; Write character 41
-    jmp ca016                                                         ; 9313: 4c 16 a0    L..            ; Print space and return
+    jmp ca016                                                         ; 9313: 4c 16 a0    L..            ; Print space and return; Print a space character
 
 ; &9316 referenced 2 times by &92ef, &99a7
 .l9316
@@ -4275,7 +4409,7 @@ oscli                                           = &fff7
 
 ; &93f5 referenced 1 time by &93e8
 .advance_cat_entry
-    jsr ca016                                                         ; 93f5: 20 16 a0     ..            ; Print space between entries
+    jsr ca016                                                         ; 93f5: 20 16 a0     ..            ; Print space between entries; Print a space character
 ; &93f8 referenced 1 time by &93f2
 .print_cat_pair
     clc                                                               ; 93f8: 18          .              ; Clear carry for pointer advance
@@ -4478,6 +4612,13 @@ oscli                                           = &fff7
     beq print_info_loop                                               ; 94f5: f0 f8       ..             ; More matches? Continue loop
     jmp save_wksp_and_return                                          ; 94f7: 4c d3 89    L..            ; No more matches: save and return; Save workspace state and return result
 
+; ***************************************************************************************
+; Display file info if *OPT1 verbose
+; 
+; Check *OPT1 verbose flag. If set, print full catalogue
+; info for the current directory entry.
+; 
+; ***************************************************************************************
 ; &94fa referenced 2 times by &8c62, &99bb
 .conditional_info_display
     lda zp_adfs_flags                                                 ; 94fa: a5 cd       ..             ; Check *OPT1 setting
@@ -4525,8 +4666,8 @@ oscli                                           = &fff7
     and #3                                                            ; 9525: 29 03       ).             ; Field boundary every 4 bytes (X&3=1)
     cmp #1                                                            ; 9527: c9 01       ..             ; X mod 4 == 1? Field boundary
     bne next_entry_byte                                               ; 9529: d0 0b       ..             ; Not at boundary, continue
-    jsr ca016                                                         ; 952b: 20 16 a0     ..            ; Print two spaces between fields
-    jsr ca016                                                         ; 952e: 20 16 a0     ..            ; Print second padding space
+    jsr ca016                                                         ; 952b: 20 16 a0     ..            ; Print two spaces between fields; Print a space character
+    jsr ca016                                                         ; 952e: 20 16 a0     ..            ; Print second padding space; Print a space character
     txa                                                               ; 9531: 8a          .              ; Skip ahead to next field
     clc                                                               ; 9532: 18          .              ; Clear carry for addition
     adc #5                                                            ; 9533: 69 05       i.             ; Advance Y by 5
@@ -4767,7 +4908,7 @@ oscli                                           = &fff7
     and #8                                                            ; 96a8: 29 08       ).             ; Bit 3: copy operation flag
     bne check_tube_for_copy                                           ; 96aa: d0 06       ..             ; Set: skip directory write
     jsr write_dir_and_validate                                        ; 96ac: 20 86 8f     ..            ; Write directory to disc; Write directory and FSM back to disc
-    jsr flush_all_channels                                            ; 96af: 20 7c a9     |.            ; Flush OSARGS workspace
+    jsr flush_all_channels                                            ; 96af: 20 7c a9     |.            ; Flush OSARGS workspace; Flush all open channel buffers
 ; &96b2 referenced 1 time by &96aa
 .check_tube_for_copy
     lda l10a7                                                         ; 96b2: ad a7 10    ...            ; Check if sectors remain to copy
@@ -4883,8 +5024,15 @@ oscli                                           = &fff7
     sta wksp_disc_op_sector                                           ; 979d: 8d 1b 10    ...            ; Store in disc op high
     lda #5                                                            ; 97a0: a9 05       ..             ; Read 5 sectors (full directory)
     sta wksp_disc_op_sector_count                                     ; 97a2: 8d 1e 10    ...            ; Store sector count
-    jmp exec_disc_command                                             ; 97a5: 4c 8b 82    L..            ; Execute disc read
+    jmp exec_disc_command                                             ; 97a5: 4c 8b 82    L..            ; Execute disc read; Execute disc command and check for error
 
+; ***************************************************************************************
+; Initialise directory structure for format
+; 
+; Set up source and destination sector addresses for
+; directory initialisation during a disc format operation.
+; 
+; ***************************************************************************************
 ; &97a8 referenced 2 times by &98ab, &98d7
 .format_init_dir
     lda #0                                                            ; 97a8: a9 00       ..             ; A=0: clear search state
@@ -5055,7 +5203,7 @@ oscli                                           = &fff7
     dex                                                               ; 98a5: ca          .              ; Next workspace byte
     bpl verify_formatted_sectors                                      ; 98a6: 10 f4       ..             ; Loop for 3 bytes
     jsr copy_sectors_between_dirs                                     ; 98a8: 20 42 96     B.            ; Update CSD/lib/prev dir pointers
-    jmp format_init_dir                                               ; 98ab: 4c a8 97    L..            ; Continue compaction search
+    jmp format_init_dir                                               ; 98ab: 4c a8 97    L..            ; Continue compaction search; Initialise directory structure for format
 
 ; &98ae referenced 1 time by &a350
 .calculate_total_sectors
@@ -5081,7 +5229,7 @@ oscli                                           = &fff7
     sta dir_parent_sector,y                                           ; 98d1: 99 d6 16    ...            ; Store as dir parent pointer
     dey                                                               ; 98d4: 88          .              ; Next byte
     bpl init_cdir_entries_loop                                        ; 98d5: 10 f7       ..             ; Loop for 3 bytes
-    jsr format_init_dir                                               ; 98d7: 20 a8 97     ..            ; Init search state for this dir
+    jsr format_init_dir                                               ; 98d7: 20 a8 97     ..            ; Init search state for this dir; Initialise directory structure for format
     jsr print_catalogue_header                                        ; 98da: 20 c5 93     ..            ; Point to first entry
 ; &98dd referenced 2 times by &9932, &9936
 .setup_cdir_dir_entry
@@ -5154,9 +5302,16 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 .star_access
     jsr find_first_matching_entry                                     ; 993d: 20 df 8f     ..            ; Find first matching file; Find first matching directory entry
-    beq set_file_attributes                                           ; 9940: f0 0f       ..             ; Found? Set attributes
+    beq set_file_attributes                                           ; 9940: f0 0f       ..             ; Found? Set attributes; Set file attributes from access string
     jmp not_found_error                                               ; 9942: 4c c8 8b    L..            ; Not found: report error; Generate Not found error
 
+; ***************************************************************************************
+; Clear R, W, L attribute bits in entry
+; 
+; Strip bit 7 from the first three name bytes of the
+; directory entry at (zp_entry_ptr).
+; 
+; ***************************************************************************************
 ; &9945 referenced 2 times by &9951, &9995
 .clear_rwl_attributes
     ldy #2                                                            ; 9945: a0 02       ..             ; Y=2: clear R,W,L attribute bits
@@ -5169,9 +5324,16 @@ oscli                                           = &fff7
     bpl clear_attr_bits_loop                                          ; 994e: 10 f7       ..             ; Loop for 3 bytes
     rts                                                               ; 9950: 60          `              ; Return (attributes cleared)
 
+; ***************************************************************************************
+; Set file attributes from access string
+; 
+; Clear existing R, W, L attributes then parse the access
+; string to set appropriate flags including E and D.
+; 
+; ***************************************************************************************
 ; &9951 referenced 2 times by &9940, &99c1
 .set_file_attributes
-    jsr clear_rwl_attributes                                          ; 9951: 20 45 99     E.            ; Clear existing R,W,L attributes
+    jsr clear_rwl_attributes                                          ; 9951: 20 45 99     E.            ; Clear existing R,W,L attributes; Clear R, W, L attribute bits in entry
     ldy #4                                                            ; 9954: a0 04       ..             ; Y=4: check E attribute byte
     lda (zp_entry_ptr),y                                              ; 9956: b1 b6       ..             ; Get byte 4
     bmi save_e_attribute_state                                        ; 9958: 30 0b       0.             ; Bit 7 set: E attribute, skip
@@ -5215,7 +5377,7 @@ oscli                                           = &fff7
     bmi check_rwl_char                                                ; 998f: 30 14       0.             ; E set: only L attribute allowed
     cmp #&45 ; 'E'                                                    ; 9991: c9 45       .E             ; Is it 'E'?
     bne check_rwl_char                                                ; 9993: d0 10       ..             ; No, check R/W/L
-    jsr clear_rwl_attributes                                          ; 9995: 20 45 99     E.            ; E: clear R,W,L first
+    jsr clear_rwl_attributes                                          ; 9995: 20 45 99     E.            ; E: clear R,W,L first; Clear R, W, L attribute bits in entry
     ldy #4                                                            ; 9998: a0 04       ..             ; Y=4: set bit 7 of byte 4
     lda (zp_entry_ptr),y                                              ; 999a: b1 b6       ..             ; Get entry byte at attribute pos
     ora #&80                                                          ; 999c: 09 80       ..             ; Set E attribute
@@ -5244,9 +5406,9 @@ oscli                                           = &fff7
     bne parse_attr_char                                               ; 99b9: d0 cd       ..             ; Continue parsing
 ; &99bb referenced 3 times by &996e, &997d, &99b6
 .display_and_find_next
-    jsr conditional_info_display                                      ; 99bb: 20 fa 94     ..            ; Display info if *OPT1 verbose
+    jsr conditional_info_display                                      ; 99bb: 20 fa 94     ..            ; Display info if *OPT1 verbose; Display file info if *OPT1 verbose
     jsr advance_dir_entry_ptr                                         ; 99be: 20 5e 89     ^.            ; Find next matching file; Advance to next matching directory entry
-    beq set_file_attributes                                           ; 99c1: f0 8e       ..             ; More matches? Continue
+    beq set_file_attributes                                           ; 99c1: f0 8e       ..             ; More matches? Continue; Set file attributes from access string
     jsr write_dir_and_validate                                        ; 99c3: 20 86 8f     ..            ; Write directory back to disc; Write directory and FSM back to disc
     jmp save_wksp_and_return                                          ; 99c6: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
@@ -5319,7 +5481,7 @@ oscli                                           = &fff7
     pha                                                               ; 9a2c: 48          H              ; Push high byte
     jsr find_first_matching_entry                                     ; 9a2d: 20 df 8f     ..            ; Find next matching file; Find first matching directory entry
     bne all_files_deleted                                             ; 9a30: d0 0c       ..             ; Not found: all deleted, finish
-    jsr check_and_delete_found                                        ; 9a32: 20 28 91     (.            ; Delete this file
+    jsr check_and_delete_found                                        ; 9a32: 20 28 91     (.            ; Delete this file; Validate and delete a directory entry
     pla                                                               ; 9a35: 68          h              ; Restore filename pointer high
     sta zp_text_ptr_h                                                 ; 9a36: 85 b5       ..             ; Store in (&B5)
     pla                                                               ; 9a38: 68          h              ; Restore filename pointer low
@@ -5465,15 +5627,22 @@ oscli                                           = &fff7
     jsr floppy_check_present                                          ; 9acf: 20 11 ba     ..            ; Check if floppy hardware present; Check floppy disc hardware present
     inx                                                               ; 9ad2: e8          .              ; Increment result counter
     bpl service_handler_1                                             ; 9ad3: 10 fa       ..             ; Service 1: absolute workspace claim
-    bcc adfs_hardware_found                                           ; 9ad5: 90 0f       ..             ; No floppy, check hard drive
+    bcc adfs_hardware_found                                           ; 9ad5: 90 0f       ..             ; No floppy, check hard drive; Claim workspace for ADFS
     jsr hd_init_detect                                                ; 9ad7: 20 63 9a     c.            ; Check if hard drive present; Detect hard drive hardware
-    beq adfs_hardware_found                                           ; 9ada: f0 0a       ..             ; Not present, skip ADFS init
+    beq adfs_hardware_found                                           ; 9ada: f0 0a       ..             ; Not present, skip ADFS init; Claim workspace for ADFS
     lda #&40 ; '@'                                                    ; 9adc: a9 40       .@             ; Mark ROM as having ADFS workspace
     ldx romsel_copy                                                   ; 9ade: a6 f4       ..             ; Get our ROM number
     sta nmi_0df0,x                                                    ; 9ae0: 9d f0 0d    ...            ; Store flag in ROM status table
     lda #1                                                            ; 9ae3: a9 01       ..             ; Return A=1: service handled
     rts                                                               ; 9ae5: 60          `              ; Return A=1 (claim 1 page)
 
+; ***************************************************************************************
+; Claim workspace for ADFS
+; 
+; Return A=1 to claim one workspace page and set Y=&1C
+; to raise PAGE to &1D00 for ADFS workspace.
+; 
+; ***************************************************************************************
 ; &9ae6 referenced 2 times by &9ad5, &9ada
 .adfs_hardware_found
     lda #1                                                            ; 9ae6: a9 01       ..             ; Return A=1: claim 1 page
@@ -5514,7 +5683,7 @@ oscli                                           = &fff7
     sta (zp_wksp_ptr),y                                               ; 9b08: 91 ba       ..             ; Store byte in workspace
     iny                                                               ; 9b0a: c8          .              ; Next byte
     bne copy_default_workspace_loop                                   ; 9b0b: d0 f2       ..             ; Loop for all 256 workspace bytes
-    jsr store_wksp_checksum_ba_y                                      ; 9b0d: 20 2b a7     +.            ; Store workspace checksum
+    jsr store_wksp_checksum_ba_y                                      ; 9b0d: 20 2b a7     +.            ; Store workspace checksum; Calculate and store workspace checksum
 ; &9b10 referenced 1 time by &9af9
 .verify_workspace_checksum
     jsr check_wksp_checksum                                           ; 9b10: 20 31 a7     1.            ; Verify workspace checksum
@@ -5664,7 +5833,7 @@ boot_run_option = sub_c9b86+1
     lda wksp_flags_save                                               ; 9bf1: ad 20 11    . .            ; Get saved flags from workspace
     and #4                                                            ; 9bf4: 29 04       ).             ; Keep only *OPT1 bit
     sta zp_adfs_flags                                                 ; 9bf6: 85 cd       ..             ; Set as current ADFS flags
-    jsr load_dir_for_drive                                            ; 9bf8: 20 a2 a7     ..            ; Store channel checksum
+    jsr load_dir_for_drive                                            ; 9bf8: 20 a2 a7     ..            ; Store channel checksum; Restore workspace and load directory
     jsr hd_init_detect                                                ; 9bfb: 20 63 9a     c.            ; Detect hard drive hardware
     bne boot_load_from_disc                                           ; 9bfe: d0 06       ..             ; HD not found: skip HD flag
     lda zp_adfs_flags                                                 ; 9c00: a5 cd       ..             ; Get current flags
@@ -5820,7 +5989,7 @@ boot_run_option = sub_c9b86+1
     beq service4_not_matched                                          ; 9cf3: f0 0a       ..             ; Yes, match succeeded
     ora #&20 ; ' '                                                    ; 9cf5: 09 20       .              ; Convert to lowercase for compare
     cmp str_filing_system_name,x                                      ; 9cf7: dd d6 9c    ...            ; Compare with "adfs" (backwards)
-    bne service4_claim_and_dispatch                                   ; 9cfa: d0 15       ..             ; No match, not for us
+    bne service4_claim_and_dispatch                                   ; 9cfa: d0 15       ..             ; No match, not for us; Decline service 4 and pass on
     dex                                                               ; 9cfc: ca          .              ; Next char in 'ADFS'
     bpl match_command_loop                                            ; 9cfd: 10 ef       ..             ; Loop for 4 characters
 ; &9cff referenced 2 times by &9cf3, &9d04
@@ -5829,7 +5998,7 @@ boot_run_option = sub_c9b86+1
     iny                                                               ; 9d01: c8          .              ; Advance past matched space
     cmp #&20 ; ' '                                                    ; 9d02: c9 20       .              ; Space?
     beq service4_not_matched                                          ; 9d04: f0 f9       ..             ; Yes, skip more spaces
-    bcs service4_claim_and_dispatch                                   ; 9d06: b0 09       ..             ; Printable: more text follows, fail
+    bcs service4_claim_and_dispatch                                   ; 9d06: b0 09       ..             ; Printable: more text follows, fail; Decline service 4 and pass on
     pla                                                               ; 9d08: 68          h              ; Get prefix flag
     tax                                                               ; 9d09: aa          .              ; Transfer prefix flag to X
     pla                                                               ; 9d0a: 68          h              ; Get saved text offset
@@ -5838,6 +6007,13 @@ boot_run_option = sub_c9b86+1
     pha                                                               ; 9d0d: 48          H              ; Push again
     jmp boot_run_option                                               ; 9d0e: 4c 87 9b    L..            ; Select ADFS and execute command
 
+; ***************************************************************************************
+; Decline service 4 and pass on
+; 
+; Clean up stack and return A=4 to pass the unrecognised
+; command to the next ROM in the service chain.
+; 
+; ***************************************************************************************
 ; &9d11 referenced 2 times by &9cfa, &9d06
 .service4_claim_and_dispatch
     pla                                                               ; 9d11: 68          h              ; Not for us: clean up stack
@@ -5907,7 +6083,7 @@ boot_run_option = sub_c9b86+1
 .store_osword_result
     lda wksp_disc_op_sector_count                                     ; 9d57: ad 1e 10    ...            ; Check sector count for verify
     bne copy_disc_op_params_loop                                      ; 9d5a: d0 ea       ..             ; More sectors to verify
-    jsr check_disc_command_type                                       ; 9d5c: 20 45 8a     E.            ; Process verify result
+    jsr check_disc_command_type                                       ; 9d5c: 20 45 8a     E.            ; Process verify result; Check command type and adjust sector count
 ; &9d5f referenced 1 time by &9d55
 .copy_result_sector_loop
     ldy #0                                                            ; 9d5f: a0 00       ..             ; Y=0: store result at block+0
@@ -6007,6 +6183,13 @@ l9dd3 = check_help_adfs_keyword+1
 .return_25
     rts                                                               ; 9dd9: 60          `              ; Return
 
+; ***************************************************************************************
+; Print *HELP ADFS command list
+; 
+; Print the ADFS command list for *HELP output, formatting
+; each command name with padding.
+; 
+; ***************************************************************************************
 ; &9dda referenced 2 times by &9de5, &9dea
 .print_help_command_list
     iny                                                               ; 9dda: c8          .              ; Check next char of HELP argument
@@ -6019,11 +6202,11 @@ l9dd3 = check_help_adfs_keyword+1
 
 ; &9de5 referenced 3 times by &9de8, &9dfc, &9e06
 .print_next_command
-    jsr print_help_command_list                                       ; 9de5: 20 da 9d     ..            ; Skip non-space chars in argument
+    jsr print_help_command_list                                       ; 9de5: 20 da 9d     ..            ; Skip non-space chars in argument; Print *HELP ADFS command list
     bne print_next_command                                            ; 9de8: d0 fb       ..             ; Loop skipping non-space chars
 ; &9dea referenced 1 time by &9ded
 .output_command_name_loop
-    jsr print_help_command_list                                       ; 9dea: 20 da 9d     ..            ; Skip space chars after word
+    jsr print_help_command_list                                       ; 9dea: 20 da 9d     ..            ; Skip space chars after word; Print *HELP ADFS command list
     beq output_command_name_loop                                      ; 9ded: f0 fb       ..             ; Loop skipping space chars
 ; &9def referenced 1 time by &9dc4
 .end_of_command_name
@@ -6065,7 +6248,7 @@ l9dd3 = check_help_adfs_keyword+1
     bpl print_data_cmd_name_loop                                      ; 9e23: 10 f4       ..             ; Loop for up to 10 chars
 ; &9e25 referenced 2 times by &9e1c, &9e29
 .end_of_data_command
-    jsr ca016                                                         ; 9e25: 20 16 a0     ..            ; Print space for padding
+    jsr ca016                                                         ; 9e25: 20 16 a0     ..            ; Print space for padding; Print a space character
     dey                                                               ; 9e28: 88          .              ; Decrement padding counter
     bpl end_of_data_command                                           ; 9e29: 10 fa       ..             ; Loop until 10 columns filled
     txa                                                               ; 9e2b: 8a          .              ; Save table index
@@ -6076,10 +6259,10 @@ l9dd3 = check_help_adfs_keyword+1
     lsr a                                                             ; 9e32: 4a          J              ; Shift high nibble to low
     lsr a                                                             ; 9e33: 4a          J              ; 4 right shifts total
     lsr a                                                             ; 9e34: 4a          J              ; 4th shift
-    jsr setup_entry_name_ptr                                          ; 9e35: 20 7b 92     {.            ; Print as hex digit
+    jsr setup_entry_name_ptr                                          ; 9e35: 20 7b 92     {.            ; Print as hex digit; Set up entry name pointer for star commands
     pla                                                               ; 9e38: 68          h              ; Restore address byte
     and #&0f                                                          ; 9e39: 29 0f       ).             ; Isolate low nibble
-    jsr setup_entry_name_ptr                                          ; 9e3b: 20 7b 92     {.            ; Print as hex digit
+    jsr setup_entry_name_ptr                                          ; 9e3b: 20 7b 92     {.            ; Print as hex digit; Set up entry name pointer for star commands
     jsr osnewl                                                        ; 9e3e: 20 e7 ff     ..            ; Print newline; Write newline (characters 10 and 13)
     pla                                                               ; 9e41: 68          h              ; Restore table index
     tax                                                               ; 9e42: aa          .              ; Restore table index to X
@@ -6315,7 +6498,7 @@ l9dd3 = check_help_adfs_keyword+1
     cpx #3                                                            ; 9ff6: e0 03       ..             ; Check for *OPT 4 (boot option)
     bne ca00a                                                         ; 9ff8: d0 10       ..             ; Not *OPT 4: bad opt error
     jsr mark_directory_dirty                                          ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified; Validate FSM checksums and mark directory dirty
-    jsr check_drive_and_reload_fsm                                    ; 9ffd: 20 f5 b4     ..            ; Ensure dir loaded and writable
+    jsr check_drive_and_reload_fsm                                    ; 9ffd: 20 f5 b4     ..            ; Ensure dir loaded and writable; Check disc changed and reload FSM if needed
     lda zp_text_ptr_h                                                 ; a000: a5 b5       ..             ; Get boot option value (second param)
     and #3                                                            ; a002: 29 03       ).             ; Mask to 2 bits (options 0-3)
     sta fsm_s1_boot_option                                            ; a004: 8d fd 0f    ...            ; Store in FSM boot option byte
@@ -6327,6 +6510,12 @@ l9dd3 = check_help_adfs_keyword+1
     equb &cb                                                          ; a00d: cb          .
     equs "Bad opt", 0                                                 ; a00e: 42 61 64... Bad
 
+; ***************************************************************************************
+; Print a space character
+; 
+; Print a single space (&20) via OSWRCH.
+; 
+; ***************************************************************************************
 ; &a016 referenced 8 times by &9299, &92e3, &92fc, &9313, &93f5, &952b, &952e, &9e25
 .ca016
     lda #&20 ; ' '                                                    ; a016: a9 20       .              ; A=&20: space character
@@ -6637,7 +6826,7 @@ la154 = sub_ca153+1
     sta wksp_tube_transfer_addr_1,x                                   ; a1b1: 9d 27 10    .'.            ; Clear Tube transfer bytes
     dex                                                               ; a1b4: ca          .              ; Next byte
     bpl clear_accumulators_loop                                       ; a1b5: 10 f7       ..             ; Loop for 4 bytes
-    jsr sum_free_space                                                ; a1b7: 20 09 86     ..            ; Sum the free space entries
+    jsr sum_free_space                                                ; a1b7: 20 09 86     ..            ; Sum the free space entries; Sum all free space in FSM
     ldx #2                                                            ; a1ba: a2 02       ..             ; X=2: copy 3 bytes of result
 ; &a1bc referenced 1 time by &a1c3
 .copy_result_loop
@@ -6688,7 +6877,7 @@ la154 = sub_ca153+1
 ; 
 ; ***************************************************************************************
 .star_title
-    jsr check_drive_and_reload_fsm                                    ; a252: 20 f5 b4     ..            ; Ensure dir is loaded and writable
+    jsr check_drive_and_reload_fsm                                    ; a252: 20 f5 b4     ..            ; Ensure dir is loaded and writable; Check disc changed and reload FSM if needed
     jsr mark_directory_dirty                                          ; a255: 20 ea 8f     ..            ; Mark directory as modified; Validate FSM checksums and mark directory dirty
     jsr skip_spaces                                                   ; a258: 20 cf a4     ..            ; Skip leading spaces in argument; Skip leading spaces in command argument
     ldy #0                                                            ; a25b: a0 00       ..             ; Y=0: index into title string
@@ -6728,9 +6917,9 @@ la154 = sub_ca153+1
     lda #osbyte_read_himem                                            ; a281: a9 84       ..             ; OSBYTE &84: read top of user memory
     jsr osbyte                                                        ; a283: 20 f4 ff     ..            ; Read top of user memory (HIMEM)
     txa                                                               ; a286: 8a          .              ; X = HIMEM low byte; X and Y contain the address of HIMEM (low, high)
-    bne bad_compact_error                                             ; a287: d0 12       ..             ; Non-zero low byte: bad compact
+    bne bad_compact_error                                             ; a287: d0 12       ..             ; Non-zero low byte: bad compact; Raise Bad compact error
     tya                                                               ; a289: 98          .              ; Y = HIMEM high byte
-    bmi bad_compact_error                                             ; a28a: 30 0f       0.             ; Bit 7 set (>= &80): bad compact
+    bmi bad_compact_error                                             ; a28a: 30 0f       0.             ; Bit 7 set (>= &80): bad compact; Raise Bad compact error
     sta wksp_1060                                                     ; a28c: 8d 60 10    .`.            ; Store HIMEM page as start page
     lda #&80                                                          ; a28f: a9 80       ..             ; Calculate length: &80 - start
     sec                                                               ; a291: 38          8              ; Set carry for subtraction
@@ -6738,6 +6927,12 @@ la154 = sub_ca153+1
     sta l1061                                                         ; a295: 8d 61 10    .a.            ; Store buffer length in pages
     jmp begin_compaction                                              ; a298: 4c 44 a3    LD.            ; Jump to compaction main loop
 
+; ***************************************************************************************
+; Raise Bad compact error
+; 
+; Reload FSM and directory then raise error &94: Bad compact.
+; 
+; ***************************************************************************************
 ; &a29b referenced 11 times by &a287, &a28a, &a2bd, &a2e6, &a2ef, &a301, &a305, &a313, &a31f, &a331, &a341
 .bad_compact_error
     jsr reload_fsm_and_dir_then_brk                                   ; a29b: 20 48 83     H.            ; Reload FSM and directory then raise error
@@ -6755,7 +6950,7 @@ la154 = sub_ca153+1
     cmp #&20 ; ' '                                                    ; a2b7: c9 20       .              ; Is it a space?
     beq skip_separator_spaces                                         ; a2b9: f0 04       ..             ; Yes, skip to length parameter
     cmp #&2c ; ','                                                    ; a2bb: c9 2c       .,             ; Is it a comma?
-    bne bad_compact_error                                             ; a2bd: d0 dc       ..             ; No separator: bad compact error
+    bne bad_compact_error                                             ; a2bd: d0 dc       ..             ; No separator: bad compact error; Raise Bad compact error
 ; &a2bf referenced 2 times by &a2b9, &a2c4
 .skip_separator_spaces
     iny                                                               ; a2bf: c8          .              ; Skip spaces/commas
@@ -6779,13 +6974,13 @@ la154 = sub_ca153+1
     lda (zp_text_ptr),y                                               ; a2e0: b1 b4       ..             ; Get next character
     cmp #&20 ; ' '                                                    ; a2e2: c9 20       .              ; Is it a space?
     beq skip_trailing_spaces                                          ; a2e4: f0 f9       ..             ; Yes, skip spaces
-    bcs bad_compact_error                                             ; a2e6: b0 b3       ..             ; Printable after length: bad compact
+    bcs bad_compact_error                                             ; a2e6: b0 b3       ..             ; Printable after length: bad compact; Raise Bad compact error
     ldx #3                                                            ; a2e8: a2 03       ..             ; X=3: convert 4 hex digits to 2 bytes
 ; &a2ea referenced 1 time by &a30d
 .convert_hex_digits_loop
     lda wksp_disc_op_result,x                                         ; a2ea: bd 15 10    ...            ; Get hex digit
     cmp #&30 ; '0'                                                    ; a2ed: c9 30       .0             ; Is it '0'-'9'?
-    bcc bad_compact_error                                             ; a2ef: 90 aa       ..             ; Below '0': bad compact
+    bcc bad_compact_error                                             ; a2ef: 90 aa       ..             ; Below '0': bad compact; Raise Bad compact error
     cmp #&3a ; ':'                                                    ; a2f1: c9 3a       .:             ; Above '9'?
     bcs check_hex_af                                                  ; a2f3: b0 08       ..             ; No, it's '0'-'9': convert
     sec                                                               ; a2f5: 38          8              ; Set carry for subtraction
@@ -6796,9 +6991,9 @@ la154 = sub_ca153+1
 .check_hex_af
     and #&5f ; '_'                                                    ; a2fd: 29 5f       )_             ; Convert to uppercase
     cmp #&41 ; 'A'                                                    ; a2ff: c9 41       .A             ; Below 'A'?
-    bcc bad_compact_error                                             ; a301: 90 98       ..             ; Yes: bad compact
+    bcc bad_compact_error                                             ; a301: 90 98       ..             ; Yes: bad compact; Raise Bad compact error
     cmp #&47 ; 'G'                                                    ; a303: c9 47       .G             ; Above 'F'?
-    bcs bad_compact_error                                             ; a305: b0 94       ..             ; Yes: bad compact
+    bcs bad_compact_error                                             ; a305: b0 94       ..             ; Yes: bad compact; Raise Bad compact error
     sbc #&36 ; '6'                                                    ; a307: e9 36       .6             ; Convert 'A'-'F' to 10-15
     sta wksp_disc_op_result,x                                         ; a309: 9d 15 10    ...            ; Store value
 ; &a30c referenced 1 time by &a2fb
@@ -6806,15 +7001,15 @@ la154 = sub_ca153+1
     dex                                                               ; a30c: ca          .              ; Next digit
     bpl convert_hex_digits_loop                                       ; a30d: 10 db       ..             ; Loop for 4 digits
     inx                                                               ; a30f: e8          .              ; X=0: combine first pair
-    jsr combine_hex_digit_pair                                        ; a310: 20 5a a3     Z.            ; Combine two hex digits into byte
-    bmi bad_compact_error                                             ; a313: 30 86       0.             ; Negative result: bad compact
+    jsr combine_hex_digit_pair                                        ; a310: 20 5a a3     Z.            ; Combine two hex digits into byte; Combine two hex nibbles into a byte
+    bmi bad_compact_error                                             ; a313: 30 86       0.             ; Negative result: bad compact; Raise Bad compact error
     sta wksp_1060                                                     ; a315: 8d 60 10    .`.            ; Store as start page
     ldx #2                                                            ; a318: a2 02       ..             ; X=2: combine second pair
-    jsr combine_hex_digit_pair                                        ; a31a: 20 5a a3     Z.            ; Combine two hex digits into byte
+    jsr combine_hex_digit_pair                                        ; a31a: 20 5a a3     Z.            ; Combine two hex digits into byte; Combine two hex nibbles into a byte
     bpl convert_two_digits                                            ; a31d: 10 03       ..             ; Positive result: valid
 ; &a31f referenced 1 time by &a322
 .check_hex_digit_valid
-    jmp bad_compact_error                                             ; a31f: 4c 9b a2    L..            ; Zero length: bad compact
+    jmp bad_compact_error                                             ; a31f: 4c 9b a2    L..            ; Zero length: bad compact; Raise Bad compact error
 
 ; &a322 referenced 1 time by &a31d
 .convert_two_digits
@@ -6824,7 +7019,7 @@ la154 = sub_ca153+1
     lda nmi_0df0,x                                                    ; a329: bd f0 0d    ...            ; Get workspace page from ROM table
     cmp wksp_1060                                                     ; a32c: cd 60 10    .`.            ; Start page below workspace?
     bcc combine_hex_nibbles                                           ; a32f: 90 03       ..             ; Yes: buffer doesn't overlap
-    jmp bad_compact_error                                             ; a331: 4c 9b a2    L..            ; No: bad compact (overlaps workspace)
+    jmp bad_compact_error                                             ; a331: 4c 9b a2    L..            ; No: bad compact (overlaps workspace); Raise Bad compact error
 
 ; &a334 referenced 1 time by &a32f
 .combine_hex_nibbles
@@ -6834,7 +7029,7 @@ la154 = sub_ca153+1
     bpl begin_compaction                                              ; a33b: 10 07       ..             ; Result > &7F: check for exactly &80
     cmp #&80                                                          ; a33d: c9 80       ..             ; Is it exactly &80?
     beq begin_compaction                                              ; a33f: f0 03       ..             ; Yes: OK (up to screen memory)
-    jmp bad_compact_error                                             ; a341: 4c 9b a2    L..            ; Above &80: bad compact
+    jmp bad_compact_error                                             ; a341: 4c 9b a2    L..            ; Above &80: bad compact; Raise Bad compact error
 
 ; &a344 referenced 3 times by &a298, &a33b, &a33f
 .begin_compaction
@@ -6849,6 +7044,13 @@ la154 = sub_ca153+1
     sta zp_adfs_flags                                                 ; a357: 85 cd       ..             ; Store cleared flags
     rts                                                               ; a359: 60          `              ; Return
 
+; ***************************************************************************************
+; Combine two hex nibbles into a byte
+; 
+; Take high nibble from workspace, shift left 4, and
+; OR with low nibble to produce a combined byte.
+; 
+; ***************************************************************************************
 ; &a35a referenced 2 times by &a310, &a31a
 .combine_hex_digit_pair
     lda wksp_disc_op_result,x                                         ; a35a: bd 15 10    ...            ; Get hex digit pair high nibble
@@ -6859,6 +7061,14 @@ la154 = sub_ca153+1
     ora wksp_disc_op_mem_addr,x                                       ; a361: 1d 16 10    ...            ; OR in low nibble
     rts                                                               ; a364: 60          `              ; Return combined byte
 
+; ***************************************************************************************
+; Parse second filename from command line
+; 
+; Skip past the first filename, save the text pointer, then
+; parse the second filename for commands like *RENAME and
+; *COPY. Raises Bad command if extra arguments follow.
+; 
+; ***************************************************************************************
 ; &a365 referenced 4 times by &a544, &a5a1, &a62e, &a864
 .parse_second_filename
     jsr skip_filename                                                 ; a365: 20 b7 a4     ..            ; Skip past filename in command string
@@ -7260,7 +7470,7 @@ la154 = sub_ca153+1
     beq advance_dest_scan                                             ; a542: f0 f9       ..             ; Dot separator: continue past it
 ; &a544 referenced 1 time by &a51e
 .parse_destination_name
-    jsr parse_second_filename                                         ; a544: 20 65 a3     e.            ; Parse second arg (destination)
+    jsr parse_second_filename                                         ; a544: 20 65 a3     e.            ; Parse second arg (destination); Parse second filename from command line
     jsr check_drive_colon                                             ; a547: 20 f6 a4     ..            ; Check for drive specifier colon
     lda #&40 ; '@'                                                    ; a54a: a9 40       .@             ; Set up OSFILE block pointer
     sta zp_osfile_ptr                                                 ; a54c: 85 b8       ..             ; Store low byte
@@ -7316,7 +7526,7 @@ la154 = sub_ca153+1
     sta zp_text_ptr_h                                                 ; a59c: 85 b5       ..             ; Store in (&B5)
     pla                                                               ; a59e: 68          h              ; Restore first arg low
     sta zp_text_ptr                                                   ; a59f: 85 b4       ..             ; Store in (&B4)
-    jsr parse_second_filename                                         ; a5a1: 20 65 a3     e.            ; Parse last component of dest path
+    jsr parse_second_filename                                         ; a5a1: 20 65 a3     e.            ; Parse last component of dest path; Parse second filename from command line
 ; &a5a4 referenced 2 times by &a5ba, &a5be
 .find_last_path_component
     ldy #0                                                            ; a5a4: a0 00       ..             ; Y=0: scan for end of path component
@@ -7409,7 +7619,7 @@ la154 = sub_ca153+1
     iny                                                               ; a629: c8          .              ; Next name byte
     cpy #4                                                            ; a62a: c0 04       ..             ; Done 4 bytes?
     bne build_access_byte_loop                                        ; a62c: d0 f5       ..             ; No, continue building access
-    jsr parse_second_filename                                         ; a62e: 20 65 a3     e.            ; Parse dest path and switch dir
+    jsr parse_second_filename                                         ; a62e: 20 65 a3     e.            ; Parse dest path and switch dir; Parse second filename from command line
     ldy #&18                                                          ; a631: a0 18       ..             ; Y=&18: start sector in entry
     ldx #2                                                            ; a633: a2 02       ..             ; X=2: copy 3 sector bytes
 ; &a635 referenced 1 time by &a63c
@@ -7534,9 +7744,9 @@ la154 = sub_ca153+1
 ; &a6e6 referenced 1 time by &a6f6
 .compare_hugo_loop
     cmp dir_buffer,x                                                  ; a6e6: dd 00 12    ...            ; Compare with header sequence+ID
-    bne broken_directory_error                                        ; a6e9: d0 0e       ..             ; Mismatch: broken directory
+    bne broken_directory_error                                        ; a6e9: d0 0e       ..             ; Mismatch: broken directory; Raise Broken directory error
     cmp dir_master_sequence,x                                         ; a6eb: dd fa 16    ...            ; Compare footer sequence+ID
-    bne broken_directory_error                                        ; a6ee: d0 09       ..             ; Mismatch: broken directory
+    bne broken_directory_error                                        ; a6ee: d0 09       ..             ; Mismatch: broken directory; Raise Broken directory error
     inx                                                               ; a6f0: e8          .              ; Next byte
     lda str_hugo,x                                                    ; a6f1: bd b0 84    ...            ; Check against "Hugo" string
     cpx #5                                                            ; a6f4: e0 05       ..             ; Checked all 5 bytes (seq+Hugo)?
@@ -7545,6 +7755,13 @@ la154 = sub_ca153+1
 .return_31
     rts                                                               ; a6f8: 60          `              ; Return
 
+; ***************************************************************************************
+; Raise Broken directory error
+; 
+; Generate disc error with state recovery, then raise
+; error &A8: Broken directory.
+; 
+; ***************************************************************************************
 ; &a6f9 referenced 2 times by &a6e9, &a6ee
 .broken_directory_error
     jsr generate_disc_error                                           ; a6f9: 20 2b 83     +.            ; Dir broken: save drive and error; Generate disc error with state recovery
@@ -7588,6 +7805,12 @@ la154 = sub_ca153+1
     ldy #&fe                                                          ; a728: a0 fe       ..             ; Y=&FE: index of checksum byte
     rts                                                               ; a72a: 60          `              ; Return
 
+; ***************************************************************************************
+; Calculate and store workspace checksum
+; 
+; Calculate workspace checksum and store at (zp_wksp_ptr)+&FE.
+; 
+; ***************************************************************************************
 ; &a72b referenced 2 times by &8a34, &9b0d
 .store_wksp_checksum_ba_y
     jsr calc_wksp_checksum                                            ; a72b: 20 1a a7     ..            ; Calculate checksum; Calculate workspace checksum
@@ -7616,6 +7839,13 @@ la154 = sub_ca153+1
     equb &aa                                                          ; a740: aa          .
     equs "Bad sum", 0                                                 ; a741: 42 61 64... Bad
 
+; ***************************************************************************************
+; Save all registers and workspace
+; 
+; Save registers, validate workspace checksum, check FSM
+; integrity, and store workspace with updated checksum.
+; 
+; ***************************************************************************************
 ; &a749 referenced 8 times by &a95f, &a995, &ad42, &ad76, &b0e4, &b12f, &b1b6, &b57f
 .save_workspace_state
     php                                                               ; a749: 08          .              ; Save all registers
@@ -7683,6 +7913,13 @@ la154 = sub_ca153+1
     bne restore_wksp_byte_loop                                        ; a79f: d0 fa       ..             ; Loop for 120 bytes
     rts                                                               ; a7a1: 60          `              ; Return checksum in A
 
+; ***************************************************************************************
+; Restore workspace and load directory
+; 
+; Restore workspace from saved copy, then load the current
+; directory from disc for the active drive.
+; 
+; ***************************************************************************************
 ; &a7a2 referenced 2 times by &83f7, &9bf8
 .load_dir_for_drive
     php                                                               ; a7a2: 08          .              ; Save all registers
@@ -7705,6 +7942,13 @@ la154 = sub_ca153+1
     plp                                                               ; a7be: 28          (              ; Restore flags
     rts                                                               ; a7bf: 60          `              ; Return
 
+; ***************************************************************************************
+; Set up disc read for directory load
+; 
+; Copy a disc operation template to the workspace and set
+; up the sector address for reading a directory from disc.
+; 
+; ***************************************************************************************
 ; &a7c0 referenced 2 times by &a880, &a936
 .setup_disc_read_for_dir
     lda l1091                                                         ; a7c0: ad 91 10    ...            ; Get saved filename pointer low
@@ -7770,7 +8014,7 @@ la154 = sub_ca153+1
 .load_fsm
     ldx #&0c                                                          ; a816: a2 0c       ..             ; X=&0C: control block offset
     ldy #&88                                                          ; a818: a0 88       ..             ; Y=&88: control block page
-    jmp exec_disc_command                                             ; a81a: 4c 8b 82    L..            ; Execute disc read command
+    jmp exec_disc_command                                             ; a81a: 4c 8b 82    L..            ; Execute disc read command; Execute disc command and check for error
 
 ; ***************************************************************************************
 ; *COPY command handler
@@ -7817,7 +8061,7 @@ la154 = sub_ca153+1
     sta wksp_csd_drive_sector,y                                       ; a85e: 99 2c 10    .,.            ; Set as target dir for copy
     dey                                                               ; a861: 88          .              ; Next byte
     bpl copy_csd_for_dest_loop                                        ; a862: 10 f7       ..             ; Loop for 4 bytes
-    jsr parse_second_filename                                         ; a864: 20 65 a3     e.            ; Parse destination path
+    jsr parse_second_filename                                         ; a864: 20 65 a3     e.            ; Parse destination path; Parse second filename from command line
 .check_dest_terminator
 la868 = check_dest_terminator+1
     jsr check_char_is_terminator                                      ; a867: 20 1a 87     ..            ; Check if character is a filename terminator
@@ -7836,7 +8080,7 @@ la868 = check_dest_terminator+1
     sta l1070,y                                                       ; a87a: 99 70 10    .p.            ; Store in workspace
     dey                                                               ; a87d: 88          .              ; Next byte
     bpl save_dest_dir_sector_loop                                     ; a87e: 10 f7       ..             ; Loop for 4 bytes
-    jsr setup_disc_read_for_dir                                       ; a880: 20 c0 a7     ..            ; Set up disc read for source
+    jsr setup_disc_read_for_dir                                       ; a880: 20 c0 a7     ..            ; Set up disc read for source; Set up disc read for directory load
 ; &a883 referenced 1 time by &a88f
 .scan_source_entries_loop
     ldy #4                                                            ; a883: a0 04       ..             ; Y=4: check entry access byte
@@ -7856,7 +8100,7 @@ la868 = check_dest_terminator+1
     sta l1093                                                         ; a896: 8d 93 10    ...            ; Store entry pointer low
     lda zp_entry_ptr_h                                                ; a899: a5 b7       ..             ; Get entry pointer high
     sta l1094                                                         ; a89b: 8d 94 10    ...            ; Store entry pointer high
-    jsr search_dir_for_file                                           ; a89e: 20 62 8c     b.            ; Check if file already exists at dest
+    jsr search_dir_for_file                                           ; a89e: 20 62 8c     b.            ; Check if file already exists at dest; Search directory for matching file
     ldy #&16                                                          ; a8a1: a0 16       ..             ; Y=&16: get source start sector
     lda (zp_entry_ptr),y                                              ; a8a3: b1 b6       ..             ; Get sector low byte
     sta l10a2                                                         ; a8a5: 8d a2 10    ...            ; Store in load address workspace
@@ -7926,7 +8170,7 @@ la868 = check_dest_terminator+1
     pla                                                               ; a92f: 68          h              ; Restore original drive
     sta wksp_current_drive                                            ; a930: 8d 17 11    ...            ; Set as current drive
     jsr write_dir_and_validate                                        ; a933: 20 86 8f     ..            ; Write modified directory; Write directory and FSM back to disc
-    jsr setup_disc_read_for_dir                                       ; a936: 20 c0 a7     ..            ; Set up for next source file
+    jsr setup_disc_read_for_dir                                       ; a936: 20 c0 a7     ..            ; Set up for next source file; Set up disc read for directory load
     jmp skip_dir_entry_or_done                                        ; a939: 4c 8c a8    L..            ; Loop to copy next file
 
 ; ***************************************************************************************
@@ -7971,10 +8215,10 @@ la868 = check_dest_terminator+1
 
 ; &a95f referenced 1 time by &a95a
 .osargs_general_query
-    jsr save_workspace_state                                          ; a95f: 20 49 a7     I.            ; Save registers for later restore
+    jsr save_workspace_state                                          ; a95f: 20 49 a7     I.            ; Save registers for later restore; Save all registers and workspace
     stx zp_save_x                                                     ; a962: 86 c3       ..             ; Save X (zero page pointer)
     dey                                                               ; a964: 88          .              ; Y was function code; Y-1=0 means A=1
-    bne flush_all_channels                                            ; a965: d0 15       ..             ; A!=1: check further functions
+    bne flush_all_channels                                            ; a965: d0 15       ..             ; A!=1: check further functions; Flush all open channel buffers
     lda l10d6                                                         ; a967: ad d6 10    ...            ; A=1: return command tail low byte
     sta l0000,x                                                       ; a96a: 95 00       ..             ; Store in zero page at X+0
     lda wksp_shadow_save                                              ; a96c: ad d7 10    ...            ; Command tail high byte
@@ -7989,6 +8233,13 @@ la868 = check_dest_terminator+1
     tay                                                               ; a97a: a8          .              ; Y=&00
     rts                                                               ; a97b: 60          `              ; Return (success)
 
+; ***************************************************************************************
+; Flush all open channel buffers
+; 
+; Iterate all channel entries, flushing dirty buffers to disc
+; and clearing state flags. Used by OSARGS A=&FF.
+; 
+; ***************************************************************************************
 ; &a97c referenced 2 times by &96af, &a965
 .flush_all_channels
     ldx #&10                                                          ; a97c: a2 10       ..             ; X=&10: scan open channels
@@ -8008,13 +8259,13 @@ la868 = check_dest_terminator+1
 
 ; &a995 referenced 1 time by &a957
 .osargs_file_specific
-    jsr save_workspace_state                                          ; a995: 20 49 a7     I.            ; Save regs for file-specific OSARGS
+    jsr save_workspace_state                                          ; a995: 20 49 a7     I.            ; Save regs for file-specific OSARGS; Save all registers and workspace
 ; &a998 referenced 1 time by &b5e1
 .set_channel_and_dispatch
     stx zp_save_x                                                     ; a998: 86 c3       ..             ; Save X (ZP pointer)
     pha                                                               ; a99a: 48          H              ; Save function code on stack
     jsr check_set_channel_y                                           ; a99b: 20 fe ac     ..            ; Validate and set channel number from Y
-    jsr sync_ext_to_ptr                                               ; a99e: 20 8c b1     ..            ; Flush channel buffer
+    jsr sync_ext_to_ptr                                               ; a99e: 20 8c b1     ..            ; Flush channel buffer; Synchronise EXT to PTR if at EOF
     pla                                                               ; a9a1: 68          h              ; Restore function code
     ldy zp_channel_offset                                             ; a9a2: a4 cf       ..             ; Get channel index
     tax                                                               ; a9a4: aa          .              ; A still non-zero?
@@ -8116,7 +8367,7 @@ la868 = check_dest_terminator+1
 ; &aa62 referenced 1 time by &aa47
 .read_ext_value
     dex                                                               ; aa62: ca          .              ; Decrement: A=5 (write EXT)?
-    bne validate_and_set_ptr                                          ; aa63: d0 41       .A             ; No, handle ensure
+    bne validate_and_set_ptr                                          ; aa63: d0 41       .A             ; No, handle ensure; Flush buffers and set file pointer
     ldx zp_save_x                                                     ; aa65: a6 c3       ..             ; A=5: check file is open for write
     lda wksp_ch_flags,y                                               ; aa67: b9 ac 11    ...            ; Get channel flags
     bmi write_new_ext                                                 ; aa6a: 30 03       0.             ; Bit 7 set: writable, proceed
@@ -8147,6 +8398,13 @@ la868 = check_dest_terminator+1
     bcs read_allocation_size                                          ; aaa1: b0 bc       ..             ; EXT >= current: just update table
     jmp copy_new_ptr_from_user                                        ; aaa3: 4c cf a9    L..            ; EXT < current: also update PTR
 
+; ***************************************************************************************
+; Flush buffers and set file pointer
+; 
+; Scan the ensure table for entries matching the current
+; channel and flush any dirty buffers before updating PTR.
+; 
+; ***************************************************************************************
 ; &aaa6 referenced 3 times by &aa63, &b3e4, &b7cf
 .validate_and_set_ptr
     ldx #&10                                                          ; aaa6: a2 10       ..             ; X=&10: scan ensure table
@@ -8198,7 +8456,7 @@ la868 = check_dest_terminator+1
 
 ; &aaf0 referenced 1 time by &ac5f
 .calc_channel_buffer_page
-    jsr calc_buffer_page_from_offset                                  ; aaf0: 20 d7 ac     ..            ; Calculate buffer page from channel
+    jsr calc_buffer_page_from_offset                                  ; aaf0: 20 d7 ac     ..            ; Calculate buffer page from channel; Calculate buffer page from channel offset
 ; &aaf3 referenced 3 times by &a97e, &aab2, &b035
 .flush_dirty_channel_buffer
     jsr ensure_channel_buffer                                         ; aaf3: 20 a5 ab     ..            ; Ensure channel buffer is allocated
@@ -8225,7 +8483,7 @@ la868 = check_dest_terminator+1
     sta l10d1                                                         ; ab21: 8d d1 10    ...            ; Store in error sector mid
     lda wksp_1003,x                                                   ; ab24: bd 03 10    ...            ; Get drive+sector high
     sta l10d2                                                         ; ab27: 8d d2 10    ...            ; Store in error sector high
-    jsr set_drive_from_channel                                        ; ab2a: 20 1c b5     ..            ; Flush channel if dirty
+    jsr set_drive_from_channel                                        ; ab2a: 20 1c b5     ..            ; Flush channel if dirty; Set current drive from channel's drive
     jsr command_set_retries                                           ; ab2d: 20 80 80     ..            ; Set retry count for disc operation
     stx zp_name_ptr_h                                                 ; ab30: 86 c1       ..             ; Save channel index
     lda zp_adfs_flags                                                 ; ab32: a5 cd       ..             ; Check for hard drive
@@ -8249,18 +8507,25 @@ la868 = check_dest_terminator+1
     jsr hd_command_bget_bput_sector                                   ; ab4f: 20 c6 aa     ..            ; Hard drive single sector for BGET/BPUT
     ldy #0                                                            ; ab52: a0 00       ..             ; Y=0: data transfer index
     jsr scsi_wait_for_req                                             ; ab54: 20 0f 83     ..            ; Wait for SCSI REQ signal
-    bpl wait_write_data_phase                                         ; ab57: 10 0a       ..             ; Status OK: continue
+    bpl wait_write_data_phase                                         ; ab57: 10 0a       ..             ; Status OK: continue; Write 256 bytes to SCSI bus
     jsr command_done                                                  ; ab59: 20 8a 81     ..            ; Complete SCSI command and read status
     dec zp_retry_count                                                ; ab5c: c6 ce       ..             ; Decrement retry counter
     bpl hd_bput_write_sector                                          ; ab5e: 10 eb       ..             ; More retries: try write again
     jmp generate_error                                                ; ab60: 4c 9a 82    L..            ; Generate a BRK error
 
+; ***************************************************************************************
+; Write 256 bytes to SCSI bus
+; 
+; Transfer a page from (zp_buf_src) to the SCSI data
+; register, then set the ensuring flag.
+; 
+; ***************************************************************************************
 ; &ab63 referenced 2 times by &ab57, &ab69
 .wait_write_data_phase
     lda (zp_buf_src),y                                                ; ab63: b1 bc       ..             ; Get byte from buffer
     sta fred_hard_drive_0                                             ; ab65: 8d 40 fc    .@.            ; Write to SCSI data bus
     iny                                                               ; ab68: c8          .              ; Next byte
-    bne wait_write_data_phase                                         ; ab69: d0 f8       ..             ; Loop for 256 bytes
+    bne wait_write_data_phase                                         ; ab69: d0 f8       ..             ; Loop for 256 bytes; Write 256 bytes to SCSI bus
     lda #1                                                            ; ab6b: a9 01       ..             ; Set ensuring flag
     ora zp_adfs_flags                                                 ; ab6d: 05 cd       ..             ; OR into ADFS flags
     sta zp_adfs_flags                                                 ; ab6f: 85 cd       ..             ; Store updated flags
@@ -8326,6 +8591,13 @@ la868 = check_dest_terminator+1
 .return_35
     rts                                                               ; abd7: 60          `              ; Return
 
+; ***************************************************************************************
+; Find or allocate a buffer for a sector
+; 
+; Scan channel buffer table for a buffer matching the target
+; sector. If not found, evict the oldest buffer for reuse.
+; 
+; ***************************************************************************************
 ; &abd8 referenced 6 times by &adad, &afaf, &b01f, &b10e, &b6ee, &b811
 .find_buffer_for_sector
     ldx #&10                                                          ; abd8: a2 10       ..             ; X=&10: start of channel table
@@ -8340,16 +8612,16 @@ la868 = check_dest_terminator+1
 ; &abe8 referenced 1 time by &abe3
 .buffer_sector_match
     lda wksp_1004,x                                                   ; abe8: bd 04 10    ...            ; Get channel state
-    bpl read_single_hd_sector                                         ; abeb: 10 75       .u             ; Bit 7 clear: channel not active
+    bpl read_single_hd_sector                                         ; abeb: 10 75       .u             ; Bit 7 clear: channel not active; Read a single sector via SCSI
     lda wksp_1001,x                                                   ; abed: bd 01 10    ...            ; Get channel sector low
     cmp l1096                                                         ; abf0: cd 96 10    ...            ; Compare with target sector low
-    bne read_single_hd_sector                                         ; abf3: d0 6d       .m             ; No match: try next channel
+    bne read_single_hd_sector                                         ; abf3: d0 6d       .m             ; No match: try next channel; Read a single sector via SCSI
     lda wksp_1002,x                                                   ; abf5: bd 02 10    ...            ; Get channel sector mid
     cmp l1097                                                         ; abf8: cd 97 10    ...            ; Compare with target sector mid
-    bne read_single_hd_sector                                         ; abfb: d0 65       .e             ; No match: try next channel
+    bne read_single_hd_sector                                         ; abfb: d0 65       .e             ; No match: try next channel; Read a single sector via SCSI
     lda wksp_1003,x                                                   ; abfd: bd 03 10    ...            ; Get channel drive+sector high
     cmp l1098                                                         ; ac00: cd 98 10    ...            ; Compare with target high
-    bne read_single_hd_sector                                         ; ac03: d0 5d       .]             ; No match: try next channel
+    bne read_single_hd_sector                                         ; ac03: d0 5d       .]             ; No match: try next channel; Read a single sector via SCSI
     jsr calc_buffer_address                                           ; ac05: 20 c9 ab     ..            ; Match: set up buffer address
 ; &ac08 referenced 1 time by &acd4
 .allocate_new_buffer_slot
@@ -8413,6 +8685,13 @@ la868 = check_dest_terminator+1
 .load_sector_to_buffer
     jmp calc_channel_buffer_page                                      ; ac5f: 4c f0 aa    L..            ; Jump to buffer fill
 
+; ***************************************************************************************
+; Read a single sector via SCSI
+; 
+; Issue a single-sector read command and transfer 256
+; bytes from the SCSI data register into the buffer.
+; 
+; ***************************************************************************************
 ; &ac62 referenced 4 times by &abeb, &abf3, &abfb, &ac03
 .read_single_hd_sector
     dex                                                               ; ac62: ca          .              ; Step back 4 bytes to prev entry
@@ -8436,7 +8715,7 @@ la868 = check_dest_terminator+1
     sta l10d2                                                         ; ac86: 8d d2 10    ...            ; Store in error workspace
     jsr calc_buffer_address                                           ; ac89: 20 c9 ab     ..            ; Calculate buffer page for channel
     lda l1098                                                         ; ac8c: ad 98 10    ...            ; Get drive+sector high for read
-    jsr set_drive_from_channel                                        ; ac8f: 20 1c b5     ..            ; Set up disc read control block
+    jsr set_drive_from_channel                                        ; ac8f: 20 1c b5     ..            ; Set up disc read control block; Set current drive from channel's drive
     sty zp_ctrl_blk_h                                                 ; ac92: 84 b1       ..             ; Save Y (buffer high)
     stx zp_ctrl_blk                                                   ; ac94: 86 b0       ..             ; Save X (buffer low)
     jsr command_set_retries                                           ; ac96: 20 80 80     ..            ; Set retry count for disc operation
@@ -8483,6 +8762,13 @@ la868 = check_dest_terminator+1
     sta wksp_1004,x                                                   ; acd1: 9d 04 10    ...            ; Store as channel state
     jmp allocate_new_buffer_slot                                      ; acd4: 4c 08 ac    L..            ; Jump to set up buffer access
 
+; ***************************************************************************************
+; Calculate buffer page from channel offset
+; 
+; Divide the channel offset by 4 and add the buffer base
+; page (&17) to compute the buffer memory page.
+; 
+; ***************************************************************************************
 ; &acd7 referenced 2 times by &8b33, &aaf0
 .calc_buffer_page_from_offset
     ldx #&10                                                          ; acd7: a2 10       ..             ; X=&10: start of channel table
@@ -8498,6 +8784,13 @@ la868 = check_dest_terminator+1
     bpl step_channel_offset_loop                                      ; ace4: 10 f3       ..             ; Loop for all entries
     jmp bad_checksum_error                                            ; ace6: 4c 38 a7    L8.            ; No dirty buffers: workspace error
 
+; ***************************************************************************************
+; Step through ensure table entries
+; 
+; Step backward through the ensure table checking for
+; entries associated with the current channel.
+; 
+; ***************************************************************************************
 ; &ace9 referenced 3 times by &ad05, &ad0b, &ad13
 .step_ensure_offset_loop
     jsr reload_fsm_and_dir_then_brk                                   ; ace9: 20 48 83     H.            ; Reload FSM and directory then raise error
@@ -8528,15 +8821,15 @@ la868 = check_dest_terminator+1
     sty zp_save_y                                                     ; acfe: 84 c2       ..             ; Save file handle
     sty wksp_cur_channel                                              ; ad00: 8c d5 10    ...            ; Store as current channel for errors
     cpy #&3a ; ':'                                                    ; ad03: c0 3a       .:             ; Handle >= &3A?
-    bcs step_ensure_offset_loop                                       ; ad05: b0 e2       ..             ; Yes, invalid handle
+    bcs step_ensure_offset_loop                                       ; ad05: b0 e2       ..             ; Yes, invalid handle; Step through ensure table entries
     tya                                                               ; ad07: 98          .              ; Transfer handle to A
     sec                                                               ; ad08: 38          8              ; Set carry for subtraction
     sbc #&30 ; '0'                                                    ; ad09: e9 30       .0             ; Subtract &30 to get channel index
-    bcc step_ensure_offset_loop                                       ; ad0b: 90 dc       ..             ; Handle < &30? Invalid
+    bcc step_ensure_offset_loop                                       ; ad0b: 90 dc       ..             ; Handle < &30? Invalid; Step through ensure table entries
     sta zp_channel_offset                                             ; ad0d: 85 cf       ..             ; Store channel index offset
     tax                                                               ; ad0f: aa          .              ; Transfer to X for table lookup
     lda wksp_ch_flags,x                                               ; ad10: bd ac 11    ...            ; Read channel flags
-    beq step_ensure_offset_loop                                       ; ad13: f0 d4       ..             ; Zero = channel not open
+    beq step_ensure_offset_loop                                       ; ad13: f0 d4       ..             ; Zero = channel not open; Step through ensure table entries
 ; &ad15 referenced 1 time by &acde
 .return_36
     rts                                                               ; ad15: 60          `              ; Return
@@ -8573,8 +8866,8 @@ la868 = check_dest_terminator+1
     jsr check_set_channel_y                                           ; ad3c: 20 fe ac     ..            ; Validate and set channel number from Y
     ror a                                                             ; ad3f: 6a          j              ; Rotate flags bit 0 into carry
     bcs return_eof_status                                             ; ad40: b0 09       ..             ; Carry set: skip flush
-    jsr save_workspace_state                                          ; ad42: 20 49 a7     I.            ; Ensure workspace is valid
-    jsr sync_ext_to_ptr                                               ; ad45: 20 8c b1     ..            ; Flush channel buffer if dirty
+    jsr save_workspace_state                                          ; ad42: 20 49 a7     I.            ; Ensure workspace is valid; Save all registers and workspace
+    jsr sync_ext_to_ptr                                               ; ad45: 20 8c b1     ..            ; Flush channel buffer if dirty; Synchronise EXT to PTR if at EOF
     jsr compare_ext_to_ptr                                            ; ad48: 20 16 ad     ..            ; Compare file EXT to PTR
 ; &ad4b referenced 1 time by &ad40
 .return_eof_status
@@ -8586,6 +8879,12 @@ la868 = check_dest_terminator+1
     ldy zp_text_ptr_h                                                 ; ad50: a4 b5       ..             ; Restore Y from (&B5)
     rts                                                               ; ad52: 60          `              ; Return
 
+; ***************************************************************************************
+; Raise EOF error
+; 
+; Clear EOF and buffer flags then raise error &DF: EOF.
+; 
+; ***************************************************************************************
 ; &ad53 referenced 2 times by &ad6d, &ad74
 .eof_error
     lda wksp_ch_flags,x                                               ; ad53: bd ac 11    ...            ; Clear EOF and buffer dirty flags
@@ -8605,13 +8904,13 @@ la868 = check_dest_terminator+1
     stx zp_save_x                                                     ; ad63: 86 c3       ..             ; Save X register
     jsr check_set_channel_y                                           ; ad65: 20 fe ac     ..            ; Validate file handle in Y; Validate and set channel number from Y
     ror a                                                             ; ad68: 6a          j              ; Rotate channel flags bit 0 to C
-    bcs calc_bget_sector_addr                                         ; ad69: b0 22       ."             ; Bit 0 set: file is readable
+    bcs calc_bget_sector_addr                                         ; ad69: b0 22       ."             ; Bit 0 set: file is readable; Calculate sector address for BGET
     and #4                                                            ; ad6b: 29 04       ).             ; Check bit 2 (at EOF flag)
-    bne eof_error                                                     ; ad6d: d0 e4       ..             ; At EOF: raise EOF error
+    bne eof_error                                                     ; ad6d: d0 e4       ..             ; At EOF: raise EOF error; Raise EOF error
     jsr compare_ext_to_ptr                                            ; ad6f: 20 16 ad     ..            ; Compare EXT with PTR; Compare file EXT to PTR
-    bcs calc_bget_sector_addr                                         ; ad72: b0 19       ..             ; EXT != PTR: not at EOF, read byte
-    bne eof_error                                                     ; ad74: d0 dd       ..             ; EXT == PTR and EOF: raise error
-    jsr save_workspace_state                                          ; ad76: 20 49 a7     I.            ; Save registers for restore
+    bcs calc_bget_sector_addr                                         ; ad72: b0 19       ..             ; EXT != PTR: not at EOF, read byte; Calculate sector address for BGET
+    bne eof_error                                                     ; ad74: d0 dd       ..             ; EXT == PTR and EOF: raise error; Raise EOF error
+    jsr save_workspace_state                                          ; ad76: 20 49 a7     I.            ; Save registers for restore; Save all registers and workspace
     ldx zp_channel_offset                                             ; ad79: a6 cf       ..             ; Get channel index
     lda wksp_ch_flags,x                                               ; ad7b: bd ac 11    ...            ; Get channel flags
     and #&c0                                                          ; ad7e: 29 c0       ).             ; Keep open+writable bits only
@@ -8623,6 +8922,13 @@ la868 = check_dest_terminator+1
     lda #&fe                                                          ; ad8a: a9 fe       ..             ; A=&FE: EOF return value
     rts                                                               ; ad8c: 60          `              ; Return (EOF)
 
+; ***************************************************************************************
+; Calculate sector address for BGET
+; 
+; Compute disc sector from channel base + PTR, load the
+; sector into the buffer, and set up the byte offset.
+; 
+; ***************************************************************************************
 ; &ad8d referenced 2 times by &ad69, &ad72
 .calc_bget_sector_addr
     ldx zp_channel_offset                                             ; ad8d: a6 cf       ..             ; Get channel index for buffer calc
@@ -8637,18 +8943,25 @@ la868 = check_dest_terminator+1
     adc wksp_ch_ptr_h,x                                               ; ada5: 7d 5c 11    }\.            ; Add PTR high
     sta l1098                                                         ; ada8: 8d 98 10    ...            ; Store sector address high
     lda #&40 ; '@'                                                    ; adab: a9 40       .@             ; A=&40: read buffer mode
-    jsr find_buffer_for_sector                                        ; adad: 20 d8 ab     ..            ; Load sector into channel buffer
+    jsr find_buffer_for_sector                                        ; adad: 20 d8 ab     ..            ; Load sector into channel buffer; Find or allocate a buffer for a sector
     ldx zp_channel_offset                                             ; adb0: a6 cf       ..             ; Get channel index
     ldy wksp_ch_ptr_l,x                                               ; adb2: bc 7a 11    .z.            ; Get PTR low byte as buffer offset
     lda #0                                                            ; adb5: a9 00       ..             ; A=0: clear modification flag
     sta l10cf                                                         ; adb7: 8d cf 10    ...            ; Store zero mod flag
-    jsr increment_ptr_after_write                                     ; adba: 20 23 b1     #.            ; Advance PTR and update flags
+    jsr increment_ptr_after_write                                     ; adba: 20 23 b1     #.            ; Advance PTR and update flags; Increment PTR after byte write
     lda (zp_buf_dest),y                                               ; adbd: b1 be       ..             ; Read byte from buffer at PTR offset
     ldy zp_save_y                                                     ; adbf: a4 c2       ..             ; Restore Y
     ldx zp_save_x                                                     ; adc1: a6 c3       ..             ; Restore X
     clc                                                               ; adc3: 18          .              ; Clear carry: C=0 means success
     rts                                                               ; adc4: 60          `              ; Return (byte in A)
 
+; ***************************************************************************************
+; Switch to channel's drive for I/O
+; 
+; Save CSD sector and current drive, then switch to the
+; drive associated with the current channel.
+; 
+; ***************************************************************************************
 ; &adc5 referenced 2 times by &aed7, &b3f1
 .switch_to_channel_drive
     ldy #2                                                            ; adc5: a0 02       ..             ; Y=2: save 3 bytes of CSD sector
@@ -8707,18 +9020,25 @@ la868 = check_dest_terminator+1
     ldy #&19                                                          ; ae35: a0 19       ..             ; Y=&19: check entry sequence number
     lda (zp_osfile_ptr),y                                             ; ae37: b1 b8       ..             ; Get sequence number from entry
     cmp l11f2,x                                                       ; ae39: dd f2 11    ...            ; Compare with channel's saved seq
-    bne advance_to_next_dir_entry                                     ; ae3c: d0 0e       ..             ; Mismatch: different entry
+    bne advance_to_next_dir_entry                                     ; ae3c: d0 0e       ..             ; Mismatch: different entry; Advance directory scan pointer
     dey                                                               ; ae3e: 88          .              ; Y=&18
 ; &ae3f referenced 1 time by &ae49
 .compare_entry_sector_loop
     lda (zp_osfile_ptr),y                                             ; ae3f: b1 b8       ..             ; Check next entry field
     cmp wksp_disc_op_sector_count,y                                   ; ae41: d9 1e 10    ...            ; Compare sector field with channel
-    bne advance_to_next_dir_entry                                     ; ae44: d0 06       ..             ; Mismatch: try next entry
+    bne advance_to_next_dir_entry                                     ; ae44: d0 06       ..             ; Mismatch: try next entry; Advance directory scan pointer
     dey                                                               ; ae46: 88          .              ; Next byte (decreasing Y)
     cpy #&16                                                          ; ae47: c0 16       ..             ; Past start of sector field (&16)?
     bcs compare_entry_sector_loop                                     ; ae49: b0 f4       ..             ; Still in range: continue comparing
     rts                                                               ; ae4b: 60          `              ; All fields match: return
 
+; ***************************************************************************************
+; Advance directory scan pointer
+; 
+; Add 26 bytes to the directory entry pointer to move to
+; the next entry, handling page crossing.
+; 
+; ***************************************************************************************
 ; &ae4c referenced 2 times by &ae3c, &ae44
 .advance_to_next_dir_entry
     lda zp_osfile_ptr                                                 ; ae4c: a5 b8       ..             ; Advance to next dir entry (+&1A)
@@ -8764,20 +9084,27 @@ la868 = check_dest_terminator+1
     bcc extend_file_allocation                                        ; ae97: 90 28       .(             ; Alloc < PTR: need to extend
     lda wksp_ch_ext_h,x                                               ; ae99: bd 34 11    .4.            ; Compare EXT with new PTR
     cmp l109d                                                         ; ae9c: cd 9d 10    ...            ; High byte matches?
-    bne update_ext_to_ptr                                             ; ae9f: d0 1b       ..             ; No: EXT needs update
+    bne update_ext_to_ptr                                             ; ae9f: d0 1b       ..             ; No: EXT needs update; Handle PTR exceeding EXT
     lda wksp_ch_ext_mh,x                                              ; aea1: bd 3e 11    .>.            ; Compare mid-high
     cmp l109c                                                         ; aea4: cd 9c 10    ...            ; Match?
-    bne update_ext_to_ptr                                             ; aea7: d0 13       ..             ; No: EXT needs update
+    bne update_ext_to_ptr                                             ; aea7: d0 13       ..             ; No: EXT needs update; Handle PTR exceeding EXT
     lda wksp_ch_ext_ml,x                                              ; aea9: bd 48 11    .H.            ; Compare mid-low
     cmp l109b                                                         ; aeac: cd 9b 10    ...            ; Match?
-    bne update_ext_to_ptr                                             ; aeaf: d0 0b       ..             ; No: EXT needs update
+    bne update_ext_to_ptr                                             ; aeaf: d0 0b       ..             ; No: EXT needs update; Handle PTR exceeding EXT
     lda wksp_ch_ext_l,x                                               ; aeb1: bd 52 11    .R.            ; Compare low byte
     cmp l109a                                                         ; aeb4: cd 9a 10    ...            ; Match?
-    bne update_ext_to_ptr                                             ; aeb7: d0 03       ..             ; No: EXT needs update
+    bne update_ext_to_ptr                                             ; aeb7: d0 03       ..             ; No: EXT needs update; Handle PTR exceeding EXT
 ; &aeb9 referenced 1 time by &aebc
 .handle_eof_write
     jmp restore_drive_after_extend                                    ; aeb9: 4c 7d b0    L}.            ; PTR == EXT: handle EOF write
 
+; ***************************************************************************************
+; Handle PTR exceeding EXT
+; 
+; If PTR has exceeded the file allocation, begin file
+; extension. Otherwise jump to EOF write handler.
+; 
+; ***************************************************************************************
 ; &aebc referenced 4 times by &ae9f, &aea7, &aeaf, &aeb7
 .update_ext_to_ptr
     bcs handle_eof_write                                              ; aebc: b0 fb       ..             ; EXT > PTR: still within file
@@ -8797,7 +9124,7 @@ la868 = check_dest_terminator+1
 
 ; &aed7 referenced 1 time by &aed2
 .switch_drive_for_extend
-    jsr switch_to_channel_drive                                       ; aed7: 20 c5 ad     ..            ; Switch to file's drive
+    jsr switch_to_channel_drive                                       ; aed7: 20 c5 ad     ..            ; Switch to file's drive; Switch to channel's drive for I/O
     lda l11a2,x                                                       ; aeda: bd a2 11    ...            ; Get current allocation low
     cmp #1                                                            ; aedd: c9 01       ..             ; Compare with 1 (minimum)
     lda l1198,x                                                       ; aedf: bd 98 11    ...            ; Get allocation mid-low
@@ -8878,7 +9205,7 @@ la868 = check_dest_terminator+1
 .skip_zero_fill
     lda l10b5                                                         ; af87: ad b5 10    ...            ; Check extension flag
     beq calc_zero_fill_start                                          ; af8a: f0 03       ..             ; Non-zero: skip zeroing
-    jmp update_ext_from_new_ptr                                       ; af8c: 4c 60 b0    L`.            ; Jump to update EXT
+    jmp update_ext_from_new_ptr                                       ; af8c: 4c 60 b0    L`.            ; Jump to update EXT; Update EXT from new PTR value
 
 ; &af8f referenced 1 time by &af8a
 .calc_zero_fill_start
@@ -8894,7 +9221,7 @@ la868 = check_dest_terminator+1
     adc l11b6,x                                                       ; afa7: 7d b6 11    }..            ; Add channel base + drive
     sta l1098                                                         ; afaa: 8d 98 10    ...            ; Store zero-fill start high
     lda #&c0                                                          ; afad: a9 c0       ..             ; A=&C0: write buffer mode
-    jsr find_buffer_for_sector                                        ; afaf: 20 d8 ab     ..            ; Set up buffer for writing zeros
+    jsr find_buffer_for_sector                                        ; afaf: 20 d8 ab     ..            ; Set up buffer for writing zeros; Find or allocate a buffer for a sector
     ldx zp_channel_offset                                             ; afb2: a6 cf       ..             ; Get channel index
     ldy wksp_ch_ext_l,x                                               ; afb4: bc 52 11    .R.            ; Get EXT low as buffer start
     lda #0                                                            ; afb7: a9 00       ..             ; A=0: zero fill
@@ -8937,7 +9264,7 @@ la868 = check_dest_terminator+1
     lda l1036                                                         ; b002: ad 36 10    .6.            ; Match high byte?
     cmp l1098                                                         ; b005: cd 98 10    ...            ; Check high
     bne write_zero_sector                                             ; b008: d0 03       ..             ; No: need more
-    jmp update_ext_from_new_ptr                                       ; b00a: 4c 60 b0    L`.            ; All match: done zeroing
+    jmp update_ext_from_new_ptr                                       ; b00a: 4c 60 b0    L`.            ; All match: done zeroing; Update EXT from new PTR value
 
 ; &b00d referenced 3 times by &aff8, &b000, &b008
 .write_zero_sector
@@ -8950,7 +9277,7 @@ la868 = check_dest_terminator+1
 ; &b01d referenced 2 times by &b013, &b018
 .advance_fill_sector
     lda #&40 ; '@'                                                    ; b01d: a9 40       .@             ; A=&40: read buffer mode
-    jsr find_buffer_for_sector                                        ; b01f: 20 d8 ab     ..            ; Load next sector into buffer
+    jsr find_buffer_for_sector                                        ; b01f: 20 d8 ab     ..            ; Load next sector into buffer; Find or allocate a buffer for a sector
     ldy #0                                                            ; b022: a0 00       ..             ; Y=0: zero fill entire sector
     tya                                                               ; b024: 98          .              ; A=&00
 ; &b025 referenced 1 time by &b028
@@ -8973,7 +9300,7 @@ la868 = check_dest_terminator+1
     bne advance_channel_sector                                        ; b046: d0 08       ..             ; No match: advance
     lda l1036                                                         ; b048: ad 36 10    .6.            ; Compare high bytes
     cmp wksp_1003,x                                                   ; b04b: dd 03 10    ...            ; Compare
-    beq update_ext_from_new_ptr                                       ; b04e: f0 10       ..             ; Match: done writing zeros
+    beq update_ext_from_new_ptr                                       ; b04e: f0 10       ..             ; Match: done writing zeros; Update EXT from new PTR value
 ; &b050 referenced 2 times by &b03e, &b046
 .advance_channel_sector
     inc wksp_1001,x                                                   ; b050: fe 01 10    ...            ; Advance channel sector: inc low
@@ -8983,6 +9310,13 @@ la868 = check_dest_terminator+1
     inc wksp_1003,x                                                   ; b05a: fe 03 10    ...            ; Wrap: inc high
     jmp mark_buffer_dirty                                             ; b05d: 4c 2a b0    L*.            ; Continue zeroing loop
 
+; ***************************************************************************************
+; Update EXT from new PTR value
+; 
+; Copy 4-byte PTR from workspace to the channel's EXT,
+; then save workspace and restore drive state.
+; 
+; ***************************************************************************************
 ; &b060 referenced 3 times by &af8c, &b00a, &b04e
 .update_ext_from_new_ptr
     ldx zp_channel_offset                                             ; b060: a6 cf       ..             ; Get channel index
@@ -9050,7 +9384,7 @@ la868 = check_dest_terminator+1
     adc #0                                                            ; b0de: 69 00       i.             ; Add carry
     sta l109d                                                         ; b0e0: 8d 9d 10    ...            ; Store next PTR high
     pla                                                               ; b0e3: 68          h              ; Restore byte to write
-    jsr save_workspace_state                                          ; b0e4: 20 49 a7     I.            ; Save registers for restore
+    jsr save_workspace_state                                          ; b0e4: 20 49 a7     I.            ; Save registers for restore; Save all registers and workspace
     pha                                                               ; b0e7: 48          H              ; Re-push byte to write
     dec l10cf                                                         ; b0e8: ce cf 10    ...            ; Set modification flag
     jsr check_ptr_within_allocation                                   ; b0eb: 20 59 ae     Y.            ; Validate PTR and load sector
@@ -9068,13 +9402,13 @@ la868 = check_dest_terminator+1
     adc wksp_ch_ptr_h,x                                               ; b106: 7d 5c 11    }\.            ; Add PTR high with carry
     sta l1098                                                         ; b109: 8d 98 10    ...            ; Store disc sector address high
     lda #&c0                                                          ; b10c: a9 c0       ..             ; A=&C0: buffer write mode
-    jsr find_buffer_for_sector                                        ; b10e: 20 d8 ab     ..            ; Load sector into buffer
+    jsr find_buffer_for_sector                                        ; b10e: 20 d8 ab     ..            ; Load sector into buffer; Find or allocate a buffer for a sector
     ldx zp_channel_offset                                             ; b111: a6 cf       ..             ; Get channel index
     ldy wksp_ch_ptr_l,x                                               ; b113: bc 7a 11    .z.            ; Get PTR low as buffer offset
     pla                                                               ; b116: 68          h              ; Restore byte to write
     sta (zp_buf_dest),y                                               ; b117: 91 be       ..             ; Write byte into buffer at PTR
     pha                                                               ; b119: 48          H              ; Save byte again
-    jsr increment_ptr_after_write                                     ; b11a: 20 23 b1     #.            ; Advance PTR and update flags
+    jsr increment_ptr_after_write                                     ; b11a: 20 23 b1     #.            ; Advance PTR and update flags; Increment PTR after byte write
     pla                                                               ; b11d: 68          h              ; Restore written byte
     ldy zp_save_y                                                     ; b11e: a4 c2       ..             ; Restore Y
     ldx zp_save_x                                                     ; b120: a6 c3       ..             ; Restore X
@@ -9082,6 +9416,13 @@ la868 = check_dest_terminator+1
 .return_39
     rts                                                               ; b122: 60          `              ; Return
 
+; ***************************************************************************************
+; Increment PTR after byte write
+; 
+; Increment the channel's 4-byte PTR. On page boundaries,
+; save workspace and propagate carry through mid/high bytes.
+; 
+; ***************************************************************************************
 ; &b123 referenced 2 times by &adba, &b11a
 .increment_ptr_after_write
     ldx zp_channel_offset                                             ; b123: a6 cf       ..             ; Get channel index
@@ -9089,7 +9430,7 @@ la868 = check_dest_terminator+1
     bne return_39                                                     ; b128: d0 f8       ..             ; No wrap: done
     bit l10cf                                                         ; b12a: 2c cf 10    ,..            ; Check modification flag
     bmi increment_ptr_mid_bytes                                       ; b12d: 30 03       0.             ; Not modified: skip workspace save
-    jsr save_workspace_state                                          ; b12f: 20 49 a7     I.            ; Save workspace state
+    jsr save_workspace_state                                          ; b12f: 20 49 a7     I.            ; Save workspace state; Save all registers and workspace
 ; &b132 referenced 1 time by &b12d
 .increment_ptr_mid_bytes
     inc wksp_ch_ptr_ml,x                                              ; b132: fe 70 11    .p.            ; Increment PTR mid-low
@@ -9099,7 +9440,7 @@ la868 = check_dest_terminator+1
     inc wksp_ch_ptr_h,x                                               ; b13c: fe 5c 11    .\.            ; Increment PTR high
 ; &b13f referenced 5 times by &a9bd, &b135, &b13a, &b2d5, &b713
 .update_channel_flags_for_ptr
-    jsr sync_ext_to_ptr                                               ; b13f: 20 8c b1     ..            ; Update channel flags for new PTR
+    jsr sync_ext_to_ptr                                               ; b13f: 20 8c b1     ..            ; Update channel flags for new PTR; Synchronise EXT to PTR if at EOF
     pha                                                               ; b142: 48          H              ; Save current flags on stack
     sec                                                               ; b143: 38          8              ; Set carry for subtraction
     lda wksp_ch_ptr_ml,x                                              ; b144: bd 70 11    .p.            ; Compare PTR with EXT: mid-low
@@ -9146,6 +9487,13 @@ la868 = check_dest_terminator+1
     sta wksp_ch_flags,x                                               ; b188: 9d ac 11    ...            ; Store updated channel flags
     rts                                                               ; b18b: 60          `              ; Return
 
+; ***************************************************************************************
+; Synchronise EXT to PTR if at EOF
+; 
+; If the EOF flag is set, copy PTR to EXT. Then recalculate
+; channel flags from the writable and open bits.
+; 
+; ***************************************************************************************
 ; &b18c referenced 5 times by &a99e, &ad45, &b13f, &b3b6, &b5b0
 .sync_ext_to_ptr
     ldx zp_channel_offset                                             ; b18c: a6 cf       ..             ; Get channel index
@@ -9184,7 +9532,7 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &b1b6 referenced 2 times by &a12c, &a3dc
 .my_osfind
-    jsr save_workspace_state                                          ; b1b6: 20 49 a7     I.            ; Save registers for later restore
+    jsr save_workspace_state                                          ; b1b6: 20 49 a7     I.            ; Save registers for later restore; Save all registers and workspace
     stx wksp_osfile_block                                             ; b1b9: 8e 40 10    .@.            ; Save X in OSFILE block as filename
     stx zp_text_ptr                                                   ; b1bc: 86 b4       ..             ; Filename pointer low = X
     stx zp_osfind_x                                                   ; b1be: 86 c5       ..             ; Save Y for close channel
@@ -9241,26 +9589,33 @@ la868 = check_dest_terminator+1
 ; &b21a referenced 1 time by &b24e
 .check_open_conflict_loop
     lda wksp_ch_flags,x                                               ; b21a: bd ac 11    ...            ; Get channel flags
-    bpl next_conflict_check                                           ; b21d: 10 2e       ..             ; Bit 7 clear: channel not active
+    bpl next_conflict_check                                           ; b21d: 10 2e       ..             ; Bit 7 clear: channel not active; Continue open-channel conflict scan
     lda l11b6,x                                                       ; b21f: bd b6 11    ...            ; Get channel drive number
     and #&e0                                                          ; b222: 29 e0       ).             ; Isolate drive bits
     cmp wksp_current_drive                                            ; b224: cd 17 11    ...            ; Same drive as file being opened?
-    bne next_conflict_check                                           ; b227: d0 24       .$             ; Different drive: no conflict
+    bne next_conflict_check                                           ; b227: d0 24       .$             ; Different drive: no conflict; Continue open-channel conflict scan
     lda l11e8,x                                                       ; b229: bd e8 11    ...            ; Compare sector address bytes
     cmp l1114                                                         ; b22c: cd 14 11    ...            ; Compare with file's sector low
-    bne next_conflict_check                                           ; b22f: d0 1c       ..             ; No match: no conflict
+    bne next_conflict_check                                           ; b22f: d0 1c       ..             ; No match: no conflict; Continue open-channel conflict scan
     lda l11de,x                                                       ; b231: bd de 11    ...            ; Compare sector mid
     cmp l1115                                                         ; b234: cd 15 11    ...            ; Match?
-    bne next_conflict_check                                           ; b237: d0 14       ..             ; No match: no conflict
+    bne next_conflict_check                                           ; b237: d0 14       ..             ; No match: no conflict; Continue open-channel conflict scan
     lda l11d4,x                                                       ; b239: bd d4 11    ...            ; Compare sector high
     cmp l1116                                                         ; b23c: cd 16 11    ...            ; Match?
-    bne next_conflict_check                                           ; b23f: d0 0c       ..             ; No match: no conflict
+    bne next_conflict_check                                           ; b23f: d0 0c       ..             ; No match: no conflict; Continue open-channel conflict scan
     ldy #&19                                                          ; b241: a0 19       ..             ; Y=&19: compare sequence number
     lda (zp_entry_ptr),y                                              ; b243: b1 b6       ..             ; Get entry's sequence number
     cmp l11f2,x                                                       ; b245: dd f2 11    ...            ; Compare with channel's sequence
-    bne next_conflict_check                                           ; b248: d0 03       ..             ; Mismatch: not the same file
+    bne next_conflict_check                                           ; b248: d0 03       ..             ; Mismatch: not the same file; Continue open-channel conflict scan
     jmp channel_on_same_drive                                         ; b24a: 4c 53 8d    LS.            ; Match: Already open error
 
+; ***************************************************************************************
+; Continue open-channel conflict scan
+; 
+; Advance to next channel and continue scanning for files
+; that conflict with the file being opened.
+; 
+; ***************************************************************************************
 ; &b24d referenced 6 times by &b21d, &b227, &b22f, &b237, &b23f, &b248
 .next_conflict_check
     dex                                                               ; b24d: ca          .              ; Next channel
@@ -9471,7 +9826,7 @@ la868 = check_dest_terminator+1
     jsr check_set_channel_y                                           ; b3b3: 20 fe ac     ..            ; Validate and set channel number from Y
 ; &b3b6 referenced 1 time by &b3ac
 .close_and_update_dir
-    jsr sync_ext_to_ptr                                               ; b3b6: 20 8c b1     ..            ; Flush buffer if dirty
+    jsr sync_ext_to_ptr                                               ; b3b6: 20 8c b1     ..            ; Flush buffer if dirty; Synchronise EXT to PTR if at EOF
     ldy wksp_ch_flags,x                                               ; b3b9: bc ac 11    ...            ; Get channel flags
     lda #0                                                            ; b3bc: a9 00       ..             ; A=0: clear channel flags (closed)
     sta wksp_ch_flags,x                                               ; b3be: 9d ac 11    ...            ; Mark channel as closed
@@ -9479,28 +9834,36 @@ la868 = check_dest_terminator+1
     bpl close_read_only                                               ; b3c2: 10 20       .              ; Bit 7 clear: was read-only
     lda wksp_ch_ext_l,x                                               ; b3c4: bd 52 11    .R.            ; Was writable: check if EXT changed
     cmp l11a2,x                                                       ; b3c7: dd a2 11    ...            ; Compare EXT low with allocation low
-    bne update_dir_entry_on_close                                     ; b3ca: d0 25       .%             ; Different: need to update dir entry
+    bne update_dir_entry_on_close                                     ; b3ca: d0 25       .%             ; Different: need to update dir entry; Update directory entry on file close
     lda wksp_ch_ext_ml,x                                              ; b3cc: bd 48 11    .H.            ; Compare EXT mid-low
     cmp l1198,x                                                       ; b3cf: dd 98 11    ...            ; With allocation mid-low
-    bne update_dir_entry_on_close                                     ; b3d2: d0 1d       ..             ; Different: update needed
+    bne update_dir_entry_on_close                                     ; b3d2: d0 1d       ..             ; Different: update needed; Update directory entry on file close
     lda wksp_ch_ext_mh,x                                              ; b3d4: bd 3e 11    .>.            ; Compare EXT mid-high
     cmp l118e,x                                                       ; b3d7: dd 8e 11    ...            ; With allocation mid-high
-    bne update_dir_entry_on_close                                     ; b3da: d0 15       ..             ; Different: update needed
+    bne update_dir_entry_on_close                                     ; b3da: d0 15       ..             ; Different: update needed; Update directory entry on file close
     lda wksp_ch_ext_h,x                                               ; b3dc: bd 34 11    .4.            ; Compare EXT high
     cmp l1184,x                                                       ; b3df: dd 84 11    ...            ; With allocation high
-    bne update_dir_entry_on_close                                     ; b3e2: d0 0d       ..             ; Different: update needed
+    bne update_dir_entry_on_close                                     ; b3e2: d0 0d       ..             ; Different: update needed; Update directory entry on file close
 ; &b3e4 referenced 2 times by &b3c2, &b465
 .close_read_only
-    jsr validate_and_set_ptr                                          ; b3e4: 20 a6 aa     ..            ; EXT == alloc: no update needed
+    jsr validate_and_set_ptr                                          ; b3e4: 20 a6 aa     ..            ; EXT == alloc: no update needed; Flush buffers and set file pointer
     jsr save_wksp_and_return                                          ; b3e7: 20 d3 89     ..            ; Save workspace; Save workspace state and return result
     lda #0                                                            ; b3ea: a9 00       ..             ; A=0: success
     ldy zp_osfind_y                                                   ; b3ec: a4 c4       ..             ; Restore Y
     ldx zp_osfind_x                                                   ; b3ee: a6 c5       ..             ; Restore X
     rts                                                               ; b3f0: 60          `              ; Return
 
+; ***************************************************************************************
+; Update directory entry on file close
+; 
+; Switch to the file's drive, calculate actual sectors
+; used from EXT, then release unused allocation back to
+; the free space map.
+; 
+; ***************************************************************************************
 ; &b3f1 referenced 4 times by &b3ca, &b3d2, &b3da, &b3e2
 .update_dir_entry_on_close
-    jsr switch_to_channel_drive                                       ; b3f1: 20 c5 ad     ..            ; Switch to file's drive
+    jsr switch_to_channel_drive                                       ; b3f1: 20 c5 ad     ..            ; Switch to file's drive; Switch to channel's drive for I/O
     lda wksp_ch_ext_l,x                                               ; b3f4: bd 52 11    .R.            ; Calculate sectors used from EXT
     cmp #1                                                            ; b3f7: c9 01       ..             ; Compare low byte with 1
     lda wksp_object_sector                                            ; b3f9: ad 34 10    .4.            ; Get object sector low
@@ -9566,7 +9929,7 @@ la868 = check_dest_terminator+1
 ; &b47c referenced 1 time by &9c26
 .check_disc_changed
     lda wksp_current_drive                                            ; b47c: ad 17 11    ...            ; No channels on this drive
-    jsr convert_drive_to_slot                                         ; b47f: 20 79 b5     y.            ; Get drive slot index
+    jsr convert_drive_to_slot                                         ; b47f: 20 79 b5     y.            ; Get drive slot index; Convert drive number to slot index
     lda fsm_s1_disc_id_lo                                             ; b482: ad fb 0f    ...            ; Get disc ID low from FSM
     sta wksp_1121,x                                                   ; b485: 9d 21 11    .!.            ; Store for comparison later
     lda fsm_s1_disc_id_hi                                             ; b488: ad fc 0f    ...            ; Get disc ID high from FSM
@@ -9577,14 +9940,14 @@ la868 = check_dest_terminator+1
 ; &b491 referenced 1 time by &b50d
 .get_drive_slot_index
     lda wksp_current_drive                                            ; b491: ad 17 11    ...            ; Get current drive
-    jsr convert_drive_to_slot                                         ; b494: 20 79 b5     y.            ; Get drive slot index
+    jsr convert_drive_to_slot                                         ; b494: 20 79 b5     y.            ; Get drive slot index; Convert drive number to slot index
     lda fsm_s1_disc_id_lo                                             ; b497: ad fb 0f    ...            ; Get disc ID low again
     cmp wksp_1121,x                                                   ; b49a: dd 21 11    .!.            ; Compare with saved
     bne check_disc_id_changed                                         ; b49d: d0 0f       ..             ; Different: disc changed!
     lda fsm_s1_disc_id_hi                                             ; b49f: ad fc 0f    ...            ; Get disc ID high
     cmp wksp_1122,x                                                   ; b4a2: dd 22 11    .".            ; Compare with saved
     bne check_disc_id_changed                                         ; b4a5: d0 07       ..             ; Different: disc changed!
-    jsr get_drive_bit_mask                                            ; b4a7: 20 10 b5     ..            ; Get channel bit mask
+    jsr get_drive_bit_mask                                            ; b4a7: 20 10 b5     ..            ; Get channel bit mask; Get bit mask for drive slot
     sta l10c2                                                         ; b4aa: 8d c2 10    ...            ; Store in workspace
     rts                                                               ; b4ad: 60          `              ; Return
 
@@ -9628,19 +9991,34 @@ la868 = check_dest_terminator+1
 .return_40
     rts                                                               ; b4f4: 60          `              ; Return
 
+; ***************************************************************************************
+; Check disc changed and reload FSM if needed
+; 
+; Read the system clock for disc-change timing, then check
+; whether the current drive's disc has changed since last
+; access. If changed, reload the FSM from disc.
+; 
+; ***************************************************************************************
 ; &b4f5 referenced 4 times by &88cf, &9ffd, &a252, &b551
 .check_drive_and_reload_fsm
     jsr read_clock_for_timing                                         ; b4f5: 20 bf b4     ..            ; Read clock and check disc
     lda wksp_current_drive                                            ; b4f8: ad 17 11    ...            ; Get current drive
-    jsr convert_drive_to_slot                                         ; b4fb: 20 79 b5     y.            ; Get drive slot index
-    jsr get_drive_bit_mask                                            ; b4fe: 20 10 b5     ..            ; Get channel bit mask
+    jsr convert_drive_to_slot                                         ; b4fb: 20 79 b5     y.            ; Get drive slot index; Convert drive number to slot index
+    jsr get_drive_bit_mask                                            ; b4fe: 20 10 b5     ..            ; Get channel bit mask; Get bit mask for drive slot
     eor l10c2                                                         ; b501: 4d c2 10    M..            ; XOR with stored mask
     beq return_40                                                     ; b504: f0 ee       ..             ; Same: disc not changed
     ldx #&0c                                                          ; b506: a2 0c       ..             ; Changed: reload FSM
     ldy #&88                                                          ; b508: a0 88       ..             ; Y=&88: FSM control block
-    jsr exec_disc_command                                             ; b50a: 20 8b 82     ..            ; Read FSM from disc
+    jsr exec_disc_command                                             ; b50a: 20 8b 82     ..            ; Read FSM from disc; Execute disc command and check for error
     jmp get_drive_slot_index                                          ; b50d: 4c 91 b4    L..            ; Continue checking
 
+; ***************************************************************************************
+; Get bit mask for drive slot
+; 
+; Build a bit mask by rotating based on the drive slot
+; index, then AND with drive-change flags.
+; 
+; ***************************************************************************************
 ; &b510 referenced 3 times by &b4a7, &b4fe, &b52e
 .get_drive_bit_mask
     lda #&ff                                                          ; b510: a9 ff       ..             ; A=&FF: start with all bits set
@@ -9654,6 +10032,13 @@ la868 = check_dest_terminator+1
     and l10c2                                                         ; b518: 2d c2 10    -..            ; AND with current change flags
     rts                                                               ; b51b: 60          `              ; Return bit mask in A
 
+; ***************************************************************************************
+; Set current drive from channel's drive
+; 
+; Extract drive bits from A, check disc-change timing, and
+; reload the FSM if the drive's disc has changed.
+; 
+; ***************************************************************************************
 ; &b51c referenced 3 times by &ab2a, &ac8f, &b5b8
 .set_drive_from_channel
     and #&e0                                                          ; b51c: 29 e0       ).             ; Isolate drive bits from A
@@ -9664,8 +10049,8 @@ la868 = check_dest_terminator+1
     pha                                                               ; b524: 48          H              ; Push on stack
     jsr read_clock_for_timing                                         ; b525: 20 bf b4     ..            ; Read clock for timing check
     lda l10cd                                                         ; b528: ad cd 10    ...            ; Get stored drive
-    jsr convert_drive_to_slot                                         ; b52b: 20 79 b5     y.            ; Get drive slot index
-    jsr get_drive_bit_mask                                            ; b52e: 20 10 b5     ..            ; Get bit mask for this drive
+    jsr convert_drive_to_slot                                         ; b52b: 20 79 b5     y.            ; Get drive slot index; Convert drive number to slot index
+    jsr get_drive_bit_mask                                            ; b52e: 20 10 b5     ..            ; Get bit mask for this drive; Get bit mask for drive slot
     eor l10c2                                                         ; b531: 4d c2 10    M..            ; XOR with change flags
     beq restore_saved_drive                                           ; b534: f0 3e       .>             ; Same: disc hasn't changed
     lda l10cd                                                         ; b536: ad cd 10    ...            ; Different: need to reload FSM
@@ -9681,7 +10066,7 @@ la868 = check_dest_terminator+1
 ; &b54e referenced 1 time by &b546
 .save_and_restore_drive
     stx wksp_current_drive                                            ; b54e: 8e 17 11    ...            ; Set current to new drive
-    jsr check_drive_and_reload_fsm                                    ; b551: 20 f5 b4     ..            ; Reload FSM for new drive
+    jsr check_drive_and_reload_fsm                                    ; b551: 20 f5 b4     ..            ; Reload FSM for new drive; Check disc changed and reload FSM if needed
     ldy l10cd                                                         ; b554: ac cd 10    ...            ; Get temp drive back
     sty wksp_current_drive                                            ; b557: 8c 17 11    ...            ; Set as current drive
     cpy #&ff                                                          ; b55a: c0 ff       ..             ; Was it &FF?
@@ -9696,7 +10081,7 @@ la868 = check_dest_terminator+1
     beq restore_saved_drive                                           ; b56b: f0 07       ..             ; Same: no FSM reload needed
     ldx #&0c                                                          ; b56d: a2 0c       ..             ; Different: reload FSM for current
     ldy #&88                                                          ; b56f: a0 88       ..             ; Y=&88: FSM control block
-    jsr exec_disc_command                                             ; b571: 20 8b 82     ..            ; Read FSM from disc
+    jsr exec_disc_command                                             ; b571: 20 8b 82     ..            ; Read FSM from disc; Execute disc command and check for error
 ; &b574 referenced 2 times by &b534, &b56b
 .restore_saved_drive
     pla                                                               ; b574: 68          h              ; Restore Y from stack
@@ -9705,6 +10090,13 @@ la868 = check_dest_terminator+1
     tax                                                               ; b577: aa          .              ; Transfer to X
     rts                                                               ; b578: 60          `              ; Return
 
+; ***************************************************************************************
+; Convert drive number to slot index
+; 
+; Shift drive number in A right 4 bits to produce a slot
+; index in X.
+; 
+; ***************************************************************************************
 ; &b579 referenced 5 times by &8fb4, &b47f, &b494, &b4fb, &b52b
 .convert_drive_to_slot
     lsr a                                                             ; b579: 4a          J              ; Shift drive right 4 positions
@@ -9721,7 +10113,7 @@ la868 = check_dest_terminator+1
 ; 
 ; ***************************************************************************************
 .my_osgbpb
-    jsr save_workspace_state                                          ; b57f: 20 49 a7     I.            ; Save registers for restore
+    jsr save_workspace_state                                          ; b57f: 20 49 a7     I.            ; Save registers for restore; Save all registers and workspace
     sta l10b4                                                         ; b582: 8d b4 10    ...            ; Store OSGBPB function code
     sta l10b5                                                         ; b585: 8d b5 10    ...            ; Store mode flag copy
     sty zp_gspb_ptr_h                                                 ; b588: 84 c7       ..             ; Save control block pointer
@@ -9753,10 +10145,10 @@ la868 = check_dest_terminator+1
     tay                                                               ; b5ab: a8          .              ; Transfer function to Y
     jsr check_set_channel_y                                           ; b5ac: 20 fe ac     ..            ; Validate file handle; Validate and set channel number from Y
     php                                                               ; b5af: 08          .              ; Save flags for write check
-    jsr sync_ext_to_ptr                                               ; b5b0: 20 8c b1     ..            ; Flush buffer if dirty
+    jsr sync_ext_to_ptr                                               ; b5b0: 20 8c b1     ..            ; Flush buffer if dirty; Synchronise EXT to PTR if at EOF
     ldx zp_channel_offset                                             ; b5b3: a6 cf       ..             ; Get channel index
     lda l11b6,x                                                       ; b5b5: bd b6 11    ...            ; Get channel drive+sector
-    jsr set_drive_from_channel                                        ; b5b8: 20 1c b5     ..            ; Check disc change for drive
+    jsr set_drive_from_channel                                        ; b5b8: 20 1c b5     ..            ; Check disc change for drive; Set current drive from channel's drive
     plp                                                               ; b5bb: 28          (              ; Restore flags from earlier
     bmi get_function_and_set_ptr                                      ; b5bc: 30 0a       0.             ; Bit 7 set: writable channel
     lda l10b4                                                         ; b5be: ad b4 10    ...            ; Get function code
@@ -9923,7 +10315,7 @@ la868 = check_dest_terminator+1
     cmp l10b4                                                         ; b6e8: cd b4 10    ...            ; C set if A=1/2 (write), clear if 3/4
     lda #&80                                                          ; b6eb: a9 80       ..             ; A=&80: base for disc command
     ror a                                                             ; b6ed: 6a          j              ; Rotate C into bit 0: &40=read, &80=write
-    jsr find_buffer_for_sector                                        ; b6ee: 20 d8 ab     ..            ; Find/load buffer for current sector
+    jsr find_buffer_for_sector                                        ; b6ee: 20 d8 ab     ..            ; Find/load buffer for current sector; Find or allocate a buffer for a sector
     lda zp_temp_ptr                                                   ; b6f1: a5 c8       ..             ; Get current byte offset in sector
     sta l10b6                                                         ; b6f3: 8d b6 10    ...            ; Store as transfer start position
     lda #0                                                            ; b6f6: a9 00       ..             ; A=0: default end position
@@ -9938,7 +10330,7 @@ la868 = check_dest_terminator+1
     bpl compare_buffer_sector_loop                                    ; b705: 10 f6       ..             ; Loop for 3-byte sector comparison
     lda l109a                                                         ; b707: ad 9a 10    ...            ; Sector match: get bytes remaining
     sta l10b7                                                         ; b70a: 8d b7 10    ...            ; Store as transfer end position
-    jsr transfer_sector_bytes                                         ; b70d: 20 80 b9     ..            ; Transfer bytes within this sector
+    jsr transfer_sector_bytes                                         ; b70d: 20 80 b9     ..            ; Transfer bytes within this sector; Transfer sector bytes between buffer and memory
 ; &b710 referenced 2 times by &b7e8, &b822
 .save_and_flush_after_transfer
     jsr save_wksp_and_return                                          ; b710: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
@@ -9953,7 +10345,7 @@ la868 = check_dest_terminator+1
 
 ; &b720 referenced 1 time by &b702
 .handle_buffer_mismatch
-    jsr transfer_sector_bytes                                         ; b720: 20 80 b9     ..            ; Buffer mismatch: handle partial xfer
+    jsr transfer_sector_bytes                                         ; b720: 20 80 b9     ..            ; Buffer mismatch: handle partial xfer; Transfer sector bytes between buffer and memory
     lda #0                                                            ; b723: a9 00       ..             ; A=0: compute bytes already done
     sec                                                               ; b725: 38          8              ; Set carry for subtraction
     sbc l10b6                                                         ; b726: ed b6 10    ...            ; Subtract start position
@@ -10042,7 +10434,7 @@ la868 = check_dest_terminator+1
     iny                                                               ; b7cb: c8          .              ; Next byte
     dex                                                               ; b7cc: ca          .              ; Next sector byte
     bpl add_sector_count_loop                                         ; b7cd: 10 f0       ..             ; Loop for 3 bytes
-    jsr validate_and_set_ptr                                          ; b7cf: 20 a6 aa     ..            ; Flush channel ensure buffers
+    jsr validate_and_set_ptr                                          ; b7cf: 20 a6 aa     ..            ; Flush channel ensure buffers; Flush buffers and set file pointer
     jsr multi_sector_disc_command                                     ; b7d2: 20 3d 8a     =.            ; Execute multi-sector disc command; Execute multi-sector disc command
     lda wksp_saved_drive                                              ; b7d5: ad 2f 10    ./.            ; Restore saved drive number
     sta wksp_current_drive                                            ; b7d8: 8d 17 11    ...            ; Set as current drive
@@ -10072,14 +10464,21 @@ la868 = check_dest_terminator+1
     cmp l10b4                                                         ; b80b: cd b4 10    ...            ; C set if write, clear if read
     lda #&80                                                          ; b80e: a9 80       ..             ; A=&80: base disc command
     ror a                                                             ; b810: 6a          j              ; Rotate C to form read/write command
-    jsr find_buffer_for_sector                                        ; b811: 20 d8 ab     ..            ; Find/load buffer for remaining sector
+    jsr find_buffer_for_sector                                        ; b811: 20 d8 ab     ..            ; Find/load buffer for remaining sector; Find or allocate a buffer for a sector
     lda #0                                                            ; b814: a9 00       ..             ; A=0: clear start position
     sta l10b6                                                         ; b816: 8d b6 10    ...            ; Store start at beginning of sector
     lda l109a                                                         ; b819: ad 9a 10    ...            ; Get bytes remaining in buffer
     sta l10b7                                                         ; b81c: 8d b7 10    ...            ; Store as transfer end position
-    jsr transfer_sector_bytes                                         ; b81f: 20 80 b9     ..            ; Transfer remaining bytes in sector
+    jsr transfer_sector_bytes                                         ; b81f: 20 80 b9     ..            ; Transfer remaining bytes in sector; Transfer sector bytes between buffer and memory
     jmp save_and_flush_after_transfer                                 ; b822: 4c 10 b7    L..            ; Finish via save and return
 
+; ***************************************************************************************
+; Set up OSGBPB output buffer
+; 
+; Configure the output buffer for OSGBPB A=5-8. Claims the
+; Tube if the target address is in second processor memory.
+; 
+; ***************************************************************************************
 ; &b825 referenced 4 times by &b8a1, &b8e1, &b905, &b920
 .setup_osgbpb_output_buffer
     bit zp_adfs_flags                                                 ; b825: 24 cd       $.             ; Tube in use (bit 7 of flags)?
@@ -10113,6 +10512,14 @@ la868 = check_dest_terminator+1
     sta zp_mem_ptr_h                                                  ; b858: 85 b3       ..             ; Store in output pointer high
     rts                                                               ; b85a: 60          `              ; Return (buffer ready)
 
+; ***************************************************************************************
+; Output byte to Tube or host buffer
+; 
+; Write byte in A to the OSGBPB output destination. If Tube
+; is active, sends via Tube R3; otherwise stores via
+; (zp_mem_ptr) indirect and advances the byte counter.
+; 
+; ***************************************************************************************
 ; &b85b referenced 9 times by &b874, &b889, &b8b5, &b8c4, &b8ce, &b8d8, &b8e6, &b902, &b90a
 .output_byte_to_buffer
     bit zp_adfs_flags                                                 ; b85b: 24 cd       $.             ; Tube active (V flag)?
@@ -10133,10 +10540,17 @@ la868 = check_dest_terminator+1
     ldy zp_buf_src                                                    ; b86f: a4 bc       ..             ; Restore Y (caller's index)
     rts                                                               ; b871: 60          `              ; Return
 
+; ***************************************************************************************
+; Output 10-byte directory entry name
+; 
+; Write name length byte then 10 characters from
+; (zp_text_ptr), replacing control chars with spaces.
+; 
+; ***************************************************************************************
 ; &b872 referenced 3 times by &b8f7, &b91b, &b95d
 .output_dir_entry_name
     lda #&0a                                                          ; b872: a9 0a       ..             ; A=&0A: name is 10 bytes long
-    jsr output_byte_to_buffer                                         ; b874: 20 5b b8     [.            ; Output name length byte
+    jsr output_byte_to_buffer                                         ; b874: 20 5b b8     [.            ; Output name length byte; Output byte to Tube or host buffer
     sec                                                               ; b877: 38          8              ; Set carry for first iteration
     ldx #9                                                            ; b878: a2 09       ..             ; X=9: countdown for 10 name bytes
     ldy #&ff                                                          ; b87a: a0 ff       ..             ; Y=&FF: will increment to 0 first
@@ -10151,7 +10565,7 @@ la868 = check_dest_terminator+1
     lda #&20 ; ' '                                                    ; b887: a9 20       .              ; Control char: replace with space
 ; &b889 referenced 2 times by &b87d, &b885
 .output_printable_char
-    jsr output_byte_to_buffer                                         ; b889: 20 5b b8     [.            ; Output character to buffer/Tube
+    jsr output_byte_to_buffer                                         ; b889: 20 5b b8     [.            ; Output character to buffer/Tube; Output byte to Tube or host buffer
     dex                                                               ; b88c: ca          .              ; Next character
     bpl output_name_char_loop                                         ; b88d: 10 ed       ..             ; Loop for 10 characters
     rts                                                               ; b88f: 60          `              ; Return
@@ -10171,7 +10585,7 @@ la868 = check_dest_terminator+1
 
 ; &b8a1 referenced 1 time by &b893
 .read_dir_title_handler
-    jsr setup_osgbpb_output_buffer                                    ; b8a1: 20 25 b8     %.            ; Set up output buffer/Tube
+    jsr setup_osgbpb_output_buffer                                    ; b8a1: 20 25 b8     %.            ; Set up output buffer/Tube; Set up OSGBPB output buffer
     ldy #&ff                                                          ; b8a4: a0 ff       ..             ; Y=&FF: will increment to 0 first
 ; &b8a6 referenced 1 time by &b8b2
 .scan_title_length_loop
@@ -10185,7 +10599,7 @@ la868 = check_dest_terminator+1
 ; &b8b4 referenced 1 time by &b8ae
 .output_title_length
     tya                                                               ; b8b4: 98          .              ; Output title length byte
-    jsr output_byte_to_buffer                                         ; b8b5: 20 5b b8     [.            ; Write length to buffer/Tube
+    jsr output_byte_to_buffer                                         ; b8b5: 20 5b b8     [.            ; Write length to buffer/Tube; Output byte to Tube or host buffer
     ldy #&ff                                                          ; b8b8: a0 ff       ..             ; Y=&FF: will increment to 0 first
 ; &b8ba referenced 1 time by &b8c9
 .output_title_chars_loop
@@ -10194,19 +10608,19 @@ la868 = check_dest_terminator+1
     and #&7f                                                          ; b8be: 29 7f       ).             ; Strip bit 7
     cmp #&20 ; ' '                                                    ; b8c0: c9 20       .              ; Printable (>= space)?
     bcc output_boot_and_drive                                         ; b8c2: 90 07       ..             ; Control char: done outputting title
-    jsr output_byte_to_buffer                                         ; b8c4: 20 5b b8     [.            ; Output title character
+    jsr output_byte_to_buffer                                         ; b8c4: 20 5b b8     [.            ; Output title character; Output byte to Tube or host buffer
     cpy #&13                                                          ; b8c7: c0 13       ..             ; Reached max 19 chars?
     bne output_title_chars_loop                                       ; b8c9: d0 ef       ..             ; No: continue outputting
 ; &b8cb referenced 1 time by &b8c2
 .output_boot_and_drive
     lda fsm_s1_boot_option                                            ; b8cb: ad fd 0f    ...            ; Get boot option from FSM sector 1
-    jsr output_byte_to_buffer                                         ; b8ce: 20 5b b8     [.            ; Output boot option byte
+    jsr output_byte_to_buffer                                         ; b8ce: 20 5b b8     [.            ; Output boot option byte; Output byte to Tube or host buffer
     lda wksp_current_drive                                            ; b8d1: ad 17 11    ...            ; Get current drive number
     asl a                                                             ; b8d4: 0a          .              ; Shift drive into low 3 bits
     rol a                                                             ; b8d5: 2a          *              ; Second shift
     rol a                                                             ; b8d6: 2a          *              ; Third shift
     rol a                                                             ; b8d7: 2a          *              ; Fourth shift (now in bits 0-2)
-    jsr output_byte_to_buffer                                         ; b8d8: 20 5b b8     [.            ; Output drive number byte
+    jsr output_byte_to_buffer                                         ; b8d8: 20 5b b8     [.            ; Output drive number byte; Output byte to Tube or host buffer
 ; &b8db referenced 6 times by &b89c, &b8fa, &b91e, &b933, &b93d, &b97d
 .release_tube_and_return
     jsr release_tube                                                  ; b8db: 20 43 80     C.            ; Release Tube if in use; Release Tube if in use
@@ -10214,16 +10628,16 @@ la868 = check_dest_terminator+1
 
 ; &b8e1 referenced 1 time by &b896
 .read_csd_name_handler
-    jsr setup_osgbpb_output_buffer                                    ; b8e1: 20 25 b8     %.            ; Set up output buffer/Tube
+    jsr setup_osgbpb_output_buffer                                    ; b8e1: 20 25 b8     %.            ; Set up output buffer/Tube; Set up OSGBPB output buffer
     lda #1                                                            ; b8e4: a9 01       ..             ; A=1: drive prefix is 1 char long
-    jsr output_byte_to_buffer                                         ; b8e6: 20 5b b8     [.            ; Output drive prefix length
+    jsr output_byte_to_buffer                                         ; b8e6: 20 5b b8     [.            ; Output drive prefix length; Output byte to Tube or host buffer
     lda wksp_current_drive                                            ; b8e9: ad 17 11    ...            ; Get current drive number
     jsr drive_to_ascii_digit                                          ; b8ec: 20 fc b8     ..            ; Convert drive to ASCII digit
     lda #0                                                            ; b8ef: a9 00       ..             ; A=0: CSD name starts at offset 0
     sta zp_text_ptr                                                   ; b8f1: 85 b4       ..             ; Store CSD name pointer low
     lda #&11                                                          ; b8f3: a9 11       ..             ; A=&11: CSD name is at &1100
     sta zp_text_ptr_h                                                 ; b8f5: 85 b5       ..             ; Store CSD name pointer high
-    jsr output_dir_entry_name                                         ; b8f7: 20 72 b8     r.            ; Output 10-byte CSD directory name
+    jsr output_dir_entry_name                                         ; b8f7: 20 72 b8     r.            ; Output 10-byte CSD directory name; Output 10-byte directory entry name
     bmi release_tube_and_return                                       ; b8fa: 30 df       0.             ; Exit via cleanup
 ; &b8fc referenced 2 times by &b8ec, &b910
 .drive_to_ascii_digit
@@ -10232,24 +10646,24 @@ la868 = check_dest_terminator+1
     rol a                                                             ; b8fe: 2a          *              ; Continue shift
     rol a                                                             ; b8ff: 2a          *              ; Continue shift (now in bits 4-7)
     adc #&30 ; '0'                                                    ; b900: 69 30       i0             ; Add &30 for ASCII '0'
-    jmp output_byte_to_buffer                                         ; b902: 4c 5b b8    L[.            ; Output via cb85b
+    jmp output_byte_to_buffer                                         ; b902: 4c 5b b8    L[.            ; Output via cb85b; Output byte to Tube or host buffer
 
 ; &b905 referenced 1 time by &b899
 .read_lib_name_handler
-    jsr setup_osgbpb_output_buffer                                    ; b905: 20 25 b8     %.            ; Set up output buffer/Tube
+    jsr setup_osgbpb_output_buffer                                    ; b905: 20 25 b8     %.            ; Set up output buffer/Tube; Set up OSGBPB output buffer
     lda #1                                                            ; b908: a9 01       ..             ; A=1: drive prefix is 1 char long
-    jsr output_byte_to_buffer                                         ; b90a: 20 5b b8     [.            ; Output drive prefix length
+    jsr output_byte_to_buffer                                         ; b90a: 20 5b b8     [.            ; Output drive prefix length; Output byte to Tube or host buffer
     lda l111b                                                         ; b90d: ad 1b 11    ...            ; Get library drive number
     jsr drive_to_ascii_digit                                          ; b910: 20 fc b8     ..            ; Convert drive to ASCII digit
     lda #&0a                                                          ; b913: a9 0a       ..             ; A=&0A: library name at offset &0A
     sta zp_text_ptr                                                   ; b915: 85 b4       ..             ; Store library name pointer low
     lda #&11                                                          ; b917: a9 11       ..             ; A=&11: library name is at &110A
     sta zp_text_ptr_h                                                 ; b919: 85 b5       ..             ; Store library name pointer high
-    jsr output_dir_entry_name                                         ; b91b: 20 72 b8     r.            ; Output 10-byte library dir name
+    jsr output_dir_entry_name                                         ; b91b: 20 72 b8     r.            ; Output 10-byte library dir name; Output 10-byte directory entry name
     bmi release_tube_and_return                                       ; b91e: 30 bb       0.             ; Exit via cleanup
 ; &b920 referenced 1 time by &b89e
 .read_filenames_handler
-    jsr setup_osgbpb_output_buffer                                    ; b920: 20 25 b8     %.            ; Set up output buffer/Tube
+    jsr setup_osgbpb_output_buffer                                    ; b920: 20 25 b8     %.            ; Set up output buffer/Tube; Set up OSGBPB output buffer
     ldy #0                                                            ; b923: a0 00       ..             ; Y=0: clear result counter
     sty l10b5                                                         ; b925: 8c b5 10    ...            ; Clear result file count
     lda dir_master_sequence                                           ; b928: ad fa 16    ...            ; Get directory sequence number
@@ -10287,7 +10701,7 @@ la868 = check_dest_terminator+1
     lda (zp_text_ptr),y                                               ; b956: b1 b4       ..             ; Get entry name byte 0
     sta l10b5                                                         ; b958: 8d b5 10    ...            ; Store as non-zero check for output
     beq store_remaining_count                                         ; b95b: f0 14       ..             ; Zero: end of directory entries
-    jsr output_dir_entry_name                                         ; b95d: 20 72 b8     r.            ; Output 10-byte entry name
+    jsr output_dir_entry_name                                         ; b95d: 20 72 b8     r.            ; Output 10-byte entry name; Output 10-byte directory entry name
     lda zp_text_ptr                                                   ; b960: a5 b4       ..             ; Get entry pointer low
     clc                                                               ; b962: 18          .              ; Clear carry for addition
     adc #&1a                                                          ; b963: 69 1a       i.             ; Add &1A to advance to next entry
@@ -10309,6 +10723,14 @@ la868 = check_dest_terminator+1
     sta (zp_gspb_ptr),y                                               ; b97b: 91 c6       ..             ; Store in control block byte 9
     jmp release_tube_and_return                                       ; b97d: 4c db b8    L..            ; Exit via cleanup and return
 
+; ***************************************************************************************
+; Transfer sector bytes between buffer and memory
+; 
+; Copy bytes from position l10b6 to l10b7 within the
+; current sector buffer, routing through direct memory,
+; indirect via (zp_buf_dest), or the Tube.
+; 
+; ***************************************************************************************
 ; &b980 referenced 3 times by &b70d, &b720, &b81f
 .transfer_sector_bytes
     lda l10b6                                                         ; b980: ad b6 10    ...            ; Get transfer start position
@@ -10462,7 +10884,7 @@ la868 = check_dest_terminator+1
     stx wksp_stack_save                                               ; ba31: 8e e7 10    ...            ; For error recovery
     pha                                                               ; ba34: 48          H              ; Save X on stack
     jsr floppy_get_step_rate                                          ; ba35: 20 b4 bb     ..            ; Get disc step rate from settings; Get floppy step rate
-    jsr claim_nmi_and_init                                            ; ba38: 20 92 bb     ..            ; Set up drive select and step rate
+    jsr claim_nmi_and_init                                            ; ba38: 20 92 bb     ..            ; Set up drive select and step rate; Claim NMI and initialise floppy transfer
     pla                                                               ; ba3b: 68          h              ; Restore X
     tax                                                               ; ba3c: aa          .              ; Transfer to X
     bit zp_floppy_control                                             ; ba3d: 24 a1       $.             ; Check read/write direction
@@ -10548,13 +10970,20 @@ la868 = check_dest_terminator+1
     jsr floppy_restore_track_0                                        ; baba: 20 3f bd     ?.            ; Seek to track 0 first; Seek floppy head to track 0
 ; &babd referenced 2 times by &baac, &bab8
 .setup_nmi_for_transfer
-    jsr process_floppy_result                                         ; babd: 20 c6 ba     ..            ; Set up sector parameters
-    jsr select_fdc_rw_command                                         ; bac0: 20 fd bc     ..            ; Set up NMI handler
+    jsr process_floppy_result                                         ; babd: 20 c6 ba     ..            ; Set up sector parameters; Set up FDC registers and seek to track
+    jsr select_fdc_rw_command                                         ; bac0: 20 fd bc     ..            ; Set up NMI handler; Select and issue FDC read/write command
     jmp floppy_error                                                  ; bac3: 4c ae bf    L..            ; Process result/error; Handle floppy disc error
 
+; ***************************************************************************************
+; Set up FDC registers and seek to track
+; 
+; Write track and sector to the WD1770 registers with
+; readback verify, then seek to the target track.
+; 
+; ***************************************************************************************
 ; &bac6 referenced 3 times by &babd, &bd63, &bda6
 .process_floppy_result
-    jsr clear_transfer_complete                                       ; bac6: 20 2b bd     +.            ; Clear seek-complete flag
+    jsr clear_transfer_complete                                       ; bac6: 20 2b bd     +.            ; Clear seek-complete flag; Clear floppy transfer complete flag
     ldx #0                                                            ; bac9: a2 00       ..             ; X=0: first FDC register
     jsr fdc_write_register_verify                                     ; bacb: 20 09 bb     ..            ; Write to WD1770 register with readback verify
     inx                                                               ; bace: e8          .              ; X=1: track register
@@ -10562,7 +10991,7 @@ la868 = check_dest_terminator+1
     inx                                                               ; bad2: e8          .              ; X=2: sector register
     jsr fdc_write_register_verify                                     ; bad3: 20 09 bb     ..            ; Write to WD1770 register with readback verify
     cmp zp_floppy_track                                               ; bad6: c5 a3       ..             ; Compare with target track
-    beq retry_after_error                                             ; bad8: f0 1a       ..             ; Already on track: skip seek
+    beq retry_after_error                                             ; bad8: f0 1a       ..             ; Already on track: skip seek; Set up track for floppy retry
     ror l10e4                                                         ; bada: 6e e4 10    n..            ; Set head-loaded flag
     sec                                                               ; badd: 38          8              ; Set carry
     rol l10e4                                                         ; bade: 2e e4 10    ...            ; Restore head-loaded flag
@@ -10572,11 +11001,18 @@ la868 = check_dest_terminator+1
     jsr floppy_wait_nmi_finish                                        ; bae9: 20 c2 bc     ..            ; Wait for floppy NMI transfer to complete
     lda zp_floppy_control                                             ; baec: a5 a1       ..             ; Get control flags
     ror a                                                             ; baee: 6a          j              ; Rotate verify flag to carry
-    bcc retry_after_error                                             ; baef: 90 03       ..             ; C=0: no verify, proceed to data
+    bcc retry_after_error                                             ; baef: 90 03       ..             ; C=0: no verify, proceed to data; Set up track for floppy retry
 ; &baf1 referenced 2 times by &bb04, &bb23
 .check_floppy_error_code
     jmp floppy_error                                                  ; baf1: 4c ae bf    L..            ; Handle floppy disc error
 
+; ***************************************************************************************
+; Set up track for floppy retry
+; 
+; After a floppy error, set up the track for a retry
+; attempt by copying target sector to current track.
+; 
+; ***************************************************************************************
 ; &baf4 referenced 2 times by &bad8, &baef
 .retry_after_error
     lda zp_floppy_track_num                                           ; baf4: a5 a5       ..             ; Set sector number as target
@@ -10591,7 +11027,7 @@ la868 = check_dest_terminator+1
 
 ; &bb06 referenced 2 times by &bafa, &bb02
 .return_floppy_result
-    jmp clear_transfer_complete                                       ; bb06: 4c 2b bd    L+.            ; Clear seek flag and return
+    jmp clear_transfer_complete                                       ; bb06: 4c 2b bd    L+.            ; Clear seek flag and return; Clear floppy transfer complete flag
 
 ; ***************************************************************************************
 ; Write to WD1770 register with readback verify
@@ -10683,15 +11119,22 @@ la868 = check_dest_terminator+1
     ldy #5                                                            ; bb6a: a0 05       ..             ; Y=5: get command byte from block
     lda (zp_ctrl_blk),y                                               ; bb6c: b1 b0       ..             ; Read command byte
     cmp #8                                                            ; bb6e: c9 08       ..             ; Command 8 (read)?
-    beq set_read_transfer_mode                                        ; bb70: f0 10       ..             ; Yes, valid command
+    beq set_read_transfer_mode                                        ; bb70: f0 10       ..             ; Yes, valid command; Set read mode and initialise floppy
     cmp #&0a                                                          ; bb72: c9 0a       ..             ; Command &0A (write)?
     beq setup_nmi_and_step_rate                                       ; bb74: f0 13       ..             ; Yes, valid command
     cmp #&0b                                                          ; bb76: c9 0b       ..             ; Command &0B (verify)?
-    beq set_read_transfer_mode                                        ; bb78: f0 08       ..             ; Yes, valid command
+    beq set_read_transfer_mode                                        ; bb78: f0 08       ..             ; Yes, valid command; Set read mode and initialise floppy
     lda #&67 ; 'g'                                                    ; bb7a: a9 67       .g             ; Error &67: bad command
     sta wksp_err_number                                               ; bb7c: 8d e3 10    ...            ; Store error code
     jmp floppy_error                                                  ; bb7f: 4c ae bf    L..            ; Handle floppy disc error
 
+; ***************************************************************************************
+; Set read mode and initialise floppy
+; 
+; Set bit 7 of transfer mode for read, get step rate,
+; claim NMI, and set up the track.
+; 
+; ***************************************************************************************
 ; &bb82 referenced 2 times by &bb70, &bb78
 .set_read_transfer_mode
     rol l10e0                                                         ; bb82: 2e e0 10    ...            ; Set bit 7 of transfer mode
@@ -10700,9 +11143,17 @@ la868 = check_dest_terminator+1
 ; &bb89 referenced 1 time by &bb74
 .setup_nmi_and_step_rate
     jsr floppy_get_step_rate                                          ; bb89: 20 b4 bb     ..            ; Get floppy step rate
-    jsr claim_nmi_and_init                                            ; bb8c: 20 92 bb     ..            ; Set up drive select and NMI
+    jsr claim_nmi_and_init                                            ; bb8c: 20 92 bb     ..            ; Set up drive select and NMI; Claim NMI and initialise floppy transfer
     jmp setup_track_for_rw                                            ; bb8f: 4c ff be    L..            ; Jump to floppy track setup
 
+; ***************************************************************************************
+; Claim NMI and initialise floppy transfer
+; 
+; Claim the NMI vector via service call 12, set FDC step
+; rate, clear error flags, and copy the NMI handler code
+; into NMI workspace.
+; 
+; ***************************************************************************************
 ; &bb92 referenced 2 times by &ba38, &bb8c
 .claim_nmi_and_init
     jsr claim_nmi                                                     ; bb92: 20 da bb     ..            ; Claim NMI via service call 12
@@ -10958,6 +11409,14 @@ la868 = check_dest_terminator+1
 .nmi_tube_read_code
     equb &ad, &87, &fe, &8d, &e5, &fe, &b0, 6                         ; bcf5: ad 87 fe... ...
 
+; ***************************************************************************************
+; Select and issue FDC read/write command
+; 
+; Choose WD1770 read (&80) or write (&A0) command based
+; on transfer direction. Apply head load delay and step
+; rate, then issue the command.
+; 
+; ***************************************************************************************
 ; &bcfd referenced 2 times by &bac0, &bd66
 .select_fdc_rw_command
     bit zp_floppy_control                                             ; bcfd: 24 a1       $.             ; Check read/write direction
@@ -10993,6 +11452,12 @@ la868 = check_dest_terminator+1
     sta nmi_0d5e                                                      ; bd27: 8d 5e 0d    .^.            ; Store in NMI drive control byte
     rts                                                               ; bd2a: 60          `              ; Return
 
+; ***************************************************************************************
+; Clear floppy transfer complete flag
+; 
+; Clear bit 0 of the floppy transfer state byte.
+; 
+; ***************************************************************************************
 ; &bd2b referenced 6 times by &bac6, &bb06, &be2b, &be3c, &be54, &be69
 .clear_transfer_complete
     ror zp_floppy_state                                               ; bd2b: 66 a2       f.             ; Clear bit 0 of transfer state
@@ -11007,6 +11472,12 @@ la868 = check_dest_terminator+1
     sta zp_floppy_state                                               ; bd35: 85 a2       ..             ; Store updated state
     rts                                                               ; bd37: 60          `              ; Return
 
+; ***************************************************************************************
+; Clear floppy seek-in-progress flag
+; 
+; Clear bit 1 of the floppy transfer state byte.
+; 
+; ***************************************************************************************
 ; &bd38 referenced 2 times by &be3f, &be78
 .clear_seek_flag
     lda zp_floppy_state                                               ; bd38: a5 a2       ..             ; Get transfer state
@@ -11061,8 +11532,8 @@ la868 = check_dest_terminator+1
     sta nmi_0d0f                                                      ; bd5b: 8d 0f 0d    ...            ; Store as NMI buffer high byte
     lda #0                                                            ; bd5e: a9 00       ..             ; A=0: NMI buffer low byte
     sta nmi_0d0e                                                      ; bd60: 8d 0e 0d    ...            ; Store as NMI buffer low byte
-    jsr process_floppy_result                                         ; bd63: 20 c6 ba     ..            ; Set up FDC registers for operation
-    jsr select_fdc_rw_command                                         ; bd66: 20 fd bc     ..            ; Set up FDC command and issue
+    jsr process_floppy_result                                         ; bd63: 20 c6 ba     ..            ; Set up FDC registers for operation; Set up FDC registers and seek to track
+    jsr select_fdc_rw_command                                         ; bd66: 20 fd bc     ..            ; Set up FDC command and issue; Select and issue FDC read/write command
     lda zp_floppy_track                                               ; bd69: a5 a3       ..             ; Save current track
     pha                                                               ; bd6b: 48          H              ; Push on stack
     lda wksp_disc_op_mem_addr                                         ; bd6c: ad 16 10    ...            ; Get transfer address low
@@ -11108,7 +11579,7 @@ la868 = check_dest_terminator+1
 
 ; &bda6 referenced 1 time by &bb20
 .issue_fdc_track_command
-    jsr process_floppy_result                                         ; bda6: 20 c6 ba     ..            ; Set up FDC registers
+    jsr process_floppy_result                                         ; bda6: 20 c6 ba     ..            ; Set up FDC registers; Set up FDC registers and seek to track
     lda zp_floppy_state                                               ; bda9: a5 a2       ..             ; Get transfer state flags
     ora #&40 ; '@'                                                    ; bdab: 09 40       .@             ; Set bit 6 (multi-sector flag)
     sta zp_floppy_state                                               ; bdad: 85 a2       ..             ; Store updated state
@@ -11180,7 +11651,7 @@ la868 = check_dest_terminator+1
 ; &be29 referenced 1 time by &be25
 .format_track_loop
     sta zp_floppy_dest_page                                           ; be29: 85 a6       ..             ; Store FDC command in workspace
-    jsr clear_transfer_complete                                       ; be2b: 20 2b bd     +.            ; Clear seek flag
+    jsr clear_transfer_complete                                       ; be2b: 20 2b bd     +.            ; Clear seek flag; Clear floppy transfer complete flag
     lda zp_floppy_dest_page                                           ; be2e: a5 a6       ..             ; Get FDC command
     sta fdc_8271_data_or_1770_command_or_status                       ; be30: 8d 84 fe    ...            ; Issue command to FDC
 ; &be33 referenced 2 times by &be4c, &be67
@@ -11189,8 +11660,8 @@ la868 = check_dest_terminator+1
     lda zp_floppy_state                                               ; be36: a5 a2       ..             ; Get transfer state
     and #2                                                            ; be38: 29 02       ).             ; Bit 1 set: need track step
     beq format_verify_pass                                            ; be3a: f0 12       ..             ; No step needed: check side switch
-    jsr clear_transfer_complete                                       ; be3c: 20 2b bd     +.            ; Clear seek flag
-    jsr clear_seek_flag                                               ; be3f: 20 38 bd     8.            ; Clear track-step flag
+    jsr clear_transfer_complete                                       ; be3c: 20 2b bd     +.            ; Clear seek flag; Clear floppy transfer complete flag
+    jsr clear_seek_flag                                               ; be3f: 20 38 bd     8.            ; Clear track-step flag; Clear floppy seek-in-progress flag
     lda #&54 ; 'T'                                                    ; be42: a9 54       .T             ; FDC step-in command (&54)
     ora nmi_0d5c                                                      ; be44: 0d 5c 0d    .\.            ; OR in drive select bits
     sta fdc_8271_data_or_1770_command_or_status                       ; be47: 8d 84 fe    ...            ; Issue step-in command
@@ -11201,7 +11672,7 @@ la868 = check_dest_terminator+1
     lda zp_floppy_state                                               ; be4e: a5 a2       ..             ; Check bit 3: side switch needed?
     and #8                                                            ; be50: 29 08       ).             ; Check if set
     beq return_46                                                     ; be52: f0 2f       ./             ; Not set: operation complete
-    jsr clear_transfer_complete                                       ; be54: 20 2b bd     +.            ; Clear seek flag for side switch
+    jsr clear_transfer_complete                                       ; be54: 20 2b bd     +.            ; Clear seek flag for side switch; Clear floppy transfer complete flag
     jsr clear_side_flag                                               ; be57: 20 31 bd     1.            ; Clear side-switch flag
     inc zp_floppy_track                                               ; be5a: e6 a3       ..             ; Increment track for side 1
     jsr floppy_set_side_1                                             ; be5c: 20 22 bd     ".            ; Select side 1; Select floppy disc side 1
@@ -11209,7 +11680,7 @@ la868 = check_dest_terminator+1
     ora nmi_0d5c                                                      ; be61: 0d 5c 0d    .\.            ; OR in drive select
     sta fdc_8271_data_or_1770_command_or_status                       ; be64: 8d 84 fe    ...            ; Issue restore command
     bpl wait_format_nmi_complete                                      ; be67: 10 ca       ..             ; Continue loop (always branches)
-    jsr clear_transfer_complete                                       ; be69: 20 2b bd     +.            ; Clear seek flag
+    jsr clear_transfer_complete                                       ; be69: 20 2b bd     +.            ; Clear seek flag; Clear floppy transfer complete flag
     jsr execute_fdc_seek                                              ; be6c: 20 84 be     ..            ; Check for next track boundary
     txa                                                               ; be6f: 8a          .              ; Transfer result to A
     bne clear_verify_seek_flag                                        ; be70: d0 06       ..             ; Non-zero: more sectors to transfer
@@ -11220,7 +11691,7 @@ la868 = check_dest_terminator+1
 
 ; &be78 referenced 1 time by &be70
 .clear_verify_seek_flag
-    jsr clear_seek_flag                                               ; be78: 20 38 bd     8.            ; Clear track-step flag
+    jsr clear_seek_flag                                               ; be78: 20 38 bd     8.            ; Clear track-step flag; Clear floppy seek-in-progress flag
     lda zp_floppy_dest_page                                           ; be7b: a5 a6       ..             ; Get FDC command
     jsr apply_head_load_flag                                          ; be7d: 20 4c bd     L.            ; Apply head load delay; Apply head load delay to FDC command
     sta fdc_8271_data_or_1770_command_or_status                       ; be80: 8d 84 fe    ...            ; Issue FDC command
@@ -12996,7 +13467,6 @@ save pydis_start, pydis_end
 ;     c9ff1
 ;     c9ff6
 ;     ca00a
-;     ca016
 ;     l0000
 ;     l0001
 ;     l0002

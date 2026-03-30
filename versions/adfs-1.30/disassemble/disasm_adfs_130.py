@@ -10583,6 +10583,477 @@ Read the character at (&B4),Y and generate a Bad name
 error if it is not a filename terminator.
 """)
 
+subroutine(0xB85B, "output_byte_to_buffer",
+    title="Output byte to Tube or host buffer",
+    description="""\
+Write byte in A to the OSGBPB output destination. If Tube
+is active, sends via Tube R3; otherwise stores via
+(zp_mem_ptr) indirect and advances the byte counter.
+""")
+
+subroutine(0xB579, "convert_drive_to_slot",
+    title="Convert drive number to slot index",
+    description="""\
+Shift drive number in A right 4 bits to produce a slot
+index in X.
+""")
+
+subroutine(0xABD8, "find_buffer_for_sector",
+    title="Find or allocate a buffer for a sector",
+    description="""\
+Scan channel buffer table for a buffer matching the target
+sector. If not found, evict the oldest buffer for reuse.
+""")
+
+subroutine(0xB4F5, "check_drive_and_reload_fsm",
+    title="Check disc changed and reload FSM if needed",
+    description="""\
+Read the system clock for disc-change timing, then check
+whether the current drive's disc has changed since last
+access. If changed, reload the FSM from disc.
+""")
+
+subroutine(0xBD2B, "clear_transfer_complete",
+    title="Clear floppy transfer complete flag",
+    description="""\
+Clear bit 0 of the floppy transfer state byte.
+""")
+
+subroutine(0xA29B, "bad_compact_error",
+    title="Raise Bad compact error",
+    description="""\
+Reload FSM and directory then raise error &94: Bad compact.
+""")
+
+subroutine(0xB18C, "sync_ext_to_ptr",
+    title="Synchronise EXT to PTR if at EOF",
+    description="""\
+If the EOF flag is set, copy PTR to EXT. Then recalculate
+channel flags from the writable and open bits.
+""")
+
+subroutine(0xA72B, "store_wksp_checksum_ba_y",
+    title="Calculate and store workspace checksum",
+    description="""\
+Calculate workspace checksum and store at (zp_wksp_ptr)+&FE.
+""")
+
+subroutine(0xA7A2, "load_dir_for_drive",
+    title="Restore workspace and load directory",
+    description="""\
+Restore workspace from saved copy, then load the current
+directory from disc for the active drive.
+""")
+
+subroutine(0xACD7, "calc_buffer_page_from_offset",
+    title="Calculate buffer page from channel offset",
+    description="""\
+Divide the channel offset by 4 and add the buffer base
+page (&17) to compute the buffer memory page.
+""")
+
+subroutine(0x8C62, "search_dir_for_file",
+    title="Search directory for matching file",
+    description="""\
+Copy catalogue data from the entry at (zp_entry_ptr) and
+search the current directory for a matching filename.
+""")
+
+subroutine(0x8609, "sum_free_space",
+    title="Sum all free space in FSM",
+    description="""\
+Walk the FSM entries accumulating the 3-byte length of
+each free extent into workspace &105D-&105F.
+""")
+
+subroutine(0x8A45, "check_disc_command_type",
+    title="Check command type and adjust sector count",
+    description="""\
+For write commands with partial transfers, round up the
+sector count. For reads, skip the adjustment.
+""")
+
+subroutine(0xA365, "parse_second_filename",
+    title="Parse second filename from command line",
+    description="""\
+Skip past the first filename, save the text pointer, then
+parse the second filename for commands like *RENAME and
+*COPY. Raises Bad command if extra arguments follow.
+""")
+
+subroutine(0xB51C, "set_drive_from_channel",
+    title="Set current drive from channel's drive",
+    description="""\
+Extract drive bits from A, check disc-change timing, and
+reload the FSM if the drive's disc has changed.
+""")
+
+subroutine(0xAAA6, "validate_and_set_ptr",
+    title="Flush buffers and set file pointer",
+    description="""\
+Scan the ensure table for entries matching the current
+channel and flush any dirty buffers before updating PTR.
+""")
+
+subroutine(0xA97C, "flush_all_channels",
+    title="Flush all open channel buffers",
+    description="""\
+Iterate all channel entries, flushing dirty buffers to disc
+and clearing state flags. Used by OSARGS A=&FF.
+""")
+
+subroutine(0x927B, "setup_entry_name_ptr",
+    title="Set up entry name pointer for star commands",
+    description="""\
+Point (zp_entry_ptr) to a pathname format string in ROM
+and prepare to print up to 12 characters.
+""")
+
+subroutine(0xB825, "setup_osgbpb_output_buffer",
+    title="Set up OSGBPB output buffer",
+    description="""\
+Configure the output buffer for OSGBPB A=5-8. Claims the
+Tube if the target address is in second processor memory.
+""")
+
+subroutine(0x94FA, "conditional_info_display",
+    title="Display file info if *OPT1 verbose",
+    description="""\
+Check *OPT1 verbose flag. If set, print full catalogue
+info for the current directory entry.
+""")
+
+subroutine(0xB980, "transfer_sector_bytes",
+    title="Transfer sector bytes between buffer and memory",
+    description="""\
+Copy bytes from position l10b6 to l10b7 within the
+current sector buffer, routing through direct memory,
+indirect via (zp_buf_dest), or the Tube.
+""")
+
+subroutine(0xBAC6, "process_floppy_result",
+    title="Set up FDC registers and seek to track",
+    description="""\
+Write track and sector to the WD1770 registers with
+readback verify, then seek to the target track.
+""")
+
+subroutine(0x828B, "exec_disc_command",
+    title="Execute disc command and check for error",
+    description="""\
+Execute disc command via command_exec_xy. On error,
+generate a BRK. On success, restore saved drive.
+""")
+
+subroutine(0xB510, "get_drive_bit_mask",
+    title="Get bit mask for drive slot",
+    description="""\
+Build a bit mask by rotating based on the drive slot
+index, then AND with drive-change flags.
+""")
+
+subroutine(0xB872, "output_dir_entry_name",
+    title="Output 10-byte directory entry name",
+    description="""\
+Write name length byte then 10 characters from
+(zp_text_ptr), replacing control chars with spaces.
+""")
+
+subroutine(0xADC5, "switch_to_channel_drive",
+    title="Switch to channel's drive for I/O",
+    description="""\
+Save CSD sector and current drive, then switch to the
+drive associated with the current channel.
+""")
+
+subroutine(0x9128, "check_and_delete_found",
+    title="Validate and delete a directory entry",
+    description="""\
+Check file is not open, verify locked attribute, for
+directories confirm empty, then proceed with deletion.
+""")
+
+subroutine(0xB060, "update_ext_from_new_ptr",
+    title="Update EXT from new PTR value",
+    description="""\
+Copy 4-byte PTR from workspace to the channel's EXT,
+then save workspace and restore drive state.
+""")
+
+subroutine(0xB123, "increment_ptr_after_write",
+    title="Increment PTR after byte write",
+    description="""\
+Increment the channel's 4-byte PTR. On page boundaries,
+save workspace and propagate carry through mid/high bytes.
+""")
+
+subroutine(0xB24D, "next_conflict_check",
+    title="Continue open-channel conflict scan",
+    description="""\
+Advance to next channel and continue scanning for files
+that conflict with the file being opened.
+""")
+
+subroutine(0xBCFD, "select_fdc_rw_command",
+    title="Select and issue FDC read/write command",
+    description="""\
+Choose WD1770 read (&80) or write (&A0) command based
+on transfer direction. Apply head load delay and step
+rate, then issue the command.
+""")
+
+subroutine(0x97A8, "format_init_dir",
+    title="Initialise directory structure for format",
+    description="""\
+Set up source and destination sector addresses for
+directory initialisation during a disc format operation.
+""")
+
+subroutine(0xA7C0, "setup_disc_read_for_dir",
+    title="Set up disc read for directory load",
+    description="""\
+Copy a disc operation template to the workspace and set
+up the sector address for reading a directory from disc.
+""")
+
+subroutine(0xBB92, "claim_nmi_and_init",
+    title="Claim NMI and initialise floppy transfer",
+    description="""\
+Claim the NMI vector via service call 12, set FDC step
+rate, clear error flags, and copy the NMI handler code
+into NMI workspace.
+""")
+
+subroutine(0xBD38, "clear_seek_flag",
+    title="Clear floppy seek-in-progress flag",
+    description="""\
+Clear bit 1 of the floppy transfer state byte.
+""")
+
+subroutine(0x8CC3, "check_existing_for_save",
+    title="Check for existing file before save",
+    description="""\
+Search directory using wildcards for an existing entry
+matching the save filename.
+""")
+
+subroutine(0x905C, "setup_print_hex_field",
+    title="Calculate FSM sector checksums",
+    description="""\
+Compute 8-bit checksums of FSM sectors 0 and 1 by
+summing all 255 bytes of each sector.
+""")
+
+subroutine(0x9945, "clear_rwl_attributes",
+    title="Clear R, W, L attribute bits in entry",
+    description="""\
+Strip bit 7 from the first three name bytes of the
+directory entry at (zp_entry_ptr).
+""")
+
+subroutine(0x9DDA, "print_help_command_list",
+    title="Print *HELP ADFS command list",
+    description="""\
+Print the ADFS command list for *HELP output, formatting
+each command name with padding.
+""")
+
+subroutine(0xA35A, "combine_hex_digit_pair",
+    title="Combine two hex nibbles into a byte",
+    description="""\
+Take high nibble from workspace, shift left 4, and
+OR with low nibble to produce a combined byte.
+""")
+
+subroutine(0xA016, "ca016",
+    title="Print a space character",
+    description="""\
+Print a single space (&20) via OSWRCH.
+""")
+
+subroutine(0x8D69, "no_open_files_on_drive",
+    title="No open file conflict found",
+    description="""\
+All channels checked with no conflicts. Continue with
+the file operation.
+""")
+
+subroutine(0xA749, "save_workspace_state",
+    title="Save all registers and workspace",
+    description="""\
+Save registers, validate workspace checksum, check FSM
+integrity, and store workspace with updated checksum.
+""")
+
+subroutine(0x8DDE, "mark_saved_drive_unset",
+    title="Raise Wild cards error",
+    description="""\
+Reload FSM and directory then raise error &FD: Wild cards.
+""")
+
+subroutine(0xA6F9, "broken_directory_error",
+    title="Raise Broken directory error",
+    description="""\
+Generate disc error with state recovery, then raise
+error &A8: Broken directory.
+""")
+
+subroutine(0x8FFA, "check_first_char_wildcard",
+    title="Validate FSM map checksums",
+    description="""\
+Recalculate FSM sector 0 and sector 1 checksums and
+compare with stored values. Raises Bad FS map error
+if either checksum does not match.
+""")
+
+subroutine(0xBAF4, "retry_after_error",
+    title="Set up track for floppy retry",
+    description="""\
+After a floppy error, set up the track for a retry
+attempt by copying target sector to current track.
+""")
+
+subroutine(0xBB82, "set_read_transfer_mode",
+    title="Set read mode and initialise floppy",
+    description="""\
+Set bit 7 of transfer mode for read, get step rate,
+claim NMI, and set up the track.
+""")
+
+subroutine(0x9D11, "service4_claim_and_dispatch",
+    title="Decline service 4 and pass on",
+    description="""\
+Clean up stack and return A=4 to pass the unrecognised
+command to the next ROM in the service chain.
+""")
+
+subroutine(0x856B, "add_size_to_existing_entry",
+    title="Add released size to FSM entry",
+    description="""\
+Copy the object sector address and add the released
+block size to an existing FSM length entry, merging
+adjacent free regions.
+""")
+
+subroutine(0x85C1, "insert_new_entry",
+    title="Insert new entry into FSM",
+    description="""\
+Check for room in the FSM. If full, raise Map full error.
+Otherwise shift entries up and insert the new entry at
+the correct sorted position.
+""")
+
+subroutine(0x8A63, "adjust_for_partial_xfer",
+    title="Execute disc transfer in batches",
+    description="""\
+For transfers exceeding 255 sectors, loop with full
+batches. For the final batch, use the remaining count.
+""")
+
+subroutine(0x8798, "check_both_exhausted",
+    title="Check pattern and name both exhausted",
+    description="""\
+After pattern ends, check whether the entry name has
+also ended. Returns Z set if the match succeeds.
+""")
+
+subroutine(0x87A8, "begin_star_match",
+    title="Begin wildcard '*' matching",
+    description="""\
+Skip past '*' in pattern and try matching the rest
+against each successive position in the entry name.
+""")
+
+subroutine(0x87CB, "star_match_succeeded",
+    title="Return successful wildcard match",
+    description="""\
+Set A=0 and carry to signal a successful match.
+""")
+
+subroutine(0x87CF, "check_name_ended",
+    title="Check name ended during '*' match",
+    description="""\
+After name is exhausted, check whether remaining pattern
+is only terminators. Returns Z set if match succeeds.
+""")
+
+subroutine(0x8849, "bad_drive_name",
+    title="Raise Bad name error for invalid drive",
+    description="""\
+Jump to bad name error handler for an invalid drive
+specifier character.
+""")
+
+subroutine(0x9951, "set_file_attributes",
+    title="Set file attributes from access string",
+    description="""\
+Clear existing R, W, L attributes then parse the access
+string to set appropriate flags including E and D.
+""")
+
+subroutine(0x9AE6, "adfs_hardware_found",
+    title="Claim workspace for ADFS",
+    description="""\
+Return A=1 to claim one workspace page and set Y=&1C
+to raise PAGE to &1D00 for ADFS workspace.
+""")
+
+subroutine(0xAB63, "wait_write_data_phase",
+    title="Write 256 bytes to SCSI bus",
+    description="""\
+Transfer a page from (zp_buf_src) to the SCSI data
+register, then set the ensuring flag.
+""")
+
+subroutine(0xAC62, "read_single_hd_sector",
+    title="Read a single sector via SCSI",
+    description="""\
+Issue a single-sector read command and transfer 256
+bytes from the SCSI data register into the buffer.
+""")
+
+subroutine(0xACE9, "step_ensure_offset_loop",
+    title="Step through ensure table entries",
+    description="""\
+Step backward through the ensure table checking for
+entries associated with the current channel.
+""")
+
+subroutine(0xAD53, "eof_error",
+    title="Raise EOF error",
+    description="""\
+Clear EOF and buffer flags then raise error &DF: EOF.
+""")
+
+subroutine(0xAD8D, "calc_bget_sector_addr",
+    title="Calculate sector address for BGET",
+    description="""\
+Compute disc sector from channel base + PTR, load the
+sector into the buffer, and set up the byte offset.
+""")
+
+subroutine(0xAE4C, "advance_to_next_dir_entry",
+    title="Advance directory scan pointer",
+    description="""\
+Add 26 bytes to the directory entry pointer to move to
+the next entry, handling page crossing.
+""")
+
+subroutine(0xAEBC, "update_ext_to_ptr",
+    title="Handle PTR exceeding EXT",
+    description="""\
+If PTR has exceeded the file allocation, begin file
+extension. Otherwise jump to EOF write handler.
+""")
+
+subroutine(0xB3F1, "update_dir_entry_on_close",
+    title="Update directory entry on file close",
+    description="""\
+Switch to the file's drive, calculate actual sectors
+used from EXT, then release unused allocation back to
+the free space map.
+""")
+
 # ---------------------------------------------------------------------------
 # Generate disassembly
 # ---------------------------------------------------------------------------
