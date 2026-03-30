@@ -4516,7 +4516,7 @@ oscli                                           = &fff7
     and #8                                                            ; 96a8: 29 08       ).             ; Bit 3: copy operation flag
     bne c96b2                                                         ; 96aa: d0 06       ..             ; Set: skip directory write
     jsr c8f86                                                         ; 96ac: 20 86 8f     ..            ; Write directory to disc
-    jsr ca97c                                                         ; 96af: 20 7c a9     |.            ; Flush OSARGS workspace
+    jsr flush_all_channels                                            ; 96af: 20 7c a9     |.            ; Flush OSARGS workspace
 ; &96b2 referenced 1 time by &96aa
 .c96b2
     lda l10a7                                                         ; 96b2: ad a7 10    ...            ; Check if sectors remain to copy
@@ -7710,20 +7710,20 @@ la868 = check_dest_terminator+1
 ; &a955 referenced 1 time by &9574
 .my_osargs
     cpy #0                                                            ; a955: c0 00       ..             ; Y=0? General OSARGS query
-    bne ca995                                                         ; a957: d0 3c       .<             ; Y!=0: file-specific handler
+    bne osargs_file_specific                                          ; a957: d0 3c       .<             ; Y!=0: file-specific handler
     tay                                                               ; a959: a8          .              ; Transfer A to Y (function code)
-    bne ca95f                                                         ; a95a: d0 03       ..             ; A=0? Return FS number
+    bne osargs_general_query                                          ; a95a: d0 03       ..             ; A=0? Return FS number
     lda #8                                                            ; a95c: a9 08       ..             ; A=8: ADFS filing system number
 ; &a95e referenced 1 time by &a947
 .return_33
     rts                                                               ; a95e: 60          `              ; Return (FS number in A)
 
 ; &a95f referenced 1 time by &a95a
-.ca95f
+.osargs_general_query
     jsr save_workspace_state                                          ; a95f: 20 49 a7     I.            ; Save registers for later restore
     stx zp_save_x                                                     ; a962: 86 c3       ..             ; Save X (zero page pointer)
     dey                                                               ; a964: 88          .              ; Y was function code; Y-1=0 means A=1
-    bne ca97c                                                         ; a965: d0 15       ..             ; A!=1: check further functions
+    bne flush_all_channels                                            ; a965: d0 15       ..             ; A!=1: check further functions
     lda l10d6                                                         ; a967: ad d6 10    ...            ; A=1: return command tail low byte
     sta l0000,x                                                       ; a96a: 95 00       ..             ; Store in zero page at X+0
     lda wksp_shadow_save                                              ; a96c: ad d7 10    ...            ; Command tail high byte
@@ -7732,17 +7732,17 @@ la868 = check_dest_terminator+1
     sty l0002,x                                                       ; a972: 94 02       ..             ; Clear X+2 (high bytes)
     sty l0003,x                                                       ; a974: 94 03       ..             ; Clear X+3
 ; &a976 referenced 2 times by &a992, &aac3
-.ca976
+.return_success
     ldx zp_save_x                                                     ; a976: a6 c3       ..             ; Restore X
     lda #0                                                            ; a978: a9 00       ..             ; A=0: success
     tay                                                               ; a97a: a8          .              ; Y=&00
     rts                                                               ; a97b: 60          `              ; Return (success)
 
 ; &a97c referenced 2 times by &96af, &a965
-.ca97c
+.flush_all_channels
     ldx #&10                                                          ; a97c: a2 10       ..             ; X=&10: scan open channels
 ; &a97e referenced 1 time by &a98a
-.loop_ca97e
+.flush_channels_loop
     jsr sub_caaf3                                                     ; a97e: 20 f3 aa     ..            ; Flush channel buffer if dirty
     lda #0                                                            ; a981: a9 00       ..             ; Clear workspace entry
     sta wksp_1004,x                                                   ; a983: 9d 04 10    ...            ; Clear channel dirty flag
@@ -7750,16 +7750,16 @@ la868 = check_dest_terminator+1
     dex                                                               ; a987: ca          .              ; Step back 4 bytes (next channel)
     dex                                                               ; a988: ca          .              ; Continue stepping
     dex                                                               ; a989: ca          .              ; Continue stepping
-    bpl loop_ca97e                                                    ; a98a: 10 f2       ..             ; Loop for all entries
+    bpl flush_channels_loop                                           ; a98a: 10 f2       ..             ; Loop for all entries
     inc wksp_1004                                                     ; a98c: ee 04 10    ...            ; Increment flush counter
     jsr wait_ensuring                                                 ; a98f: 20 05 83     ..            ; Wait while files are being ensured
-    jmp ca976                                                         ; a992: 4c 76 a9    Lv.            ; Return success
+    jmp return_success                                                ; a992: 4c 76 a9    Lv.            ; Return success
 
 ; &a995 referenced 1 time by &a957
-.ca995
+.osargs_file_specific
     jsr save_workspace_state                                          ; a995: 20 49 a7     I.            ; Save regs for file-specific OSARGS
 ; &a998 referenced 1 time by &b5e1
-.sub_ca998
+.set_channel_and_dispatch
     stx zp_save_x                                                     ; a998: 86 c3       ..             ; Save X (ZP pointer)
     pha                                                               ; a99a: 48          H              ; Save function code on stack
     jsr check_set_channel_y                                           ; a99b: 20 fe ac     ..            ; Validate and set channel number from Y
@@ -7767,7 +7767,7 @@ la868 = check_dest_terminator+1
     pla                                                               ; a9a1: 68          h              ; Restore function code
     ldy zp_channel_offset                                             ; a9a2: a4 cf       ..             ; Get channel index
     tax                                                               ; a9a4: aa          .              ; A still non-zero?
-    bne ca9c7                                                         ; a9a5: d0 20       .              ; A=2: skip (A-1!=0 means not A=2)
+    bne check_write_ptr                                               ; a9a5: d0 20       .              ; A=2: skip (A-1!=0 means not A=2)
     ldx zp_save_x                                                     ; a9a7: a6 c3       ..             ; A=2: read PTR to user zero page
     lda wksp_ch_ptr_l,y                                               ; a9a9: b9 7a 11    .z.            ; Get PTR low byte from channel table
     sta l0000,x                                                       ; a9ac: 95 00       ..             ; Store at user's X+0
@@ -7778,7 +7778,7 @@ la868 = check_dest_terminator+1
     lda wksp_ch_ptr_h,y                                               ; a9b8: b9 5c 11    .\.            ; Get PTR high byte
     sta l0003,x                                                       ; a9bb: 95 03       ..             ; Store PTR high at X+3
 ; &a9bd referenced 3 times by &aa00, &aa32, &aa5f
-.ca9bd
+.return_after_flag_update
     jsr update_channel_flags_for_ptr                                  ; a9bd: 20 3f b1     ?.            ; Ensure channel state is consistent
     lda #0                                                            ; a9c0: a9 00       ..             ; A=0: success return
     ldx zp_save_x                                                     ; a9c2: a6 c3       ..             ; Restore X
@@ -7786,13 +7786,13 @@ la868 = check_dest_terminator+1
     rts                                                               ; a9c6: 60          `              ; Return
 
 ; &a9c7 referenced 1 time by &a9a5
-.ca9c7
+.check_write_ptr
     dex                                                               ; a9c7: ca          .              ; Decrement: A=3 (write PTR)?
-    bne caa46                                                         ; a9c8: d0 7c       .|             ; No, check A=4
+    bne check_write_ext                                               ; a9c8: d0 7c       .|             ; No, check A=4
     lda wksp_ch_flags,y                                               ; a9ca: b9 ac 11    ...            ; A=3: check file is open for write
-    bpl caa03                                                         ; a9cd: 10 34       .4             ; Bit 7 clear: read-only, error
+    bpl not_open_for_update                                           ; a9cd: 10 34       .4             ; Bit 7 clear: read-only, error
 ; &a9cf referenced 1 time by &aaa3
-.ca9cf
+.copy_new_ptr_from_user
     ldx zp_save_x                                                     ; a9cf: a6 c3       ..             ; A=3: copy new PTR from user's ZP
     lda l0000,x                                                       ; a9d1: b5 00       ..             ; Get new PTR low byte
     sta l109a                                                         ; a9d3: 8d 9a 10    ...            ; Store new PTR low in workspace
@@ -7813,10 +7813,10 @@ la868 = check_dest_terminator+1
     sta wksp_ch_ptr_mh,y                                              ; a9f8: 99 66 11    .f.            ; Set PTR mid-high byte
     lda l0003,x                                                       ; a9fb: b5 03       ..             ; Get PTR high
     sta wksp_ch_ptr_h,y                                               ; a9fd: 99 5c 11    .\.            ; Set PTR high byte
-    jmp ca9bd                                                         ; aa00: 4c bd a9    L..            ; Jump to success return
+    jmp return_after_flag_update                                      ; aa00: 4c bd a9    L..            ; Jump to success return
 
 ; &aa03 referenced 1 time by &a9cd
-.caa03
+.not_open_for_update
     ldx zp_save_x                                                     ; aa03: a6 c3       ..             ; A=3: check new PTR <= EXT
     ldy zp_channel_offset                                             ; aa05: a4 cf       ..             ; Get channel index for EXT compare
     sec                                                               ; aa07: 38          8              ; Subtract new PTR from EXT
@@ -7828,7 +7828,7 @@ la868 = check_dest_terminator+1
     sbc l0002,x                                                       ; aa15: f5 02       ..             ; Subtract new PTR mid-high
     lda wksp_ch_ext_h,y                                               ; aa17: b9 34 11    .4.            ; Get EXT high
     sbc l0003,x                                                       ; aa1a: f5 03       ..             ; Subtract new PTR high
-    bcc caa35                                                         ; aa1c: 90 17       ..             ; New PTR > EXT: error
+    bcc check_read_allocation                                         ; aa1c: 90 17       ..             ; New PTR > EXT: error
     lda l0000,x                                                       ; aa1e: b5 00       ..             ; New PTR <= EXT: set PTR
     sta wksp_ch_ptr_l,y                                               ; aa20: 99 7a 11    .z.            ; Set new PTR low byte
     lda l0001,x                                                       ; aa23: b5 01       ..             ; Get mid-low from user ZP
@@ -7837,18 +7837,18 @@ la868 = check_dest_terminator+1
     sta wksp_ch_ptr_mh,y                                              ; aa2a: 99 66 11    .f.            ; Set PTR mid-high
     lda l0003,x                                                       ; aa2d: b5 03       ..             ; Get high from user ZP
     sta wksp_ch_ptr_h,y                                               ; aa2f: 99 5c 11    .\.            ; Set PTR high
-    jmp ca9bd                                                         ; aa32: 4c bd a9    L..            ; Jump to success return
+    jmp return_after_flag_update                                      ; aa32: 4c bd a9    L..            ; Jump to success return
 
 ; &aa35 referenced 1 time by &aa1c
-.caa35
+.check_read_allocation
     jsr reload_fsm_and_dir_then_brk                                   ; aa35: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &b7                                                          ; aa38: b7          .
     equs "Outside file", 0                                            ; aa39: 4f 75 74... Out
 
 ; &aa46 referenced 1 time by &a9c8
-.caa46
+.check_write_ext
     dex                                                               ; aa46: ca          .              ; Decrement: A=4 (read EXT)?
-    bne caa62                                                         ; aa47: d0 19       ..             ; No, check A=5
+    bne read_ext_value                                                ; aa47: d0 19       ..             ; No, check A=5
     ldx zp_save_x                                                     ; aa49: a6 c3       ..             ; A=4: read EXT to user zero page
     lda wksp_ch_ext_l,y                                               ; aa4b: b9 52 11    .R.            ; Get EXT low byte
     sta l0000,x                                                       ; aa4e: 95 00       ..             ; Store EXT low at user X+0
@@ -7859,20 +7859,20 @@ la868 = check_dest_terminator+1
     lda wksp_ch_ext_h,y                                               ; aa5a: b9 34 11    .4.            ; Get EXT high
     sta l0003,x                                                       ; aa5d: 95 03       ..             ; Store at user X+3
 ; &aa5f referenced 1 time by &aaa1
-.caa5f
-    jmp ca9bd                                                         ; aa5f: 4c bd a9    L..            ; Jump to success return
+.read_allocation_size
+    jmp return_after_flag_update                                      ; aa5f: 4c bd a9    L..            ; Jump to success return
 
 ; &aa62 referenced 1 time by &aa47
-.caa62
+.read_ext_value
     dex                                                               ; aa62: ca          .              ; Decrement: A=5 (write EXT)?
-    bne caaa6                                                         ; aa63: d0 41       .A             ; No, handle ensure
+    bne validate_and_set_ptr                                          ; aa63: d0 41       .A             ; No, handle ensure
     ldx zp_save_x                                                     ; aa65: a6 c3       ..             ; A=5: check file is open for write
     lda wksp_ch_flags,y                                               ; aa67: b9 ac 11    ...            ; Get channel flags
-    bmi caa6f                                                         ; aa6a: 30 03       0.             ; Bit 7 set: writable, proceed
+    bmi write_new_ext                                                 ; aa6a: 30 03       0.             ; Bit 7 set: writable, proceed
     jmp not_open_for_update_error                                     ; aa6c: 4c 9d b0    L..            ; Not writable: error
 
 ; &aa6f referenced 1 time by &aa6a
-.caa6f
+.write_new_ext
     lda l0000,x                                                       ; aa6f: b5 00       ..             ; Copy new EXT from user's ZP
     sta l109a                                                         ; aa71: 8d 9a 10    ...            ; Store new EXT low in workspace
     lda l0001,x                                                       ; aa74: b5 01       ..             ; Get new EXT mid-low
@@ -7893,31 +7893,31 @@ la868 = check_dest_terminator+1
     lda l0003,x                                                       ; aa99: b5 03       ..             ; Get EXT high
     sta wksp_ch_ext_h,y                                               ; aa9b: 99 34 11    .4.            ; Set channel EXT high
     jsr compare_ext_to_ptr                                            ; aa9e: 20 16 ad     ..            ; Compare file EXT to PTR
-    bcs caa5f                                                         ; aaa1: b0 bc       ..             ; EXT >= current: just update table
-    jmp ca9cf                                                         ; aaa3: 4c cf a9    L..            ; EXT < current: also update PTR
+    bcs read_allocation_size                                          ; aaa1: b0 bc       ..             ; EXT >= current: just update table
+    jmp copy_new_ptr_from_user                                        ; aaa3: 4c cf a9    L..            ; EXT < current: also update PTR
 
 ; &aaa6 referenced 3 times by &aa63, &b3e4, &b7cf
-.caaa6
+.validate_and_set_ptr
     ldx #&10                                                          ; aaa6: a2 10       ..             ; X=&10: scan ensure table
 ; &aaa8 referenced 1 time by &aac1
-.loop_caaa8
+.copy_ptr_to_channel_loop
     lda wksp_1004,x                                                   ; aaa8: bd 04 10    ...            ; Get ensure table entry
     lsr a                                                             ; aaab: 4a          J              ; Shift right to get channel index
     and #&0f                                                          ; aaac: 29 0f       ).             ; Mask to 4-bit channel number
     cmp zp_channel_offset                                             ; aaae: c5 cf       ..             ; This channel's entry?
-    bne caabd                                                         ; aab0: d0 0b       ..             ; No, skip to next entry
+    bne set_ptr_complete                                              ; aab0: d0 0b       ..             ; No, skip to next entry
     jsr sub_caaf3                                                     ; aab2: 20 f3 aa     ..            ; Flush this entry's buffer
     lda wksp_1004,x                                                   ; aab5: bd 04 10    ...            ; Get ensure table entry again
     and #1                                                            ; aab8: 29 01       ).             ; Keep only bit 0 (dirty flag)
     sta wksp_1004,x                                                   ; aaba: 9d 04 10    ...            ; Clear other bits
 ; &aabd referenced 1 time by &aab0
-.caabd
+.set_ptr_complete
     dex                                                               ; aabd: ca          .              ; Step back 4 bytes
     dex                                                               ; aabe: ca          .              ; Continue stepping
     dex                                                               ; aabf: ca          .              ; Continue stepping
     dex                                                               ; aac0: ca          .              ; Continue stepping
-    bpl loop_caaa8                                                    ; aac1: 10 e5       ..             ; Loop for all ensure entries
-    jmp ca976                                                         ; aac3: 4c 76 a9    Lv.            ; Return success
+    bpl copy_ptr_to_channel_loop                                      ; aac1: 10 e5       ..             ; Loop for all ensure entries
+    jmp return_success                                                ; aac3: 4c 76 a9    Lv.            ; Return success
 
 ; ***************************************************************************************
 ; Hard drive single sector for BGET/BPUT
@@ -9240,7 +9240,7 @@ la868 = check_dest_terminator+1
     bne cb3f1                                                         ; b3e2: d0 0d       ..             ; Different: update needed
 ; &b3e4 referenced 2 times by &b3c2, &b465
 .cb3e4
-    jsr caaa6                                                         ; b3e4: 20 a6 aa     ..            ; EXT == alloc: no update needed
+    jsr validate_and_set_ptr                                          ; b3e4: 20 a6 aa     ..            ; EXT == alloc: no update needed
     jsr c89d3                                                         ; b3e7: 20 d3 89     ..            ; Save workspace
     lda #0                                                            ; b3ea: a9 00       ..             ; A=0: success
     ldy zp_c4                                                         ; b3ec: a4 c4       ..             ; Restore Y
@@ -9532,7 +9532,7 @@ la868 = check_dest_terminator+1
 .cb5dd
     ldy zp_save_y                                                     ; b5dd: a4 c2       ..             ; Restore Y from saved value
     ldx #&c8                                                          ; b5df: a2 c8       ..             ; X=&C8: point to temp PTR in ZP
-    jsr sub_ca998                                                     ; b5e1: 20 98 a9     ..            ; Set PTR from temp PTR
+    jsr set_channel_and_dispatch                                      ; b5e1: 20 98 a9     ..            ; Set PTR from temp PTR
     clc                                                               ; b5e4: 18          .              ; Clear carry for addition
     ldx #3                                                            ; b5e5: a2 03       ..             ; X=3: add byte count to end PTR
     ldy #5                                                            ; b5e7: a0 05       ..             ; Y=5: byte count in control block
@@ -9791,7 +9791,7 @@ la868 = check_dest_terminator+1
     iny                                                               ; b7cb: c8          .              ; Next byte
     dex                                                               ; b7cc: ca          .              ; Next sector byte
     bpl loop_cb7bf                                                    ; b7cd: 10 f0       ..             ; Loop for 3 bytes
-    jsr caaa6                                                         ; b7cf: 20 a6 aa     ..            ; Flush channel ensure buffers
+    jsr validate_and_set_ptr                                          ; b7cf: 20 a6 aa     ..            ; Flush channel ensure buffers
     jsr sub_c8a3d                                                     ; b7d2: 20 3d 8a     =.            ; Execute multi-sector disc command
     lda wksp_saved_drive                                              ; b7d5: ad 2f 10    ./.            ; Restore saved drive number
     sta wksp_current_drive                                            ; b7d8: 8d 17 11    ...            ; Set as current drive
@@ -11578,8 +11578,6 @@ save pydis_start, pydis_end
 ;     c8bd7:                                              3
 ;     c8bf0:                                              3
 ;     c9de5:                                              3
-;     ca9bd:                                              3
-;     caaa6:                                              3
 ;     cac5f:                                              3
 ;     cace9:                                              3
 ;     cae97:                                              3
@@ -11635,6 +11633,7 @@ save pydis_start, pydis_end
 ;     return_14:                                          3
 ;     return_15:                                          3
 ;     return_18:                                          3
+;     return_after_flag_update:                           3
 ;     scsi_start_command:                                 3
 ;     skip_spaces_before_attrs:                           3
 ;     sub_c8be5:                                          3
@@ -11655,6 +11654,7 @@ save pydis_start, pydis_end
 ;     sub_cbac6:                                          3
 ;     switch_to_library:                                  3
 ;     tube_delay2:                                        3
+;     validate_and_set_ptr:                               3
 ;     verify_dir_integrity:                               3
 ;     wksp_1024:                                          3
 ;     wksp_1028:                                          3
@@ -11724,8 +11724,6 @@ save pydis_start, pydis_end
 ;     ca12f:                                              2
 ;     ca179:                                              2
 ;     ca434:                                              2
-;     ca976:                                              2
-;     ca97c:                                              2
 ;     cab3d:                                              2
 ;     cab63:                                              2
 ;     cad8d:                                              2
@@ -11783,6 +11781,7 @@ save pydis_start, pydis_end
 ;     floppy_get_step_rate:                               2
 ;     floppy_init_transfer:                               2
 ;     floppy_restore_track_0:                             2
+;     flush_all_channels:                                 2
 ;     fred_hard_drive_1:                                  2
 ;     fsm_s1_checksum:                                    2
 ;     generate_error_no_suffix:                           2
@@ -11856,6 +11855,7 @@ save pydis_start, pydis_end
 ;     return_40:                                          2
 ;     return_42:                                          2
 ;     return_48:                                          2
+;     return_success:                                     2
 ;     select_fdc_rw_command:                              2
 ;     service4_claim_and_dispatch:                        2
 ;     service4_not_matched:                               2
@@ -12071,17 +12071,6 @@ save pydis_start, pydis_end
 ;     ca3e9:                                              1
 ;     ca401:                                              1
 ;     ca41e:                                              1
-;     ca95f:                                              1
-;     ca995:                                              1
-;     ca9c7:                                              1
-;     ca9cf:                                              1
-;     caa03:                                              1
-;     caa35:                                              1
-;     caa46:                                              1
-;     caa5f:                                              1
-;     caa62:                                              1
-;     caa6f:                                              1
-;     caabd:                                              1
 ;     caaf0:                                              1
 ;     cab75:                                              1
 ;     cab87:                                              1
@@ -12214,12 +12203,15 @@ save pydis_start, pydis_end
 ;     check_multi_sector_range:                           1
 ;     check_name_char_loop:                               1
 ;     check_prev_dir_deleted:                             1
+;     check_read_allocation:                              1
 ;     check_shadow_save:                                  1
 ;     check_special_dir:                                  1
 ;     check_triple_merge_loop:                            1
 ;     check_tube_for_nmi:                                 1
 ;     check_tube_present:                                 1
 ;     check_workspace_claimed:                            1
+;     check_write_ext:                                    1
+;     check_write_ptr:                                    1
 ;     claim_nmi:                                          1
 ;     clear_accumulators_loop:                            1
 ;     clear_attr_bits_loop:                               1
@@ -12266,10 +12258,12 @@ save pydis_start, pydis_end
 ;     copy_lib_sector_loop:                               1
 ;     copy_locked_name_loop:                              1
 ;     copy_new_name_to_entry:                             1
+;     copy_new_ptr_from_user:                             1
 ;     copy_nmi_code_loop:                                 1
 ;     copy_osfile_params_loop:                            1
 ;     copy_parent_sector_loop:                            1
 ;     copy_prev_dir_name_loop:                            1
+;     copy_ptr_to_channel_loop:                           1
 ;     copy_result_loop:                                   1
 ;     copy_sector_addresses_loop:                         1
 ;     copy_source_name_loop:                              1
@@ -12308,6 +12302,7 @@ save pydis_start, pydis_end
 ;     floppy_check_present:                               1
 ;     floppy_format_track:                                1
 ;     floppy_partial_sector:                              1
+;     flush_channels_loop:                                1
 ;     found_insertion_point:                              1
 ;     fred_hard_drive_2:                                  1
 ;     fsc6_new_filing_system:                             1
@@ -12481,8 +12476,6 @@ save pydis_start, pydis_end
 ;     loop_ca116:                                         1
 ;     loop_ca3cc:                                         1
 ;     loop_ca42f:                                         1
-;     loop_ca97e:                                         1
-;     loop_caaa8:                                         1
 ;     loop_cac1f:                                         1
 ;     loop_cac99:                                         1
 ;     loop_cacab:                                         1
@@ -12544,7 +12537,10 @@ save pydis_start, pydis_end
 ;     nmi_tube_write_code:                                1
 ;     nmi_workspace:                                      1
 ;     nmi_write_code:                                     1
+;     not_open_for_update:                                1
 ;     osargs:                                             1
+;     osargs_file_specific:                               1
+;     osargs_general_query:                               1
 ;     osfile_dispatch_hi:                                 1
 ;     osfile_dispatch_lo:                                 1
 ;     osrdch:                                             1
@@ -12565,7 +12561,9 @@ save pydis_start, pydis_end
 ;     ra_buffer_4:                                        1
 ;     ra_buffer_5:                                        1
 ;     raise_brk_error:                                    1
+;     read_allocation_size:                               1
 ;     read_dir_from_disc:                                 1
+;     read_ext_value:                                     1
 ;     read_fsm_from_disc:                                 1
 ;     recalc_flags_from_base:                             1
 ;     release_nmi:                                        1
@@ -12649,7 +12647,9 @@ save pydis_start, pydis_end
 ;     service_handler_1:                                  1
 ;     set_buffer_dirty_and_flush:                         1
 ;     set_buffer_flush_flag:                              1
+;     set_channel_and_dispatch:                           1
 ;     set_matched_flag:                                   1
+;     set_ptr_complete:                                   1
 ;     set_read_command:                                   1
 ;     set_rwl_attribute_bit:                              1
 ;     setup_direct_nmi:                                   1
@@ -12702,7 +12702,6 @@ save pydis_start, pydis_end
 ;     sub_c9642:                                          1
 ;     sub_c98ae:                                          1
 ;     sub_ca161:                                          1
-;     sub_ca998:                                          1
 ;     sub_caba5:                                          1
 ;     sub_cae5e:                                          1
 ;     sub_cb3b6:                                          1
@@ -12734,6 +12733,7 @@ save pydis_start, pydis_end
 ;     wksp_osword_block:                                  1
 ;     wksp_tube_transfer_addr:                            1
 ;     write_dir_name_loop:                                1
+;     write_new_ext:                                      1
 ;     write_parent_sector_loop:                           1
 ;     write_sector_byte_loop:                             1
 ;     zero_buffers_loop:                                  1
@@ -12965,21 +12965,6 @@ save pydis_start, pydis_end
 ;     ca401
 ;     ca41e
 ;     ca434
-;     ca95f
-;     ca976
-;     ca97c
-;     ca995
-;     ca9bd
-;     ca9c7
-;     ca9cf
-;     caa03
-;     caa35
-;     caa46
-;     caa5f
-;     caa62
-;     caa6f
-;     caaa6
-;     caabd
 ;     caaf0
 ;     cab3d
 ;     cab63
@@ -13402,8 +13387,6 @@ save pydis_start, pydis_end
 ;     loop_ca116
 ;     loop_ca3cc
 ;     loop_ca42f
-;     loop_ca97e
-;     loop_caaa8
 ;     loop_cac1f
 ;     loop_cac99
 ;     loop_cacab
@@ -13546,7 +13529,6 @@ save pydis_start, pydis_end
 ;     sub_c9fdd
 ;     sub_ca153
 ;     sub_ca161
-;     sub_ca998
 ;     sub_caaf3
 ;     sub_caba5
 ;     sub_cabc9
