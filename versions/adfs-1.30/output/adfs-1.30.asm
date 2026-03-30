@@ -127,6 +127,7 @@ filev                                           = &0212
 fscv                                            = &021e
 last_break_type                                 = &028d
 l0406                                           = &0406
+l06a9                                           = &06a9
 nmi_workspace                                   = &0d00
 nmi_0d05                                        = &0d05
 nmi_0d0a                                        = &0d0a
@@ -1037,7 +1038,7 @@ oscli                                           = &fff7
 
 ; &82e8 referenced 1 time by &82d3
 .store_error_sector
-    jsr sub_c832b                                                     ; 82e8: 20 2b 83     +.            ; Write protected: save drive state
+    jsr generate_disc_error                                           ; 82e8: 20 2b 83     +.            ; Write protected: save drive state
     equb &c9                                                          ; 82eb: c9          .
     equs "Disc protected", 0                                          ; 82ec: 44 69 73... Dis
 
@@ -1121,7 +1122,6 @@ oscli                                           = &fff7
     jmp command_done                                                  ; 8328: 4c 8a 81    L..            ; Jump to status/message phase handler; Complete SCSI command and read status
 
 ; &832b referenced 6 times by &82e8, &85c8, &8656, &8664, &8ffa, &a6f9
-.sub_c832b
 .generate_disc_error
     ldx wksp_saved_drive                                              ; 832b: ae 2f 10    ./.            ; Check if drive was already saved
     inx                                                               ; 832e: e8          .              ; X=saved_drive+1; if !=0, already set
@@ -1665,7 +1665,7 @@ oscli                                           = &fff7
     lda fsm_s1_total_sectors_lo                                       ; 85c1: ad fe 0f    ...            ; Get end-of-list pointer
     cmp #&f6                                                          ; 85c4: c9 f6       ..             ; Room for new entry (< &F6)?
     bcc shift_entries_up_start                                        ; 85c6: 90 0d       ..             ; Yes: proceed with insert
-    jsr sub_c832b                                                     ; 85c8: 20 2b 83     +.            ; Save drive state and raise error
+    jsr generate_disc_error                                           ; 85c8: 20 2b 83     +.            ; Save drive state and raise error
     equb &99                                                          ; 85cb: 99          .
     equs "Map full", 0                                                ; 85cc: 4d 61 70... Map
 
@@ -1756,13 +1756,13 @@ oscli                                           = &fff7
     bcs compaction_required_error                                     ; 8654: b0 0e       ..             ; Total >= requested: space exists
 ; &8656 referenced 2 times by &8f3a, &aed4
 .disc_full_error
-    jsr sub_c832b                                                     ; 8656: 20 2b 83     +.            ; Not enough: Disc full error
+    jsr generate_disc_error                                           ; 8656: 20 2b 83     +.            ; Not enough: Disc full error
     equb &c6                                                          ; 8659: c6          .
     equs "Disc full", 0                                               ; 865a: 44 69 73... Dis
 
 ; &8664 referenced 1 time by &8654
 .compaction_required_error
-    jsr sub_c832b                                                     ; 8664: 20 2b 83     +.            ; Compaction needed: error
+    jsr generate_disc_error                                           ; 8664: 20 2b 83     +.            ; Compaction needed: error
     equb &98                                                          ; 8667: 98          .
     equs "Compaction required", 0                                     ; 8668: 43 6f 6d... Com
 
@@ -3407,7 +3407,7 @@ oscli                                           = &fff7
     beq return_18                                                     ; 8ff8: f0 ef       ..             ; Found: return
 ; &8ffa referenced 7 times by &8ff3, &9017, &901a, &9021, &903a, &9045, &904a
 .check_first_char_wildcard
-    jsr sub_c832b                                                     ; 8ffa: 20 2b 83     +.            ; Bad FS map error
+    jsr generate_disc_error                                           ; 8ffa: 20 2b 83     +.            ; Bad FS map error
     equb &a9                                                          ; 8ffd: a9          .
     equs "Bad FS map", 0                                              ; 8ffe: 42 61 64... Bad
 
@@ -5352,11 +5352,11 @@ oscli                                           = &fff7
     jsr osbyte                                                        ; 9b75: 20 f4 ff     ..            ; Write current keys pressed (X and Y)
     jsr print_inline_string                                           ; 9b78: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs "Acorn ADFS", &0d                                            ; 9b7b: 41 63 6f... Aco
-    equb &8d                                                          ; 9b86: 8d          .
 
+.sub_c9b86
+boot_run_option = sub_c9b86+1
+    sta l06a9                                                         ; 9b86: 8d a9 06    ...            ; FSC 6: select ADFS as filing system
 ; &9b87 referenced 2 times by &9b3f, &9d0e
-.boot_run_option
-    lda #6                                                            ; 9b87: a9 06       ..             ; FSC 6: select ADFS as filing system
     jsr jmp_indirect_fscv                                             ; 9b89: 20 43 9a     C.            ; Jump through FSCV indirect vector
     lda #osbyte_issue_service_request                                 ; 9b8c: a9 8f       ..             ; OSBYTE &8F: issue service 10
     ldx #&0a                                                          ; 9b8e: a2 0a       ..             ; X=&0A: service 10 (claim workspace)
@@ -7297,7 +7297,7 @@ la154 = sub_ca153+1
 
 ; &a6f9 referenced 2 times by &a6e9, &a6ee
 .broken_directory_error
-    jsr sub_c832b                                                     ; a6f9: 20 2b 83     +.            ; Dir broken: save drive and error
+    jsr generate_disc_error                                           ; a6f9: 20 2b 83     +.            ; Dir broken: save drive and error
     equb &a8                                                          ; a6fc: a8          .
     equs "Broken directory", 0                                        ; a6fd: 42 72 6f... Bro
 
@@ -11474,7 +11474,6 @@ save pydis_start, pydis_end
 ;     no_open_files_on_drive:                             6
 ;     release_tube_and_return:                            6
 ;     scsi_send_cmd_byte:                                 6
-;     sub_c832b:                                          6
 ;     wksp_1030:                                          6
 ;     wksp_1038:                                          6
 ;     wksp_current_drive_hi:                              6
@@ -12295,6 +12294,7 @@ save pydis_start, pydis_end
 ;     l0102:                                              1
 ;     l0103:                                              1
 ;     l0104:                                              1
+;     l06a9:                                              1
 ;     l0e03:                                              1
 ;     l103e:                                              1
 ;     l1046:                                              1
@@ -12761,6 +12761,7 @@ save pydis_start, pydis_end
 ;     l0103
 ;     l0104
 ;     l0406
+;     l06a9
 ;     l0e03
 ;     l1017
 ;     l1018
@@ -12956,17 +12957,18 @@ save pydis_start, pydis_end
 ;     return_7
 ;     return_8
 ;     return_9
+;     sub_c9b86
 ;     sub_c9fd8
 ;     sub_c9fdd
 ;     sub_ca153
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14843 bytes (91%)
-;     Data                     = 1541 bytes (9%)
+;     Code                     = 14844 bytes (91%)
+;     Data                     = 1540 bytes (9%)
 ;
 ;     Number of instructions   = 6908
-;     Number of data bytes     = 600 bytes
+;     Number of data bytes     = 599 bytes
 ;     Number of data words     = 16 bytes
 ;     Number of string bytes   = 925 bytes
 ;     Number of strings        = 103
