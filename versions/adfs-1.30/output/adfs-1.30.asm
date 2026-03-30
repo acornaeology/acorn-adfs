@@ -712,7 +712,7 @@ oscli                                           = &fff7
     ldy #0                                                            ; 8147: a0 00       ..             ; Y=0: byte counter for 256-byte page
     bit zp_flags                                                      ; 8149: 24 cd       $.             ; Tube in use?
     bvc c8159                                                         ; 814b: 50 0c       P.             ; No, direct memory transfer
-    ldx #&27 ; '''                                                    ; 814d: a2 27       .'             ; X=&27, Y=&10: Tube workspace addr
+    ldx #&27 ; '''                                                    ; 814d: a2 27       .'             ; X=&27: Tube workspace addr low
     ldy #&10                                                          ; 814f: a0 10       ..             ; Y=&10: Tube workspace page
     lda #0                                                            ; 8151: a9 00       ..             ; A=0 (direction flag)
     php                                                               ; 8153: 08          .              ; Save direction flag
@@ -845,7 +845,7 @@ oscli                                           = &fff7
     inc wksp_102a                                                     ; 81e7: ee 2a 10    .*.            ; Increment high byte
 ; &81ea referenced 2 times by &81e0, &81e5
 .c81ea
-    ldx #&27 ; '''                                                    ; 81ea: a2 27       .'             ; X=&27, Y=&10: Tube workspace address
+    ldx #&27 ; '''                                                    ; 81ea: a2 27       .'             ; X=&27: Tube workspace addr low
     ldy #&10                                                          ; 81ec: a0 10       ..             ; Y=&10: Tube workspace page
     rts                                                               ; 81ee: 60          `              ; Return
 
@@ -881,7 +881,7 @@ oscli                                           = &fff7
 
 ; &81fc referenced 1 time by &81bc
 .c81fc
-    ldx #&27 ; '''                                                    ; 81fc: a2 27       .'             ; X=&27, Y=&10: Tube workspace address
+    ldx #&27 ; '''                                                    ; 81fc: a2 27       .'             ; X=&27: Tube workspace addr low
     ldy #&10                                                          ; 81fe: a0 10       ..             ; Y=&10: Tube workspace page
 ; &8200 referenced 2 times by &8220, &8238
 .c8200
@@ -3077,7 +3077,7 @@ oscli                                           = &fff7
 .sub_c8df6
     bne c8e19                                                         ; 8df6: d0 21       .!             ; Ensure directory integrity
     ldx #2                                                            ; 8df8: a2 02       ..             ; Point (&B6) to first dir entry
-    ldy #&12                                                          ; 8dfa: a0 12       ..             ; Y=0: search for empty slot
+    ldy #&12                                                          ; 8dfa: a0 12       ..             ; Y=&12: offset of first dir entry
     lda (zp_b6),y                                                     ; 8dfc: b1 b6       ..             ; Get first byte of entry
     cmp #1                                                            ; 8dfe: c9 01       ..             ; Zero: found empty slot
 ; &8e00 referenced 1 time by &8e09
@@ -3181,7 +3181,7 @@ oscli                                           = &fff7
 
 ; &8e8b referenced 2 times by &8f52, &a65d
 .sub_c8e8b
-    ldy #&11                                                          ; 8e8b: a0 11       ..             ; Y=9: copy 10-byte filename
+    ldy #&11                                                          ; 8e8b: a0 11       ..             ; Y=&11: copy filename and attributes
 ; &8e8d referenced 1 time by &8e93
 .loop_c8e8d
     lda (zp_b8),y                                                     ; 8e8d: b1 b8       ..             ; Get name byte from workspace
@@ -3313,7 +3313,7 @@ oscli                                           = &fff7
     jsr sub_c8632                                                     ; 8f55: 20 32 86     2.            ; Store in entry
 ; &8f58 referenced 1 time by &a660
 .sub_c8f58
-    ldy #&18                                                          ; 8f58: a0 18       ..             ; Y=&15: get OSFILE data bytes
+    ldy #&18                                                          ; 8f58: a0 18       ..             ; Y=&18: get OSFILE data bytes
     ldx #2                                                            ; 8f5a: a2 02       ..             ; Get OSFILE block byte
 ; &8f5c referenced 1 time by &8f63
 .loop_c8f5c
@@ -3748,7 +3748,7 @@ oscli                                           = &fff7
 ; &9229 referenced 1 time by &9225
 .c9229
     lda zp_b6                                                         ; 9229: a5 b6       ..             ; Check if past end of entries
-    cmp #&bb                                                          ; 922b: c9 bb       ..             ; Check if at end of entries (addr &16BB)
+    cmp #&bb                                                          ; 922b: c9 bb       ..             ; Low byte = &BB? (dir footer boundary)
     bne c921f                                                         ; 922d: d0 f0       ..             ; Low byte not at boundary, continue
     lda zp_b7                                                         ; 922f: a5 b7       ..             ; Check if past end of entries (&16xx)
     cmp #&16                                                          ; 9231: c9 16       ..             ; High byte should be &16
@@ -3980,7 +3980,7 @@ oscli                                           = &fff7
     rol a                                                             ; 9356: 2a          *              ; Fourth shift
     adc #&30 ; '0'                                                    ; 9357: 69 30       i0             ; Convert to ASCII digit
     jsr oswrch                                                        ; 9359: 20 ee ff     ..            ; Write character
-    lda #&5f ; '_'                                                    ; 935c: a9 5f       ._             ; Point to dir name at &9A5F
+    lda #&5f ; '_'                                                    ; 935c: a9 5f       ._             ; Point to CSD path string in ROM
     sta zp_b6                                                         ; 935e: 85 b6       ..             ; Store pointer low
     lda #&9a                                                          ; 9360: a9 9a       ..             ; Page &9A
     sta zp_b7                                                         ; 9362: 85 b7       ..             ; Store pointer high
@@ -4109,7 +4109,7 @@ oscli                                           = &fff7
     and #&7f                                                          ; 9453: 29 7f       ).             ; Strip bit 7
     cmp #&5e ; '^'                                                    ; 9455: c9 5e       .^             ; Is it '^' (parent directory)?
     bne c9463                                                         ; 9457: d0 0a       ..             ; No, check for '@'
-    lda #&c0                                                          ; 9459: a9 c0       ..             ; '^': point to dir footer at &16C0
+    lda #&c0                                                          ; 9459: a9 c0       ..             ; '^': point to dir parent sector
     sta zp_b6                                                         ; 945b: 85 b6       ..             ; Set (&B6) low to &C0
     lda #&16                                                          ; 945d: a9 16       ..             ; Set (&B6) high to &16 (dir footer)
     sta zp_b7                                                         ; 945f: 85 b7       ..             ; Store high byte
@@ -5205,8 +5205,8 @@ oscli                                           = &fff7
 ; 
 ; Initialise ADFS on a ROM filing system init service call.
 ; Checks for floppy and hard drive hardware. If either is
-; present, claims the ROM workspace slot and sets PAGE to
-; &1C00 to make room for ADFS workspace.
+; present, claims the ROM workspace slot and raises PAGE
+; to make room for ADFS workspace.
 ; 
 ; ***************************************************************************************
 ; &9acf referenced 1 time by &9ad3
@@ -5229,7 +5229,7 @@ oscli                                           = &fff7
     ldx romsel_copy                                                   ; 9ae8: a6 f4       ..             ; Get our ROM number
     cpy #&1c                                                          ; 9aea: c0 1c       ..             ; Y < &1C (PAGE already high enough)?
     bcs return_23                                                     ; 9aec: b0 02       ..             ; Yes, don't change PAGE
-    ldy #&1c                                                          ; 9aee: a0 1c       ..             ; Set PAGE to &1C00
+    ldy #&1c                                                          ; 9aee: a0 1c       ..             ; Y=&1C: ADFS PAGE value high byte
 ; &9af0 referenced 1 time by &9aec
 .return_23
     rts                                                               ; 9af0: 60          `              ; Return
@@ -5606,7 +5606,7 @@ oscli                                           = &fff7
 .service_handler_8
     tya                                                               ; 9d19: 98          .              ; Save Y (OSWORD number is at &EF)
     pha                                                               ; 9d1a: 48          H              ; Save Y on stack
-    lda #0                                                            ; 9d1b: a9 00       ..             ; A=0, Y=0 for OSARGS
+    lda #0                                                            ; 9d1b: a9 00       ..             ; A=0 for OSARGS read filing system
     tay                                                               ; 9d1d: a8          .              ; Y=&00
     jsr osargs                                                        ; 9d1e: 20 da ff     ..            ; Get current filing system number; Get filing system number (A=0, Y=0)
     ; A is the filing system number:
@@ -9866,7 +9866,7 @@ la868 = sub_ca867+1
 .cb85b
     bit zp_flags                                                      ; b85b: 24 cd       $.             ; Tube active (V flag)?
     bvc cb863                                                         ; b85d: 50 04       P.             ; No: write to host memory
-    sta tube_data_register_3                                          ; b85f: 8d e5 fe    ...            ; Write byte to Tube R4 data register
+    sta tube_data_register_3                                          ; b85f: 8d e5 fe    ...            ; Write byte to Tube R3 data register
     rts                                                               ; b862: 60          `              ; Return
 
 ; &b863 referenced 1 time by &b85d
@@ -11133,7 +11133,7 @@ la868 = sub_ca867+1
 .floppy_calc_track_sector_from_block_check_range
     ldy #7                                                            ; bf55: a0 07       ..             ; Y=7: offset to sector mid byte
     lda (zp_b0),y                                                     ; bf57: b1 b0       ..             ; Get sector address mid byte
-    cmp #&0a                                                          ; bf59: c9 0a       ..             ; Sector mid >= &0A (>= &0A00)?
+    cmp #&0a                                                          ; bf59: c9 0a       ..             ; Sector mid >= &0A (2560 sectors)?
     bcc floppy_calc_track_sector_from_b0_block                        ; bf5b: 90 29       .)             ; Below limit, calculate track/sector; Calculate track/sector from block at &B0
     bne cbf66                                                         ; bf5d: d0 07       ..             ; Above &0A: definitely out of range
     iny                                                               ; bf5f: c8          .              ; Exactly &0A: check low byte too; Y=&08
