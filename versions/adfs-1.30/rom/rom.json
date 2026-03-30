@@ -1,0 +1,18 @@
+{
+    "title": "Acorn ADFS 1.30",
+    "size": 16384,
+    "md5": "831ee90ac5d49ba5507252faf0c12536",
+    "sha256": "4f785bb4572bde31a93f12687dec501c9005b6a0decc6ac943c657447095a563",
+    "links": [
+        {
+            "label": "Disassembly source on GitHub",
+            "url": "https://github.com/acornaeology/acorn-adfs/tree/master/versions/adfs-1.30",
+            "icon": "github"
+        },
+        {
+            "label": "ROM in BBC Micro ROM Library",
+            "url": "https://tobylobster.github.io/rom_library/?md5=831ee90ac5d49ba5507252faf0c12536",
+            "icon": "chip"
+        }
+    ]
+}

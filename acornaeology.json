@@ -1,0 +1,29 @@
+{
+    "slug": "acorn-adfs",
+    "name": "Acorn ADFS",
+    "description": "ADFS (Advanced Disc Filing System) is a floppy disc and SCSI hard disc filing system for the BBC Micro. It supports hierarchical directories, random access files, and the Acorn free space map format. ADFS plugs into the MOS filing system framework, providing implementations of OSFILE, OSFIND, OSGBPB, OSBGET, OSBPUT, and OSARGS. It also handles disc formatting, defect mapping, and file compaction. The ROM contains both the floppy disc driver (using the WD1770 controller) and the SCSI hard disc driver.",
+    "glossary": "GLOSSARY.md",
+    "versions": ["1.30"],
+    "references": [
+        {
+            "label": "Hoglet's ADFS 1.30 disassembly",
+            "url": "https://github.com/hoglet67/ADFS130",
+            "note": "A BeebAsm-syntax disassembly that reassembles to byte-identical ROMs for multiple ADFS variants. Provided important structural guidance."
+        },
+        {
+            "label": "Dominic Beesley's ADFS multi-target reassembly",
+            "url": "https://github.com/dominicbeesley/ADFS-multi-target",
+            "note": "A ca65-based multi-target reassembly covering many ADFS versions with well-named labels and modular driver separation."
+        },
+        {
+            "label": "J.G. Harston's ADFS 1.30 disassembly",
+            "url": "https://mdfs.net/Info/Comp/BBC/ADFS/",
+            "note": "A BBC BASIC-embedded disassembly with informative block comments and entry/exit documentation for key routines."
+        },
+        {
+            "label": "Acorn ADFS User Guide",
+            "url": "https://stardot.org.uk/forums/viewtopic.php?t=13082",
+            "note": "Stardot forum thread discussing ADFS 1.30 disassembly with technical details on SCSI protocol, workspace layout, and retry mechanisms."
+        }
+    ]
+}
