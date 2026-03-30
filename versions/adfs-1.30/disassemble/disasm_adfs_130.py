@@ -831,6 +831,11 @@ entry(0xBD58)
 entry(0xBDA6)
 entry(0xBE84)
 
+# ===========================================================================
+# Code label renames
+# ===========================================================================
+
+
 # ---------------------------------------------------------------------------
 # Inline comments
 # ---------------------------------------------------------------------------
@@ -847,7 +852,7 @@ comment(0x8040, "Loop until claim succeeds", inline=True)
 # release_tube (&8043)
 comment(0x8045, "Not in use, return immediately", inline=True)
 comment(0x8047, "Release Tube with A=&84", inline=True)
-comment(0x804C, "Disable interrupts during flag update", inline=True)
+comment(0x804C, "Save interrupt state", inline=True)
 comment(0x804E, "Clear bit 6: Tube no longer in use", inline=True)
 
 # scsi_get_status (&8056)
@@ -1049,6 +1054,16 @@ comment(0x8294, "Set current drive", inline=True)
 # Searches the FSM for the free space entry adjacent to the
 # object at wksp_object_sector (size at &1037-&1039) and
 # merges the released space with adjacent free entries.
+label(0x802D, "copy_tube_addr_loop")
+label(0x803B, "claim_tube_retry")
+label(0x8057, "scsi_read_settle_loop")
+label(0x806A, "wait_bus_free_loop")
+label(0x8078, "wait_target_bsy_loop")
+label(0x8086, "escape_during_retry")
+label(0x8459, "print_decimal_digit")
+label(0x845F, "divide_loop")
+label(0x8470, "store_digit")
+label(0x8474, "skip_leading_zero")
 label(0x84B5, "release_disc_space")
 subroutine(0x84B5, "release_disc_space",
     title="Release disc space back to free space map",
@@ -6676,10 +6691,10 @@ comment(0x843A, "Store hex digit character", inline=True)
 
 # hex_digit (&843E)
 comment(0x843E, "Isolate low nibble", inline=True)
-comment(0x8440, "Convert to ASCII digit ('0'-'9')", inline=True)
-comment(0x8442, "Result > '9'?", inline=True)
-comment(0x8444, "No, it's 0-9, done", inline=True)
-comment(0x8446, "Add 7 to get 'A'-'F' (+6 +carry)", inline=True)
+comment(0x8440, "Merge with &30 for ASCII '0'-'?'", inline=True)
+comment(0x8442, "Result > '9' (i.e. A-F)?", inline=True)
+comment(0x8444, "No, digit is 0-9, done", inline=True)
+comment(0x8446, "Add 7 to get 'A'-'F' (6 + carry)", inline=True)
 
 # dec_number_error_100_y (&8449)
 comment(0x8449, "Set V flag for leading zero suppress", inline=True)
@@ -8889,10 +8904,10 @@ an error if the number is invalid.
 """)
 
 subroutine(0x843E, "hex_digit",
-    title="Convert ASCII hex digit to value",
+    title="Convert 4-bit value to ASCII hex digit",
     description="""\
-Convert a single ASCII hex digit character to its 4-bit
-value.
+Convert a 4-bit value in A to an ASCII hex character
+('0'-'9' or 'A'-'F'). The low nibble of A is used.
 """)
 
 subroutine(0x8449, "dec_number_error_100_y",

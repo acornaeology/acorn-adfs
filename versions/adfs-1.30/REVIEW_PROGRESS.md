@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 0 / 115
-- Auto-labels renamed: 0 / 940
+- Reviewed: 10 / 115
+- Auto-labels renamed: 10 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -23,16 +23,16 @@ before their callers.
 
 | Addr | Name | Items | Auto Labels | Status |
 |------|------|-------|-------------|--------|
-| &8027 | claim_tube | 14 | 3 | |
-| &8043 | release_tube | 11 | 1 | |
-| &8056 | scsi_get_status | 8 | 1 | |
-| &8080 | command_set_retries | 4 | 0 | |
-| &81EF | tube_start_xfer_sei | 1 | 0 | |
-| &8305 | wait_ensuring | 7 | 1 | |
-| &8348 | reload_fsm_and_dir_then_brk | 4 | 0 | |
-| &8351 | generate_error_no_suffix | 1 | 0 | |
-| &843E | hex_digit | 6 | 1 | |
-| &8449 | dec_number_error_100_y | 26 | 5 | |
+| &8027 | claim_tube | 14 | 3 | REVIEWED |
+| &8043 | release_tube | 11 | 1 | REVIEWED |
+| &8056 | scsi_get_status | 8 | 1 | REVIEWED |
+| &8080 | command_set_retries | 4 | 0 | REVIEWED |
+| &81EF | tube_start_xfer_sei | 1 | 0 | REVIEWED |
+| &8305 | wait_ensuring | 7 | 1 | REVIEWED |
+| &8348 | reload_fsm_and_dir_then_brk | 4 | 0 | REVIEWED |
+| &8351 | generate_error_no_suffix | 1 | 0 | REVIEWED |
+| &843E | hex_digit | 6 | 1 | REVIEWED |
+| &8449 | dec_number_error_100_y | 26 | 5 | REVIEWED |
 | &84A7 | oscli_at_x | 2 | 0 | |
 | &871A | check_char_is_terminator | 10 | 2 | |
 | &8B1E | floppy_partial_sector | 14 | 2 | |

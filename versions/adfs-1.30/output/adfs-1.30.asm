@@ -443,19 +443,19 @@ oscli                                           = &fff7
     bit zp_flags                                                      ; 8029: 24 cd       $.             ; Is Tube present?
     bpl return_1                                                      ; 802b: 10 15       ..             ; No, return immediately
 ; &802d referenced 1 time by &8033
-.loop_c802d
+.copy_tube_addr_loop
     lda (zp_b0),y                                                     ; 802d: b1 b0       ..             ; Copy 4-byte transfer address
     sta wksp_tube_transfer_addr,y                                     ; 802f: 99 26 10    .&.            ; Store in Tube transfer workspace
     dey                                                               ; 8032: 88          .              ; Next byte
-    bne loop_c802d                                                    ; 8033: d0 f8       ..             ; Loop for 4 bytes
+    bne copy_tube_addr_loop                                           ; 8033: d0 f8       ..             ; Loop for 4 bytes
     lda zp_flags                                                      ; 8035: a5 cd       ..             ; Set bit 6: Tube in use
     ora #&40 ; '@'                                                    ; 8037: 09 40       .@             ; Set Tube-in-use flag
     sta zp_flags                                                      ; 8039: 85 cd       ..             ; Store updated flags
 ; &803b referenced 4 times by &8040, &a438, &b839, &b9a3
-.c803b
+.claim_tube_retry
     lda #&c4                                                          ; 803b: a9 c4       ..             ; Claim Tube with A=&C4
     jsr l0406                                                         ; 803d: 20 06 04     ..            ; Call Tube host to claim
-    bcc c803b                                                         ; 8040: 90 f9       ..             ; Loop until claim succeeds
+    bcc claim_tube_retry                                              ; 8040: 90 f9       ..             ; Loop until claim succeeds
 ; &8042 referenced 1 time by &802b
 .return_1
     rts                                                               ; 8042: 60          `              ; Return
@@ -478,7 +478,7 @@ oscli                                           = &fff7
     bvc return_2                                                      ; 8045: 50 0e       P.             ; Not in use, return immediately
     lda #&84                                                          ; 8047: a9 84       ..             ; Release Tube with A=&84
     jsr l0406                                                         ; 8049: 20 06 04     ..            ; Call Tube host to release
-    php                                                               ; 804c: 08          .              ; Disable interrupts during flag update
+    php                                                               ; 804c: 08          .              ; Save interrupt state
     sei                                                               ; 804d: 78          x              ; Disable interrupts
     lda zp_flags                                                      ; 804e: a5 cd       ..             ; Clear bit 6: Tube no longer in use
     and #&bf                                                          ; 8050: 29 bf       ).             ; Clear Tube-in-use bit
@@ -503,12 +503,12 @@ oscli                                           = &fff7
 .scsi_get_status
     php                                                               ; 8056: 08          .              ; Save processor flags
 ; &8057 referenced 1 time by &8061
-.loop_c8057
+.scsi_read_settle_loop
     lda fred_hard_drive_1                                             ; 8057: ad 41 fc    .A.            ; Read SCSI status register
     sta zp_scsi_status                                                ; 805a: 85 cc       ..             ; Store first reading
     lda fred_hard_drive_1                                             ; 805c: ad 41 fc    .A.            ; Read SCSI status register again
     cmp zp_scsi_status                                                ; 805f: c5 cc       ..             ; Has it settled?
-    bne loop_c8057                                                    ; 8061: d0 f4       ..             ; No, try again
+    bne scsi_read_settle_loop                                         ; 8061: d0 f4       ..             ; No, try again
     plp                                                               ; 8063: 28          (              ; Restore processor flags
     rts                                                               ; 8064: 60          `              ; Return
 
@@ -528,18 +528,18 @@ oscli                                           = &fff7
     lda #1                                                            ; 8067: a9 01       ..             ; SCSI ID bit pattern = 1 (drive 0)
     pha                                                               ; 8069: 48          H              ; Save SCSI ID on stack
 ; &806a referenced 1 time by &806f
-.loop_c806a
+.wait_bus_free_loop
     jsr scsi_get_status                                               ; 806a: 20 56 80     V.            ; Wait for BSY to deassert; Read SCSI status with settling
     and #2                                                            ; 806d: 29 02       ).             ; Check BSY bit
-    bne loop_c806a                                                    ; 806f: d0 f9       ..             ; Loop while BSY asserted
+    bne wait_bus_free_loop                                            ; 806f: d0 f9       ..             ; Loop while BSY asserted
     pla                                                               ; 8071: 68          h              ; Retrieve SCSI ID
     sta fred_hard_drive_0                                             ; 8072: 8d 40 fc    .@.            ; Assert ID on SCSI data bus
     sta fred_hard_drive_2                                             ; 8075: 8d 42 fc    .B.            ; Assert SEL to select target
 ; &8078 referenced 1 time by &807d
-.loop_c8078
+.wait_target_bsy_loop
     jsr scsi_get_status                                               ; 8078: 20 56 80     V.            ; Wait for target to assert BSY; Read SCSI status with settling
     and #2                                                            ; 807b: 29 02       ).             ; Check BSY bit
-    beq loop_c8078                                                    ; 807d: f0 f9       ..             ; Loop until BSY asserted
+    beq wait_target_bsy_loop                                          ; 807d: f0 f9       ..             ; Loop until BSY asserted
 ; &807f referenced 1 time by &80a7
 .return_3
     rts                                                               ; 807f: 60          `              ; Return
@@ -557,7 +557,7 @@ oscli                                           = &fff7
     rts                                                               ; 8085: 60          `              ; Return
 
 ; &8086 referenced 1 time by &80b1
-.c8086
+.escape_during_retry
     jmp error_escape_ack_invalidate_reload_fsm                        ; 8086: 4c a6 82    L..            ; Escape during retry: abort
 
 ; ***************************************************************************************
@@ -592,7 +592,7 @@ oscli                                           = &fff7
 ; &80af referenced 3 times by &80b6, &80b9, &80bc
 .c80af
     bit l00ff                                                         ; 80af: 24 ff       $.             ; Check for Escape during delay
-    bmi c8086                                                         ; 80b1: 30 d3       0.             ; Escape pressed, abort
+    bmi escape_during_retry                                           ; 80b1: 30 d3       0.             ; Escape pressed, abort
     sec                                                               ; 80b3: 38          8              ; Set carry for subtraction
     sbc #1                                                            ; 80b4: e9 01       ..             ; Decrement delay low byte
     bne c80af                                                         ; 80b6: d0 f7       ..             ; Inner loop not done
@@ -1218,7 +1218,7 @@ oscli                                           = &fff7
     rol a                                                             ; 8393: 2a          *              ; Rotate drive bits to low nibble
     rol a                                                             ; 8394: 2a          *              ; Second rotate
     rol a                                                             ; 8395: 2a          *              ; Third rotate
-    jsr hex_digit                                                     ; 8396: 20 3e 84     >.            ; Convert to hex digit character; Convert ASCII hex digit to value
+    jsr hex_digit                                                     ; 8396: 20 3e 84     >.            ; Convert to hex digit character; Convert 4-bit value to ASCII hex digit
     iny                                                               ; 8399: c8          .              ; Advance position
     sta l0100,y                                                       ; 839a: 99 00 01    ...            ; Store drive digit
     lda #&2f ; '/'                                                    ; 839d: a9 2f       ./             ; Append '/' separator
@@ -1323,25 +1323,25 @@ oscli                                           = &fff7
     pla                                                               ; 8435: 68          h              ; Restore original byte
 ; &8436 referenced 1 time by &8432
 .sub_c8436
-    jsr hex_digit                                                     ; 8436: 20 3e 84     >.            ; Convert low nibble and output; Convert ASCII hex digit to value
+    jsr hex_digit                                                     ; 8436: 20 3e 84     >.            ; Convert low nibble and output; Convert 4-bit value to ASCII hex digit
     iny                                                               ; 8439: c8          .              ; Advance position in error block
     sta l0100,y                                                       ; 843a: 99 00 01    ...            ; Store hex digit character
     rts                                                               ; 843d: 60          `              ; Return
 
 ; ***************************************************************************************
-; Convert ASCII hex digit to value
+; Convert 4-bit value to ASCII hex digit
 ; 
-; Convert a single ASCII hex digit character to its 4-bit
-; value.
+; Convert a 4-bit value in A to an ASCII hex character
+; ('0'-'9' or 'A'-'F'). The low nibble of A is used.
 ; 
 ; ***************************************************************************************
 ; &843e referenced 3 times by &8396, &8436, &9324
 .hex_digit
     and #&0f                                                          ; 843e: 29 0f       ).             ; Isolate low nibble
-    ora #&30 ; '0'                                                    ; 8440: 09 30       .0             ; Convert to ASCII digit ('0'-'9')
-    cmp #&3a ; ':'                                                    ; 8442: c9 3a       .:             ; Result > '9'?
-    bcc return_6                                                      ; 8444: 90 02       ..             ; No, it's 0-9, done
-    adc #6                                                            ; 8446: 69 06       i.             ; Add 7 to get 'A'-'F' (+6 +carry)
+    ora #&30 ; '0'                                                    ; 8440: 09 30       .0             ; Merge with &30 for ASCII '0'-'?'
+    cmp #&3a ; ':'                                                    ; 8442: c9 3a       .:             ; Result > '9' (i.e. A-F)?
+    bcc return_6                                                      ; 8444: 90 02       ..             ; No, digit is 0-9, done
+    adc #6                                                            ; 8446: 69 06       i.             ; Add 7 to get 'A'-'F' (6 + carry)
 ; &8448 referenced 1 time by &8444
 .return_6
     rts                                                               ; 8448: 60          `              ; Return
@@ -1355,38 +1355,38 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 ; &8449 referenced 2 times by &8380, &83d0
 .dec_number_error_100_y
-    bit c845f                                                         ; 8449: 2c 5f 84    ,_.            ; Set V flag for leading zero suppress
+    bit divide_loop                                                   ; 8449: 2c 5f 84    ,_.            ; Set V flag for leading zero suppress
     ldx #&64 ; 'd'                                                    ; 844c: a2 64       .d             ; X=100: divide by hundreds
-    jsr sub_c8459                                                     ; 844e: 20 59 84     Y.            ; Output hundreds digit
+    jsr print_decimal_digit                                           ; 844e: 20 59 84     Y.            ; Output hundreds digit
     ldx #&0a                                                          ; 8451: a2 0a       ..             ; X=10: divide by tens
-    jsr sub_c8459                                                     ; 8453: 20 59 84     Y.            ; Output tens digit
+    jsr print_decimal_digit                                           ; 8453: 20 59 84     Y.            ; Output tens digit
     clv                                                               ; 8456: b8          .              ; Clear V: always show units digit
     ldx #1                                                            ; 8457: a2 01       ..             ; X=1: divide by ones
 ; &8459 referenced 2 times by &844e, &8453
-.sub_c8459
+.print_decimal_digit
     php                                                               ; 8459: 08          .              ; Save V flag (leading zero suppress)
     stx zp_b3                                                         ; 845a: 86 b3       ..             ; Store divisor
     ldx #&2f ; '/'                                                    ; 845c: a2 2f       ./             ; X='/': ASCII digit will be X+1
     sec                                                               ; 845e: 38          8              ; Set carry for subtraction
 ; &845f referenced 2 times by &8449, &8462
-.c845f
+.divide_loop
     inx                                                               ; 845f: e8          .              ; Increment quotient digit
     sbc zp_b3                                                         ; 8460: e5 b3       ..             ; Subtract divisor
-    bcs c845f                                                         ; 8462: b0 fb       ..             ; Loop while result >= 0
+    bcs divide_loop                                                   ; 8462: b0 fb       ..             ; Loop while result >= 0
     adc zp_b3                                                         ; 8464: 65 b3       e.             ; Add divisor back (went too far)
     plp                                                               ; 8466: 28          (              ; Restore V flag
     pha                                                               ; 8467: 48          H              ; Save remainder
     txa                                                               ; 8468: 8a          .              ; Get ASCII digit
-    bvc c8470                                                         ; 8469: 50 05       P.             ; V set: suppress leading zeros
+    bvc store_digit                                                   ; 8469: 50 05       P.             ; V set: suppress leading zeros
     cmp #&30 ; '0'                                                    ; 846b: c9 30       .0             ; Is it '0'?
-    beq c8474                                                         ; 846d: f0 05       ..             ; Yes, skip (suppress leading zero)
+    beq skip_leading_zero                                             ; 846d: f0 05       ..             ; Yes, skip (suppress leading zero)
     clv                                                               ; 846f: b8          .              ; Not zero: clear V, show from now on
 ; &8470 referenced 1 time by &8469
-.c8470
+.store_digit
     iny                                                               ; 8470: c8          .              ; Advance position
     sta l0100,y                                                       ; 8471: 99 00 01    ...            ; Store decimal digit
 ; &8474 referenced 1 time by &846d
-.c8474
+.skip_leading_zero
     pla                                                               ; 8474: 68          h              ; Restore remainder
     rts                                                               ; 8475: 60          `              ; Return
 
@@ -3951,7 +3951,7 @@ oscli                                           = &fff7
     pla                                                               ; 9323: 68          h              ; Restore value for low nibble
 ; &9324 referenced 1 time by &9320
 .sub_c9324
-    jsr hex_digit                                                     ; 9324: 20 3e 84     >.            ; Convert ASCII hex digit to value
+    jsr hex_digit                                                     ; 9324: 20 3e 84     >.            ; Convert 4-bit value to ASCII hex digit
     jmp oswrch                                                        ; 9327: 4c ee ff    L..            ; Write character
 
 ; &932a referenced 2 times by &93d4, &9436
@@ -6734,7 +6734,7 @@ la154 = sub_ca153+1
 .ca434
     bit zp_flags                                                      ; a434: 24 cd       $.             ; Check if Tube present
     bpl loop_ca42f                                                    ; a436: 10 f7       ..             ; No Tube: execute directly
-    jsr c803b                                                         ; a438: 20 3b 80     ;.            ; Tube: set up Tube transfer
+    jsr claim_tube_retry                                              ; a438: 20 3b 80     ;.            ; Tube: set up Tube transfer
     ldx #&a8                                                          ; a43b: a2 a8       ..             ; Point to exec addr block
     ldy #&10                                                          ; a43d: a0 10       ..             ; Y=&10: Tube workspace page
     lda #4                                                            ; a43f: a9 04       ..             ; A=4: Tube transfer type
@@ -9843,7 +9843,7 @@ la868 = sub_ca867+1
 .cb837
     php                                                               ; b837: 08          .              ; Save flags for restore after Tube
     sei                                                               ; b838: 78          x              ; Disable interrupts for Tube claim
-    jsr c803b                                                         ; b839: 20 3b 80     ;.            ; Claim Tube for transfer
+    jsr claim_tube_retry                                              ; b839: 20 3b 80     ;.            ; Claim Tube for transfer
     lda zp_flags                                                      ; b83c: a5 cd       ..             ; Set bit 6: Tube data transfer active
     ora #&40 ; '@'                                                    ; b83e: 09 40       .@             ; OR with &40 flag
     sta zp_flags                                                      ; b840: 85 cd       ..             ; Store updated flags
@@ -10082,7 +10082,7 @@ la868 = sub_ca867+1
     lda zp_flags                                                      ; b99d: a5 cd       ..             ; Set bit 6: Tube transfer active
     ora #&40 ; '@'                                                    ; b99f: 09 40       .@             ; OR with &40 flag
     sta zp_flags                                                      ; b9a1: 85 cd       ..             ; Store updated flags
-    jsr c803b                                                         ; b9a3: 20 3b 80     ;.            ; Claim Tube for transfer
+    jsr claim_tube_retry                                              ; b9a3: 20 3b 80     ;.            ; Claim Tube for transfer
     lda l10b4                                                         ; b9a6: ad b4 10    ...            ; Get OSGBPB function code
     cmp #3                                                            ; b9a9: c9 03       ..             ; C set if A>=3 (read from file)
     lda #0                                                            ; b9ab: a9 00       ..             ; A=0: base for Tube direction
@@ -11511,7 +11511,6 @@ save pydis_start, pydis_end
 ;     zp_bd:                                              5
 ;     zp_c5:                                              5
 ;     zp_c8:                                              5
-;     c803b:                                              4
 ;     c87cb:                                              4
 ;     c8849:                                              4
 ;     c89d0:                                              4
@@ -11525,6 +11524,7 @@ save pydis_start, pydis_end
 ;     cac62:                                              4
 ;     caebc:                                              4
 ;     cb3f1:                                              4
+;     claim_tube_retry:                                   4
 ;     command_exec_start_exec:                            4
 ;     command_set_retries:                                4
 ;     compare_ext_to_ptr:                                 4
@@ -11679,7 +11679,6 @@ save pydis_start, pydis_end
 ;     c81ea:                                              2
 ;     c8200:                                              2
 ;     c8291:                                              2
-;     c845f:                                              2
 ;     c856b:                                              2
 ;     c85c1:                                              2
 ;     c8656:                                              2
@@ -11802,6 +11801,7 @@ save pydis_start, pydis_end
 ;     dec_number_error_100_y:                             2
 ;     dir2_title:                                         2
 ;     dir_parent_sector:                                  2
+;     divide_loop:                                        2
 ;     fdc_1770_sector:                                    2
 ;     floppy_get_step_rate:                               2
 ;     floppy_init_transfer:                               2
@@ -11846,6 +11846,7 @@ save pydis_start, pydis_end
 ;     nmi_0dff:                                           2
 ;     parse_dir_argument:                                 2
 ;     parse_drive_argument:                               2
+;     print_decimal_digit:                                2
 ;     print_space_value:                                  2
 ;     ra_buffer_1:                                        2
 ;     return_11:                                          2
@@ -11863,7 +11864,6 @@ save pydis_start, pydis_end
 ;     str_filing_system_name:                             2
 ;     str_hugo:                                           2
 ;     sub_c81dd:                                          2
-;     sub_c8459:                                          2
 ;     sub_c8609:                                          2
 ;     sub_c870f:                                          2
 ;     sub_c8822:                                          2
@@ -11904,7 +11904,6 @@ save pydis_start, pydis_end
 ;     zp_bb:                                              2
 ;     zp_bf:                                              2
 ;     zp_c7:                                              2
-;     c8086:                                              1
 ;     c8111:                                              1
 ;     c8114:                                              1
 ;     c8129:                                              1
@@ -11931,8 +11930,6 @@ save pydis_start, pydis_end
 ;     c83f2:                                              1
 ;     c83fa:                                              1
 ;     c8419:                                              1
-;     c8470:                                              1
-;     c8474:                                              1
 ;     c84c1:                                              1
 ;     c84dc:                                              1
 ;     c84e1:                                              1
@@ -12288,6 +12285,7 @@ save pydis_start, pydis_end
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
 ;     copy_code_to_nmi_space:                             1
+;     copy_tube_addr_loop:                                1
 ;     default_workspace_data:                             1
 ;     dir2_master_sequence:                               1
 ;     dir2_name:                                          1
@@ -12297,6 +12295,7 @@ save pydis_start, pydis_end
 ;     do_floppy_scsi_command:                             1
 ;     do_floppy_scsi_command_ind:                         1
 ;     error_escape_ack_invalidate_reload_fsm:             1
+;     escape_during_retry:                                1
 ;     exec_floppy_partial_sector_buf:                     1
 ;     exec_floppy_partial_sector_buf_ind:                 1
 ;     exec_floppy_read_bput_sector:                       1
@@ -12366,10 +12365,6 @@ save pydis_start, pydis_end
 ;     l9ee5:                                              1
 ;     la154:                                              1
 ;     la868:                                              1
-;     loop_c802d:                                         1
-;     loop_c8057:                                         1
-;     loop_c806a:                                         1
-;     loop_c8078:                                         1
 ;     loop_c8127:                                         1
 ;     loop_c818d:                                         1
 ;     loop_c81c5:                                         1
@@ -12682,6 +12677,7 @@ save pydis_start, pydis_end
 ;     return_7:                                           1
 ;     return_8:                                           1
 ;     return_9:                                           1
+;     scsi_read_settle_loop:                              1
 ;     scsi_request_sense:                                 1
 ;     scsi_send_byte_wrapper:                             1
 ;     scsi_start_command2:                                1
@@ -12691,9 +12687,11 @@ save pydis_start, pydis_end
 ;     service_handler:                                    1
 ;     service_handler_0:                                  1
 ;     service_handler_1:                                  1
+;     skip_leading_zero:                                  1
 ;     star_dir:                                           1
 ;     star_info:                                          1
 ;     star_remove:                                        1
+;     store_digit:                                        1
 ;     str_at:                                             1
 ;     str_on_channel:                                     1
 ;     str_yes:                                            1
@@ -12729,6 +12727,8 @@ save pydis_start, pydis_end
 ;     system_via_t1c_l:                                   1
 ;     tbl_extended_vectors:                               1
 ;     tube_start_xfer:                                    1
+;     wait_bus_free_loop:                                 1
+;     wait_target_bsy_loop:                               1
 ;     wksp_1008:                                          1
 ;     wksp_100c:                                          1
 ;     wksp_100e:                                          1
@@ -12739,8 +12739,6 @@ save pydis_start, pydis_end
 ;     wksp_tube_transfer_addr:                            1
 
 ; Automatically generated labels:
-;     c803b
-;     c8086
 ;     c80af
 ;     c80be
 ;     c8111
@@ -12780,9 +12778,6 @@ save pydis_start, pydis_end
 ;     c83f2
 ;     c83fa
 ;     c8419
-;     c845f
-;     c8470
-;     c8474
 ;     c84c1
 ;     c84dc
 ;     c84e1
@@ -13456,10 +13451,6 @@ save pydis_start, pydis_end
 ;     l9ee5
 ;     la154
 ;     la868
-;     loop_c802d
-;     loop_c8057
-;     loop_c806a
-;     loop_c8078
 ;     loop_c8127
 ;     loop_c818d
 ;     loop_c81c5
@@ -13770,7 +13761,6 @@ save pydis_start, pydis_end
 ;     return_9
 ;     sub_c81dd
 ;     sub_c8436
-;     sub_c8459
 ;     sub_c8609
 ;     sub_c8632
 ;     sub_c8708
