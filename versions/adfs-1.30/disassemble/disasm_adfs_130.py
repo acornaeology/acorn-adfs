@@ -1026,6 +1026,36 @@ comment(0x907A, "Sector count: &02 (2 sectors for FSM)", inline=True)
 byte(0x907B)
 comment(0x907B, "Control: &00", inline=True)
 entry(0x9269)
+label(0x94CC, "dummy_root_dir_entry")
+entry(0x94CC)
+byte(0x94CC)
+comment(0x94CC, "'$' + bit 7 (R access): filename char 0", inline=True)
+byte(0x94CD)
+comment(0x94CD, "CR: filename padding char 1", inline=True)
+byte(0x94CE)
+comment(0x94CE, "CR + bit 7 (L access): filename char 2", inline=True)
+byte(0x94CF)
+comment(0x94CF, "CR + bit 7 (D=directory): filename char 3", inline=True)
+byte(0x94D0, 6)
+comment(0x94D0, "CR padding: filename chars 4-9", inline=True)
+byte(0x94D6, 4)
+comment(0x94D6, "Load address: &00000000", inline=True)
+byte(0x94DA, 4)
+comment(0x94DA, "Exec address: &00000000", inline=True)
+byte(0x94DE)
+comment(0x94DE, "Length low: &00", inline=True)
+byte(0x94DF)
+comment(0x94DF, "Length byte 1: &05 (5 sectors = &500 bytes)", inline=True)
+byte(0x94E0, 2)
+comment(0x94E0, "Length bytes 2-3: &0000", inline=True)
+byte(0x94E2)
+comment(0x94E2, "Start sector low: &02 (root directory)", inline=True)
+byte(0x94E3, 2)
+comment(0x94E3, "Start sector mid/high: &0000", inline=True)
+byte(0x94E5)
+comment(0x94E5, "Sequence number: &00", inline=True)
+byte(0x94E6)
+comment(0x94E6, "Padding: &00", inline=True)
 entry(0x9316)
 entry(0x9A46)
 entry(0x9A78)
@@ -10733,6 +10763,17 @@ subroutine(0x947F, "parse_path_and_load",
 Parse a full pathname and load the target directory
 into the buffer. Handles drive specifiers, root,
 parent, and current directory references.
+""")
+
+subroutine(0x94CC, "dummy_root_dir_entry",
+    title="Dummy directory entry for root directory '$'",
+    description="""\
+A synthetic 26-byte directory entry representing the root
+directory. Used when '$' is referenced directly to avoid
+loading the root directory just to read its metadata.
+The entry has name '$' (padded with CR), access R/L/D
+(read, locked, directory), load/exec &00000000, length
+&00000500 (5 sectors), start sector 2.
 """)
 
 subroutine(0x8E6F, "allocate_disc_space_for_file",

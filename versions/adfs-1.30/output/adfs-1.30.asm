@@ -4764,8 +4764,32 @@ lffff                                           = &ffff
     beq return_21                                                     ; 94c7: f0 37       .7             ; Yes, return without reading dir
     jmp exec_disc_op_from_wksp                                        ; 94c9: 4c 87 82    L..            ; Execute disc read to load directory; Execute disc command from workspace control block
 
-    equb &a4, &0d, &8d, &8d, &0d, &0d, &0d, &0d, &0d, &0d, 0, 0, 0, 0 ; 94cc: a4 0d 8d... ...
-    equb   0,   0,   0,   0,   0,   5,   0,   0,   2,   0, 0, 0, 0    ; 94da: 00 00 00... ...
+; ***************************************************************************************
+; Dummy directory entry for root directory '$'
+; 
+; A synthetic 26-byte directory entry representing the root
+; directory. Used when '$' is referenced directly to avoid
+; loading the root directory just to read its metadata.
+; The entry has name '$' (padded with CR), access R/L/D
+; (read, locked, directory), load/exec &00000000, length
+; &00000500 (5 sectors), start sector 2.
+; 
+; ***************************************************************************************
+.dummy_root_dir_entry
+    equb &a4                                                          ; 94cc: a4          .              ; '$' + bit 7 (R access): filename char 0
+    equb &0d                                                          ; 94cd: 0d          .              ; CR: filename padding char 1
+    equb &8d                                                          ; 94ce: 8d          .              ; CR + bit 7 (L access): filename char 2
+    equb &8d                                                          ; 94cf: 8d          .              ; CR + bit 7 (D=directory): filename char 3
+    equb &0d, &0d, &0d, &0d, &0d, &0d                                 ; 94d0: 0d 0d 0d... ...            ; CR padding: filename chars 4-9
+    equb 0, 0, 0, 0                                                   ; 94d6: 00 00 00... ...            ; Load address: &00000000
+    equb 0, 0, 0, 0                                                   ; 94da: 00 00 00... ...            ; Exec address: &00000000
+    equb 0                                                            ; 94de: 00          .              ; Length low: &00
+    equb 5                                                            ; 94df: 05          .              ; Length byte 1: &05 (5 sectors = &500 bytes)
+    equb 0, 0                                                         ; 94e0: 00 00       ..             ; Length bytes 2-3: &0000
+    equb 2                                                            ; 94e2: 02          .              ; Start sector low: &02 (root directory)
+    equb 0, 0                                                         ; 94e3: 00 00       ..             ; Start sector mid/high: &0000
+    equb 0                                                            ; 94e5: 00          .              ; Sequence number: &00
+    equb 0                                                            ; 94e6: 00          .              ; Padding: &00
 
 ; ***************************************************************************************
 ; *INFO command handler
