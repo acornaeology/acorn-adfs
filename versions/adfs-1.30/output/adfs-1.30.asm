@@ -7034,9 +7034,9 @@ l9ee5 = tbl_commands+2
     jsr print_hex_byte                                                ; a071: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     dey                                                               ; a074: 88          .              ; Next byte
     bpl print_fsm_entries_loop                                        ; a075: 10 f6       ..             ; Loop for 3 bytes (high to low)
-    jsr print_inline_string                                           ; a077: 20 a0 92     ..            ; Print "  : &" separator; Print bit-7-terminated inline string
+    jsr print_inline_string                                           ; a077: 20 a0 92     ..            ; Print "  : " separator; Print bit-7-terminated inline string
     equs "  : "                                                       ; a07a: 20 20 3a...   :
-    equb &a0                                                          ; a07e: a0          .
+    equb &a0                                                          ; a07e: a0          .              ; ' ' + bit 7: end of inline string
 
     ldx zp_gspb_ptr_lo                                                ; a07f: a6 c6       ..             ; Restore FSM index
     ldy #2                                                            ; a081: a0 02       ..             ; Y=2: print 3 length bytes
