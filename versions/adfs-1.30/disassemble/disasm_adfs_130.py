@@ -916,6 +916,16 @@ entry(0xBB82)
 
 # Interstitial data block entries (visual separation for data between routines)
 entry(0x8499)
+label(0x880C, "disc_op_tpl_read_fsm")
+byte(0x880C, 10)
+comment(0x880C, "FSM read: 2 sectors from sector 0 to &0E00", inline=True)
+entry(0x880C)
+label(0x8816, "disc_op_tpl_padding")
+label(0x8817, "disc_op_tpl_read_dir")
+byte(0x8816, 1)
+comment(0x8816, "Padding byte for 12-byte copy from &1014", inline=True)
+byte(0x8817, 11)
+comment(0x8817, "Dir read: 5 sectors from sector 2 to &1200", inline=True)
 entry(0x8817)
 entry(0x9269)
 entry(0x9316)
@@ -11156,13 +11166,25 @@ str_exec_abbrev = 'E.' (*EXEC), str_spool_abbrev = 'SP.'
 identity string).
 """)
 
-subroutine(0x8817, "l8817",
-    title="Disc operation control block template",
+subroutine(0x880C, "disc_op_tpl_read_fsm",
+    title="Disc operation templates for FSM and directory reads",
     description="""\
-Template for initialising the disc operation control block
-at &1015. Copied to workspace before directory read/write
-operations. Contains default values for result, memory
-address, command, sector, count, and control fields.
+Two overlapping disc operation control block templates that
+share common fields. The templates are copied to workspace
+&1014-&101F before issuing disc read commands.
+
+disc_op_tpl_read_fsm (&880C, 10 bytes via l8816+offset):
+  Read 2 sectors from sector 0 into &0E00 (FSM buffer).
+  Used to reload the free space map from disc.
+
+disc_op_tpl_read_dir (&8817, 11 bytes):
+  Read 5 sectors from sector 2 into &1200 (directory buffer).
+  Used to load a directory from disc.
+
+The templates overlap at &8817-&881B, sharing the result
+byte (&01), host memory marker (&FFFF), and read command
+(&08). The zero byte at l8816 (&8816) provides padding
+when copying starts from &1014 instead of &1015.
 """)
 
 subroutine(0x9269, "osfile_dispatch_lo",

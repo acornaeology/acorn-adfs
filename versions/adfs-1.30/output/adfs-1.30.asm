@@ -2228,24 +2228,35 @@ lffff                                           = &ffff
 .return_11
     rts                                                               ; 880b: 60          `              ; Return (Z clear = not found)
 
-    equb 1, 0, &0e, &ff, &ff, 8, 0, 0, 0, 2                           ; 880c: 01 00 0e... ...
+; ***************************************************************************************
+; Disc operation templates for FSM and directory reads
+; 
+; Two overlapping disc operation control block templates that
+; share common fields. The templates are copied to workspace
+; &1014-&101F before issuing disc read commands.
+; 
+; disc_op_tpl_read_fsm (&880C, 10 bytes via l8816+offset):
+;   Read 2 sectors from sector 0 into &0E00 (FSM buffer).
+;   Used to reload the free space map from disc.
+; 
+; disc_op_tpl_read_dir (&8817, 11 bytes):
+;   Read 5 sectors from sector 2 into &1200 (directory buffer).
+;   Used to load a directory from disc.
+; 
+; The templates overlap at &8817-&881B, sharing the result
+; byte (&01), host memory marker (&FFFF), and read command
+; (&08). The zero byte at l8816 (&8816) provides padding
+; when copying starts from &1014 instead of &1015.
+; 
+; ***************************************************************************************
+.disc_op_tpl_read_fsm
+    equb 1, 0, &0e, &ff, &ff, 8, 0, 0, 0, 2                           ; 880c: 01 00 0e... ...            ; FSM read: 2 sectors from sector 0 to &0E00
 ; &8816 referenced 2 times by &a7d6, &a7f7
-.l8816
-    equb 0                                                            ; 8816: 00          .
-
-; ***************************************************************************************
-; Disc operation control block template
-; 
-; Template for initialising the disc operation control block
-; at &1015. Copied to workspace before directory read/write
-; operations. Contains default values for result, memory
-; address, command, sector, count, and control fields.
-; 
-; ***************************************************************************************
+.disc_op_tpl_padding
+    equb 0                                                            ; 8816: 00          .              ; Padding byte for 12-byte copy from &1014
 ; &8817 referenced 4 times by &89b1, &89f4, &8f8e, &94aa
-.l8817
-    ora (l0000,x)                                                     ; 8817: 01 00       ..
-    equb &12, &ff, &ff, 8, 0, 0, 2, 5, 0                              ; 8819: 12 ff ff... ...
+.disc_op_tpl_read_dir
+    equb 1, 0, &12, &ff, &ff, 8, 0, 0, 2, 5, 0                        ; 8817: 01 00 12... ...            ; Dir read: 5 sectors from sector 2 to &1200
 
 ; ***************************************************************************************
 ; Parse drive number from ASCII character
@@ -2553,7 +2564,7 @@ lffff                                           = &ffff
     ldx #&0a                                                          ; 89af: a2 0a       ..             ; X=&0A: copy 11-byte disc op template
 ; &89b1 referenced 1 time by &89b8
 .copy_subdir_template_loop
-    lda l8817,x                                                       ; 89b1: bd 17 88    ...            ; Get template byte from ROM
+    lda disc_op_tpl_read_dir,x                                        ; 89b1: bd 17 88    ...            ; Get template byte from ROM
     sta wksp_disc_op_result,x                                         ; 89b4: 9d 15 10    ...            ; Store in disc op workspace
     dex                                                               ; 89b7: ca          .              ; Next byte
     bpl copy_subdir_template_loop                                     ; 89b8: 10 f7       ..             ; Loop for 11 bytes
@@ -2612,7 +2623,7 @@ lffff                                           = &ffff
     ldy #&0a                                                          ; 89f2: a0 0a       ..             ; Y=&0A: copy 11-byte template
 ; &89f4 referenced 1 time by &89fb
 .copy_alt_wksp_template_loop
-    lda l8817,y                                                       ; 89f4: b9 17 88    ...            ; Get template byte
+    lda disc_op_tpl_read_dir,y                                        ; 89f4: b9 17 88    ...            ; Get template byte
     sta wksp_disc_op_result,y                                         ; 89f7: 99 15 10    ...            ; Store in workspace
     dey                                                               ; 89fa: 88          .              ; Next byte
     bpl copy_alt_wksp_template_loop                                   ; 89fb: 10 f7       ..             ; Loop for 11 bytes
@@ -3689,7 +3700,7 @@ lffff                                           = &ffff
     ldx #&0a                                                          ; 8f8c: a2 0a       ..             ; Get (&B7) pointer
 ; &8f8e referenced 1 time by &8f95
 .read_osfile_cat_fields_loop
-    lda l8817,x                                                       ; 8f8e: bd 17 88    ...            ; Push on stack; X=&0A: copy 11-byte template
+    lda disc_op_tpl_read_dir,x                                        ; 8f8e: bd 17 88    ...            ; Push on stack; X=&0A: copy 11-byte template
     sta wksp_disc_op_result,x                                         ; 8f91: 9d 15 10    ...            ; Get template byte from ROM
     dex                                                               ; 8f94: ca          .              ; Store in disc op workspace
     bpl read_osfile_cat_fields_loop                                   ; 8f95: 10 f7       ..             ; Loop for template bytes
@@ -4625,7 +4636,7 @@ lffff                                           = &ffff
     ldx #&0a                                                          ; 94a8: a2 0a       ..             ; X=&0A: copy 11-byte disc op block
 ; &94aa referenced 1 time by &94b1
 .copy_template_loop
-    lda l8817,x                                                       ; 94aa: bd 17 88    ...            ; Copy template control block
+    lda disc_op_tpl_read_dir,x                                        ; 94aa: bd 17 88    ...            ; Copy template control block
     sta wksp_disc_op_result,x                                         ; 94ad: 9d 15 10    ...            ; Copy template byte to workspace
     dex                                                               ; 94b0: ca          .              ; Next byte
     bpl copy_template_loop                                            ; 94b1: 10 f7       ..             ; Loop for 11 bytes
@@ -8083,7 +8094,7 @@ la154 = sub_ca153+1
     ldx #&0b                                                          ; a7d4: a2 0b       ..             ; X=&0B: copy 12-byte disc op template
 ; &a7d6 referenced 1 time by &a7dd
 .copy_disc_op_template_loop
-    lda l8816,x                                                       ; a7d6: bd 16 88    ...            ; Get template byte
+    lda disc_op_tpl_padding,x                                         ; a7d6: bd 16 88    ...            ; Get template byte
     sta wksp_1014,x                                                   ; a7d9: 9d 14 10    ...            ; Copy to workspace
     dex                                                               ; a7dc: ca          .              ; Next byte
     bne copy_disc_op_template_loop                                    ; a7dd: d0 f7       ..             ; Loop for 12 bytes
@@ -8107,7 +8118,7 @@ la154 = sub_ca153+1
     ldx #&0b                                                          ; a7f5: a2 0b       ..             ; X=&0B: copy 12-byte disc op template
 ; &a7f7 referenced 1 time by &a7fe
 .copy_fsm_template_loop
-    lda l8816,x                                                       ; a7f7: bd 16 88    ...            ; Get template byte
+    lda disc_op_tpl_padding,x                                         ; a7f7: bd 16 88    ...            ; Get template byte
     sta wksp_1014,x                                                   ; a7fa: 9d 14 10    ...            ; Copy to workspace
     dex                                                               ; a7fd: ca          .              ; Next byte
     bne copy_fsm_template_loop                                        ; a7fe: d0 f7       ..             ; Loop for 12 bytes
@@ -12285,7 +12296,6 @@ save pydis_start, pydis_end
 ;     l10b4:                                             11
 ;     skip_spaces:                                       11
 ;     zp_buf_dest:                                       11
-;     l0000:                                             10
 ;     l1098:                                             10
 ;     l11c0:                                             10
 ;     l11ca:                                             10
@@ -12294,6 +12304,7 @@ save pydis_start, pydis_end
 ;     wksp_osfile_block:                                 10
 ;     zp_ctrl_blk_h:                                     10
 ;     dir_master_sequence:                                9
+;     l0000:                                              9
 ;     l0001:                                              9
 ;     l0002:                                              9
 ;     l0003:                                              9
@@ -12426,6 +12437,7 @@ save pydis_start, pydis_end
 ;     compare_ext_to_ptr:                                 4
 ;     copy_default_dir_name:                              4
 ;     dir_name:                                           4
+;     disc_op_tpl_read_dir:                               4
 ;     exec_disc_and_check_error:                          4
 ;     execute_sector_copy:                                4
 ;     floppy_set_side_1:                                  4
@@ -12445,7 +12457,6 @@ save pydis_start, pydis_end
 ;     l11de:                                              4
 ;     l11e8:                                              4
 ;     l11f2:                                              4
-;     l8817:                                              4
 ;     multi_sector_disc_command:                          4
 ;     nmi_0d0e:                                           4
 ;     nmi_0d0f:                                           4
@@ -12634,6 +12645,7 @@ save pydis_start, pydis_end
 ;     dir2_title:                                         2
 ;     dir_parent_sector:                                  2
 ;     disc_full_error:                                    2
+;     disc_op_tpl_padding:                                2
 ;     dispatch_hd_or_floppy:                              2
 ;     divide_loop:                                        2
 ;     drive_to_ascii_digit:                               2
@@ -12684,7 +12696,6 @@ save pydis_start, pydis_end
 ;     l10fe:                                              2
 ;     l111a:                                              2
 ;     l111e:                                              2
-;     l8816:                                              2
 ;     l9316:                                              2
 ;     l9dd3:                                              2
 ;     last_break_type:                                    2
@@ -13818,7 +13829,6 @@ save pydis_start, pydis_end
 ;     l200f
 ;     l2020
 ;     l2420
-;     l8816
 ;     l8ded
 ;     l9632
 ;     l9cb3
@@ -13888,11 +13898,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14946 bytes (91%)
-;     Data                     = 1438 bytes (9%)
+;     Code                     = 14944 bytes (91%)
+;     Data                     = 1440 bytes (9%)
 ;
-;     Number of instructions   = 6959
-;     Number of data bytes     = 517 bytes
+;     Number of instructions   = 6958
+;     Number of data bytes     = 519 bytes
 ;     Number of data words     = 16 bytes
 ;     Number of string bytes   = 905 bytes
 ;     Number of strings        = 102
