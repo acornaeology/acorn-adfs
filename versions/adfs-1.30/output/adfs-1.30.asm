@@ -7538,11 +7538,11 @@ la154 = sub_ca153+1
     lda #&10                                                          ; a82a: a9 10       ..             ; Source name page = &10
     sta l1080                                                         ; a82c: 8d 80 10    ...            ; Store source name page
     jsr sub_c8bb3                                                     ; a82f: 20 b3 8b     ..            ; Find source file
-    beq ca837                                                         ; a832: f0 03       ..             ; Found?
+    beq source_file_found                                             ; a832: f0 03       ..             ; Found?
     jmp c8bc8                                                         ; a834: 4c c8 8b    L..            ; Not found: report error
 
 ; &a837 referenced 1 time by &a832
-.ca837
+.source_file_found
     lda zp_b6                                                         ; a837: a5 b6       ..             ; Save directory entry pointer
     sta l1093                                                         ; a839: 8d 93 10    ...            ; Save dir entry pointer low
     lda zp_b7                                                         ; a83c: a5 b7       ..             ; Get dir entry pointer high
@@ -7553,54 +7553,54 @@ la154 = sub_ca153+1
     sta l1092                                                         ; a848: 8d 92 10    ...            ; Save filename pointer high
     ldy #3                                                            ; a84b: a0 03       ..             ; Y=3: save current directory sector
 ; &a84d referenced 1 time by &a854
-.loop_ca84d
+.save_source_dir_sector_loop
     lda l1114,y                                                       ; a84d: b9 14 11    ...            ; Copy CSD sector to workspace
     sta l106c,y                                                       ; a850: 99 6c 10    .l.            ; Save CSD sector byte
     dey                                                               ; a853: 88          .              ; Next byte
-    bpl loop_ca84d                                                    ; a854: 10 f7       ..             ; Loop for 4 bytes
+    bpl save_source_dir_sector_loop                                   ; a854: 10 f7       ..             ; Loop for 4 bytes
     jsr c89d3                                                         ; a856: 20 d3 89     ..            ; Save workspace state
     ldy #3                                                            ; a859: a0 03       ..             ; Y=3: copy current dir sector
 ; &a85b referenced 1 time by &a862
-.loop_ca85b
+.copy_csd_for_dest_loop
     lda l1114,y                                                       ; a85b: b9 14 11    ...            ; Get CSD sector byte
     sta wksp_csd_drive_sector,y                                       ; a85e: 99 2c 10    .,.            ; Set as target dir for copy
     dey                                                               ; a861: 88          .              ; Next byte
-    bpl loop_ca85b                                                    ; a862: 10 f7       ..             ; Loop for 4 bytes
+    bpl copy_csd_for_dest_loop                                        ; a862: 10 f7       ..             ; Loop for 4 bytes
     jsr sub_ca365                                                     ; a864: 20 65 a3     e.            ; Parse destination path
-.sub_ca867
-la868 = sub_ca867+1
+.check_dest_terminator
+la868 = check_dest_terminator+1
     jsr check_char_is_terminator                                      ; a867: 20 1a 87     ..            ; Check if character is a filename terminator
 ; &a868 referenced 1 time by &9dd2
-    bne ca86f                                                         ; a86a: d0 03       ..             ; Found destination dir?
+    bne load_dest_directory                                           ; a86a: d0 03       ..             ; Found destination dir?
     jmp bad_name_error                                                ; a86c: 4c 37 87    L7.            ; Bad name: invalid destination
 
 ; &a86f referenced 1 time by &a86a
-.ca86f
+.load_dest_directory
     jsr parse_path_and_load                                           ; a86f: 20 7f 94     ..            ; Load destination directory
     jsr sub_c8fea                                                     ; a872: 20 ea 8f     ..            ; Mark destination dir as modified
     ldy #3                                                            ; a875: a0 03       ..             ; Y=3: save dest dir sector
 ; &a877 referenced 1 time by &a87e
-.loop_ca877
+.save_dest_dir_sector_loop
     lda l1114,y                                                       ; a877: b9 14 11    ...            ; Get dest dir sector byte
     sta l1070,y                                                       ; a87a: 99 70 10    .p.            ; Store in workspace
     dey                                                               ; a87d: 88          .              ; Next byte
-    bpl loop_ca877                                                    ; a87e: 10 f7       ..             ; Loop for 4 bytes
+    bpl save_dest_dir_sector_loop                                     ; a87e: 10 f7       ..             ; Loop for 4 bytes
     jsr sub_ca7c0                                                     ; a880: 20 c0 a7     ..            ; Set up disc read for source
 ; &a883 referenced 1 time by &a88f
-.loop_ca883
+.scan_source_entries_loop
     ldy #4                                                            ; a883: a0 04       ..             ; Y=4: check entry access byte
     lda (zp_b6),y                                                     ; a885: b1 b6       ..             ; Get access byte from entry
     dey                                                               ; a887: 88          .              ; Y=&03
     ora (zp_b6),y                                                     ; a888: 11 b6       ..             ; OR with first name byte
-    bpl ca894                                                         ; a88a: 10 08       ..             ; Bit 7 clear: regular file, copy it
+    bpl copy_file_entry                                               ; a88a: 10 08       ..             ; Bit 7 clear: regular file, copy it
 ; &a88c referenced 1 time by &a939
-.ca88c
+.skip_dir_entry_or_done
     jsr c895e                                                         ; a88c: 20 5e 89     ^.            ; Directory: find next entry
-    beq loop_ca883                                                    ; a88f: f0 f2       ..             ; More entries: loop
+    beq scan_source_entries_loop                                      ; a88f: f0 f2       ..             ; More entries: loop
     jmp c89d3                                                         ; a891: 4c d3 89    L..            ; No more entries: done
 
 ; &a894 referenced 1 time by &a88a
-.ca894
+.copy_file_entry
     lda zp_b6                                                         ; a894: a5 b6       ..             ; Save source entry pointer
     sta l1093                                                         ; a896: 8d 93 10    ...            ; Store entry pointer low
     lda zp_b7                                                         ; a899: a5 b7       ..             ; Get entry pointer high
@@ -7619,21 +7619,21 @@ la868 = sub_ca867+1
     ldx #0                                                            ; a8b7: a2 00       ..             ; X=0: clear length bytes
     ldy #3                                                            ; a8b9: a0 03       ..             ; Y=3: copy 4-byte OSFILE params
 ; &a8bb referenced 1 time by &a8c6
-.loop_ca8bb
+.copy_osfile_params_loop
     lda l1089,y                                                       ; a8bb: b9 89 10    ...            ; Get source OSFILE param
     sta l108d,y                                                       ; a8be: 99 8d 10    ...            ; Copy to dest OSFILE block
     txa                                                               ; a8c1: 8a          .              ; Transfer X (=0) for clearing
     sta l1089,y                                                       ; a8c2: 99 89 10    ...            ; Clear source param
     dey                                                               ; a8c5: 88          .              ; Next byte
-    bpl loop_ca8bb                                                    ; a8c6: 10 f3       ..             ; Loop for 4 bytes
+    bpl copy_osfile_params_loop                                       ; a8c6: 10 f3       ..             ; Loop for 4 bytes
     ldy #9                                                            ; a8c8: a0 09       ..             ; Y=9: copy 10-byte filename
 ; &a8ca referenced 1 time by &a8d2
-.loop_ca8ca
+.copy_source_name_loop
     lda (zp_b6),y                                                     ; a8ca: b1 b6       ..             ; Get filename byte from source
     and #&7f                                                          ; a8cc: 29 7f       ).             ; Strip bit 7 (access flag)
     sta l1074,y                                                       ; a8ce: 99 74 10    .t.            ; Store in dest name workspace
     dey                                                               ; a8d1: 88          .              ; Next byte
-    bpl loop_ca8ca                                                    ; a8d2: 10 f6       ..             ; Loop for 10 bytes
+    bpl copy_source_name_loop                                         ; a8d2: 10 f6       ..             ; Loop for 10 bytes
     lda #&0d                                                          ; a8d4: a9 0d       ..             ; A=CR: terminate filename
     sta l107e                                                         ; a8d6: 8d 7e 10    .~.            ; Store terminator
     jsr sub_ca7f5                                                     ; a8d9: 20 f5 a7     ..            ; Set up disc read for source file
@@ -7642,13 +7642,13 @@ la868 = sub_ca867+1
     jsr sub_c8f52                                                     ; a8e2: 20 52 8f     R.            ; Write dest directory entry
     ldy #2                                                            ; a8e5: a0 02       ..             ; Y=2: copy sector addresses
 ; &a8e7 referenced 1 time by &a8f4
-.loop_ca8e7
+.copy_sector_addresses_loop
     lda wksp_103a,y                                                   ; a8e7: b9 3a 10    .:.            ; Get source sector byte
     sta l10a8,y                                                       ; a8ea: 99 a8 10    ...            ; Store as read sector
     lda l103d,y                                                       ; a8ed: b9 3d 10    .=.            ; Get dest sector byte
     sta l10a5,y                                                       ; a8f0: 99 a5 10    ...            ; Store as write sector
     dey                                                               ; a8f3: 88          .              ; Next byte
-    bpl loop_ca8e7                                                    ; a8f4: 10 f1       ..             ; Loop for 3 bytes
+    bpl copy_sector_addresses_loop                                    ; a8f4: 10 f1       ..             ; Loop for 3 bytes
     lda #osbyte_read_oshwm                                            ; a8f6: a9 83       ..             ; OSBYTE &83: read OSHWM
     jsr osbyte                                                        ; a8f8: 20 f4 ff     ..            ; Read top of operating system RAM address (OSHWM)
     sty wksp_1060                                                     ; a8fb: 8c 60 10    .`.            ; X and Y contain the address of OSHWM (low, high)
@@ -7676,7 +7676,7 @@ la868 = sub_ca867+1
     sta wksp_current_drive                                            ; a930: 8d 17 11    ...            ; Set as current drive
     jsr c8f86                                                         ; a933: 20 86 8f     ..            ; Write modified directory
     jsr sub_ca7c0                                                     ; a936: 20 c0 a7     ..            ; Set up for next source file
-    jmp ca88c                                                         ; a939: 4c 8c a8    L..            ; Loop to copy next file
+    jmp skip_dir_entry_or_done                                        ; a939: 4c 8c a8    L..            ; Loop to copy next file
 
 ; ***************************************************************************************
 ; FSC 6: new filing system selected
@@ -12107,10 +12107,6 @@ save pydis_start, pydis_end
 ;     ca767:                                              1
 ;     ca7ee:                                              1
 ;     ca80f:                                              1
-;     ca837:                                              1
-;     ca86f:                                              1
-;     ca88c:                                              1
-;     ca894:                                              1
 ;     ca95f:                                              1
 ;     ca995:                                              1
 ;     ca9c7:                                              1
@@ -12255,6 +12251,7 @@ save pydis_start, pydis_end
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
 ;     copy_code_to_nmi_space:                             1
+;     copy_csd_for_dest_loop:                             1
 ;     copy_csd_sector_loop:                               1
 ;     copy_csd_sector_to_wksp:                            1
 ;     copy_default_name_loop:                             1
@@ -12262,11 +12259,15 @@ save pydis_start, pydis_end
 ;     copy_disc_op_template:                              1
 ;     copy_entry_name_loop:                               1
 ;     copy_entry_sector_loop:                             1
+;     copy_file_entry:                                    1
 ;     copy_lib_name_loop:                                 1
 ;     copy_lib_sector_loop:                               1
 ;     copy_nmi_code_loop:                                 1
+;     copy_osfile_params_loop:                            1
 ;     copy_prev_dir_name_loop:                            1
 ;     copy_result_loop:                                   1
+;     copy_sector_addresses_loop:                         1
+;     copy_source_name_loop:                              1
 ;     copy_template_loop:                                 1
 ;     copy_title_loop:                                    1
 ;     copy_tube_addr_loop:                                1
@@ -12358,6 +12359,7 @@ save pydis_start, pydis_end
 ;     l9ee5:                                              1
 ;     la154:                                              1
 ;     la868:                                              1
+;     load_dest_directory:                                1
 ;     loop_c8127:                                         1
 ;     loop_c818d:                                         1
 ;     loop_c81c5:                                         1
@@ -12528,13 +12530,6 @@ save pydis_start, pydis_end
 ;     loop_ca7e1:                                         1
 ;     loop_ca7f7:                                         1
 ;     loop_ca802:                                         1
-;     loop_ca84d:                                         1
-;     loop_ca85b:                                         1
-;     loop_ca877:                                         1
-;     loop_ca883:                                         1
-;     loop_ca8bb:                                         1
-;     loop_ca8ca:                                         1
-;     loop_ca8e7:                                         1
 ;     loop_ca97e:                                         1
 ;     loop_caaa8:                                         1
 ;     loop_cac1f:                                         1
@@ -12651,10 +12646,13 @@ save pydis_start, pydis_end
 ;     return_eof_result:                                  1
 ;     return_eof_status:                                  1
 ;     return_error_code:                                  1
+;     save_dest_dir_sector_loop:                          1
 ;     save_e_attribute_state:                             1
 ;     save_error_and_release_nmi:                         1
+;     save_source_dir_sector_loop:                        1
 ;     save_workspace_and_return:                          1
 ;     scan_filename_loop:                                 1
+;     scan_source_entries_loop:                           1
 ;     scan_spaces_loop:                                   1
 ;     scsi_read_settle_loop:                              1
 ;     scsi_request_sense:                                 1
@@ -12676,11 +12674,13 @@ save pydis_start, pydis_end
 ;     setup_direct_write_nmi:                             1
 ;     setup_tube_nmi_transfer:                            1
 ;     setup_tube_read_nmi:                                1
+;     skip_dir_entry_or_done:                             1
 ;     skip_filename_loop:                                 1
 ;     skip_leading_zero:                                  1
 ;     skip_space_or_quote:                                1
 ;     skip_spaces_before_args:                            1
 ;     skip_to_end_of_name:                                1
+;     source_file_found:                                  1
 ;     star_dir:                                           1
 ;     star_info:                                          1
 ;     star_remove:                                        1
@@ -13036,10 +13036,6 @@ save pydis_start, pydis_end
 ;     ca767
 ;     ca7ee
 ;     ca80f
-;     ca837
-;     ca86f
-;     ca88c
-;     ca894
 ;     ca95f
 ;     ca976
 ;     ca97c
@@ -13546,13 +13542,6 @@ save pydis_start, pydis_end
 ;     loop_ca7e1
 ;     loop_ca7f7
 ;     loop_ca802
-;     loop_ca84d
-;     loop_ca85b
-;     loop_ca877
-;     loop_ca883
-;     loop_ca8bb
-;     loop_ca8ca
-;     loop_ca8e7
 ;     loop_ca97e
 ;     loop_caaa8
 ;     loop_cac1f
@@ -13712,7 +13701,6 @@ save pydis_start, pydis_end
 ;     sub_ca7a2
 ;     sub_ca7c0
 ;     sub_ca7f5
-;     sub_ca867
 ;     sub_ca998
 ;     sub_caaf3
 ;     sub_caba5
