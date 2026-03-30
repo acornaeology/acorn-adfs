@@ -6,3 +6,4 @@ dist/
 build/
 .claude/
 uv.lock
+versions/*/context/
