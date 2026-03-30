@@ -73,7 +73,6 @@ l0000                                           = &0000
 l0001                                           = &0001
 l0002                                           = &0002
 l0003                                           = &0003
-l0043                                           = &0043
 zp_floppy_error                                 = &00a0
 zp_floppy_control                               = &00a1
 zp_floppy_state                                 = &00a2
@@ -6777,54 +6776,99 @@ l9dd3 = check_help_adfs_keyword+1
 ; &9ee3 referenced 5 times by &9e0d, &9e19, &9e95, &9ea6, &9eda
 .tbl_commands
 l9ee4 = tbl_commands+1
-    eor (l0043,x)                                                     ; 9ee3: 41 43       AC
+l9ee5 = tbl_commands+2
+    equs "ACCESS"                                                     ; 9ee3: 41 43 43... ACC            ; "ACCESS" command name
 ; &9ee4 referenced 1 time by &9ede
 ; &9ee5 referenced 1 time by &9e2d
-.l9ee5
-    equs "CESS"                                                       ; 9ee5: 43 45 53... CES
-    equb &99, &3c, &16                                                ; 9ee9: 99 3c 16    .<.
-    equs "BACK"                                                       ; 9eec: 42 41 43... BAC
-    equb &a4, &96, 0                                                  ; 9ef0: a4 96 00    ...
-    equs "BYE"                                                        ; 9ef3: 42 59 45    BYE
-    equb &a0, &c2, 0                                                  ; 9ef6: a0 c2 00    ...
-    equs "CDIR"                                                       ; 9ef9: 43 44 49... CDI
-    equb &95                                                          ; 9efd: 95          .
-    equs "o CLOSE"                                                    ; 9efe: 6f 20 43... o C
-    equb &b1, &b2, 0                                                  ; 9f05: b1 b2 00    ...
-    equs "COMPACT"                                                    ; 9f08: 43 4f 4d... COM
-    equb &a2                                                          ; 9f0f: a2          .
-    equs "uPCOPY"                                                     ; 9f10: 75 50 43... uPC
-    equb &a8, &1c, &13                                                ; 9f16: a8 1c 13    ...
-    equs "DELETE"                                                     ; 9f19: 44 45 4c... DEL
-    equb &a0, &ba                                                     ; 9f1f: a0 ba       ..
-    equs " DESTROY"                                                   ; 9f21: 20 44 45...  DE
-    equb &99, &e5, &10                                                ; 9f29: 99 e5 10    ...
-    equs "DIR"                                                        ; 9f2c: 44 49 52    DIR
-    equb &95                                                          ; 9f2f: 95          .
-    equs "> DISMOUNT"                                                 ; 9f30: 3e 20 44... > D
-    equb &a1, &10                                                     ; 9f3a: a1 10       ..
-    equs "@EX"                                                        ; 9f3c: 40 45 58    @EX
-    equb &94                                                          ; 9f3f: 94          .
-    equs "20FREE"                                                     ; 9f40: 32 30 46... 20F
-    equb &a0, &1a, 0                                                  ; 9f46: a0 1a 00    ...
-    equs "INFO"                                                       ; 9f49: 49 4e 46... INF
-    equb &94, &e6, &10                                                ; 9f4d: 94 e6 10    ...
-    equs "LCAT"                                                       ; 9f50: 4c 43 41... LCA
-    equb &a4, &7e, 0                                                  ; 9f54: a4 7e 00    .~.
-    equs "LEX"                                                        ; 9f57: 4c 45 58    LEX
-    equb &a4, &8a, 0                                                  ; 9f5a: a4 8a 00    ...
-    equs "LIB"                                                        ; 9f5d: 4c 49 42    LIB
-    equb &a4                                                          ; 9f60: a4          .
-    equs "C0MAP"                                                      ; 9f61: 43 30 4d... C0M
-    equb &a0, &49, 0                                                  ; 9f66: a0 49 00    .I.
-    equs "MOUNT"                                                      ; 9f69: 4d 4f 55... MOU
-    equb &a1                                                          ; 9f6e: a1          .
-    equs "]@REMOVE"                                                   ; 9f6f: 5d 40 52... ]@R
-    equb &91, 8                                                       ; 9f77: 91 08       ..
-    equs " RENAME"                                                    ; 9f79: 20 52 45...  RE
-    equb &a5, 2                                                       ; 9f80: a5 02       ..
-    equs '"', "TITLE"                                                 ; 9f82: 22 54 49... "TI
-    equb &a2, &51, &70, &a3, &98                                      ; 9f88: a2 51 70... .Qp
+    equb &99                                                          ; 9ee9: 99          .              ; Dispatch hi|&80: -> &993D
+    equb &3c                                                          ; 9eea: 3c          <              ; Dispatch lo
+    equb &16                                                          ; 9eeb: 16          .              ; Params &16: <List Spec> (L)(W)(R)(E)
+    equs "BACK"                                                       ; 9eec: 42 41 43... BAC            ; "BACK" command name
+    equb &a4                                                          ; 9ef0: a4          .              ; Dispatch hi|&80: -> &A497
+    equb &96                                                          ; 9ef1: 96          .              ; Dispatch lo
+    equb 0                                                            ; 9ef2: 00          .              ; Params &00: (none)
+    equs "BYE"                                                        ; 9ef3: 42 59 45    BYE            ; "BYE" command name
+    equb &a0                                                          ; 9ef6: a0          .              ; Dispatch hi|&80: -> &A0C3
+    equb &c2                                                          ; 9ef7: c2          .              ; Dispatch lo
+    equb 0                                                            ; 9ef8: 00          .              ; Params &00: (none)
+    equs "CDIR"                                                       ; 9ef9: 43 44 49... CDI            ; "CDIR" command name
+    equb &95                                                          ; 9efd: 95          .              ; Dispatch hi|&80: -> &9570
+    equb &6f                                                          ; 9efe: 6f          o              ; Dispatch lo
+    equb &20                                                          ; 9eff: 20                         ; Params &20: <Ob Spec>
+    equs "CLOSE"                                                      ; 9f00: 43 4c 4f... CLO            ; "CLOSE" command name
+    equb &b1                                                          ; 9f05: b1          .              ; Dispatch hi|&80: -> &B1B3
+    equb &b2                                                          ; 9f06: b2          .              ; Dispatch lo
+    equb 0                                                            ; 9f07: 00          .              ; Params &00: (none)
+    equs "COMPACT"                                                    ; 9f08: 43 4f 4d... COM            ; "COMPACT" command name
+    equb &a2                                                          ; 9f0f: a2          .              ; Dispatch hi|&80: -> &A276
+    equb &75                                                          ; 9f10: 75          u              ; Dispatch lo
+    equb &50                                                          ; 9f11: 50          P              ; Params &50: <SP> <LP>
+    equs "COPY"                                                       ; 9f12: 43 4f 50... COP            ; "COPY" command name
+    equb &a8                                                          ; 9f16: a8          .              ; Dispatch hi|&80: -> &A81D
+    equb &1c                                                          ; 9f17: 1c          .              ; Dispatch lo
+    equb &13                                                          ; 9f18: 13          .              ; Params &13: <List Spec> <*Ob Spec*>
+    equs "DELETE"                                                     ; 9f19: 44 45 4c... DEL            ; "DELETE" command name
+    equb &a0                                                          ; 9f1f: a0          .              ; Dispatch hi|&80: -> &A0BB
+    equb &ba                                                          ; 9f20: ba          .              ; Dispatch lo
+    equb &20                                                          ; 9f21: 20                         ; Params &20: <Ob Spec>
+    equs "DESTROY"                                                    ; 9f22: 44 45 53... DES            ; "DESTROY" command name
+    equb &99                                                          ; 9f29: 99          .              ; Dispatch hi|&80: -> &99E6
+    equb &e5                                                          ; 9f2a: e5          .              ; Dispatch lo
+    equb &10                                                          ; 9f2b: 10          .              ; Params &10: <List Spec>
+    equs "DIR"                                                        ; 9f2c: 44 49 52    DIR            ; "DIR" command name
+    equb &95                                                          ; 9f2f: 95          .              ; Dispatch hi|&80: -> &953F
+    equb &3e                                                          ; 9f30: 3e          >              ; Dispatch lo
+    equb &20                                                          ; 9f31: 20                         ; Params &20: <Ob Spec>
+    equs "DISMOUNT"                                                   ; 9f32: 44 49 53... DIS            ; "DISMOUNT" command name
+    equb &a1                                                          ; 9f3a: a1          .              ; Dispatch hi|&80: -> &A111
+    equb &10                                                          ; 9f3b: 10          .              ; Dispatch lo
+    equb &40                                                          ; 9f3c: 40          @              ; Params &40: (<Drive>)
+    equs "EX"                                                         ; 9f3d: 45 58       EX             ; "EX" command name
+    equb &94                                                          ; 9f3f: 94          .              ; Dispatch hi|&80: -> &9433
+    equb &32                                                          ; 9f40: 32          2              ; Dispatch lo
+    equb &30                                                          ; 9f41: 30          0              ; Params &30: <*Ob Spec*>
+    equs "FREE"                                                       ; 9f42: 46 52 45... FRE            ; "FREE" command name
+    equb &a0                                                          ; 9f46: a0          .              ; Dispatch hi|&80: -> &A01B
+    equb &1a                                                          ; 9f47: 1a          .              ; Dispatch lo
+    equb 0                                                            ; 9f48: 00          .              ; Params &00: (none)
+    equs "INFO"                                                       ; 9f49: 49 4e 46... INF            ; "INFO" command name
+    equb &94                                                          ; 9f4d: 94          .              ; Dispatch hi|&80: -> &94E7
+    equb &e6                                                          ; 9f4e: e6          .              ; Dispatch lo
+    equb &10                                                          ; 9f4f: 10          .              ; Params &10: <List Spec>
+    equs "LCAT"                                                       ; 9f50: 4c 43 41... LCA            ; "LCAT" command name
+    equb &a4                                                          ; 9f54: a4          .              ; Dispatch hi|&80: -> &A47F
+    equb &7e                                                          ; 9f55: 7e          ~              ; Dispatch lo
+    equb 0                                                            ; 9f56: 00          .              ; Params &00: (none)
+    equs "LEX"                                                        ; 9f57: 4c 45 58    LEX            ; "LEX" command name
+    equb &a4                                                          ; 9f5a: a4          .              ; Dispatch hi|&80: -> &A48B
+    equb &8a                                                          ; 9f5b: 8a          .              ; Dispatch lo
+    equb 0                                                            ; 9f5c: 00          .              ; Params &00: (none)
+    equs "LIB"                                                        ; 9f5d: 4c 49 42    LIB            ; "LIB" command name
+    equb &a4                                                          ; 9f60: a4          .              ; Dispatch hi|&80: -> &A444
+    equb &43                                                          ; 9f61: 43          C              ; Dispatch lo
+    equb &30                                                          ; 9f62: 30          0              ; Params &30: <*Ob Spec*>
+    equs "MAP"                                                        ; 9f63: 4d 41 50    MAP            ; "MAP" command name
+    equb &a0                                                          ; 9f66: a0          .              ; Dispatch hi|&80: -> &A04A
+    equb &49                                                          ; 9f67: 49          I              ; Dispatch lo
+    equb 0                                                            ; 9f68: 00          .              ; Params &00: (none)
+    equs "MOUNT"                                                      ; 9f69: 4d 4f 55... MOU            ; "MOUNT" command name
+    equb &a1                                                          ; 9f6e: a1          .              ; Dispatch hi|&80: -> &A15E
+    equb &5d                                                          ; 9f6f: 5d          ]              ; Dispatch lo
+    equb &40                                                          ; 9f70: 40          @              ; Params &40: (<Drive>)
+    equs "REMOVE"                                                     ; 9f71: 52 45 4d... REM            ; "REMOVE" command name
+    equb &91                                                          ; 9f77: 91          .              ; Dispatch hi|&80: -> &9109
+    equb 8                                                            ; 9f78: 08          .              ; Dispatch lo
+    equb &20                                                          ; 9f79: 20                         ; Params &20: <Ob Spec>
+    equs "RENAME"                                                     ; 9f7a: 52 45 4e... REN            ; "RENAME" command name
+    equb &a5                                                          ; 9f80: a5          .              ; Dispatch hi|&80: -> &A503
+    equb 2                                                            ; 9f81: 02          .              ; Dispatch lo
+    equb &22                                                          ; 9f82: 22          "              ; Params &22: <Ob Spec> <Ob Spec>
+    equs "TITLE"                                                      ; 9f83: 54 49 54... TIT            ; "TITLE" command name
+    equb &a2                                                          ; 9f88: a2          .              ; Dispatch hi|&80: -> &A252
+    equb &51                                                          ; 9f89: 51          Q              ; Dispatch lo
+    equb &70                                                          ; 9f8a: 70          p              ; Params &70: <Title>
+    equb &a3                                                          ; 9f8b: a3          .              ; End: hi|&80 -> &A399 (*RUN handler)
+    equb &98                                                          ; 9f8c: 98          .              ; End: lo (used for *RUN dispatch)
     equs "<List Spec>"                                                ; 9f8d: 3c 4c 69... <Li
     equb 0                                                            ; 9f98: 00          .
     equs "<Ob Spec>"                                                  ; 9f99: 3c 4f 62... <Ob
@@ -13446,7 +13490,6 @@ save pydis_start, pydis_end
 ;     issue_multi_sector_rw:                              1
 ;     issue_step_command:                                 1
 ;     jmp_indirect_fscv:                                  1
-;     l0043:                                              1
 ;     l00ef:                                              1
 ;     l00f1:                                              1
 ;     l0102:                                              1
@@ -13914,7 +13957,6 @@ save pydis_start, pydis_end
 ;     l0001
 ;     l0002
 ;     l0003
-;     l0043
 ;     l00ef
 ;     l00f0
 ;     l00f1
@@ -14124,11 +14166,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14988 bytes (91%)
-;     Data                     = 1396 bytes (9%)
+;     Code                     = 14986 bytes (91%)
+;     Data                     = 1398 bytes (9%)
 ;
-;     Number of instructions   = 6979
-;     Number of data bytes     = 426 bytes
+;     Number of instructions   = 6978
+;     Number of data bytes     = 442 bytes
 ;     Number of data words     = 44 bytes
-;     Number of string bytes   = 926 bytes
+;     Number of string bytes   = 912 bytes
 ;     Number of strings        = 106
