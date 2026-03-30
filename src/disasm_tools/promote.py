@@ -115,7 +115,15 @@ def analyze_labels(json_filepath):
         # Score: weighted combination of signals
         score = 0.0
 
-        # After terminal instruction: strong signal (+20)
+        # Definite promotion: after terminal + multiple references
+        # is conclusive evidence of a standalone routine. Any code
+        # unreachable by fall-through that is independently called
+        # from 3+ sites (or 2+ with a JSR) is a routine, period.
+        if after_terminal and (total_refs >= 3 or
+                               (total_refs >= 2 and jsr_refs >= 1)):
+            score += 50
+
+        # After terminal instruction: strong signal
         if after_terminal:
             score += 20
 
@@ -125,22 +133,13 @@ def analyze_labels(json_filepath):
         # JSR references worth more than branch references
         score += jsr_refs * 5
 
-        # Come-from distance: far references indicate shared utility
-        if max_distance > 0x1000:
-            score += 15  # Referenced from >4KB away
-        elif max_distance > 0x0400:
-            score += 10  # Referenced from >1KB away
-        elif max_distance > 0x0100:
-            score += 5   # Referenced from >256 bytes away
+        # Come-from distance: continuous scaling rather than
+        # coarse thresholds. Each 256 bytes of max distance
+        # adds 1 point, capped at 20.
+        score += min(20, max_distance // 0x100)
 
-        # Mean distance bonus
-        if mean_distance > 0x0800:
-            score += 10
-        elif mean_distance > 0x0200:
-            score += 5
-
-        # Penalty for already being an entry/subroutine
-        # (still include for completeness, but mark)
+        # Mean distance bonus: each 256 bytes adds 0.5 points
+        score += min(10, mean_distance // 0x200)
 
         candidates.append({
             "addr": addr,
