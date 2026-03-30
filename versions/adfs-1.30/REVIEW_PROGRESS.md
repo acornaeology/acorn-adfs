@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 19 / 115
-- Auto-labels renamed: 25 / 940
+- Reviewed: 35 / 115
+- Auto-labels renamed: 46 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -42,21 +42,21 @@ before their callers.
 | &953F | star_dir | 20 | 2 | REVIEWED |
 | &9A43 | jmp_indirect_fscv | 1 | 0 | REVIEWED |
 | &9A63 | hd_init_detect | 9 | 2 | REVIEWED |
-| &9AA3 | service_call_handler | 24 | 2 | |
-| &9CDA | service_handler_4 | 40 | 6 | |
-| &9E50 | my_fscv | 15 | 3 | |
-| &A149 | copy_default_dir_name | 7 | 1 | |
-| &A1AA | calc_total_free_space | 13 | 2 | |
-| &A444 | star_lib | 12 | 2 | |
-| &A460 | switch_to_library | 8 | 1 | |
-| &A473 | restore_csd | 6 | 0 | |
-| &A497 | star_back | 14 | 2 | |
-| &A4CF | skip_spaces | 24 | 5 | |
-| &A4F6 | check_drive_colon | 6 | 1 | |
-| &A70E | get_wksp_addr_ba | 6 | 0 | |
-| &A816 | load_fsm | 3 | 0 | |
-| &ACFE | check_set_channel_y | 13 | 2 | |
-| &B1B3 | star_close | 2 | 0 | |
+| &9AA3 | service_call_handler | 24 | 2 | REVIEWED |
+| &9CDA | service_handler_4 | 40 | 6 | REVIEWED |
+| &9E50 | my_fscv | 15 | 3 | REVIEWED |
+| &A149 | copy_default_dir_name | 7 | 1 | REVIEWED |
+| &A1AA | calc_total_free_space | 13 | 2 | REVIEWED |
+| &A444 | star_lib | 12 | 2 | REVIEWED |
+| &A460 | switch_to_library | 8 | 1 | REVIEWED |
+| &A473 | restore_csd | 6 | 0 | REVIEWED |
+| &A497 | star_back | 14 | 2 | REVIEWED |
+| &A4CF | skip_spaces | 24 | 5 | REVIEWED |
+| &A4F6 | check_drive_colon | 6 | 1 | REVIEWED |
+| &A70E | get_wksp_addr_ba | 6 | 0 | REVIEWED |
+| &A816 | load_fsm | 3 | 0 | REVIEWED |
+| &ACFE | check_set_channel_y | 13 | 2 | REVIEWED |
+| &B1B3 | star_close | 2 | 0 | REVIEWED |
 | &BB09 | fdc_write_register_verify | 5 | 1 | |
 | &BBB4 | floppy_get_step_rate | 19 | 4 | |
 | &BBDA | claim_nmi | 6 | 0 | |

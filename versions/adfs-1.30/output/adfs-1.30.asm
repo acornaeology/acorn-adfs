@@ -5170,31 +5170,31 @@ oscli                                           = &fff7
 .service_call_handler
     pha                                                               ; 9aa3: 48          H              ; Save service call number
     cmp #1                                                            ; 9aa4: c9 01       ..             ; Service 1: absolute workspace claim?
-    bne c9ab0                                                         ; 9aa6: d0 08       ..             ; Not service 1, continue
+    bne check_workspace_claimed                                       ; 9aa6: d0 08       ..             ; Not service 1, continue
     lda nmi_0df0,x                                                    ; 9aa8: bd f0 0d    ...            ; Read our ROM status byte
     and #&bf                                                          ; 9aab: 29 bf       ).             ; Clear bit 6 (ADFS workspace claimed)
     sta nmi_0df0,x                                                    ; 9aad: 9d f0 0d    ...            ; Store updated status
 ; &9ab0 referenced 1 time by &9aa6
-.c9ab0
+.check_workspace_claimed
     lda nmi_0df0,x                                                    ; 9ab0: bd f0 0d    ...            ; Read ROM status byte
     cmp #&40 ; '@'                                                    ; 9ab3: c9 40       .@             ; Bit 6 set (workspace claimed)?
-    bcc c9ab9                                                         ; 9ab5: 90 02       ..             ; No, continue with dispatch
+    bcc dispatch_service_call                                         ; 9ab5: 90 02       ..             ; No, continue with dispatch
     pla                                                               ; 9ab7: 68          h              ; Yes, discard call and return
 ; &9ab8 referenced 1 time by &9ac0
 .service_handler_0
     rts                                                               ; 9ab8: 60          `              ; Return (service not claimed)
 
 ; &9ab9 referenced 1 time by &9ab5
-.c9ab9
+.dispatch_service_call
     pla                                                               ; 9ab9: 68          h              ; Restore service call number
     cmp #&12                                                          ; 9aba: c9 12       ..             ; Service &12: select filing system?
     beq c9b38                                                         ; 9abc: f0 7a       .z             ; Yes, handle FS selection
     cmp #&0a                                                          ; 9abe: c9 0a       ..             ; Service >= &0A?
     bcs service_handler_0                                             ; 9ac0: b0 f6       ..             ; Yes, not for us, return
     tax                                                               ; 9ac2: aa          .              ; Transfer to X for table index
-    lda service_dispatch_hi,x                                         ; 9ac3: bd 99 9a    ...            ; Push dispatch address low byte
+    lda service_dispatch_hi,x                                         ; 9ac3: bd 99 9a    ...            ; Get dispatch address high byte
     pha                                                               ; 9ac6: 48          H              ; Push dispatch high byte
-    lda service_dispatch_lo,x                                         ; 9ac7: bd 8f 9a    ...            ; Push dispatch address high byte
+    lda service_dispatch_lo,x                                         ; 9ac7: bd 8f 9a    ...            ; Get dispatch address low byte
     pha                                                               ; 9aca: 48          H              ; Push dispatch low byte
     txa                                                               ; 9acb: 8a          .              ; Restore service number to A
     ldx romsel_copy                                                   ; 9acc: a6 f4       ..             ; Get our ROM number
@@ -5553,32 +5553,32 @@ oscli                                           = &fff7
     lda (os_text_ptr),y                                               ; 9cdf: b1 f2       ..             ; Get first command character
     ora #&20 ; ' '                                                    ; 9ce1: 09 20       .              ; Convert to lowercase
     cmp #&66 ; 'f'                                                    ; 9ce3: c9 66       .f             ; Is it 'f' (FADFS prefix)?
-    bne c9cec                                                         ; 9ce5: d0 05       ..             ; No, check for ADFS prefix
+    bne check_adfs_prefix                                             ; 9ce5: d0 05       ..             ; No, check for ADFS prefix
     pla                                                               ; 9ce7: 68          h              ; Replace &FF with 'C' (FSC code)
     lda #&43 ; 'C'                                                    ; 9ce8: a9 43       .C             ; Replace with 'C' (FSC code)
     pha                                                               ; 9cea: 48          H              ; Push FSC code
     iny                                                               ; 9ceb: c8          .              ; Skip past 'F' prefix
 ; &9cec referenced 1 time by &9ce5
-.c9cec
+.check_adfs_prefix
     ldx #3                                                            ; 9cec: a2 03       ..             ; X=3: match 4 chars of 'ADFS'
 ; &9cee referenced 1 time by &9cfd
-.loop_c9cee
+.match_command_loop
     lda (os_text_ptr),y                                               ; 9cee: b1 f2       ..             ; Get next command character
     iny                                                               ; 9cf0: c8          .              ; Advance text pointer
     cmp #&2e ; '.'                                                    ; 9cf1: c9 2e       ..             ; Is it a dot (abbreviation)?
-    beq c9cff                                                         ; 9cf3: f0 0a       ..             ; Yes, match succeeded
+    beq service4_not_matched                                          ; 9cf3: f0 0a       ..             ; Yes, match succeeded
     ora #&20 ; ' '                                                    ; 9cf5: 09 20       .              ; Convert to lowercase for compare
     cmp str_filing_system_name,x                                      ; 9cf7: dd d6 9c    ...            ; Compare with "adfs" (backwards)
-    bne c9d11                                                         ; 9cfa: d0 15       ..             ; No match, not for us
+    bne service4_claim_and_dispatch                                   ; 9cfa: d0 15       ..             ; No match, not for us
     dex                                                               ; 9cfc: ca          .              ; Next char in 'ADFS'
-    bpl loop_c9cee                                                    ; 9cfd: 10 ef       ..             ; Loop for 4 characters
+    bpl match_command_loop                                            ; 9cfd: 10 ef       ..             ; Loop for 4 characters
 ; &9cff referenced 2 times by &9cf3, &9d04
-.c9cff
+.service4_not_matched
     lda (os_text_ptr),y                                               ; 9cff: b1 f2       ..             ; Skip spaces after 'ADFS'
     iny                                                               ; 9d01: c8          .              ; Advance past matched space
     cmp #&20 ; ' '                                                    ; 9d02: c9 20       .              ; Space?
-    beq c9cff                                                         ; 9d04: f0 f9       ..             ; Yes, skip more spaces
-    bcs c9d11                                                         ; 9d06: b0 09       ..             ; Printable: more text follows, fail
+    beq service4_not_matched                                          ; 9d04: f0 f9       ..             ; Yes, skip more spaces
+    bcs service4_claim_and_dispatch                                   ; 9d06: b0 09       ..             ; Printable: more text follows, fail
     pla                                                               ; 9d08: 68          h              ; Get prefix flag
     tax                                                               ; 9d09: aa          .              ; Transfer prefix flag to X
     pla                                                               ; 9d0a: 68          h              ; Get saved text offset
@@ -5588,7 +5588,7 @@ oscli                                           = &fff7
     jmp c9b87                                                         ; 9d0e: 4c 87 9b    L..            ; Select ADFS and execute command
 
 ; &9d11 referenced 2 times by &9cfa, &9d06
-.c9d11
+.service4_claim_and_dispatch
     pla                                                               ; 9d11: 68          h              ; Not for us: clean up stack
     pla                                                               ; 9d12: 68          h              ; Clean up stack (discard flag)
     tay                                                               ; 9d13: a8          .              ; Restore Y
@@ -6306,14 +6306,14 @@ l9dd3 = sub_c9dd2+1
 .copy_default_dir_name
     ldy #9                                                            ; a149: a0 09       ..             ; Y=9: copy 10 bytes
 ; &a14b referenced 1 time by &a153
-.loop_ca14b
+.copy_default_name_loop
     lda la154,y                                                       ; a14b: b9 54 a1    .T.            ; Get byte from reversed name table
     sta wksp_csd_name,x                                               ; a14e: 9d 00 11    ...            ; Store in CSD/lib name workspace
     inx                                                               ; a151: e8          .              ; Next workspace byte
     dey                                                               ; a152: 88          .              ; Next table byte (backwards)
 .sub_ca153
 la154 = sub_ca153+1
-    bpl loop_ca14b                                                    ; a153: 10 f6       ..             ; Loop for 10 bytes
+    bpl copy_default_name_loop                                        ; a153: 10 f6       ..             ; Loop for 10 bytes
 ; &a154 referenced 1 time by &a14b
     rts                                                               ; a155: 60          `              ; Return
 
@@ -6381,19 +6381,19 @@ la154 = sub_ca153+1
     lda #0                                                            ; a1aa: a9 00       ..             ; A=0: clear accumulators
     ldx #3                                                            ; a1ac: a2 03       ..             ; X=3: clear 4 bytes
 ; &a1ae referenced 1 time by &a1b5
-.loop_ca1ae
+.clear_accumulators_loop
     sta wksp_disc_op_result,x                                         ; a1ae: 9d 15 10    ...            ; Clear disc op result bytes
     sta wksp_tube_transfer_addr_1,x                                   ; a1b1: 9d 27 10    .'.            ; Clear Tube transfer bytes
     dex                                                               ; a1b4: ca          .              ; Next byte
-    bpl loop_ca1ae                                                    ; a1b5: 10 f7       ..             ; Loop for 4 bytes
+    bpl clear_accumulators_loop                                       ; a1b5: 10 f7       ..             ; Loop for 4 bytes
     jsr sub_c8609                                                     ; a1b7: 20 09 86     ..            ; Sum the free space entries
     ldx #2                                                            ; a1ba: a2 02       ..             ; X=2: copy 3 bytes of result
 ; &a1bc referenced 1 time by &a1c3
-.loop_ca1bc
+.copy_result_loop
     lda wksp_105d,x                                                   ; a1bc: bd 5d 10    .].            ; Get result byte
     sta wksp_disc_op_mem_addr,x                                       ; a1bf: 9d 16 10    ...            ; Store in disc op workspace
     dex                                                               ; a1c2: ca          .              ; Next result byte
-    bpl loop_ca1bc                                                    ; a1c3: 10 f7       ..             ; Loop for 3 bytes
+    bpl copy_result_loop                                              ; a1c3: 10 f7       ..             ; Loop for 3 bytes
     rts                                                               ; a1c5: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -6751,20 +6751,20 @@ la154 = sub_ca153+1
     jsr c947f                                                         ; a444: 20 7f 94     ..            ; Parse path and load target dir
     ldy #9                                                            ; a447: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &a449 referenced 1 time by &a450
-.loop_ca449
+.copy_lib_name_loop
     lda dir_name,y                                                    ; a449: b9 cc 16    ...            ; Get name byte from dir buffer
     sta wksp_lib_name,y                                               ; a44c: 99 0a 11    ...            ; Store as library name
     dey                                                               ; a44f: 88          .              ; Next byte in name copy
-    bpl loop_ca449                                                    ; a450: 10 f7       ..             ; Loop for 10 bytes
+    bpl copy_lib_name_loop                                            ; a450: 10 f7       ..             ; Loop for 10 bytes
     ldy #3                                                            ; a452: a0 03       ..             ; Y=3: copy 4-byte sector+drive
 ; &a454 referenced 1 time by &a45b
-.loop_ca454
+.copy_lib_sector_loop
     lda l1114,y                                                       ; a454: b9 14 11    ...            ; Get sector address byte
     sta wksp_lib_sector,y                                             ; a457: 99 18 11    ...            ; Store as library sector
     dey                                                               ; a45a: 88          .              ; Next byte in sector copy
-    bpl loop_ca454                                                    ; a45b: 10 f7       ..             ; Loop for 4 bytes
+    bpl copy_lib_sector_loop                                          ; a45b: 10 f7       ..             ; Loop for 4 bytes
 ; &a45d referenced 1 time by &a471
-.loop_ca45d
+.save_workspace_and_return
     jmp c89d3                                                         ; a45d: 4c d3 89    L..            ; Save workspace and return
 
 ; ***************************************************************************************
@@ -6779,14 +6779,14 @@ la154 = sub_ca153+1
 .switch_to_library
     ldy #3                                                            ; a460: a0 03       ..             ; Y=3: copy 4 bytes
 ; &a462 referenced 1 time by &a46f
-.loop_ca462
+.swap_csd_to_lib_loop
     lda l1114,y                                                       ; a462: b9 14 11    ...            ; Save current CSD sector
     sta wksp_1030,y                                                   ; a465: 99 30 10    .0.            ; To temporary workspace
     lda wksp_lib_sector,y                                             ; a468: b9 18 11    ...            ; Get library sector
     sta wksp_csd_drive_sector,y                                       ; a46b: 99 2c 10    .,.            ; Set as CSD sector
     dey                                                               ; a46e: 88          .              ; Next byte
-    bpl loop_ca462                                                    ; a46f: 10 f1       ..             ; Always branch (loop back)
-    bmi loop_ca45d                                                    ; a471: 30 ea       0.             ; Load the library directory; ALWAYS branch
+    bpl swap_csd_to_lib_loop                                          ; a46f: 10 f1       ..             ; Always branch (loop back)
+    bmi save_workspace_and_return                                     ; a471: 30 ea       0.             ; Load the library directory; ALWAYS branch
 
 ; ***************************************************************************************
 ; Restore CSD sector from saved copy
@@ -6799,11 +6799,11 @@ la154 = sub_ca153+1
 .restore_csd
     ldy #3                                                            ; a473: a0 03       ..             ; Y=3: copy 4 bytes
 ; &a475 referenced 1 time by &a47c
-.loop_ca475
+.restore_csd_sector_loop
     lda wksp_1030,y                                                   ; a475: b9 30 10    .0.            ; Get saved CSD sector
     sta wksp_csd_drive_sector,y                                       ; a478: 99 2c 10    .,.            ; Restore to CSD workspace
     dey                                                               ; a47b: 88          .              ; Next byte
-    bpl loop_ca475                                                    ; a47c: 10 f7       ..             ; Loop for 4 bytes
+    bpl restore_csd_sector_loop                                       ; a47c: 10 f7       ..             ; Loop for 4 bytes
     rts                                                               ; a47e: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -6841,21 +6841,21 @@ la154 = sub_ca153+1
 .star_back
     ldy #3                                                            ; a497: a0 03       ..             ; Y=3: swap 4 bytes of sector+drive
 ; &a499 referenced 1 time by &a4a6
-.loop_ca499
+.swap_dir_sectors_loop
     lda wksp_prev_dir_sector,y                                        ; a499: b9 1c 11    ...            ; Get previous dir sector byte
     sta wksp_csd_drive_sector,y                                       ; a49c: 99 2c 10    .,.            ; Store as CSD sector
     lda l1114,y                                                       ; a49f: b9 14 11    ...            ; Get current CSD sector byte
     sta wksp_prev_dir_sector,y                                        ; a4a2: 99 1c 11    ...            ; Store as previous dir sector
     dey                                                               ; a4a5: 88          .              ; Next byte
-    bpl loop_ca499                                                    ; a4a6: 10 f1       ..             ; Loop for 4 bytes (sector+drive)
+    bpl swap_dir_sectors_loop                                         ; a4a6: 10 f1       ..             ; Loop for 4 bytes (sector+drive)
     jsr c89d3                                                         ; a4a8: 20 d3 89     ..            ; Reload directory from new sector
     ldy #9                                                            ; a4ab: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &a4ad referenced 1 time by &a4b4
-.loop_ca4ad
+.copy_prev_dir_name_loop
     lda dir_name,y                                                    ; a4ad: b9 cc 16    ...            ; Get dir name from buffer
     sta wksp_csd_name,y                                               ; a4b0: 99 00 11    ...            ; Store as CSD name
     dey                                                               ; a4b3: 88          .              ; Next byte
-    bpl loop_ca4ad                                                    ; a4b4: 10 f7       ..             ; Loop for 10 bytes
+    bpl copy_prev_dir_name_loop                                       ; a4b4: 10 f7       ..             ; Loop for 10 bytes
     rts                                                               ; a4b6: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -6902,27 +6902,27 @@ la154 = sub_ca153+1
     clc                                                               ; a4d1: 18          .              ; C=0: not inside quotes
     php                                                               ; a4d2: 08          .              ; Save quote tracking flag
 ; &a4d3 referenced 1 time by &a4e8
-.loop_ca4d3
+.scan_spaces_loop
     lda (zp_b4),y                                                     ; a4d3: b1 b4       ..             ; Get character from command line
     cmp #&20 ; ' '                                                    ; a4d5: c9 20       .              ; Compare with space
-    bcc ca4ea                                                         ; a4d7: 90 11       ..             ; Control char: end of argument
-    beq ca4e7                                                         ; a4d9: f0 0c       ..             ; Space: skip it
+    bcc end_of_spaces                                                 ; a4d7: 90 11       ..             ; Control char: end of argument
+    beq advance_and_continue                                          ; a4d9: f0 0c       ..             ; Space: skip it
     cmp #&22 ; '"'                                                    ; a4db: c9 22       ."             ; Double-quote?
-    bne ca4ea                                                         ; a4dd: d0 0b       ..             ; No, end of argument
+    bne end_of_spaces                                                 ; a4dd: d0 0b       ..             ; No, end of argument
     plp                                                               ; a4df: 28          (              ; Restore C (quote tracking flag)
-    bcc ca4e5                                                         ; a4e0: 90 03       ..             ; C=0 first quote: start quoted str
+    bcc enter_quoted_string                                           ; a4e0: 90 03       ..             ; C=0 first quote: start quoted str
     jmp c8737                                                         ; a4e2: 4c 37 87    L7.            ; C=1 second quote: bad name error
 
 ; &a4e5 referenced 1 time by &a4e0
-.ca4e5
+.enter_quoted_string
     sec                                                               ; a4e5: 38          8              ; C=1: inside quoted string now
     php                                                               ; a4e6: 08          .              ; Save updated quote flag
 ; &a4e7 referenced 1 time by &a4d9
-.ca4e7
+.advance_and_continue
     iny                                                               ; a4e7: c8          .              ; Next character
-    bne loop_ca4d3                                                    ; a4e8: d0 e9       ..             ; Continue scanning
+    bne scan_spaces_loop                                              ; a4e8: d0 e9       ..             ; Continue scanning
 ; &a4ea referenced 2 times by &a4d7, &a4dd
-.ca4ea
+.end_of_spaces
     tya                                                               ; a4ea: 98          .              ; Y = number of chars to skip
     plp                                                               ; a4eb: 28          (              ; Restore quote flag
     clc                                                               ; a4ec: 18          .              ; Clear carry for addition
@@ -6953,7 +6953,7 @@ la154 = sub_ca153+1
     cmp #&3a ; ':'                                                    ; a4fc: c9 3a       .:             ; Is it ':'?
     bne return_30                                                     ; a4fe: d0 f5       ..             ; No, return
 ; &a500 referenced 2 times by &a532, &a53b
-.ca500
+.parse_drive_specifier
     jmp c8982                                                         ; a500: 4c 82 89    L..            ; Yes, parse drive number
 
 ; ***************************************************************************************
@@ -6992,13 +6992,13 @@ la154 = sub_ca153+1
     lda (zp_b4),y                                                     ; a52c: b1 b4       ..             ; Check for '$' (root specifier)
     and #&7d ; '}'                                                    ; a52e: 29 7d       )}             ; Mask to ignore L and D bits
     cmp #&24 ; '$'                                                    ; a530: c9 24       .$             ; Is it '$'?
-    beq ca500                                                         ; a532: f0 cc       ..             ; Root: Bad rename error
+    beq parse_drive_specifier                                         ; a532: f0 cc       ..             ; Root: Bad rename error
 ; &a534 referenced 1 time by &a53e
 .loop_ca534
     jsr check_char_is_terminator                                      ; a534: 20 1a 87     ..            ; Scan for '^' in destination path; Check if character is a filename terminator
     beq ca540                                                         ; a537: f0 07       ..             ; Terminator found, check type
     cmp #&5e ; '^'                                                    ; a539: c9 5e       .^             ; Is it '^' (parent)?
-    beq ca500                                                         ; a53b: f0 c3       ..             ; Parent ref in dest: Bad rename error
+    beq parse_drive_specifier                                         ; a53b: f0 c3       ..             ; Parent ref in dest: Bad rename error
 ; &a53d referenced 1 time by &a542
 .loop_ca53d
     iny                                                               ; a53d: c8          .              ; Next character in scan
@@ -11732,8 +11732,6 @@ save pydis_start, pydis_end
 ;     c9ae6:                                              2
 ;     c9b87:                                              2
 ;     c9ca4:                                              2
-;     c9cff:                                              2
-;     c9d11:                                              2
 ;     c9d6a:                                              2
 ;     c9e25:                                              2
 ;     c9e8f:                                              2
@@ -11745,8 +11743,6 @@ save pydis_start, pydis_end
 ;     ca2bf:                                              2
 ;     ca2df:                                              2
 ;     ca434:                                              2
-;     ca4ea:                                              2
-;     ca500:                                              2
 ;     ca5a4:                                              2
 ;     ca6f9:                                              2
 ;     ca976:                                              2
@@ -11799,6 +11795,7 @@ save pydis_start, pydis_end
 ;     dir2_title:                                         2
 ;     dir_parent_sector:                                  2
 ;     divide_loop:                                        2
+;     end_of_spaces:                                      2
 ;     fdc_1770_sector:                                    2
 ;     floppy_get_step_rate:                               2
 ;     floppy_init_transfer:                               2
@@ -11844,6 +11841,7 @@ save pydis_start, pydis_end
 ;     pad_with_spaces:                                    2
 ;     parse_dir_argument:                                 2
 ;     parse_drive_argument:                               2
+;     parse_drive_specifier:                              2
 ;     print_decimal_digit:                                2
 ;     print_entry_field_loop:                             2
 ;     print_space_value:                                  2
@@ -11857,6 +11855,8 @@ save pydis_start, pydis_end
 ;     return_40:                                          2
 ;     return_42:                                          2
 ;     return_48:                                          2
+;     service4_claim_and_dispatch:                        2
+;     service4_not_matched:                               2
 ;     set_terminator_flag:                                2
 ;     setup_entry_name_ptr:                               2
 ;     skip_filename:                                      2
@@ -11904,6 +11904,7 @@ save pydis_start, pydis_end
 ;     zp_bb:                                              2
 ;     zp_bf:                                              2
 ;     zp_c7:                                              2
+;     advance_and_continue:                               1
 ;     c8111:                                              1
 ;     c8114:                                              1
 ;     c8129:                                              1
@@ -12059,8 +12060,6 @@ save pydis_start, pydis_end
 ;     c99d7:                                              1
 ;     c9a16:                                              1
 ;     c9a3e:                                              1
-;     c9ab0:                                              1
-;     c9ab9:                                              1
 ;     c9b08:                                              1
 ;     c9b10:                                              1
 ;     c9b22:                                              1
@@ -12074,7 +12073,6 @@ save pydis_start, pydis_end
 ;     c9c77:                                              1
 ;     c9c85:                                              1
 ;     c9c97:                                              1
-;     c9cec:                                              1
 ;     c9d52:                                              1
 ;     c9d57:                                              1
 ;     c9d5f:                                              1
@@ -12109,8 +12107,6 @@ save pydis_start, pydis_end
 ;     ca401:                                              1
 ;     ca41e:                                              1
 ;     ca4c1:                                              1
-;     ca4e5:                                              1
-;     ca4e7:                                              1
 ;     ca517:                                              1
 ;     ca540:                                              1
 ;     ca544:                                              1
@@ -12275,14 +12271,22 @@ save pydis_start, pydis_end
 ;     cbfd8:                                              1
 ;     cbfe0:                                              1
 ;     cbff1:                                              1
+;     check_adfs_prefix:                                  1
 ;     check_at_sign:                                      1
 ;     check_field_boundary:                               1
+;     check_workspace_claimed:                            1
 ;     claim_nmi:                                          1
+;     clear_accumulators_loop:                            1
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
 ;     copy_code_to_nmi_space:                             1
 ;     copy_csd_sector_loop:                               1
+;     copy_default_name_loop:                             1
 ;     copy_dir_name_loop:                                 1
+;     copy_lib_name_loop:                                 1
+;     copy_lib_sector_loop:                               1
+;     copy_prev_dir_name_loop:                            1
+;     copy_result_loop:                                   1
 ;     copy_tube_addr_loop:                                1
 ;     default_workspace_data:                             1
 ;     dir2_master_sequence:                               1
@@ -12290,8 +12294,10 @@ save pydis_start, pydis_end
 ;     dir2_parent_sector:                                 1
 ;     dir_first_entry:                                    1
 ;     dir_last_entry_area:                                1
+;     dispatch_service_call:                              1
 ;     do_floppy_scsi_command:                             1
 ;     do_floppy_scsi_command_ind:                         1
+;     enter_quoted_string:                                1
 ;     error_escape_ack_invalidate_reload_fsm:             1
 ;     escape_during_retry:                                1
 ;     exec_floppy_partial_sector_buf:                     1
@@ -12505,7 +12511,6 @@ save pydis_start, pydis_end
 ;     loop_c9c48:                                         1
 ;     loop_c9c59:                                         1
 ;     loop_c9c6a:                                         1
-;     loop_c9cee:                                         1
 ;     loop_c9d35:                                         1
 ;     loop_c9d46:                                         1
 ;     loop_c9d77:                                         1
@@ -12519,23 +12524,12 @@ save pydis_start, pydis_end
 ;     loop_ca083:                                         1
 ;     loop_ca0d3:                                         1
 ;     loop_ca116:                                         1
-;     loop_ca14b:                                         1
-;     loop_ca1ae:                                         1
-;     loop_ca1bc:                                         1
 ;     loop_ca25d:                                         1
 ;     loop_ca31f:                                         1
 ;     loop_ca3cc:                                         1
 ;     loop_ca42f:                                         1
-;     loop_ca449:                                         1
-;     loop_ca454:                                         1
-;     loop_ca45d:                                         1
-;     loop_ca462:                                         1
-;     loop_ca475:                                         1
-;     loop_ca499:                                         1
-;     loop_ca4ad:                                         1
 ;     loop_ca4b9:                                         1
 ;     loop_ca4be:                                         1
-;     loop_ca4d3:                                         1
 ;     loop_ca534:                                         1
 ;     loop_ca53d:                                         1
 ;     loop_ca560:                                         1
@@ -12619,6 +12613,7 @@ save pydis_start, pydis_end
 ;     loop_cbd89:                                         1
 ;     loop_cbd9a:                                         1
 ;     loop_cbef4:                                         1
+;     match_command_loop:                                 1
 ;     my_osargs:                                          1
 ;     next_entry_byte:                                    1
 ;     nmi_0d05:                                           1
@@ -12642,6 +12637,7 @@ save pydis_start, pydis_end
 ;     ra_buffer_4:                                        1
 ;     ra_buffer_5:                                        1
 ;     release_nmi:                                        1
+;     restore_csd_sector_loop:                            1
 ;     return_1:                                           1
 ;     return_12:                                          1
 ;     return_13:                                          1
@@ -12675,6 +12671,8 @@ save pydis_start, pydis_end
 ;     return_7:                                           1
 ;     return_8:                                           1
 ;     return_9:                                           1
+;     save_workspace_and_return:                          1
+;     scan_spaces_loop:                                   1
 ;     scsi_read_settle_loop:                              1
 ;     scsi_request_sense:                                 1
 ;     scsi_send_byte_wrapper:                             1
@@ -12724,6 +12722,8 @@ save pydis_start, pydis_end
 ;     sub_cbd31:                                          1
 ;     sub_cbda6:                                          1
 ;     sub_cbe84:                                          1
+;     swap_csd_to_lib_loop:                               1
+;     swap_dir_sectors_loop:                              1
 ;     system_via_t1c_l:                                   1
 ;     tbl_extended_vectors:                               1
 ;     tube_start_xfer:                                    1
@@ -12979,8 +12979,6 @@ save pydis_start, pydis_end
 ;     c99d7
 ;     c9a16
 ;     c9a3e
-;     c9ab0
-;     c9ab9
 ;     c9ae6
 ;     c9b08
 ;     c9b10
@@ -12999,9 +12997,6 @@ save pydis_start, pydis_end
 ;     c9c85
 ;     c9c97
 ;     c9ca4
-;     c9cec
-;     c9cff
-;     c9d11
 ;     c9d52
 ;     c9d57
 ;     c9d5f
@@ -13052,10 +13047,6 @@ save pydis_start, pydis_end
 ;     ca41e
 ;     ca434
 ;     ca4c1
-;     ca4e5
-;     ca4e7
-;     ca4ea
-;     ca500
 ;     ca517
 ;     ca540
 ;     ca544
@@ -13584,7 +13575,6 @@ save pydis_start, pydis_end
 ;     loop_c9c48
 ;     loop_c9c59
 ;     loop_c9c6a
-;     loop_c9cee
 ;     loop_c9d35
 ;     loop_c9d46
 ;     loop_c9d77
@@ -13598,23 +13588,12 @@ save pydis_start, pydis_end
 ;     loop_ca083
 ;     loop_ca0d3
 ;     loop_ca116
-;     loop_ca14b
-;     loop_ca1ae
-;     loop_ca1bc
 ;     loop_ca25d
 ;     loop_ca31f
 ;     loop_ca3cc
 ;     loop_ca42f
-;     loop_ca449
-;     loop_ca454
-;     loop_ca45d
-;     loop_ca462
-;     loop_ca475
-;     loop_ca499
-;     loop_ca4ad
 ;     loop_ca4b9
 ;     loop_ca4be
-;     loop_ca4d3
 ;     loop_ca534
 ;     loop_ca53d
 ;     loop_ca560
