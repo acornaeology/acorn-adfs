@@ -4932,7 +4932,7 @@ lffff                                           = &ffff
     ldx #&0f                                                          ; 9577: a2 0f       ..             ; X=&0F: copy 16-byte template block
 ; &9579 referenced 1 time by &9580
 .check_dir_exists_loop
-    lda l9632,x                                                       ; 9579: bd 32 96    .2.            ; Copy OSFILE template to workspace
+    lda osfile_tpl_cdir,x                                             ; 9579: bd 32 96    .2.            ; Copy OSFILE template to workspace
     sta l1042,x                                                       ; 957c: 9d 42 10    .B.            ; Copy template to workspace
     dex                                                               ; 957f: ca          .              ; Next byte
     bpl check_dir_exists_loop                                         ; 9580: 10 f7       ..             ; Loop for 16 bytes
@@ -5033,9 +5033,29 @@ lffff                                           = &ffff
     jsr multi_sector_disc_command                                     ; 962c: 20 3d 8a     =.            ; Calculate sectors and write dir; Execute multi-sector disc command
     jmp search_for_osfile_target                                      ; 962f: 4c 80 8f    L..            ; Write directory and update FSM
 
+; ***************************************************************************************
+; OSFILE control block template for *CDIR
+; 
+; 16-byte template copied to the OSFILE control block at
+; &1042-&1051 when creating a new directory. Sets the data
+; region to &1700-&1BFF (the 5-page random access buffer
+; area used as scratch space to build the new directory
+; before writing to disc). The &FFFF prefix marks host
+; memory (not Tube).
+; 
+; ***************************************************************************************
 ; &9632 referenced 1 time by &9579
-.l9632
-    equb 0, 0, 0, 0, 0, 0, 0, 0, 0, &17, &ff, &ff, 0, &1c, &ff, &ff   ; 9632: 00 00 00... ...
+.osfile_tpl_cdir
+    equb 0, 0, 0, 0                                                   ; 9632: 00 00 00... ...            ; Load address: &00000000 (not used)
+    equb 0, 0, 0, 0                                                   ; 9636: 00 00 00... ...            ; Exec address: &00000000 (not used)
+    equb 0                                                            ; 963a: 00          .              ; Data start low: &00
+    equb &17                                                          ; 963b: 17          .              ; Data start high: &17 (-> &1700 ra_buffer_1)
+    equb &ff                                                          ; 963c: ff          .              ; Data start byte 3: &FF (host memory)
+    equb &ff                                                          ; 963d: ff          .              ; Data start byte 4: &FF (host memory)
+    equb 0                                                            ; 963e: 00          .              ; Data end low: &00
+    equb &1c                                                          ; 963f: 1c          .              ; Data end high: &1C (-> &1C00, 5 pages)
+    equb &ff                                                          ; 9640: ff          .              ; Data end byte 3: &FF (host memory)
+    equb &ff                                                          ; 9641: ff          .              ; Data end byte 4: &FF (host memory)
 
 ; &9642 referenced 1 time by &98a8
 .copy_sectors_between_dirs
@@ -13380,7 +13400,6 @@ save pydis_start, pydis_end
 ;     l1183:                                              1
 ;     l2420:                                              1
 ;     l941f:                                              1
-;     l9632:                                              1
 ;     l9cb3:                                              1
 ;     l9e48:                                              1
 ;     l9ee4:                                              1
@@ -13435,6 +13454,7 @@ save pydis_start, pydis_end
 ;     osargs_general_query:                               1
 ;     osfile_dispatch_hi:                                 1
 ;     osfile_dispatch_lo:                                 1
+;     osfile_tpl_cdir:                                    1
 ;     osfile_write_load_search:                           1
 ;     osrdch:                                             1
 ;     osword:                                             1
@@ -13962,7 +13982,6 @@ save pydis_start, pydis_end
 ;     l2020
 ;     l2420
 ;     l941f
-;     l9632
 ;     l9cb3
 ;     l9dd3
 ;     l9e48

@@ -1056,6 +1056,28 @@ byte(0x94E5)
 comment(0x94E5, "Sequence number: &00", inline=True)
 byte(0x94E6)
 comment(0x94E6, "Padding: &00", inline=True)
+label(0x9632, "osfile_tpl_cdir")
+entry(0x9632)
+byte(0x9632, 4)
+comment(0x9632, "Load address: &00000000 (not used)", inline=True)
+byte(0x9636, 4)
+comment(0x9636, "Exec address: &00000000 (not used)", inline=True)
+byte(0x963A)
+comment(0x963A, "Data start low: &00", inline=True)
+byte(0x963B)
+comment(0x963B, "Data start high: &17 (-> &1700 ra_buffer_1)", inline=True)
+byte(0x963C)
+comment(0x963C, "Data start byte 3: &FF (host memory)", inline=True)
+byte(0x963D)
+comment(0x963D, "Data start byte 4: &FF (host memory)", inline=True)
+byte(0x963E)
+comment(0x963E, "Data end low: &00", inline=True)
+byte(0x963F)
+comment(0x963F, "Data end high: &1C (-> &1C00, 5 pages)", inline=True)
+byte(0x9640)
+comment(0x9640, "Data end byte 3: &FF (host memory)", inline=True)
+byte(0x9641)
+comment(0x9641, "Data end byte 4: &FF (host memory)", inline=True)
 entry(0x9316)
 entry(0x9A46)
 entry(0x9A78)
@@ -10223,6 +10245,17 @@ subroutine(0x9570, "star_cdir",
 Create a new directory. Allocates 5 contiguous sectors on
 disc and initialises the directory structure with the Hugo
 identifier, title, and parent pointer.
+""")
+
+subroutine(0x9632, "osfile_tpl_cdir",
+    title="OSFILE control block template for *CDIR",
+    description="""\
+16-byte template copied to the OSFILE control block at
+&1042-&1051 when creating a new directory. Sets the data
+region to &1700-&1BFF (the 5-page random access buffer
+area used as scratch space to build the new directory
+before writing to disc). The &FFFF prefix marks host
+memory (not Tube).
 """)
 
 subroutine(0x993D, "star_access",
