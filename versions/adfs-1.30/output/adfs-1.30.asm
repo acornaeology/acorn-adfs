@@ -11380,7 +11380,7 @@ la868 = check_dest_terminator+1
     plp                                                               ; b9fa: 28          (              ; Restore flags
     jmp release_tube                                                  ; b9fb: 4c 43 80    LC.            ; Release Tube and return; Release Tube if in use
 
-    equb &2e, &0d                                                     ; b9fe: 2e 0d       ..
+    equs ".", &0d                                                     ; b9fe: 2e 0d       ..             ; Unused "." + CR: dead remnant
 
 ; ***************************************************************************************
 ; Floppy disc command (indirect entry)
@@ -14326,7 +14326,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1298 bytes (8%)
 ;
 ;     Number of instructions   = 7026
-;     Number of data bytes     = 338 bytes
+;     Number of data bytes     = 336 bytes
 ;     Number of data words     = 44 bytes
-;     Number of string bytes   = 916 bytes
-;     Number of strings        = 105
+;     Number of string bytes   = 918 bytes
+;     Number of strings        = 106
