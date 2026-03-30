@@ -1082,6 +1082,25 @@ stringcr(0x993B)
 comment(0x993B, 'Unused "^" + CR: dead remnant', inline=True)
 entry(0x9316)
 entry(0x9A46)
+label(0x9A46, "default_workspace_data")
+label(0x9A50, "default_lib_name")
+label(0x9A5A, "default_csd_sector")
+label(0x9A5E, "default_lib_sector")
+label(0x9A62, "default_prev_dir_sector")
+string(0x9A46, 10)
+comment(0x9A46, "'$' + 9 spaces: default CSD name", inline=True)
+string(0x9A50, 10)
+comment(0x9A50, "'$' + 9 spaces: default library name", inline=True)
+byte(0x9A5A)
+comment(0x9A5A, "CSD sector low: 2 (root directory)", inline=True)
+byte(0x9A5B, 3)
+comment(0x9A5B, "CSD sector mid/high + drive: 0", inline=True)
+byte(0x9A5E)
+comment(0x9A5E, "Library sector low: 2 (root directory)", inline=True)
+byte(0x9A5F, 3)
+comment(0x9A5F, "Library sector mid/high + drive: 0", inline=True)
+byte(0x9A62)
+comment(0x9A62, "Previous dir sector low: 2 (root dir)", inline=True)
 entry(0x9A78)
 entry(0x9A8F)
 entry(0x9CC1)
@@ -4273,10 +4292,8 @@ comment(0x9E46, "Loop for all commands", inline=True)
 comment(0x9A43, "Jump through filing system control", inline=True)
 
 # Data block at &9A46 - default workspace initialisation data
-# Contains default CSD name "$" padded with spaces, and
-# default sector addresses (sector 2 = root directory).
-label(0x9A46, "default_workspace_data")
-comment(0x9A46, "Default CSD/lib names and sectors", inline=True)
+# Default workspace data: label, byte directives, and comments
+# are in the interstitial data section near the entry() calls.
 
 # scsi_send_cmd_byte (&82FB)
 # Wrapper that sends a byte via scsi_send_byte_a and raises
@@ -11413,12 +11430,20 @@ file access attributes. Indexed by attribute bit position.
 """)
 
 subroutine(0x9A46, "default_workspace_data",
-    title="Default CSD and library workspace data",
+    title="Default workspace initialisation template",
     description="""\
-Default values for the CSD and library workspace: two
-10-byte directory names (both '$' padded with spaces)
-followed by two 4-byte sector addresses (both sector 2).
-Copied to workspace during initialisation.
+29-byte template copied to workspace page &1100 during hard
+break initialisation (service call 2). Bytes beyond &1C are
+zeroed. Sets both CSD and library to the root directory '$'
+on drive 0, sector 2.
+
++00  wksp_csd_name (10 bytes): '$' + 9 spaces
++0A  wksp_lib_name (10 bytes): '$' + 9 spaces
++14  wksp_csd_sector (3 bytes): sector 2 (root directory)
++17  wksp_current_drive: drive 0
++18  wksp_lib_sector (3 bytes): sector 2 (root directory)
++1B  wksp_lib_drive: drive 0
++1C  wksp_prev_dir_sector low: sector 2
 """)
 
 subroutine(0x9A78, "boot_data",

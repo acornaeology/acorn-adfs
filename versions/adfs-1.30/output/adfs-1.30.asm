@@ -73,7 +73,6 @@ l0000                                           = &0000
 l0001                                           = &0001
 l0002                                           = &0002
 l0003                                           = &0003
-l0020                                           = &0020
 l0043                                           = &0043
 zp_floppy_error                                 = &00a0
 zp_floppy_control                               = &00a1
@@ -382,8 +381,6 @@ dir2_name                                       = &1bcc
 dir2_parent_sector                              = &1bd6
 dir2_title                                      = &1bd9
 dir2_master_sequence                            = &1bfa
-l2020                                           = &2020
-l2420                                           = &2420
 fred_hard_drive_0                               = &fc40
 fred_hard_drive_1                               = &fc41
 fred_hard_drive_2                               = &fc42
@@ -5724,24 +5721,35 @@ lffff                                           = &ffff
     jmp (fscv)                                                        ; 9a43: 6c 1e 02    l..            ; Jump through filing system control
 
 ; ***************************************************************************************
-; Default CSD and library workspace data
+; Default workspace initialisation template
 ; 
-; Default values for the CSD and library workspace: two
-; 10-byte directory names (both '$' padded with spaces)
-; followed by two 4-byte sector addresses (both sector 2).
-; Copied to workspace during initialisation.
+; 29-byte template copied to workspace page &1100 during hard
+; break initialisation (service call 2). Bytes beyond &1C are
+; zeroed. Sets both CSD and library to the root directory '$'
+; on drive 0, sector 2.
+; 
+; +00  wksp_csd_name (10 bytes): '$' + 9 spaces
+; +0A  wksp_lib_name (10 bytes): '$' + 9 spaces
+; +14  wksp_csd_sector (3 bytes): sector 2 (root directory)
+; +17  wksp_current_drive: drive 0
+; +18  wksp_lib_sector (3 bytes): sector 2 (root directory)
+; +1B  wksp_lib_drive: drive 0
+; +1C  wksp_prev_dir_sector low: sector 2
 ; 
 ; ***************************************************************************************
 ; &9a46 referenced 1 time by &9aff
 .default_workspace_data
-    bit l0020                                                         ; 9a46: 24 20       $              ; Default CSD/lib names and sectors
-    jsr l2020                                                         ; 9a48: 20 20 20
-    jsr l2020                                                         ; 9a4b: 20 20 20
-    jsr l2420                                                         ; 9a4e: 20 20 24      $
-    jsr l2020                                                         ; 9a51: 20 20 20
-    jsr l2020                                                         ; 9a54: 20 20 20
-    jsr l2020                                                         ; 9a57: 20 20 20
-    equb 2, 0, 0, 0, 2, 0, 0, 0, 2                                    ; 9a5a: 02 00 00... ...
+    equs "$         "                                                 ; 9a46: 24 20 20... $              ; '$' + 9 spaces: default CSD name
+.default_lib_name
+    equs "$         "                                                 ; 9a50: 24 20 20... $              ; '$' + 9 spaces: default library name
+.default_csd_sector
+    equb 2                                                            ; 9a5a: 02          .              ; CSD sector low: 2 (root directory)
+    equb 0, 0, 0                                                      ; 9a5b: 00 00 00    ...            ; CSD sector mid/high + drive: 0
+.default_lib_sector
+    equb 2                                                            ; 9a5e: 02          .              ; Library sector low: 2 (root directory)
+    equb 0, 0, 0                                                      ; 9a5f: 00 00 00    ...            ; Library sector mid/high + drive: 0
+.default_prev_dir_sector
+    equb 2                                                            ; 9a62: 02          .              ; Previous dir sector low: 2 (root dir)
 
 ; ***************************************************************************************
 ; Detect hard drive hardware
@@ -12566,7 +12574,6 @@ save pydis_start, pydis_end
 ;     l10b9:                                              5
 ;     l10c2:                                              5
 ;     l111f:                                              5
-;     l2020:                                              5
 ;     mark_directory_dirty:                               5
 ;     nmi_0d57:                                           5
 ;     nmi_0d5c:                                           5
@@ -13360,7 +13367,6 @@ save pydis_start, pydis_end
 ;     issue_multi_sector_rw:                              1
 ;     issue_step_command:                                 1
 ;     jmp_indirect_fscv:                                  1
-;     l0020:                                              1
 ;     l0043:                                              1
 ;     l00a9:                                              1
 ;     l00ef:                                              1
@@ -13398,7 +13404,6 @@ save pydis_start, pydis_end
 ;     l1119:                                              1
 ;     l111d:                                              1
 ;     l1183:                                              1
-;     l2420:                                              1
 ;     l941f:                                              1
 ;     l9cb3:                                              1
 ;     l9e48:                                              1
@@ -13832,7 +13837,6 @@ save pydis_start, pydis_end
 ;     l0001
 ;     l0002
 ;     l0003
-;     l0020
 ;     l0043
 ;     l00a9
 ;     l00ef
@@ -13979,8 +13983,6 @@ save pydis_start, pydis_end
 ;     l11de
 ;     l11e8
 ;     l11f2
-;     l2020
-;     l2420
 ;     l941f
 ;     l9cb3
 ;     l9dd3
@@ -14049,11 +14051,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 15012 bytes (92%)
-;     Data                     = 1372 bytes (8%)
+;     Code                     = 14992 bytes (92%)
+;     Data                     = 1392 bytes (8%)
 ;
-;     Number of instructions   = 6987
+;     Number of instructions   = 6980
 ;     Number of data bytes     = 450 bytes
 ;     Number of data words     = 16 bytes
-;     Number of string bytes   = 906 bytes
-;     Number of strings        = 104
+;     Number of string bytes   = 926 bytes
+;     Number of strings        = 106
