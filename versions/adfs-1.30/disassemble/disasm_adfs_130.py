@@ -556,6 +556,9 @@ entry(0xA05F)  # After "Address :  Length" in star_map
 entry(0xA07F)  # After "  : &" in star_map
 entry(0xA1E5)  # After " Sectors =" in sub_ca1c6
 entry(0x9A0A)  # After "Destroy ? " in star_destroy
+entry(0x9373)  # After "Option " in verify_dir_and_list
+entry(0x9399)  # After ")\rDir. " in catalogue header
+entry(0x93B3)  # After "     Lib. " in catalogue header
 
 # *HELP command list printing code
 # The code from &9E16 onwards prints the command list for *HELP ADFS.
@@ -8917,8 +8920,23 @@ comment(0x9360, "Page &9A", inline=True)
 comment(0x9362, "Store pointer high", inline=True)
 comment(0x9364, "X=&0D: print CSD path", inline=True)
 comment(0x9366, "Print path characters", inline=True)
-comment(0x9372, "Y=&AD: continuation parameter", inline=True)
-comment(0x9374, "Compare continuation value", inline=True)
+comment(0x9372, "' ' + bit 7: end of inline string", inline=True)
+comment(0x9373, "Get boot option from FSM", inline=True)
+comment(0x9376, "Print boot option as two hex digits", inline=True)
+comment(0x937D, "Transfer boot option to Y for lookup", inline=True)
+comment(0x937E, "Get boot option again for table index", inline=True)
+comment(0x9381, "Look up option name string address", inline=True)
+comment(0x9384, "Set entry ptr to option name string", inline=True)
+comment(0x938A, "X=4: print 4-char option name", inline=True)
+comment(0x938C, "Print boot option name (Off/Load/Run/Exec)", inline=True)
+comment(0x9398, "' ' + bit 7: end of inline string", inline=True)
+comment(0x9399, "Point to CSD name at &1100", inline=True)
+comment(0x93A1, "X=&0A: print 10-char directory name", inline=True)
+comment(0x93A3, "Print CSD directory name", inline=True)
+comment(0x93B2, "' ' + bit 7: end of inline string", inline=True)
+comment(0x93B3, "Point to library name at &110A", inline=True)
+comment(0x93BB, "X=&0A: print 10-char library name", inline=True)
+comment(0x93BD, "Print library directory name", inline=True)
 comment(0x93C5, "Point to first dir entry at &1205", inline=True)
 comment(0x93C7, "Store pointer low = &05", inline=True)
 comment(0x93C9, "Page &12", inline=True)

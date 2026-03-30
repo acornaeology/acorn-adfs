@@ -382,7 +382,6 @@ dir2_name                                       = &1bcc
 dir2_parent_sector                              = &1bd6
 dir2_title                                      = &1bd9
 dir2_master_sequence                            = &1bfa
-l200f                                           = &200f
 l2020                                           = &2020
 l2420                                           = &2420
 fred_hard_drive_0                               = &fc40
@@ -4306,7 +4305,7 @@ lffff                                           = &ffff
     lda l9e48,x                                                       ; 9280: bd 48 9e    .H.            ; Get pathname format byte
     sta zp_entry_ptr                                                  ; 9283: 85 b6       ..             ; Store as pointer low byte
     ldx #&0c                                                          ; 9285: a2 0c       ..             ; X=&0C: max 12 characters
-; &9287 referenced 3 times by &92e0, &9337, &9366
+; &9287 referenced 6 times by &92e0, &9337, &9366, &938c, &93a3, &93bd
 .print_padded_name
     ldy #0                                                            ; 9287: a0 00       ..             ; Y=0: start of entry name
 ; &9289 referenced 1 time by &9296
@@ -4338,7 +4337,7 @@ lffff                                           = &ffff
 ; the address past the string so RTS continues after it.
 ; 
 ; ***************************************************************************************
-; &92a0 referenced 14 times by &933a, &9345, &9369, &99fd, &9b78, &9da7, &9dc9, &9e12, &a021, &a041, &a04a, &a077, &a0a0, &a1d8
+; &92a0 referenced 18 times by &933a, &9345, &9369, &9379, &938f, &93a6, &93c0, &99fd, &9b78, &9da7, &9dc9, &9e12, &a021, &a041, &a04a, &a077, &a0a0, &a1d8
 .print_inline_string
     pla                                                               ; 92a0: 68          h              ; Pop return addr low (inline data)
     sta zp_entry_ptr                                                  ; 92a1: 85 b6       ..             ; Store as string pointer low
@@ -4457,7 +4456,7 @@ lffff                                           = &ffff
 ; via OSWRCH, high nibble first.
 ; 
 ; ***************************************************************************************
-; &931b referenced 8 times by &930b, &9342, &9521, &a071, &a087, &a1c9, &a1cf, &a1d5
+; &931b referenced 9 times by &930b, &9342, &9376, &9521, &a071, &a087, &a1c9, &a1cf, &a1d5
 .print_hex_byte
     pha                                                               ; 931b: 48          H              ; Save value
     lsr a                                                             ; 931c: 4a          J              ; Shift high nibble to low
@@ -4513,18 +4512,44 @@ lffff                                           = &ffff
     jsr print_padded_name                                             ; 9366: 20 87 92     ..            ; Print path characters
     jsr print_inline_string                                           ; 9369: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs "Option"                                                     ; 936c: 4f 70 74... Opt
+    equb &a0                                                          ; 9372: a0          .              ; ' ' + bit 7: end of inline string
 
-    ldy #&ad                                                          ; 9372: a0 ad       ..             ; Y=&AD: continuation parameter
-    sbc l200f,x                                                       ; 9374: fd 0f 20    ..             ; Compare continuation value
-    equb &1b, &93, &20, &a0, &92, &20, &a8, &ae, &fd, &0f, &bd, &1f   ; 9377: 1b 93 20... ..
-    equb &94, &85, &b6, &a9, &94, &85, &b7, &a2,   4, &20, &87, &92   ; 9383: 94 85 b6... ...
-    equb &20, &a0, &92, &29, &0d                                      ; 938f: 20 a0 92...  ..
-    equs "Dir."                                                       ; 9394: 44 69 72... Dir
-    equb &a0, &a9,   0, &85, &b6, &a9, &11, &85, &b7, &a2, &0a, &20   ; 9398: a0 a9 00... ...
-    equb &87, &92, &20, &a0, &92                                      ; 93a4: 87 92 20... ..
+    lda fsm_s1_boot_option                                            ; 9373: ad fd 0f    ...            ; Get boot option from FSM
+    jsr print_hex_byte                                                ; 9376: 20 1b 93     ..            ; Print boot option as two hex digits; Print a byte as two hex digits
+    jsr print_inline_string                                           ; 9379: 20 a0 92     ..            ; Print bit-7-terminated inline string
+    equs " "                                                          ; 937c: 20
+
+    tay                                                               ; 937d: a8          .              ; Transfer boot option to Y for lookup
+    ldx fsm_s1_boot_option                                            ; 937e: ae fd 0f    ...            ; Get boot option again for table index
+    lda l941f,x                                                       ; 9381: bd 1f 94    ...            ; Look up option name string address
+    sta zp_entry_ptr                                                  ; 9384: 85 b6       ..             ; Set entry ptr to option name string
+    lda #&94                                                          ; 9386: a9 94       ..
+    sta zp_entry_ptr_h                                                ; 9388: 85 b7       ..
+    ldx #4                                                            ; 938a: a2 04       ..             ; X=4: print 4-char option name
+    jsr print_padded_name                                             ; 938c: 20 87 92     ..            ; Print boot option name (Off/Load/Run/Exec)
+    jsr print_inline_string                                           ; 938f: 20 a0 92     ..            ; Print bit-7-terminated inline string
+    equs ")", &0d, "Dir."                                             ; 9392: 29 0d 44... ).D
+    equb &a0                                                          ; 9398: a0          .              ; ' ' + bit 7: end of inline string
+
+    lda #0                                                            ; 9399: a9 00       ..             ; Point to CSD name at &1100
+    sta zp_entry_ptr                                                  ; 939b: 85 b6       ..
+    lda #&11                                                          ; 939d: a9 11       ..
+    sta zp_entry_ptr_h                                                ; 939f: 85 b7       ..
+    ldx #&0a                                                          ; 93a1: a2 0a       ..             ; X=&0A: print 10-char directory name
+    jsr print_padded_name                                             ; 93a3: 20 87 92     ..            ; Print CSD directory name
+    jsr print_inline_string                                           ; 93a6: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs "     Lib."                                                  ; 93a9: 20 20 20...
-    equb &a0, &a9, &0a, &85, &b6, &a9, &11, &85, &b7, &a2, &0a, &20   ; 93b2: a0 a9 0a... ...
-    equb &87, &92, &20, &a0, &92, &0d, &8d                            ; 93be: 87 92 20... ..
+    equb &a0                                                          ; 93b2: a0          .              ; ' ' + bit 7: end of inline string
+
+    lda #&0a                                                          ; 93b3: a9 0a       ..             ; Point to library name at &110A
+    sta zp_entry_ptr                                                  ; 93b5: 85 b6       ..
+    lda #&11                                                          ; 93b7: a9 11       ..
+    sta zp_entry_ptr_h                                                ; 93b9: 85 b7       ..
+    ldx #&0a                                                          ; 93bb: a2 0a       ..             ; X=&0A: print 10-char library name
+    jsr print_padded_name                                             ; 93bd: 20 87 92     ..            ; Print library directory name
+    jsr print_inline_string                                           ; 93c0: 20 a0 92     ..            ; Print bit-7-terminated inline string
+    equs &0d                                                          ; 93c3: 0d          .
+    equb &8d                                                          ; 93c4: 8d          .
 
 ; &93c5 referenced 3 times by &87ea, &97be, &98da
 .print_catalogue_header
@@ -4586,6 +4611,8 @@ lffff                                           = &ffff
 .print_cat_done
     jmp save_wksp_and_return                                          ; 941c: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
+; &941f referenced 1 time by &9381
+.l941f
     equs "#'+/Off LoadRun Exec"                                       ; 941f: 23 27 2b... #'+
 
 ; ***************************************************************************************
@@ -12308,7 +12335,7 @@ la868 = check_dest_terminator+1
 save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
-;     zp_entry_ptr:                                     170
+;     zp_entry_ptr:                                     173
 ;     zp_text_ptr:                                      100
 ;     zp_adfs_flags:                                     68
 ;     wksp_current_drive:                                61
@@ -12316,9 +12343,9 @@ save pydis_start, pydis_end
 ;     zp_ctrl_blk:                                       48
 ;     zp_osfile_ptr:                                     42
 ;     zp_channel_offset:                                 36
+;     zp_entry_ptr_h:                                    36
 ;     zp_mem_ptr:                                        35
 ;     save_wksp_and_return:                              34
-;     zp_entry_ptr_h:                                    33
 ;     zp_gspb_ptr:                                       28
 ;     wksp_1004:                                         27
 ;     wksp_disc_op_result:                               27
@@ -12336,6 +12363,7 @@ save pydis_start, pydis_end
 ;     zp_mem_ptr_h:                                      19
 ;     check_char_is_terminator:                          18
 ;     l10a2:                                             18
+;     print_inline_string:                               18
 ;     wksp_ch_ext_h:                                     18
 ;     wksp_ch_ext_mh:                                    18
 ;     wksp_ch_ext_ml:                                    18
@@ -12351,7 +12379,6 @@ save pydis_start, pydis_end
 ;     zp_wksp_ptr:                                       16
 ;     scsi_wait_for_req:                                 15
 ;     fsm_s0_boot_option:                                14
-;     print_inline_string:                               14
 ;     wksp_disc_op_command:                              14
 ;     find_first_matching_entry:                         13
 ;     fsm_sector_0:                                      13
@@ -12397,6 +12424,7 @@ save pydis_start, pydis_end
 ;     nmi_0d58:                                           9
 ;     nmi_0d5e:                                           9
 ;     output_byte_to_buffer:                              9
+;     print_hex_byte:                                     9
 ;     tube_data_register_3:                               9
 ;     wait_ensuring:                                      9
 ;     wksp_1003:                                          9
@@ -12417,7 +12445,6 @@ save pydis_start, pydis_end
 ;     l1116:                                              8
 ;     oswrch:                                             8
 ;     parse_path_and_load:                                8
-;     print_hex_byte:                                     8
 ;     save_workspace_state:                               8
 ;     wksp_disc_op_mem_addr:                              8
 ;     bad_checksum_error:                                 7
@@ -12468,6 +12495,7 @@ save pydis_start, pydis_end
 ;     nmi_0d59:                                           6
 ;     no_open_files_on_drive:                             6
 ;     not_found_error:                                    6
+;     print_padded_name:                                  6
 ;     release_tube_and_return:                            6
 ;     scsi_send_cmd_byte:                                 6
 ;     wksp_1030:                                          6
@@ -12483,6 +12511,7 @@ save pydis_start, pydis_end
 ;     fdc_8271_command_or_status_or_1770_drive_control:   5
 ;     fdc_write_register_verify:                          5
 ;     fsm_s0_checksum:                                    5
+;     fsm_s1_boot_option:                                 5
 ;     l00f0:                                              5
 ;     l1039:                                              5
 ;     l1095:                                              5
@@ -12591,7 +12620,6 @@ save pydis_start, pydis_end
 ;     floppy_calc_track_sector_from_b0_block:             3
 ;     flush_dirty_channel_buffer:                         3
 ;     fred_hard_drive_3:                                  3
-;     fsm_s1_boot_option:                                 3
 ;     fsm_s1_disc_id_hi:                                  3
 ;     fsm_s1_disc_id_lo:                                  3
 ;     get_drive_bit_mask:                                 3
@@ -12627,7 +12655,6 @@ save pydis_start, pydis_end
 ;     print_catalogue_header:                             3
 ;     print_entry_info:                                   3
 ;     print_next_command:                                 3
-;     print_padded_name:                                  3
 ;     print_via_osasci:                                   3
 ;     process_floppy_result:                              3
 ;     read_clock_for_timing:                              3
@@ -13327,8 +13354,8 @@ save pydis_start, pydis_end
 ;     l1119:                                              1
 ;     l111d:                                              1
 ;     l1183:                                              1
-;     l200f:                                              1
 ;     l2420:                                              1
+;     l941f:                                              1
 ;     l9632:                                              1
 ;     l9cb3:                                              1
 ;     l9e48:                                              1
@@ -13908,9 +13935,9 @@ save pydis_start, pydis_end
 ;     l11de
 ;     l11e8
 ;     l11f2
-;     l200f
 ;     l2020
 ;     l2420
+;     l941f
 ;     l9632
 ;     l9cb3
 ;     l9dd3
@@ -13979,11 +14006,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14955 bytes (91%)
-;     Data                     = 1429 bytes (9%)
+;     Code                     = 15012 bytes (92%)
+;     Data                     = 1372 bytes (8%)
 ;
-;     Number of instructions   = 6963
-;     Number of data bytes     = 513 bytes
+;     Number of instructions   = 6987
+;     Number of data bytes     = 452 bytes
 ;     Number of data words     = 16 bytes
-;     Number of string bytes   = 900 bytes
-;     Number of strings        = 101
+;     Number of string bytes   = 904 bytes
+;     Number of strings        = 103
