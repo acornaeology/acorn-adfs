@@ -7064,9 +7064,11 @@ l9ee5 = tbl_commands+2
     ldx fsm_s1_total_sectors_lo                                       ; a099: ae fe 0f    ...            ; Get FSM end-of-list pointer
     cpx #&e1                                                          ; a09c: e0 e1       ..             ; Pointer >= &E1 (many fragments)?
     bcc return_27                                                     ; a09e: 90 a9       ..             ; No, space not fragmented enough
-    jsr print_inline_string                                           ; a0a0: 20 a0 92     ..            ; Print recommendation message; Print bit-7-terminated inline string
+    jsr print_inline_string                                           ; a0a0: 20 a0 92     ..            ; Print "Compaction recommended" + CR; Print bit-7-terminated inline string
     equs "Compaction recommended"                                     ; a0a3: 43 6f 6d... Com
-    equb &8d, &60                                                     ; a0b9: 8d 60       .`
+    equb &8d                                                          ; a0b9: 8d          .              ; CR + bit 7: end of inline string
+
+    rts                                                               ; a0ba: 60          `              ; Return to caller
 
 ; ***************************************************************************************
 ; *DELETE command handler
@@ -14194,11 +14196,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14986 bytes (91%)
-;     Data                     = 1398 bytes (9%)
+;     Code                     = 14987 bytes (91%)
+;     Data                     = 1397 bytes (9%)
 ;
-;     Number of instructions   = 6978
-;     Number of data bytes     = 435 bytes
+;     Number of instructions   = 6979
+;     Number of data bytes     = 434 bytes
 ;     Number of data words     = 44 bytes
 ;     Number of string bytes   = 919 bytes
 ;     Number of strings        = 106

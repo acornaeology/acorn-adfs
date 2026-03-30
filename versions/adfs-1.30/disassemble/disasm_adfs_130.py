@@ -560,6 +560,7 @@ entry(0x9373)  # After "Option " in verify_dir_and_list
 entry(0x9399)  # After ")\rDir. " in catalogue header
 entry(0x93B3)  # After "     Lib. " in catalogue header
 entry(0x9DBD)  # RTS after "Advanced DFS 1.30" in help_print_header
+entry(0xA0BA)  # RTS after "Compaction recommended" in check_compaction
 
 # The inline string at &9392 is ")\rDir." + &A0 (space+bit7).
 # The stringhi_hook classifies this as one string; we can't
@@ -7686,7 +7687,9 @@ comment(0xA097, "Already done, skip", inline=True)
 comment(0xA099, "Get FSM end-of-list pointer", inline=True)
 comment(0xA09C, "Pointer >= &E1 (many fragments)?", inline=True)
 comment(0xA09E, "No, space not fragmented enough", inline=True)
-comment(0xA0A0, 'Print recommendation message', inline=True)
+comment(0xA0A0, 'Print "Compaction recommended" + CR', inline=True)
+comment(0xA0B9, "CR + bit 7: end of inline string", inline=True)
+comment(0xA0BA, "Return to caller", inline=True)
 
 # service_handler_4 (&9CDA) - unrecognised star command
 # Checks if the command is prefixed with "ADFS" or "FADFS"
