@@ -536,6 +536,10 @@ for i in range(10):
 # A=7: create file
 label(0x9269, "osfile_dispatch_lo")
 label(0x926A, "osfile_dispatch_hi")
+byte(0x9269)
+comment(0x9269, "A=0 low: <(save_check_existing-1)", inline=True)
+byte(0x926A)
+comment(0x926A, "A=0 high: >(save_check_existing-1)", inline=True)
 for i in range(8):
     rts_code_ptr(0x9269 + 2 + i*2, 0x926A + 2 + i*2)
 

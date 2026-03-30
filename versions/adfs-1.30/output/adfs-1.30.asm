@@ -4278,10 +4278,10 @@ lffff                                           = &ffff
 ; ***************************************************************************************
 ; &9269 referenced 1 time by &9256
 .osfile_dispatch_lo
-    equb 4                                                            ; 9269: 04          .
+    equb 4                                                            ; 9269: 04          .              ; A=0 low: <(save_check_existing-1)
 ; &926a referenced 1 time by &9252
 .osfile_dispatch_hi
-    equb &8c                                                          ; 926a: 8c          .
+    equb &8c                                                          ; 926a: 8c          .              ; A=0 high: >(save_check_existing-1)
     equw osfile_load_handler-1                                        ; 926b: 73 8f       s.
     equw osfile_write_load_addr-1                                     ; 926d: 7b 90       {.
     equw osfile_write_load_addr-1                                     ; 926f: 7b 90       {.
