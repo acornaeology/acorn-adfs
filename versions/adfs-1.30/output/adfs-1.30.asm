@@ -73,6 +73,8 @@ l0000                                           = &0000
 l0001                                           = &0001
 l0002                                           = &0002
 l0003                                           = &0003
+l0020                                           = &0020
+l0043                                           = &0043
 zp_floppy_error                                 = &00a0
 zp_floppy_control                               = &00a1
 zp_floppy_state                                 = &00a2
@@ -80,6 +82,7 @@ zp_floppy_track                                 = &00a3
 zp_floppy_sector                                = &00a4
 zp_floppy_track_num                             = &00a5
 zp_floppy_dest_page                             = &00a6
+l00a9                                           = &00a9
 zp_ctrl_blk                                     = &00b0
 zp_ctrl_blk_h                                   = &00b1
 zp_mem_ptr                                      = &00b2
@@ -380,16 +383,21 @@ dir2_parent_sector                              = &1bd6
 dir2_title                                      = &1bd9
 dir2_master_sequence                            = &1bfa
 l200f                                           = &200f
+l2020                                           = &2020
+l2420                                           = &2420
 fred_hard_drive_0                               = &fc40
 fred_hard_drive_1                               = &fc41
 fred_hard_drive_2                               = &fc42
 fred_hard_drive_3                               = &fc43
+romsel                                          = &fe30
 system_via_t1c_l                                = &fe44
 fdc_8271_command_or_status_or_1770_drive_control = &fe80
 fdc_8271_data_or_1770_command_or_status         = &fe84
 fdc_1770_track                                  = &fe85
 fdc_1770_sector                                 = &fe86
+fdc_1770_data                                   = &fe87
 tube_data_register_3                            = &fee5
+lff92                                           = &ff92
 osargs                                          = &ffda
 osrdch                                          = &ffe0
 osasci                                          = &ffe3
@@ -398,6 +406,7 @@ oswrch                                          = &ffee
 osword                                          = &fff1
 osbyte                                          = &fff4
 oscli                                           = &fff7
+lffff                                           = &ffff
 
     org &8000
 
@@ -1321,6 +1330,15 @@ oscli                                           = &fff7
 .run_exec_or_spool
     jmp l0100                                                         ; 8419: 4c 00 01    L..            ; Jump to BRK block on page 1
 
+; ***************************************************************************************
+; Error suffix string constants
+; 
+; Reversed string constants used when building error messages.
+; str_at contains ': ta ' (reversed ' at :') appended to disc
+; error messages, and str_on_channel contains ' lennahc no '
+; (reversed ' on channel') for channel-specific errors.
+; 
+; ***************************************************************************************
 ; &841c referenced 1 time by &8386
 .str_at
     equs ": ta "                                                      ; 841c: 3a 20 74... : t
@@ -1443,6 +1461,16 @@ oscli                                           = &fff7
     bne zero_buffers_loop                                             ; 8496: d0 f4       ..             ; Loop for 256 bytes
     rts                                                               ; 8498: 60          `              ; Return
 
+; ***************************************************************************************
+; OSCLI abbreviation strings
+; 
+; CR-terminated command abbreviation strings passed to OSCLI:
+; str_exec_abbrev = 'E.' (*EXEC), str_spool_abbrev = 'SP.'
+; (*SPOOL). Also includes str_yes (reversed 'YES' + CR for
+; *DESTROY confirmation) and str_hugo (NUL + 'Hugo' directory
+; identity string).
+; 
+; ***************************************************************************************
 .str_exec_abbrev
     equs "E.", &0d                                                    ; 8499: 45 2e 0d    E..            ; "E." + CR: *EXEC abbreviation
 .str_spool_abbrev
@@ -2204,9 +2232,20 @@ oscli                                           = &fff7
 ; &8816 referenced 2 times by &a7d6, &a7f7
 .l8816
     equb 0                                                            ; 8816: 00          .
+
+; ***************************************************************************************
+; Disc operation control block template
+; 
+; Template for initialising the disc operation control block
+; at &1015. Copied to workspace before directory read/write
+; operations. Contains default values for result, memory
+; address, command, sector, count, and control fields.
+; 
+; ***************************************************************************************
 ; &8817 referenced 4 times by &89b1, &89f4, &8f8e, &94aa
 .l8817
-    equb 1, 0, &12, &ff, &ff, 8, 0, 0, 2, 5, 0                        ; 8817: 01 00 12... ...
+    ora (l0000,x)                                                     ; 8817: 01 00       ..
+    equb &12, &ff, &ff, 8, 0, 0, 2, 5, 0                              ; 8819: 12 ff ff... ...
 
 ; ***************************************************************************************
 ; Parse drive number from ASCII character
@@ -4134,6 +4173,16 @@ oscli                                           = &fff7
 .return_19
     rts                                                               ; 9268: 60          `              ; RTS-dispatch to function handler
 
+; ***************************************************************************************
+; OSFILE dispatch table
+; 
+; RTS-trick dispatch table for OSFILE functions 0-7. Low
+; bytes at &9269, high bytes at &926A, interleaved as pairs.
+; Functions: 0=save, 1=write cat info, 2=write load addr,
+; 3=write exec addr, 4=write attrs, 5=read cat info,
+; 6=delete, 7=create.
+; 
+; ***************************************************************************************
 ; &9269 referenced 1 time by &9256
 .osfile_dispatch_lo
     equb 4                                                            ; 9269: 04          .
@@ -4297,6 +4346,13 @@ oscli                                           = &fff7
     jsr oswrch                                                        ; 9310: 20 ee ff     ..            ; Write character 41
     jmp ca016                                                         ; 9313: 4c 16 a0    L..            ; Print space and return; Print a space character
 
+; ***************************************************************************************
+; Access attribute character table
+; 
+; Five-character table 'RWLDE' used to look up and display
+; file access attributes. Indexed by attribute bit position.
+; 
+; ***************************************************************************************
 ; &9316 referenced 2 times by &92ef, &99a7
 .l9316
     equs "RWLDE"                                                      ; 9316: 52 57 4c... RWL
@@ -5503,9 +5559,24 @@ oscli                                           = &fff7
 .jmp_indirect_fscv
     jmp (fscv)                                                        ; 9a43: 6c 1e 02    l..            ; Jump through filing system control
 
+; ***************************************************************************************
+; Default CSD and library workspace data
+; 
+; Default values for the CSD and library workspace: two
+; 10-byte directory names (both '$' padded with spaces)
+; followed by two 4-byte sector addresses (both sector 2).
+; Copied to workspace during initialisation.
+; 
+; ***************************************************************************************
 ; &9a46 referenced 1 time by &9aff
 .default_workspace_data
-    equs "$         $         "                                       ; 9a46: 24 20 20... $              ; Default CSD/lib names and sectors
+    bit l0020                                                         ; 9a46: 24 20       $              ; Default CSD/lib names and sectors
+    jsr l2020                                                         ; 9a48: 20 20 20
+    jsr l2020                                                         ; 9a4b: 20 20 20
+    jsr l2420                                                         ; 9a4e: 20 20 24      $
+    jsr l2020                                                         ; 9a51: 20 20 20
+    jsr l2020                                                         ; 9a54: 20 20 20
+    jsr l2020                                                         ; 9a57: 20 20 20
     equb 2, 0, 0, 0, 2, 0, 0, 0, 2                                    ; 9a5a: 02 00 00... ...
 
 ; ***************************************************************************************
@@ -5537,12 +5608,27 @@ oscli                                           = &fff7
 .return_22
     rts                                                               ; 9a77: 60          `              ; Return
 
+; ***************************************************************************************
+; Auto-boot data and command strings
+; 
+; Boot option data (3 bytes) and CR-terminated OSCLI command
+; strings for auto-boot: 'L.$.!BOOT' (load option) and
+; 'E.$.!BOOT' (exec option).
+; 
+; ***************************************************************************************
 .boot_data
     equb &7b, &7d, &85                                                ; 9a78: 7b 7d 85    {}.
 .str_l_boot
     equs "L.$.!BOOT", &0d                                             ; 9a7b: 4c 2e 24... L.$            ; "L.$.!BOOT" + CR: load boot file
 .str_e_boot
     equs "E.$.!BOOT", &0d                                             ; 9a85: 45 2e 24... E.$            ; "E.$.!BOOT" + CR: exec boot file; E.$.!BOOT (exec boot file)
+; ***************************************************************************************
+; Service call dispatch table
+; 
+; RTS-trick dispatch table for MOS service calls 0-9.
+; Low bytes at &9A8F, high bytes at &9A99, 10 entries.
+; 
+; ***************************************************************************************
 ; &9a8f referenced 1 time by &9ac7
 .service_dispatch_lo
     equb <(service_handler_0-1)                                       ; 9a8f: b7          .
@@ -5945,10 +6031,30 @@ boot_run_option = sub_c9b86+1
 .l9cb3
     equb &1b, &ff, &1e, &ff, &21, &ff, &24, &ff, &27, &ff, &2a, &ff   ; 9cb3: 1b ff 1e... ...
     equb &2d, &ff                                                     ; 9cbf: 2d ff       -.
+
+; ***************************************************************************************
+; Extended vector table
+; 
+; Extended vector entries for FILEV, ARGSV, BGETV, BPUTV,
+; and GBPBV. Each entry is a 3-byte record: address low,
+; address high, ROM number. Installed when ADFS is selected
+; as the current filing system.
+; 
+; ***************************************************************************************
 ; &9cc1 referenced 1 time by &9bb2
 .tbl_extended_vectors
-    equb &3e, &92, &ff, &55, &a9, &ff, &63, &ad, &ff, &8f, &b0, &ff   ; 9cc1: 3e 92 ff... >..
-    equb &7f, &b5, &ff, &b6, &b1, &ff, &50, &9e, &ff                  ; 9ccd: 7f b5 ff... ...
+    rol lff92,x                                                       ; 9cc1: 3e 92 ff    >..
+    eor l00a9,x                                                       ; 9cc4: 55 a9       U.
+    equb &ff, &63, &ad, &ff, &8f, &b0, &ff, &7f, &b5, &ff, &b6, &b1   ; 9cc6: ff 63 ad... .c.
+    equb &ff, &50, &9e, &ff                                           ; 9cd2: ff 50 9e... .P.
+; ***************************************************************************************
+; Filing system name string
+; 
+; The string 'adfs' (reversed for stack-based comparison)
+; used to identify the filing system during service call
+; handling.
+; 
+; ***************************************************************************************
 ; &9cd6 referenced 2 times by &9cf7, &9df9
 .str_filing_system_name
     equs "sfda"                                                       ; 9cd6: 73 66 64... sfd
@@ -6296,6 +6402,15 @@ l9dd3 = check_help_adfs_keyword+1
 .return_26
     rts                                                               ; 9e6c: 60          `              ; RTS-dispatch to handler
 
+; ***************************************************************************************
+; FSCV dispatch table
+; 
+; RTS-trick dispatch table for filing system control calls
+; 0-8. Low bytes at &9E6D, high bytes at &9E76, 9 entries.
+; FSC 0=*OPT, 1=check EOF, 2=*/, 3=*command, 4=*RUN,
+; 5=*CAT, 6=new FS, 7=handle range, 8=*command (OS 1.20).
+; 
+; ***************************************************************************************
 ; &9e6d referenced 1 time by &9e64
 .fscv_dispatch_lo
     equb <(sub_c9fdd-1)                                               ; 9e6d: dc          .
@@ -6397,12 +6512,22 @@ l9dd3 = check_help_adfs_keyword+1
     pha                                                               ; 9ee1: 48          H              ; Push low byte
     rts                                                               ; 9ee2: 60          `              ; RTS-dispatch to command handler
 
+; ***************************************************************************************
+; Star command name and dispatch table
+; 
+; Table of ADFS star command names with dispatch addresses.
+; Each entry is: command name bytes (bit 7 set on last),
+; dispatch address high, dispatch address low, parameter
+; count. Commands include ACCESS, BACK, BYE, CDIR, CLOSE,
+; COMPACT, COPY, DELETE, DESTROY, DIR, DISMOUNT, EX, FREE,
+; INFO, LCAT, LEX, LIB, MAP, MOUNT, REMOVE, RENAME, TITLE.
+; 
+; ***************************************************************************************
 ; &9ee3 referenced 5 times by &9e0d, &9e19, &9e95, &9ea6, &9eda
 .tbl_commands
-    equb &41                                                          ; 9ee3: 41          A
+l9ee4 = tbl_commands+1
+    eor (l0043,x)                                                     ; 9ee3: 41 43       AC
 ; &9ee4 referenced 1 time by &9ede
-.l9ee4
-    equb &43                                                          ; 9ee4: 43          C
 ; &9ee5 referenced 1 time by &9e2d
 .l9ee5
     equs "CESS"                                                       ; 9ee5: 43 45 53... CES
@@ -11352,20 +11477,69 @@ la868 = check_dest_terminator+1
 .return_45
     rts                                                               ; bc78: 60          `              ; Return
 
+; ***************************************************************************************
+; NMI handler code (copied to &0D00)
+; 
+; NMI handler routines for floppy disc data transfer. This
+; code is copied from ROM to the NMI workspace at &0D00
+; at the start of each floppy operation. Handles byte-by-byte
+; transfer between the WD1770 data register and memory,
+; with variants for direct memory, Tube read, and Tube write.
+; 
+; ***************************************************************************************
 ; &bc79 referenced 1 time by &bbf3
 .nmi_code_start
-    equb &48, &ad, &84, &fe, &29, &1f, &c9, 3, &d0, &10               ; bc79: 48 ad 84... H..
+    pha                                                               ; bc79: 48          H
+    lda fdc_8271_data_or_1770_command_or_status                       ; bc7a: ad 84 fe    ...
+    and #&1f                                                          ; bc7d: 29 1f       ).
+    cmp #3                                                            ; bc7f: c9 03       ..
+    bne cbc93                                                         ; bc81: d0 10       ..
 .nmi_code_rw
-    equb &ad, &87, &fe, &8d, &ff, &ff, &ee, &0e, &0d, &d0, 3, &ee     ; bc83: ad 87 fe... ...
-    equb &0f, &0d                                                     ; bc8f: 0f 0d       ..
-    equs "h@)X"                                                       ; bc91: 68 40 29... h@)
-    equb &f0, &0e, &85, &a0, &66, &a1, &38, &26, &a1, &66, &a2, &38   ; bc95: f0 0e 85... ...
-    equb &26, &a2                                                     ; bca1: 26 a2       &.
-    equs "h@$"                                                        ; bca3: 68 40 24    h@$
-    equb &a2, &50, &f5, &a5, &f4, &48, &a9, 0, &85, &f4, &8d, &30     ; bca6: a2 50 f5... .P.
-    equb &fe, &8a                                                     ; bcb2: fe 8a       ..
-    equs "H i"                                                        ; bcb4: 48 20 69    H i
-    equb &be, &68, &aa, &68, &85, &f4, &8d, &30, &fe, &68, &40        ; bcb7: be 68 aa... .h.
+    lda fdc_1770_data                                                 ; bc83: ad 87 fe    ...
+    sta lffff                                                         ; bc86: 8d ff ff    ...
+    inc nmi_0d0e                                                      ; bc89: ee 0e 0d    ...
+    bne cbc91                                                         ; bc8c: d0 03       ..
+    inc nmi_0d0f                                                      ; bc8e: ee 0f 0d    ...
+; &bc91 referenced 1 time by &bc8c
+.cbc91
+    pla                                                               ; bc91: 68          h
+    rti                                                               ; bc92: 40          @
+
+; &bc93 referenced 1 time by &bc81
+.cbc93
+    and #&58 ; 'X'                                                    ; bc93: 29 58       )X
+    beq cbca5                                                         ; bc95: f0 0e       ..
+    sta zp_floppy_error                                               ; bc97: 85 a0       ..
+    ror zp_floppy_control                                             ; bc99: 66 a1       f.
+    sec                                                               ; bc9b: 38          8
+    rol zp_floppy_control                                             ; bc9c: 26 a1       &.
+; &bc9e referenced 1 time by &bca7
+.loop_cbc9e
+    ror zp_floppy_state                                               ; bc9e: 66 a2       f.
+    sec                                                               ; bca0: 38          8
+    rol zp_floppy_state                                               ; bca1: 26 a2       &.
+    pla                                                               ; bca3: 68          h
+    rti                                                               ; bca4: 40          @
+
+; &bca5 referenced 1 time by &bc95
+.cbca5
+    bit zp_floppy_state                                               ; bca5: 24 a2       $.
+    bvc loop_cbc9e                                                    ; bca7: 50 f5       P.
+    lda romsel_copy                                                   ; bca9: a5 f4       ..
+    pha                                                               ; bcab: 48          H
+    lda #0                                                            ; bcac: a9 00       ..
+    sta romsel_copy                                                   ; bcae: 85 f4       ..
+    sta romsel                                                        ; bcb0: 8d 30 fe    .0.
+    txa                                                               ; bcb3: 8a          .
+    pha                                                               ; bcb4: 48          H
+    jsr sub_cbe69                                                     ; bcb5: 20 69 be     i.
+    pla                                                               ; bcb8: 68          h
+    tax                                                               ; bcb9: aa          .
+    pla                                                               ; bcba: 68          h
+    sta romsel_copy                                                   ; bcbb: 85 f4       ..
+    sta romsel                                                        ; bcbd: 8d 30 fe    .0.
+    pla                                                               ; bcc0: 68          h
+    rti                                                               ; bcc1: 40          @
 
 ; ***************************************************************************************
 ; Wait for floppy NMI transfer to complete
@@ -11676,6 +11850,8 @@ la868 = check_dest_terminator+1
     ora nmi_0d5c                                                      ; be61: 0d 5c 0d    .\.            ; OR in drive select
     sta fdc_8271_data_or_1770_command_or_status                       ; be64: 8d 84 fe    ...            ; Issue restore command
     bpl wait_format_nmi_complete                                      ; be67: 10 ca       ..             ; Continue loop (always branches)
+; &be69 referenced 1 time by &bcb5
+.sub_cbe69
     jsr clear_transfer_complete                                       ; be69: 20 2b bd     +.            ; Clear seek flag; Clear floppy transfer complete flag
     jsr execute_fdc_seek                                              ; be6c: 20 84 be     ..            ; Check for next track boundary
     txa                                                               ; be6f: 8a          .              ; Transfer result to A
@@ -11980,6 +12156,15 @@ la868 = check_dest_terminator+1
     and #&7f                                                          ; bff3: 29 7f       ).             ; Mask to 7-bit error code
     rts                                                               ; bff5: 60          `              ; Return
 
+; ***************************************************************************************
+; ROM footer text
+; 
+; The text 'and Hugo.' followed by CR. This fills the last
+; 10 bytes of the ROM, a signature referencing the Hugo
+; directory format used by ADFS.
+; 
+; ***************************************************************************************
+.str_rom_footer
     equs "and Hugo.", &0d                                             ; bff6: 61 6e 64... and            ; "and Hugo." + CR: ROM footer text
 .pydis_end
 
@@ -12053,6 +12238,7 @@ save pydis_start, pydis_end
 ;     wksp_csd_drive_sector:                             21
 ;     l10e4:                                             20
 ;     wksp_ch_flags:                                     20
+;     zp_floppy_state:                                   20
 ;     fsm_s1_total_sectors_lo:                           19
 ;     zp_mem_ptr_h:                                      19
 ;     check_char_is_terminator:                          18
@@ -12062,19 +12248,18 @@ save pydis_start, pydis_end
 ;     wksp_ch_ext_ml:                                    18
 ;     zp_floppy_track:                                   18
 ;     osbyte:                                            17
+;     romsel_copy:                                       17
 ;     wksp_ch_ext_l:                                     17
 ;     write_dir_and_validate:                            17
-;     zp_floppy_state:                                   17
 ;     zp_save_x:                                         17
 ;     l11b6:                                             16
 ;     wksp_disc_op_sector_count:                         16
+;     zp_floppy_control:                                 16
 ;     zp_wksp_ptr:                                       16
 ;     scsi_wait_for_req:                                 15
 ;     fsm_s0_boot_option:                                14
 ;     print_inline_string:                               14
-;     romsel_copy:                                       14
 ;     wksp_disc_op_command:                              14
-;     zp_floppy_control:                                 14
 ;     find_first_matching_entry:                         13
 ;     fsm_sector_0:                                      13
 ;     wksp_ch_ptr_h:                                     13
@@ -12100,6 +12285,7 @@ save pydis_start, pydis_end
 ;     l10b4:                                             11
 ;     skip_spaces:                                       11
 ;     zp_buf_dest:                                       11
+;     l0000:                                             10
 ;     l1098:                                             10
 ;     l11c0:                                             10
 ;     l11ca:                                             10
@@ -12108,7 +12294,6 @@ save pydis_start, pydis_end
 ;     wksp_osfile_block:                                 10
 ;     zp_ctrl_blk_h:                                     10
 ;     dir_master_sequence:                                9
-;     l0000:                                              9
 ;     l0001:                                              9
 ;     l0002:                                              9
 ;     l0003:                                              9
@@ -12127,6 +12312,7 @@ save pydis_start, pydis_end
 ;     ca016:                                              8
 ;     exec_disc_command:                                  8
 ;     exec_disc_op_from_wksp:                             8
+;     fdc_8271_data_or_1770_command_or_status:            8
 ;     l0406:                                              8
 ;     l1035:                                              8
 ;     l1041:                                              8
@@ -12144,7 +12330,6 @@ save pydis_start, pydis_end
 ;     bad_checksum_error:                                 7
 ;     check_first_char_wildcard:                          7
 ;     command_done:                                       7
-;     fdc_8271_data_or_1770_command_or_status:            7
 ;     floppy_error:                                       7
 ;     l1018:                                              7
 ;     l1021:                                              7
@@ -12169,6 +12354,7 @@ save pydis_start, pydis_end
 ;     wksp_lib_sector:                                    7
 ;     wksp_prev_dir_sector:                               7
 ;     zp_floppy_dest_page:                                7
+;     zp_floppy_error:                                    7
 ;     zp_floppy_sector:                                   7
 ;     zp_floppy_track_num:                                7
 ;     zp_name_ptr_h:                                      7
@@ -12194,7 +12380,6 @@ save pydis_start, pydis_end
 ;     wksp_1038:                                          6
 ;     wksp_current_drive_hi:                              6
 ;     xa_div_16_to_ya:                                    6
-;     zp_floppy_error:                                    6
 ;     zp_retry_count:                                     6
 ;     zp_save_y:                                          6
 ;     check_file_not_open:                                5
@@ -12213,6 +12398,7 @@ save pydis_start, pydis_end
 ;     l10b9:                                              5
 ;     l10c2:                                              5
 ;     l111f:                                              5
+;     l2020:                                              5
 ;     mark_directory_dirty:                               5
 ;     nmi_0d57:                                           5
 ;     nmi_0d5c:                                           5
@@ -12261,6 +12447,8 @@ save pydis_start, pydis_end
 ;     l11f2:                                              4
 ;     l8817:                                              4
 ;     multi_sector_disc_command:                          4
+;     nmi_0d0e:                                           4
+;     nmi_0d0f:                                           4
 ;     nmi_0d56:                                           4
 ;     nmi_0d5a:                                           4
 ;     parse_second_filename:                              4
@@ -12337,8 +12525,6 @@ save pydis_start, pydis_end
 ;     load_sector_to_buffer:                              3
 ;     mark_buffer_dirty:                                  3
 ;     nmi_0d0a:                                           3
-;     nmi_0d0e:                                           3
-;     nmi_0d0f:                                           3
 ;     osasci:                                             3
 ;     osbyte_y_ff_x_00:                                   3
 ;     oscli:                                              3
@@ -12557,6 +12743,7 @@ save pydis_start, pydis_end
 ;     return_48:                                          2
 ;     return_floppy_result:                               2
 ;     return_success:                                     2
+;     romsel:                                             2
 ;     run_jump_to_file:                                   2
 ;     save_and_flush_after_transfer:                      2
 ;     save_and_return_handle:                             2
@@ -12672,6 +12859,9 @@ save pydis_start, pydis_end
 ;     calc_remaining_sector:                              1
 ;     calc_zero_fill_start:                               1
 ;     calculate_total_sectors:                            1
+;     cbc91:                                              1
+;     cbc93:                                              1
+;     cbca5:                                              1
 ;     channel_on_same_drive:                              1
 ;     check_4byte_addrs:                                  1
 ;     check_access_is_dir_loop:                           1
@@ -12944,6 +13134,7 @@ save pydis_start, pydis_end
 ;     execute_partial_disc_op:                            1
 ;     extend_file_allocation:                             1
 ;     extend_file_if_needed:                              1
+;     fdc_1770_data:                                      1
 ;     file_is_locked:                                     1
 ;     file_is_locked_error:                               1
 ;     filev:                                              1
@@ -13005,6 +13196,9 @@ save pydis_start, pydis_end
 ;     issue_multi_sector_rw:                              1
 ;     issue_step_command:                                 1
 ;     jmp_indirect_fscv:                                  1
+;     l0020:                                              1
+;     l0043:                                              1
+;     l00a9:                                              1
 ;     l00ef:                                              1
 ;     l00f1:                                              1
 ;     l0102:                                              1
@@ -13041,6 +13235,7 @@ save pydis_start, pydis_end
 ;     l111d:                                              1
 ;     l1183:                                              1
 ;     l200f:                                              1
+;     l2420:                                              1
 ;     l8ded:                                              1
 ;     l9632:                                              1
 ;     l9cb3:                                              1
@@ -13050,11 +13245,14 @@ save pydis_start, pydis_end
 ;     la154:                                              1
 ;     la868:                                              1
 ;     last_char_reached:                                  1
+;     lff92:                                              1
+;     lffff:                                              1
 ;     load_dest_directory:                                1
 ;     load_dir_and_list_entries:                          1
 ;     load_fsm_for_boot:                                  1
 ;     load_root_directory:                                1
 ;     load_sector_check_result:                           1
+;     loop_cbc9e:                                         1
 ;     mark_directory_modified:                            1
 ;     mark_entry_created:                                 1
 ;     mark_entry_dirty:                                   1
@@ -13389,6 +13587,7 @@ save pydis_start, pydis_end
 ;     str_at:                                             1
 ;     str_on_channel:                                     1
 ;     str_yes:                                            1
+;     sub_cbe69:                                          1
 ;     subtract_from_length_loop:                          1
 ;     sum_entry_bytes_loop:                               1
 ;     sum_fsm_entries_loop:                               1
@@ -13462,10 +13661,16 @@ save pydis_start, pydis_end
 ;     c9ff1
 ;     c9ff6
 ;     ca00a
+;     cbc91
+;     cbc93
+;     cbca5
 ;     l0000
 ;     l0001
 ;     l0002
 ;     l0003
+;     l0020
+;     l0043
+;     l00a9
 ;     l00ef
 ;     l00f0
 ;     l00f1
@@ -13611,10 +13816,10 @@ save pydis_start, pydis_end
 ;     l11e8
 ;     l11f2
 ;     l200f
+;     l2020
+;     l2420
 ;     l8816
-;     l8817
 ;     l8ded
-;     l9316
 ;     l9632
 ;     l9cb3
 ;     l9dd3
@@ -13623,6 +13828,9 @@ save pydis_start, pydis_end
 ;     l9ee5
 ;     la154
 ;     la868
+;     lff92
+;     lffff
+;     loop_cbc9e
 ;     return_1
 ;     return_10
 ;     return_11
@@ -13676,14 +13884,15 @@ save pydis_start, pydis_end
 ;     sub_c9fd8
 ;     sub_c9fdd
 ;     sub_ca153
+;     sub_cbe69
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14844 bytes (91%)
-;     Data                     = 1540 bytes (9%)
+;     Code                     = 14946 bytes (91%)
+;     Data                     = 1438 bytes (9%)
 ;
-;     Number of instructions   = 6908
-;     Number of data bytes     = 589 bytes
+;     Number of instructions   = 6959
+;     Number of data bytes     = 517 bytes
 ;     Number of data words     = 16 bytes
-;     Number of string bytes   = 935 bytes
-;     Number of strings        = 106
+;     Number of string bytes   = 905 bytes
+;     Number of strings        = 102

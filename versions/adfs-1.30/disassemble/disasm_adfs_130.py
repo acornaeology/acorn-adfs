@@ -443,6 +443,7 @@ hook_subroutine(0x83BB, "generate_error_skip_no_suffix", brk_error_hook)
 hook_subroutine(0x8351, "generate_error_no_suffix", brk_error_hook)
 
 # String data
+entry(0x841C)
 label(0x841C, "str_at")
 label(0x8421, "str_on_channel")
 
@@ -912,6 +913,22 @@ entry(0xB5C8)
 entry(0xB8DB)
 entry(0xBAF4)
 entry(0xBB82)
+
+# Interstitial data block entries (visual separation for data between routines)
+entry(0x8499)
+entry(0x8817)
+entry(0x9269)
+entry(0x9316)
+entry(0x9A46)
+entry(0x9A78)
+entry(0x9A8F)
+entry(0x9CC1)
+entry(0x9CD6)
+entry(0x9E6D)
+entry(0x9EE3)
+entry(0xBC79)
+label(0xBFF6, "str_rom_footer")
+entry(0xBFF6)
 
 # ===========================================================================
 # Code label renames
@@ -11114,6 +11131,135 @@ comment(0xAD5E, "Error &DF: EOF", inline=True)
 comment(0xB0A0, "Error &C1: Not open for update", inline=True)
 comment(0xB1EE, "Error &C0: Too many open", inline=True)
 comment(0xB4B1, "Error &C8: Disc changed", inline=True)
+
+# ---------------------------------------------------------------------------
+# Interstitial data blocks: these are data areas between routines that
+# need visual separation to avoid appearing as part of adjacent code.
+# ---------------------------------------------------------------------------
+
+subroutine(0x841C, "str_at",
+    title="Error suffix string constants",
+    description="""\
+Reversed string constants used when building error messages.
+str_at contains ': ta ' (reversed ' at :') appended to disc
+error messages, and str_on_channel contains ' lennahc no '
+(reversed ' on channel') for channel-specific errors.
+""")
+
+subroutine(0x8499, "str_exec_abbrev",
+    title="OSCLI abbreviation strings",
+    description="""\
+CR-terminated command abbreviation strings passed to OSCLI:
+str_exec_abbrev = 'E.' (*EXEC), str_spool_abbrev = 'SP.'
+(*SPOOL). Also includes str_yes (reversed 'YES' + CR for
+*DESTROY confirmation) and str_hugo (NUL + 'Hugo' directory
+identity string).
+""")
+
+subroutine(0x8817, "l8817",
+    title="Disc operation control block template",
+    description="""\
+Template for initialising the disc operation control block
+at &1015. Copied to workspace before directory read/write
+operations. Contains default values for result, memory
+address, command, sector, count, and control fields.
+""")
+
+subroutine(0x9269, "osfile_dispatch_lo",
+    title="OSFILE dispatch table",
+    description="""\
+RTS-trick dispatch table for OSFILE functions 0-7. Low
+bytes at &9269, high bytes at &926A, interleaved as pairs.
+Functions: 0=save, 1=write cat info, 2=write load addr,
+3=write exec addr, 4=write attrs, 5=read cat info,
+6=delete, 7=create.
+""")
+
+subroutine(0x9316, "l9316",
+    title="Access attribute character table",
+    description="""\
+Five-character table 'RWLDE' used to look up and display
+file access attributes. Indexed by attribute bit position.
+""")
+
+subroutine(0x9A46, "default_workspace_data",
+    title="Default CSD and library workspace data",
+    description="""\
+Default values for the CSD and library workspace: two
+10-byte directory names (both '$' padded with spaces)
+followed by two 4-byte sector addresses (both sector 2).
+Copied to workspace during initialisation.
+""")
+
+subroutine(0x9A78, "boot_data",
+    title="Auto-boot data and command strings",
+    description="""\
+Boot option data (3 bytes) and CR-terminated OSCLI command
+strings for auto-boot: 'L.$.!BOOT' (load option) and
+'E.$.!BOOT' (exec option).
+""")
+
+subroutine(0x9A8F, "service_dispatch_lo",
+    title="Service call dispatch table",
+    description="""\
+RTS-trick dispatch table for MOS service calls 0-9.
+Low bytes at &9A8F, high bytes at &9A99, 10 entries.
+""")
+
+subroutine(0x9CC1, "tbl_extended_vectors",
+    title="Extended vector table",
+    description="""\
+Extended vector entries for FILEV, ARGSV, BGETV, BPUTV,
+and GBPBV. Each entry is a 3-byte record: address low,
+address high, ROM number. Installed when ADFS is selected
+as the current filing system.
+""")
+
+subroutine(0x9CD6, "str_filing_system_name",
+    title="Filing system name string",
+    description="""\
+The string 'adfs' (reversed for stack-based comparison)
+used to identify the filing system during service call
+handling.
+""")
+
+subroutine(0x9E6D, "fscv_dispatch_lo",
+    title="FSCV dispatch table",
+    description="""\
+RTS-trick dispatch table for filing system control calls
+0-8. Low bytes at &9E6D, high bytes at &9E76, 9 entries.
+FSC 0=*OPT, 1=check EOF, 2=*/, 3=*command, 4=*RUN,
+5=*CAT, 6=new FS, 7=handle range, 8=*command (OS 1.20).
+""")
+
+subroutine(0x9EE3, "tbl_commands",
+    title="Star command name and dispatch table",
+    description="""\
+Table of ADFS star command names with dispatch addresses.
+Each entry is: command name bytes (bit 7 set on last),
+dispatch address high, dispatch address low, parameter
+count. Commands include ACCESS, BACK, BYE, CDIR, CLOSE,
+COMPACT, COPY, DELETE, DESTROY, DIR, DISMOUNT, EX, FREE,
+INFO, LCAT, LEX, LIB, MAP, MOUNT, REMOVE, RENAME, TITLE.
+""")
+
+subroutine(0xBC79, "nmi_code_start",
+    title="NMI handler code (copied to &0D00)",
+    description="""\
+NMI handler routines for floppy disc data transfer. This
+code is copied from ROM to the NMI workspace at &0D00
+at the start of each floppy operation. Handles byte-by-byte
+transfer between the WD1770 data register and memory,
+with variants for direct memory, Tube read, and Tube write.
+""")
+
+subroutine(0xBFF6, "str_rom_footer",
+    title="ROM footer text",
+    description="""\
+The text 'and Hugo.' followed by CR. This fills the last
+10 bytes of the ROM, a signature referencing the Hugo
+directory format used by ADFS.
+""")
 
 # ---------------------------------------------------------------------------
 # Generate disassembly
