@@ -135,6 +135,7 @@ nmi_0d0b                                        = &0d0b
 nmi_0d0c                                        = &0d0c
 nmi_0d0e                                        = &0d0e
 nmi_0d0f                                        = &0d0f
+l0d18                                           = &0d18
 nmi_0d34                                        = &0d34
 nmi_0d56                                        = &0d56
 nmi_0d57                                        = &0d57
@@ -400,6 +401,37 @@ osword                                          = &fff1
 osbyte                                          = &fff4
 oscli                                           = &fff7
 lffff                                           = &ffff
+
+    org &bcdf
+
+.nmi_write_code
+
+; Move 1: &bcdf to &0d0a for length 14
+    org &0d0a
+; &bcdf referenced 3 times by &bc49, &bc55, &bc65
+    lda lffff                                                         ; bcdf: ad ff ff    ... :0d0a[1]   ; Read byte from transfer address
+; &bce0 referenced 3 times by &0d10[1], &ba43, &bc6f
+; &bce1 referenced 3 times by &0d15[1], &ba48, &bc75
+    sta fdc_1770_data                                                 ; bce2: 8d 87 fe    ... :0d0d[1]   ; Write to WD1770 data register
+; &bce3 referenced 4 times by &ba4f, &bc00, &bc89, &bd60
+; &bce4 referenced 4 times by &ba54, &bc06, &bc8e, &bd5b
+    inc nmi_0d0b                                                      ; bce5: ee 0b 0d    ... :0d10[1]   ; Increment transfer address low
+    bne l0d18                                                         ; bce8: d0 03       ..  :0d13[1]   ; No wrap: skip high byte increment
+    inc nmi_0d0c                                                      ; bcea: ee 0c 0d    ... :0d15[1]   ; Increment transfer address high
+
+    ; Copy the newly assembled block of code back to it's proper place in the binary
+    ; file.
+    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
+    copyblock &0d0a, *, nmi_write_code
+
+    ; Clear the area of memory we just temporarily used to assemble the new block,
+    ; allowing us to assemble there again if needed
+    clear &0d0a, &0d18
+
+    ; Set the program counter to the next position in the binary file.
+    org nmi_write_code + (* - &0d0a)
+
+.nmi_tube_write_code
 
     org &8000
 
@@ -12015,20 +12047,16 @@ la868 = check_dest_terminator+1
     jmp floppy_error                                                  ; bcdc: 4c ae bf    L..            ; Handle floppy error; Handle floppy disc error
 
 ; &bcdf referenced 1 time by &bc62
-.nmi_write_code
-    equb &ad, &ff, &ff                                                ; bcdf: ad ff ff    ...            ; &0D0A: LDA &FFFF (patched source addr)
-    equb &8d, &87, &fe                                                ; bce2: 8d 87 fe    ...            ; &0D0D: STA &FE87 (write to WD1770 data)
-    equb &ee, &0b, &0d                                                ; bce5: ee 0b 0d    ...            ; &0D10: INC &0D0B (increment source low)
-    equb &d0, 3                                                       ; bce8: d0 03       ..             ; &0D13: BNE +3 (skip high byte increment)
-    equb &ee, &0c, &0d                                                ; bcea: ee 0c 0d    ...            ; &0D15: INC &0D0C (increment source high)
+
+    org &bced
+
 ; &bced referenced 1 time by &bc46
-.nmi_tube_write_code
-    equb &ad, &e5, &fe                                                ; bced: ad e5 fe    ...            ; &0D0A: LDA &FEE5 (read Tube R3 data)
-    equb &8d, &87, &fe                                                ; bcf0: 8d 87 fe    ...            ; &0D0D: STA &FE87 (write to WD1770 data)
+    equb &ad, &e5, &fe                                                ; bced: ad e5 fe    ...            ; &0D0A: LDA &FEE5 (read Tube R3)
+    equb &8d, &87, &fe                                                ; bcf0: 8d 87 fe    ...            ; &0D0D: STA &FE87 (write to WD1770)
     equb &b0, 6                                                       ; bcf3: b0 06       ..             ; &0D10: BCS +6 (branch to completion)
 ; &bcf5 referenced 1 time by &bc52
 .nmi_tube_read_code
-    equb &ad, &87, &fe                                                ; bcf5: ad 87 fe    ...            ; &0D0A: LDA &FE87 (read WD1770 data)
+    equb &ad, &87, &fe                                                ; bcf5: ad 87 fe    ...            ; &0D0A: LDA &FE87 (read WD1770)
     equb &8d, &e5, &fe                                                ; bcf8: 8d e5 fe    ...            ; &0D0D: STA &FEE5 (write to Tube R3)
     equb &b0, 6                                                       ; bcfb: b0 06       ..             ; &0D10: BCS +6 (branch to completion)
 
@@ -12981,6 +13009,8 @@ save pydis_start, pydis_end
 ;     load_sector_to_buffer:                              3
 ;     mark_buffer_dirty:                                  3
 ;     nmi_0d0a:                                           3
+;     nmi_0d0b:                                           3
+;     nmi_0d0c:                                           3
 ;     osasci:                                             3
 ;     osbyte_y_ff_x_00:                                   3
 ;     oscli:                                              3
@@ -13094,6 +13124,7 @@ save pydis_start, pydis_end
 ;     end_of_data_command:                                2
 ;     end_of_spaces:                                      2
 ;     eof_error:                                          2
+;     fdc_1770_data:                                      2
 ;     fdc_1770_sector:                                    2
 ;     find_last_path_component:                           2
 ;     floppy_get_step_rate:                               2
@@ -13141,6 +13172,7 @@ save pydis_start, pydis_end
 ;     l9316:                                              2
 ;     l9dd3:                                              2
 ;     last_break_type:                                    2
+;     lffff:                                              2
 ;     load_dir_for_drive:                                 2
 ;     load_tube_workspace_ptr:                            2
 ;     mark_saved_drive_unset:                             2
@@ -13150,8 +13182,6 @@ save pydis_start, pydis_end
 ;     my_osfind:                                          2
 ;     next_attr_char:                                     2
 ;     next_command_entry:                                 2
-;     nmi_0d0b:                                           2
-;     nmi_0d0c:                                           2
 ;     nmi_0d5d:                                           2
 ;     nmi_0dff:                                           2
 ;     not_open_for_update_error:                          2
@@ -13590,7 +13620,6 @@ save pydis_start, pydis_end
 ;     execute_partial_disc_op:                            1
 ;     extend_file_allocation:                             1
 ;     extend_file_if_needed:                              1
-;     fdc_1770_data:                                      1
 ;     file_is_locked:                                     1
 ;     file_is_locked_error:                               1
 ;     filev:                                              1
@@ -13658,6 +13687,7 @@ save pydis_start, pydis_end
 ;     l0103:                                              1
 ;     l0104:                                              1
 ;     l06a9:                                              1
+;     l0d18:                                              1
 ;     l0e03:                                              1
 ;     l103e:                                              1
 ;     l1046:                                              1
@@ -13693,7 +13723,6 @@ save pydis_start, pydis_end
 ;     la154:                                              1
 ;     la868:                                              1
 ;     last_char_reached:                                  1
-;     lffff:                                              1
 ;     load_dest_directory:                                1
 ;     load_dir_and_list_entries:                          1
 ;     load_fsm_for_boot:                                  1
@@ -14133,6 +14162,7 @@ save pydis_start, pydis_end
 ;     l0104
 ;     l0406
 ;     l06a9
+;     l0d18
 ;     l0e03
 ;     l1017
 ;     l1018
@@ -14329,11 +14359,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 15086 bytes (92%)
-;     Data                     = 1298 bytes (8%)
+;     Code                     = 15100 bytes (92%)
+;     Data                     = 1284 bytes (8%)
 ;
-;     Number of instructions   = 7026
-;     Number of data bytes     = 336 bytes
+;     Number of instructions   = 7031
+;     Number of data bytes     = 322 bytes
 ;     Number of data words     = 44 bytes
 ;     Number of string bytes   = 918 bytes
 ;     Number of strings        = 106

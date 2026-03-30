@@ -701,35 +701,34 @@ label(0xBC83, "nmi_code_rw")
 entry(0xBCC2)
 label(0xBCC2, "floppy_wait_nmi_finish")
 
-# NMI handler code fragments: copied to &0D0A at runtime to replace
-# the read/write section of the NMI handler. Shown as data bytes
-# with comments showing the decoded instructions at runtime address.
+# NMI handler code fragments: all three are copied to &0D0A at
+# runtime. Use move() for the direct-memory variant (longest, 14
+# bytes) so py8dis decodes it properly. The two Tube variants are
+# shorter alternatives that overlay the same address; show those
+# as annotated data since py8dis can only move() one block to a
+# given destination.
 label(0xBCDF, "nmi_write_code")
-entry(0xBCDF)
-byte(0xBCDF, 3)
-comment(0xBCDF, "&0D0A: LDA &FFFF (patched source addr)", inline=True)
-byte(0xBCE2, 3)
-comment(0xBCE2, "&0D0D: STA &FE87 (write to WD1770 data)", inline=True)
-byte(0xBCE5, 3)
-comment(0xBCE5, "&0D10: INC &0D0B (increment source low)", inline=True)
-byte(0xBCE8, 2)
-comment(0xBCE8, "&0D13: BNE +3 (skip high byte increment)", inline=True)
-byte(0xBCEA, 3)
-comment(0xBCEA, "&0D15: INC &0D0C (increment source high)", inline=True)
+move(0x0D0A, 0xBCDF, 14)
+entry(0x0D0A)
+comment(0x0D0A, "Read byte from transfer address", inline=True)
+comment(0x0D0D, "Write to WD1770 data register", inline=True)
+comment(0x0D10, "Increment transfer address low", inline=True)
+comment(0x0D13, "No wrap: skip high byte increment", inline=True)
+comment(0x0D15, "Increment transfer address high", inline=True)
 
 label(0xBCED, "nmi_tube_write_code")
 entry(0xBCED)
 byte(0xBCED, 3)
-comment(0xBCED, "&0D0A: LDA &FEE5 (read Tube R3 data)", inline=True)
+comment(0xBCED, "&0D0A: LDA &FEE5 (read Tube R3)", inline=True)
 byte(0xBCF0, 3)
-comment(0xBCF0, "&0D0D: STA &FE87 (write to WD1770 data)", inline=True)
+comment(0xBCF0, "&0D0D: STA &FE87 (write to WD1770)", inline=True)
 byte(0xBCF3, 2)
 comment(0xBCF3, "&0D10: BCS +6 (branch to completion)", inline=True)
 
 label(0xBCF5, "nmi_tube_read_code")
 entry(0xBCF5)
 byte(0xBCF5, 3)
-comment(0xBCF5, "&0D0A: LDA &FE87 (read WD1770 data)", inline=True)
+comment(0xBCF5, "&0D0A: LDA &FE87 (read WD1770)", inline=True)
 byte(0xBCF8, 3)
 comment(0xBCF8, "&0D0D: STA &FEE5 (write to Tube R3)", inline=True)
 byte(0xBCFB, 2)
