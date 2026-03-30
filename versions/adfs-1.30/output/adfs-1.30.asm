@@ -6971,15 +6971,15 @@ la154 = sub_ca153+1
     jsr check_drive_colon                                             ; a509: 20 f6 a4     ..            ; Check for drive specifier; Check for drive specifier colon
     jsr sub_c8dbd                                                     ; a50c: 20 bd 8d     ..            ; Parse and validate destination path
     jsr sub_c8be5                                                     ; a50f: 20 e5 8b     ..            ; Search for source file
-    beq ca517                                                         ; a512: f0 03       ..             ; Found?
+    beq source_is_found                                               ; a512: f0 03       ..             ; Found?
     jmp c8bc8                                                         ; a514: 4c c8 8b    L..            ; Not found: report error
 
 ; &a517 referenced 1 time by &a512
-.ca517
+.source_is_found
     ldy #3                                                            ; a517: a0 03       ..             ; Y=3: check if source is directory
     lda (zp_b6),y                                                     ; a519: b1 b6       ..             ; Get source entry access byte
     jsr c89d3                                                         ; a51b: 20 d3 89     ..            ; Save workspace state
-    bpl ca544                                                         ; a51e: 10 24       .$             ; Not a directory: skip self-ref check
+    bpl parse_destination_name                                        ; a51e: 10 24       .$             ; Not a directory: skip self-ref check
     pla                                                               ; a520: 68          h              ; Restore first argument pointer
     tax                                                               ; a521: aa          .              ; Transfer to X for save
     pla                                                               ; a522: 68          h              ; Restore first arg low from stack
@@ -6994,21 +6994,21 @@ la154 = sub_ca153+1
     cmp #&24 ; '$'                                                    ; a530: c9 24       .$             ; Is it '$'?
     beq parse_drive_specifier                                         ; a532: f0 cc       ..             ; Root: Bad rename error
 ; &a534 referenced 1 time by &a53e
-.loop_ca534
+.scan_dest_for_parent_ref
     jsr check_char_is_terminator                                      ; a534: 20 1a 87     ..            ; Scan for '^' in destination path; Check if character is a filename terminator
-    beq ca540                                                         ; a537: f0 07       ..             ; Terminator found, check type
+    beq check_dot_in_dest                                             ; a537: f0 07       ..             ; Terminator found, check type
     cmp #&5e ; '^'                                                    ; a539: c9 5e       .^             ; Is it '^' (parent)?
     beq parse_drive_specifier                                         ; a53b: f0 c3       ..             ; Parent ref in dest: Bad rename error
 ; &a53d referenced 1 time by &a542
-.loop_ca53d
+.advance_dest_scan
     iny                                                               ; a53d: c8          .              ; Next character in scan
-    bne loop_ca534                                                    ; a53e: d0 f4       ..             ; Loop scanning destination path
+    bne scan_dest_for_parent_ref                                      ; a53e: d0 f4       ..             ; Loop scanning destination path
 ; &a540 referenced 1 time by &a537
-.ca540
+.check_dot_in_dest
     cmp #&2e ; '.'                                                    ; a540: c9 2e       ..             ; Check for '.' separator
-    beq loop_ca53d                                                    ; a542: f0 f9       ..             ; Dot separator: continue past it
+    beq advance_dest_scan                                             ; a542: f0 f9       ..             ; Dot separator: continue past it
 ; &a544 referenced 1 time by &a51e
-.ca544
+.parse_destination_name
     jsr sub_ca365                                                     ; a544: 20 65 a3     e.            ; Parse second arg (destination)
     jsr check_drive_colon                                             ; a547: 20 f6 a4     ..            ; Check for drive specifier colon
     lda #&40 ; '@'                                                    ; a54a: a9 40       .@             ; Set up OSFILE block pointer
@@ -7019,28 +7019,28 @@ la154 = sub_ca153+1
     php                                                               ; a555: 08          .              ; Save search result flags
     jsr sub_c8df6                                                     ; a556: 20 f6 8d     ..            ; Check directory state
     plp                                                               ; a559: 28          (              ; Restore flags
-    bne ca569                                                         ; a55a: d0 0d       ..             ; Dest not found: good for rename
+    bne check_alt_workspace                                           ; a55a: d0 0d       ..             ; Dest not found: good for rename
     lda zp_b6                                                         ; a55c: a5 b6       ..             ; Dest exists: save entry pointer
     ldy #3                                                            ; a55e: a0 03       ..             ; Y=3: copy sector+entry info
 ; &a560 referenced 1 time by &a567
-.loop_ca560
+.save_dest_dir_info_loop
     sta wksp_object_sector,y                                          ; a560: 99 34 10    .4.            ; Store in object sector workspace
     lda wksp_csd_sector,y                                             ; a563: b9 13 11    ...            ; Get CSD sector byte
     dey                                                               ; a566: 88          .              ; Next byte
-    bpl loop_ca560                                                    ; a567: 10 f7       ..             ; Loop for 4 bytes
+    bpl save_dest_dir_info_loop                                       ; a567: 10 f7       ..             ; Loop for 4 bytes
 ; &a569 referenced 1 time by &a55a
-.ca569
+.check_alt_workspace
     lda l102e                                                         ; a569: ad 2e 10    ...            ; Check if alt workspace is set
-    bpl ca579                                                         ; a56c: 10 0b       ..             ; Set: skip CSD restore
+    bpl reload_and_parse_source                                       ; a56c: 10 0b       ..             ; Set: skip CSD restore
     ldy #2                                                            ; a56e: a0 02       ..             ; Y=2: copy CSD sector from backup
 ; &a570 referenced 1 time by &a577
-.loop_ca570
+.restore_csd_sector_loop2
     lda l1114,y                                                       ; a570: b9 14 11    ...            ; Get saved CSD sector byte
     sta wksp_csd_drive_sector,y                                       ; a573: 99 2c 10    .,.            ; Restore to CSD workspace
     dey                                                               ; a576: 88          .              ; Next byte
-    bpl loop_ca570                                                    ; a577: 10 f7       ..             ; Loop for 3 bytes
+    bpl restore_csd_sector_loop2                                      ; a577: 10 f7       ..             ; Loop for 3 bytes
 ; &a579 referenced 1 time by &a56c
-.ca579
+.reload_and_parse_source
     jsr c89d3                                                         ; a579: 20 d3 89     ..            ; Save workspace and reload dir
     pla                                                               ; a57c: 68          h              ; Restore second arg pointer
     sta zp_b5                                                         ; a57d: 85 b5       ..             ; Store in (&B5)
@@ -7055,73 +7055,73 @@ la154 = sub_ca153+1
     ldy #3                                                            ; a58c: a0 03       ..             ; Y=3: compare directories
     lda zp_b6                                                         ; a58e: a5 b6       ..             ; Get source entry pointer
 ; &a590 referenced 1 time by &a599
-.loop_ca590
+.compare_src_dest_dir_loop
     cmp wksp_object_sector,y                                          ; a590: d9 34 10    .4.            ; Compare with dest dir sector
-    bne ca5eb                                                         ; a593: d0 56       .V             ; Different: cross-dir rename
+    bne cross_dir_rename                                              ; a593: d0 56       .V             ; Different: cross-dir rename
     lda wksp_csd_sector,y                                             ; a595: b9 13 11    ...            ; Get CSD sector byte
     dey                                                               ; a598: 88          .              ; Next byte
-    bpl loop_ca590                                                    ; a599: 10 f5       ..             ; Loop for 4 bytes
+    bpl compare_src_dest_dir_loop                                     ; a599: 10 f5       ..             ; Loop for 4 bytes
     pla                                                               ; a59b: 68          h              ; Same dir: restore dest name ptr
     sta zp_b5                                                         ; a59c: 85 b5       ..             ; Store in (&B5)
     pla                                                               ; a59e: 68          h              ; Restore first arg low
     sta zp_b4                                                         ; a59f: 85 b4       ..             ; Store in (&B4)
     jsr sub_ca365                                                     ; a5a1: 20 65 a3     e.            ; Parse last component of dest path
 ; &a5a4 referenced 2 times by &a5ba, &a5be
-.ca5a4
+.find_last_path_component
     ldy #0                                                            ; a5a4: a0 00       ..             ; Y=0: scan for end of path component
 ; &a5a6 referenced 1 time by &a5b3
-.loop_ca5a6
+.scan_component_chars
     lda (zp_b4),y                                                     ; a5a6: b1 b4       ..             ; Get next character
     cmp #&2e ; '.'                                                    ; a5a8: c9 2e       ..             ; Is it '.' separator?
-    beq ca5b5                                                         ; a5aa: f0 09       ..             ; Yes: advance past component
+    beq advance_past_component                                        ; a5aa: f0 09       ..             ; Yes: advance past component
     and #&7d ; '}'                                                    ; a5ac: 29 7d       )}             ; Strip to printable range
     cmp #&21 ; '!'                                                    ; a5ae: c9 21       .!             ; Control char: end of name
-    bcc ca5c0                                                         ; a5b0: 90 0e       ..             ; End of destination name found
+    bcc copy_new_name_to_entry                                        ; a5b0: 90 0e       ..             ; End of destination name found
     iny                                                               ; a5b2: c8          .              ; Next character
-    bne loop_ca5a6                                                    ; a5b3: d0 f1       ..             ; Loop scanning
+    bne scan_component_chars                                          ; a5b3: d0 f1       ..             ; Loop scanning
 ; &a5b5 referenced 1 time by &a5aa
-.ca5b5
+.advance_past_component
     tya                                                               ; a5b5: 98          .              ; Advance pointer past component
     adc zp_b4                                                         ; a5b6: 65 b4       e.             ; Add Y to pointer
     sta zp_b4                                                         ; a5b8: 85 b4       ..             ; Store updated pointer
-    bcc ca5a4                                                         ; a5ba: 90 e8       ..             ; No carry: scan next component
+    bcc find_last_path_component                                      ; a5ba: 90 e8       ..             ; No carry: scan next component
     inc zp_b5                                                         ; a5bc: e6 b5       ..             ; Increment high byte on overflow
-    bne ca5a4                                                         ; a5be: d0 e4       ..             ; Always branch back to scan
+    bne find_last_path_component                                      ; a5be: d0 e4       ..             ; Always branch back to scan
 ; &a5c0 referenced 1 time by &a5b0
-.ca5c0
+.copy_new_name_to_entry
     ldy #9                                                            ; a5c0: a0 09       ..             ; Y=9: copy 10-byte new name
 ; &a5c2 referenced 1 time by &a5dd
-.loop_ca5c2
+.merge_name_attributes_loop
     lda (zp_b6),y                                                     ; a5c2: b1 b6       ..             ; Get old name byte (with attributes)
     and #&80                                                          ; a5c4: 29 80       ).             ; Keep only bit 7 (attribute flag)
     sta wksp_102b                                                     ; a5c6: 8d 2b 10    .+.            ; Save attribute bit
     lda (zp_b4),y                                                     ; a5c9: b1 b4       ..             ; Get new name character
     and #&7f                                                          ; a5cb: 29 7f       ).             ; Strip bit 7
     cmp #&22 ; '"'                                                    ; a5cd: c9 22       ."             ; Is it '"'?
-    beq ca5d5                                                         ; a5cf: f0 04       ..             ; Yes: pad with CR
+    beq pad_with_cr                                                   ; a5cf: f0 04       ..             ; Yes: pad with CR
     cmp #&21 ; '!'                                                    ; a5d1: c9 21       .!             ; Is it printable?
-    bcs ca5d7                                                         ; a5d3: b0 02       ..             ; Yes: use as-is
+    bcs store_merged_name_byte                                        ; a5d3: b0 02       ..             ; Yes: use as-is
 ; &a5d5 referenced 1 time by &a5cf
-.ca5d5
+.pad_with_cr
     lda #&0d                                                          ; a5d5: a9 0d       ..             ; Non-printable: use CR padding
 ; &a5d7 referenced 1 time by &a5d3
-.ca5d7
+.store_merged_name_byte
     ora wksp_102b                                                     ; a5d7: 0d 2b 10    .+.            ; Merge attribute bit with new char
     sta (zp_b6),y                                                     ; a5da: 91 b6       ..             ; Store renamed byte in entry
     dey                                                               ; a5dc: 88          .              ; Next byte
-    bpl loop_ca5c2                                                    ; a5dd: 10 e3       ..             ; Loop for 10 bytes
+    bpl merge_name_attributes_loop                                    ; a5dd: 10 e3       ..             ; Loop for 10 bytes
     jsr c8f86                                                         ; a5df: 20 86 8f     ..            ; Write directory back to disc
-    jsr sub_ca685                                                     ; a5e2: 20 85 a6     ..            ; Update directory checksums
+    jsr update_moved_dir_parent                                       ; a5e2: 20 85 a6     ..            ; Update directory checksums
     jmp c89d3                                                         ; a5e5: 4c d3 89    L..            ; Save workspace and return
 
 ; &a5e8 referenced 1 time by &a5ee
-.loop_ca5e8
+.already_exists_error
     jmp c95a4                                                         ; a5e8: 4c a4 95    L..            ; Already exists: error
 
 ; &a5eb referenced 1 time by &a593
-.ca5eb
+.cross_dir_rename
     lda l1037                                                         ; a5eb: ad 37 10    .7.            ; Check if dest has zero size
-    bne loop_ca5e8                                                    ; a5ee: d0 f8       ..             ; Non-zero: Already exists error
+    bne already_exists_error                                          ; a5ee: d0 f8       ..             ; Non-zero: Already exists error
     ldy #9                                                            ; a5f0: a0 09       ..             ; Y=9: mark old entry as deleted
     lda (zp_b6),y                                                     ; a5f2: b1 b6       ..             ; Get last name byte
     ora #&80                                                          ; a5f4: 09 80       ..             ; Set bit 7 (mark as directory?)
@@ -7130,12 +7130,12 @@ la154 = sub_ca153+1
     ldy #&0a                                                          ; a5fb: a0 0a       ..             ; Y=&0A: copy entry data to workspace
     ldx #7                                                            ; a5fd: a2 07       ..             ; X=7: 8 bytes of entry metadata
 ; &a5ff referenced 1 time by &a606
-.loop_ca5ff
+.copy_entry_metadata_loop
     lda (zp_b6),y                                                     ; a5ff: b1 b6       ..             ; Get entry data byte
     sta wksp_1038,y                                                   ; a601: 99 38 10    .8.            ; Store in workspace for dest entry
     iny                                                               ; a604: c8          .              ; Next byte
     dex                                                               ; a605: ca          .              ; Decrement counter
-    bpl loop_ca5ff                                                    ; a606: 10 f7       ..             ; Loop for 8 bytes
+    bpl copy_entry_metadata_loop                                      ; a606: 10 f7       ..             ; Loop for 8 bytes
     lda #0                                                            ; a608: a9 00       ..             ; Clear OSFILE block fields
     sta l104a                                                         ; a60a: 8d 4a 10    .J.            ; Clear load address
     sta l104b                                                         ; a60d: 8d 4b 10    .K.            ; Clear exec address
@@ -7143,31 +7143,31 @@ la154 = sub_ca153+1
     sta l104d                                                         ; a613: 8d 4d 10    .M.            ; Clear attributes
     ldx #3                                                            ; a616: a2 03       ..             ; X=3: copy 3+1 start sector bytes
 ; &a618 referenced 1 time by &a61f
-.loop_ca618
+.copy_entry_sector_loop2
     lda (zp_b6),y                                                     ; a618: b1 b6       ..             ; Get sector byte from entry
     sta l103c,y                                                       ; a61a: 99 3c 10    .<.            ; Store in workspace
     iny                                                               ; a61d: c8          .              ; Next byte
     dex                                                               ; a61e: ca          .              ; Decrement counter
-    bpl loop_ca618                                                    ; a61f: 10 f7       ..             ; Loop for 4 bytes
+    bpl copy_entry_sector_loop2                                       ; a61f: 10 f7       ..             ; Loop for 4 bytes
     ldy #0                                                            ; a621: a0 00       ..             ; Y=0: build access byte from entry
 ; &a623 referenced 1 time by &a62c
-.loop_ca623
+.build_access_byte_loop
     lda (zp_b6),y                                                     ; a623: b1 b6       ..             ; Get name byte
     rol a                                                             ; a625: 2a          *              ; Shift bit 7 into carry
     rol wksp_105d                                                     ; a626: 2e 5d 10    .].            ; Rotate into access accumulator
     iny                                                               ; a629: c8          .              ; Next name byte
     cpy #4                                                            ; a62a: c0 04       ..             ; Done 4 bytes?
-    bne loop_ca623                                                    ; a62c: d0 f5       ..             ; No, continue building access
+    bne build_access_byte_loop                                        ; a62c: d0 f5       ..             ; No, continue building access
     jsr sub_ca365                                                     ; a62e: 20 65 a3     e.            ; Parse dest path and switch dir
     ldy #&18                                                          ; a631: a0 18       ..             ; Y=&18: start sector in entry
     ldx #2                                                            ; a633: a2 02       ..             ; X=2: copy 3 sector bytes
 ; &a635 referenced 1 time by &a63c
-.loop_ca635
+.copy_start_sector_loop
     lda (zp_b6),y                                                     ; a635: b1 b6       ..             ; Get start sector byte
     sta wksp_103a,x                                                   ; a637: 9d 3a 10    .:.            ; Store in workspace
     dey                                                               ; a63a: 88          .              ; Next byte (decreasing)
     dex                                                               ; a63b: ca          .              ; Next workspace byte
-    bpl loop_ca635                                                    ; a63c: 10 f7       ..             ; Loop for 3 bytes
+    bpl copy_start_sector_loop                                        ; a63c: 10 f7       ..             ; Loop for 3 bytes
     jsr c89d3                                                         ; a63e: 20 d3 89     ..            ; Save workspace state
     lda #&40 ; '@'                                                    ; a641: a9 40       .@             ; Set up OSFILE block for create
     sta zp_b8                                                         ; a643: 85 b8       ..             ; Store block pointer low
@@ -7177,18 +7177,18 @@ la154 = sub_ca153+1
     jsr sub_c8e6f                                                     ; a64c: 20 6f 8e     o.            ; Allocate disc space
     ldy #3                                                            ; a64f: a0 03       ..             ; Y=3: copy attributes back to entry
 ; &a651 referenced 1 time by &a65b
-.loop_ca651
+.restore_attributes_loop
     lda (zp_b6),y                                                     ; a651: b1 b6       ..             ; Get new entry access byte
     asl a                                                             ; a653: 0a          .              ; Shift attribute bit to position
     ror wksp_105d                                                     ; a654: 6e 5d 10    n].            ; Rotate into access accumulator
     ror a                                                             ; a657: 6a          j              ; Shift back
     sta (zp_b6),y                                                     ; a658: 91 b6       ..             ; Store in entry name byte
     dey                                                               ; a65a: 88          .              ; Next byte
-    bpl loop_ca651                                                    ; a65b: 10 f4       ..             ; Loop for 4 bytes
+    bpl restore_attributes_loop                                       ; a65b: 10 f4       ..             ; Loop for 4 bytes
     jsr sub_c8e8b                                                     ; a65d: 20 8b 8e     ..            ; Write entry metadata
     jsr sub_c8f58                                                     ; a660: 20 58 8f     X.            ; Update entry size
     jsr c8f86                                                         ; a663: 20 86 8f     ..            ; Write dest directory to disc
-    jsr sub_ca685                                                     ; a666: 20 85 a6     ..            ; Update moved dir's parent pointer
+    jsr update_moved_dir_parent                                       ; a666: 20 85 a6     ..            ; Update moved dir's parent pointer
     jsr c89d3                                                         ; a669: 20 d3 89     ..            ; Save workspace state
     pla                                                               ; a66c: 68          h              ; Restore source name pointer
     sta zp_b5                                                         ; a66d: 85 b5       ..             ; Store high byte
@@ -7198,37 +7198,37 @@ la154 = sub_ca153+1
     ldx #5                                                            ; a675: a2 05       ..             ; X=5: clear 6 bytes of sector info
     lda #0                                                            ; a677: a9 00       ..             ; A=0: zero fill
 ; &a679 referenced 1 time by &a67d
-.loop_ca679
+.clear_sector_workspace_loop
     sta wksp_object_sector,x                                          ; a679: 9d 34 10    .4.            ; Clear sector/size workspace
     dex                                                               ; a67c: ca          .              ; Next byte
-    bpl loop_ca679                                                    ; a67d: 10 fa       ..             ; Loop for 6 bytes
+    bpl clear_sector_workspace_loop                                   ; a67d: 10 fa       ..             ; Loop for 6 bytes
     jsr c9212                                                         ; a67f: 20 12 92     ..            ; Remove entry from source directory
     jmp c89d3                                                         ; a682: 4c d3 89    L..            ; Save workspace and return
 
 ; &a685 referenced 2 times by &a5e2, &a666
-.sub_ca685
+.update_moved_dir_parent
     ldy #3                                                            ; a685: a0 03       ..             ; Y=3: check if entry is directory
     lda (zp_b6),y                                                     ; a687: b1 b6       ..             ; Get access byte
-    bmi ca68c                                                         ; a689: 30 01       0.             ; Bit 7: is a directory
+    bmi update_parent_sector                                          ; a689: 30 01       0.             ; Bit 7: is a directory
     rts                                                               ; a68b: 60          `              ; Not a dir: nothing to update
 
 ; &a68c referenced 1 time by &a689
-.ca68c
+.update_parent_sector
     ldy #2                                                            ; a68c: a0 02       ..             ; Y=2: copy 3 dir sector bytes
 ; &a68e referenced 1 time by &a695
-.loop_ca68e
+.copy_parent_sector_loop
     lda l1114,y                                                       ; a68e: b9 14 11    ...            ; Get CSD sector byte
     sta l1070,y                                                       ; a691: 99 70 10    .p.            ; Store as new parent sector
     dey                                                               ; a694: 88          .              ; Next byte
-    bpl loop_ca68e                                                    ; a695: 10 f7       ..             ; Loop for 3 bytes
+    bpl copy_parent_sector_loop                                       ; a695: 10 f7       ..             ; Loop for 3 bytes
     ldy #9                                                            ; a697: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &a699 referenced 1 time by &a6a1
-.loop_ca699
+.copy_dir_name_from_entry
     lda (zp_b6),y                                                     ; a699: b1 b6       ..             ; Get name byte from entry
     and #&7f                                                          ; a69b: 29 7f       ).             ; Strip bit 7 (attribute)
     sta l1074,y                                                       ; a69d: 99 74 10    .t.            ; Store as directory name
     dey                                                               ; a6a0: 88          .              ; Next byte
-    bpl loop_ca699                                                    ; a6a1: 10 f6       ..             ; Loop for 10 bytes
+    bpl copy_dir_name_from_entry                                      ; a6a1: 10 f6       ..             ; Loop for 10 bytes
     lda #&74 ; 't'                                                    ; a6a3: a9 74       .t             ; Point to workspace name buffer
     sta zp_b4                                                         ; a6a5: 85 b4       ..             ; Low byte = &74
     lda #&10                                                          ; a6a7: a9 10       ..             ; Page = &10
@@ -7236,18 +7236,18 @@ la154 = sub_ca153+1
     jsr parse_path_and_load                                           ; a6ab: 20 7f 94     ..            ; Load the moved directory
     ldy #9                                                            ; a6ae: a0 09       ..             ; Y=9: copy name to dir header
 ; &a6b0 referenced 1 time by &a6b7
-.loop_ca6b0
+.write_dir_name_loop
     lda l1074,y                                                       ; a6b0: b9 74 10    .t.            ; Get name from workspace
     sta dir_name,y                                                    ; a6b3: 99 cc 16    ...            ; Store in directory name field
     dey                                                               ; a6b6: 88          .              ; Next byte
-    bpl loop_ca6b0                                                    ; a6b7: 10 f7       ..             ; Loop for 10 bytes
+    bpl write_dir_name_loop                                           ; a6b7: 10 f7       ..             ; Loop for 10 bytes
     ldy #2                                                            ; a6b9: a0 02       ..             ; Y=2: copy parent sector pointer
 ; &a6bb referenced 1 time by &a6c2
-.loop_ca6bb
+.write_parent_sector_loop
     lda l1070,y                                                       ; a6bb: b9 70 10    .p.            ; Get new parent sector byte
     sta dir_parent_sector,y                                           ; a6be: 99 d6 16    ...            ; Store in directory parent field
     dey                                                               ; a6c1: 88          .              ; Next byte
-    bpl loop_ca6bb                                                    ; a6c2: 10 f7       ..             ; Loop for 3 bytes
+    bpl write_parent_sector_loop                                      ; a6c2: 10 f7       ..             ; Loop for 3 bytes
     jmp c8f86                                                         ; a6c4: 4c 86 8f    L..            ; Write updated directory to disc
 
 ; ***************************************************************************************
@@ -11737,7 +11737,6 @@ save pydis_start, pydis_end
 ;     ca2bf:                                              2
 ;     ca2df:                                              2
 ;     ca434:                                              2
-;     ca5a4:                                              2
 ;     ca6f9:                                              2
 ;     ca976:                                              2
 ;     ca97c:                                              2
@@ -11791,6 +11790,7 @@ save pydis_start, pydis_end
 ;     end_of_spaces:                                      2
 ;     eof_error:                                          2
 ;     fdc_1770_sector:                                    2
+;     find_last_path_component:                           2
 ;     floppy_get_step_rate:                               2
 ;     floppy_init_transfer:                               2
 ;     floppy_restore_track_0:                             2
@@ -11885,7 +11885,6 @@ save pydis_start, pydis_end
 ;     sub_c932a:                                          2
 ;     sub_c9dda:                                          2
 ;     sub_ca35a:                                          2
-;     sub_ca685:                                          2
 ;     sub_ca797:                                          2
 ;     sub_ca7a2:                                          2
 ;     sub_ca7c0:                                          2
@@ -11896,6 +11895,7 @@ save pydis_start, pydis_end
 ;     sub_cbb92:                                          2
 ;     sub_cbcfd:                                          2
 ;     tube_start_xfer_sei:                                2
+;     update_moved_dir_parent:                            2
 ;     wksp:                                               2
 ;     wksp_100d:                                          2
 ;     wksp_err_code:                                      2
@@ -11905,8 +11905,12 @@ save pydis_start, pydis_end
 ;     zp_bf:                                              2
 ;     zp_c7:                                              2
 ;     advance_and_continue:                               1
+;     advance_dest_scan:                                  1
 ;     advance_past_char:                                  1
+;     advance_past_component:                             1
+;     already_exists_error:                               1
 ;     branch_to_floppy_error:                             1
+;     build_access_byte_loop:                             1
 ;     c8111:                                              1
 ;     c8114:                                              1
 ;     c8129:                                              1
@@ -12093,17 +12097,6 @@ save pydis_start, pydis_end
 ;     ca3e9:                                              1
 ;     ca401:                                              1
 ;     ca41e:                                              1
-;     ca517:                                              1
-;     ca540:                                              1
-;     ca544:                                              1
-;     ca569:                                              1
-;     ca579:                                              1
-;     ca5b5:                                              1
-;     ca5c0:                                              1
-;     ca5d5:                                              1
-;     ca5d7:                                              1
-;     ca5eb:                                              1
-;     ca68c:                                              1
 ;     ca767:                                              1
 ;     ca7ee:                                              1
 ;     ca80f:                                              1
@@ -12233,9 +12226,11 @@ save pydis_start, pydis_end
 ;     cbf47:                                              1
 ;     cbf51:                                              1
 ;     check_adfs_prefix:                                  1
+;     check_alt_workspace:                                1
 ;     check_at_sign:                                      1
 ;     check_attr_terminator:                              1
 ;     check_buffer_state:                                 1
+;     check_dot_in_dest:                                  1
 ;     check_dot_separator:                                1
 ;     check_ext_vs_allocation:                            1
 ;     check_field_boundary:                               1
@@ -12247,33 +12242,42 @@ save pydis_start, pydis_end
 ;     claim_nmi:                                          1
 ;     clear_accumulators_loop:                            1
 ;     clear_attr_bits_loop:                               1
+;     clear_sector_workspace_loop:                        1
 ;     clear_side_flag:                                    1
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
+;     compare_src_dest_dir_loop:                          1
 ;     copy_code_to_nmi_space:                             1
 ;     copy_csd_for_dest_loop:                             1
 ;     copy_csd_sector_loop:                               1
 ;     copy_csd_sector_to_wksp:                            1
 ;     copy_default_name_loop:                             1
+;     copy_dir_name_from_entry:                           1
 ;     copy_dir_name_loop:                                 1
 ;     copy_disc_op_template:                              1
+;     copy_entry_metadata_loop:                           1
 ;     copy_entry_name_loop:                               1
 ;     copy_entry_sector_loop:                             1
+;     copy_entry_sector_loop2:                            1
 ;     copy_file_entry:                                    1
 ;     copy_lib_name_loop:                                 1
 ;     copy_lib_sector_loop:                               1
+;     copy_new_name_to_entry:                             1
 ;     copy_nmi_code_loop:                                 1
 ;     copy_osfile_params_loop:                            1
+;     copy_parent_sector_loop:                            1
 ;     copy_prev_dir_name_loop:                            1
 ;     copy_result_loop:                                   1
 ;     copy_sector_addresses_loop:                         1
 ;     copy_source_name_loop:                              1
+;     copy_start_sector_loop:                             1
 ;     copy_template_loop:                                 1
 ;     copy_title_loop:                                    1
 ;     copy_tube_addr_loop:                                1
 ;     copy_tube_read_nmi_loop:                            1
 ;     copy_tube_write_nmi_loop:                           1
 ;     copy_write_nmi_loop:                                1
+;     cross_dir_rename:                                   1
 ;     default_workspace_data:                             1
 ;     dir2_master_sequence:                               1
 ;     dir2_name:                                          1
@@ -12504,24 +12508,6 @@ save pydis_start, pydis_end
 ;     loop_ca31f:                                         1
 ;     loop_ca3cc:                                         1
 ;     loop_ca42f:                                         1
-;     loop_ca534:                                         1
-;     loop_ca53d:                                         1
-;     loop_ca560:                                         1
-;     loop_ca570:                                         1
-;     loop_ca590:                                         1
-;     loop_ca5a6:                                         1
-;     loop_ca5c2:                                         1
-;     loop_ca5e8:                                         1
-;     loop_ca5ff:                                         1
-;     loop_ca618:                                         1
-;     loop_ca623:                                         1
-;     loop_ca635:                                         1
-;     loop_ca651:                                         1
-;     loop_ca679:                                         1
-;     loop_ca68e:                                         1
-;     loop_ca699:                                         1
-;     loop_ca6b0:                                         1
-;     loop_ca6bb:                                         1
 ;     loop_ca6e6:                                         1
 ;     loop_ca75a:                                         1
 ;     loop_ca77c:                                         1
@@ -12577,6 +12563,7 @@ save pydis_start, pydis_end
 ;     loop_cbef4:                                         1
 ;     match_command_loop:                                 1
 ;     match_rwl_loop:                                     1
+;     merge_name_attributes_loop:                         1
 ;     my_osargs:                                          1
 ;     name_length_ok:                                     1
 ;     next_entry_byte:                                    1
@@ -12595,6 +12582,8 @@ save pydis_start, pydis_end
 ;     osrdch:                                             1
 ;     osword:                                             1
 ;     pad_title_with_cr:                                  1
+;     pad_with_cr:                                        1
+;     parse_destination_name:                             1
 ;     path_not_found:                                     1
 ;     poll_req_loop:                                      1
 ;     prepare_dir_read:                                   1
@@ -12608,7 +12597,10 @@ save pydis_start, pydis_end
 ;     recalc_flags_from_base:                             1
 ;     release_nmi:                                        1
 ;     release_tube_after_floppy:                          1
+;     reload_and_parse_source:                            1
+;     restore_attributes_loop:                            1
 ;     restore_csd_sector_loop:                            1
+;     restore_csd_sector_loop2:                           1
 ;     restore_head_flag:                                  1
 ;     return_1:                                           1
 ;     return_12:                                          1
@@ -12646,11 +12638,14 @@ save pydis_start, pydis_end
 ;     return_eof_result:                                  1
 ;     return_eof_status:                                  1
 ;     return_error_code:                                  1
+;     save_dest_dir_info_loop:                            1
 ;     save_dest_dir_sector_loop:                          1
 ;     save_e_attribute_state:                             1
 ;     save_error_and_release_nmi:                         1
 ;     save_source_dir_sector_loop:                        1
 ;     save_workspace_and_return:                          1
+;     scan_component_chars:                               1
+;     scan_dest_for_parent_ref:                           1
 ;     scan_filename_loop:                                 1
 ;     scan_source_entries_loop:                           1
 ;     scan_spaces_loop:                                   1
@@ -12681,6 +12676,7 @@ save pydis_start, pydis_end
 ;     skip_spaces_before_args:                            1
 ;     skip_to_end_of_name:                                1
 ;     source_file_found:                                  1
+;     source_is_found:                                    1
 ;     star_dir:                                           1
 ;     star_info:                                          1
 ;     star_remove:                                        1
@@ -12689,6 +12685,7 @@ save pydis_start, pydis_end
 ;     store_default_drive:                                1
 ;     store_digit:                                        1
 ;     store_hex_nibble:                                   1
+;     store_merged_name_byte:                             1
 ;     store_nmi_completion:                               1
 ;     store_second_partial:                               1
 ;     store_title_char:                                   1
@@ -12725,6 +12722,7 @@ save pydis_start, pydis_end
 ;     system_via_t1c_l:                                   1
 ;     tbl_extended_vectors:                               1
 ;     tube_start_xfer:                                    1
+;     update_parent_sector:                               1
 ;     volume_error:                                       1
 ;     wait_bus_free_loop:                                 1
 ;     wait_target_bsy_loop:                               1
@@ -12736,6 +12734,8 @@ save pydis_start, pydis_end
 ;     wksp_105e:                                          1
 ;     wksp_osword_block:                                  1
 ;     wksp_tube_transfer_addr:                            1
+;     write_dir_name_loop:                                1
+;     write_parent_sector_loop:                           1
 ;     zero_buffers_loop:                                  1
 
 ; Automatically generated labels:
@@ -13019,18 +13019,6 @@ save pydis_start, pydis_end
 ;     ca401
 ;     ca41e
 ;     ca434
-;     ca517
-;     ca540
-;     ca544
-;     ca569
-;     ca579
-;     ca5a4
-;     ca5b5
-;     ca5c0
-;     ca5d5
-;     ca5d7
-;     ca5eb
-;     ca68c
 ;     ca6f9
 ;     ca738
 ;     ca767
@@ -13516,24 +13504,6 @@ save pydis_start, pydis_end
 ;     loop_ca31f
 ;     loop_ca3cc
 ;     loop_ca42f
-;     loop_ca534
-;     loop_ca53d
-;     loop_ca560
-;     loop_ca570
-;     loop_ca590
-;     loop_ca5a6
-;     loop_ca5c2
-;     loop_ca5e8
-;     loop_ca5ff
-;     loop_ca618
-;     loop_ca623
-;     loop_ca635
-;     loop_ca651
-;     loop_ca679
-;     loop_ca68e
-;     loop_ca699
-;     loop_ca6b0
-;     loop_ca6bb
 ;     loop_ca6e6
 ;     loop_ca75a
 ;     loop_ca77c
@@ -13695,7 +13665,6 @@ save pydis_start, pydis_end
 ;     sub_ca161
 ;     sub_ca35a
 ;     sub_ca365
-;     sub_ca685
 ;     sub_ca749
 ;     sub_ca797
 ;     sub_ca7a2
