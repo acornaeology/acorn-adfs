@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 10 / 115
-- Auto-labels renamed: 10 / 940
+- Reviewed: 19 / 115
+- Auto-labels renamed: 25 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -33,15 +33,15 @@ before their callers.
 | &8351 | generate_error_no_suffix | 1 | 0 | REVIEWED |
 | &843E | hex_digit | 6 | 1 | REVIEWED |
 | &8449 | dec_number_error_100_y | 26 | 5 | REVIEWED |
-| &84A7 | oscli_at_x | 2 | 0 | |
-| &871A | check_char_is_terminator | 10 | 2 | |
-| &8B1E | floppy_partial_sector | 14 | 2 | |
-| &923E | my_osfile | 46 | 9 | |
-| &944F | check_special_dir_char | 18 | 3 | |
-| &9501 | print_entry_info | 32 | 7 | |
-| &953F | star_dir | 20 | 2 | |
-| &9A43 | jmp_indirect_fscv | 1 | 0 | |
-| &9A63 | hd_init_detect | 9 | 2 | |
+| &84A7 | oscli_at_x | 2 | 0 | REVIEWED |
+| &871A | check_char_is_terminator | 10 | 2 | REVIEWED |
+| &8B1E | floppy_partial_sector | 14 | 2 | REVIEWED |
+| &923E | my_osfile | 46 | 9 | REVIEWED |
+| &944F | check_special_dir_char | 18 | 3 | REVIEWED |
+| &9501 | print_entry_info | 32 | 7 | REVIEWED |
+| &953F | star_dir | 20 | 2 | REVIEWED |
+| &9A43 | jmp_indirect_fscv | 1 | 0 | REVIEWED |
+| &9A63 | hd_init_detect | 9 | 2 | REVIEWED |
 | &9AA3 | service_call_handler | 24 | 2 | |
 | &9CDA | service_handler_4 | 40 | 6 | |
 | &9E50 | my_fscv | 15 | 3 | |

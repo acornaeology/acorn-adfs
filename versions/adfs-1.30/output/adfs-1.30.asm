@@ -1898,13 +1898,13 @@ oscli                                           = &fff7
     lda (zp_b4),y                                                     ; 871a: b1 b4       ..             ; Get character, strip bit 7
     and #&7f                                                          ; 871c: 29 7f       ).             ; Strip bit 7 of character
     cmp #&2e ; '.'                                                    ; 871e: c9 2e       ..             ; Is it '.'?
-    beq c872a                                                         ; 8720: f0 08       ..             ; Yes, terminator
+    beq set_terminator_flag                                           ; 8720: f0 08       ..             ; Yes, terminator
     cmp #&22 ; '"'                                                    ; 8722: c9 22       ."             ; Is it a double-quote?
-    beq c872a                                                         ; 8724: f0 04       ..             ; Yes, terminator
+    beq set_terminator_flag                                           ; 8724: f0 04       ..             ; Yes, terminator
     cmp #&20 ; ' '                                                    ; 8726: c9 20       .              ; Is it >= space?
     bcs return_9                                                      ; 8728: b0 02       ..             ; Yes, not a terminator
 ; &872a referenced 2 times by &8720, &8724
-.c872a
+.set_terminator_flag
     ldx #0                                                            ; 872a: a2 00       ..             ; X=0: signal terminator found
 ; &872c referenced 1 time by &8728
 .return_9
@@ -2589,9 +2589,9 @@ oscli                                           = &fff7
     sta wksp_err_sector                                               ; 8b30: 8d d0 10    ...            ; Store in error sector workspace
     jsr sub_cacd7                                                     ; 8b33: 20 d7 ac     ..            ; Calculate buffer offset
     sta wksp_1004,x                                                   ; 8b36: 9d 04 10    ...            ; Store partial transfer count
-    txa                                                               ; 8b39: 8a          .              ; Transfer to A
-    lsr a                                                             ; 8b3a: 4a          J              ; Shift sector address right
-    lsr a                                                             ; 8b3b: 4a          J              ; To get buffer page offset
+    txa                                                               ; 8b39: 8a          .              ; Channel offset to A for buffer calc
+    lsr a                                                             ; 8b3a: 4a          J              ; Divide by 4 for buffer page index
+    lsr a                                                             ; 8b3b: 4a          J              ; (continued)
     adc #&17                                                          ; 8b3c: 69 17       i.             ; Add buffer base page (&17)
     jmp exec_floppy_partial_sector_buf_ind                            ; 8b3e: 4c 03 ba    L..            ; Execute floppy partial sector op
 
@@ -3772,8 +3772,8 @@ oscli                                           = &fff7
     stx wksp_cur_channel                                              ; 9245: 8e d5 10    ...            ; Clear current channel
     asl a                                                             ; 9248: 0a          .              ; A = function * 2 (table index)
     tax                                                               ; 9249: aa          .              ; Transfer A*2 to X
-    inx                                                               ; 924a: e8          .              ; X = A*2 + 2 (skip first pair)
-    inx                                                               ; 924b: e8          .              ; X = A*2 + 2 (skip table header)
+    inx                                                               ; 924a: e8          .              ; X = A*2 + 1 (skip table base)
+    inx                                                               ; 924b: e8          .              ; X = A*2 + 2 (dispatch table offset)
     bmi return_19                                                     ; 924c: 30 1a       0.             ; Function < 0? Invalid
     cpx #&12                                                          ; 924e: e0 12       ..             ; Function >= 8? Invalid
     bcs return_19                                                     ; 9250: b0 16       ..             ; Function >= 8: unsupported
@@ -3810,7 +3810,7 @@ oscli                                           = &fff7
     equw sub_c8f7d-1                                                  ; 9279: 7c 8f       |.
 
 ; &927b referenced 2 times by &9e35, &9e3b
-.sub_c927b
+.setup_entry_name_ptr
     tax                                                               ; 927b: aa          .              ; Transfer index to X
     lda #&9f                                                          ; 927c: a9 9f       ..             ; Set up (&B6) to point to pathname
     sta zp_b7                                                         ; 927e: 85 b7       ..             ; Set pointer high byte
@@ -3818,25 +3818,25 @@ oscli                                           = &fff7
     sta zp_b6                                                         ; 9283: 85 b6       ..             ; Store as pointer low byte
     ldx #&0c                                                          ; 9285: a2 0c       ..             ; X=&0C: max 12 characters
 ; &9287 referenced 3 times by &92e0, &9337, &9366
-.sub_c9287
+.print_padded_name
     ldy #0                                                            ; 9287: a0 00       ..             ; Y=0: start of entry name
 ; &9289 referenced 1 time by &9296
-.loop_c9289
+.print_name_char_loop
     lda (zp_b6),y                                                     ; 9289: b1 b6       ..             ; Get character from entry
     and #&7f                                                          ; 928b: 29 7f       ).             ; Strip bit 7 (access bit)
     cmp #&20 ; ' '                                                    ; 928d: c9 20       .              ; Is it a printable character?
-    bcc c9299                                                         ; 928f: 90 08       ..             ; No, pad rest with spaces
+    bcc pad_with_spaces                                               ; 928f: 90 08       ..             ; No, pad rest with spaces
     jsr sub_c92c4                                                     ; 9291: 20 c4 92     ..            ; Print character via OSASCI
     iny                                                               ; 9294: c8          .              ; Next character
     dex                                                               ; 9295: ca          .              ; Decrement column counter
-    bne loop_c9289                                                    ; 9296: d0 f1       ..             ; Loop for remaining columns
+    bne print_name_char_loop                                          ; 9296: d0 f1       ..             ; Loop for remaining columns
     rts                                                               ; 9298: 60          `              ; Return
 
 ; &9299 referenced 2 times by &928f, &929d
-.c9299
+.pad_with_spaces
     jsr ca016                                                         ; 9299: 20 16 a0     ..            ; Print space padding
     dex                                                               ; 929c: ca          .              ; Pad with spaces
-    bne c9299                                                         ; 929d: d0 fa       ..             ; Loop for remaining columns
+    bne pad_with_spaces                                               ; 929d: d0 fa       ..             ; Loop for remaining columns
     rts                                                               ; 929f: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -3902,7 +3902,7 @@ oscli                                           = &fff7
 ; &92de referenced 2 times by &93e2, &9501
 .sub_c92de
     ldx #&0a                                                          ; 92de: a2 0a       ..             ; X=&0A: print up to 10 name chars
-    jsr sub_c9287                                                     ; 92e0: 20 87 92     ..            ; Print name characters
+    jsr print_padded_name                                             ; 92e0: 20 87 92     ..            ; Print name characters
     jsr ca016                                                         ; 92e3: 20 16 a0     ..            ; Print space after name
     ldy #4                                                            ; 92e6: a0 04       ..             ; Y=4: check 5 attribute bytes
     ldx #3                                                            ; 92e8: a2 03       ..             ; X=3: print RWLD attribute chars
@@ -3962,7 +3962,7 @@ oscli                                           = &fff7
     lda #&16                                                          ; 9331: a9 16       ..             ; Page &16
     sta zp_b7                                                         ; 9333: 85 b7       ..             ; Store high byte
     ldx #&13                                                          ; 9335: a2 13       ..             ; X=&13: print 19 chars of title
-    jsr sub_c9287                                                     ; 9337: 20 87 92     ..            ; Print title characters
+    jsr print_padded_name                                             ; 9337: 20 87 92     ..            ; Print title characters
     jsr print_inline_string                                           ; 933a: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs " "                                                          ; 933d: 20
 
@@ -3985,7 +3985,7 @@ oscli                                           = &fff7
     lda #&9a                                                          ; 9360: a9 9a       ..             ; Page &9A
     sta zp_b7                                                         ; 9362: 85 b7       ..             ; Store pointer high
     ldx #&0d                                                          ; 9364: a2 0d       ..             ; X=&0D: print CSD path
-    jsr sub_c9287                                                     ; 9366: 20 87 92     ..            ; Print path characters
+    jsr print_padded_name                                             ; 9366: 20 87 92     ..            ; Print path characters
     jsr print_inline_string                                           ; 9369: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs "Option"                                                     ; 936c: 4f 70 74... Opt
 
@@ -4108,15 +4108,15 @@ oscli                                           = &fff7
     lda (zp_b4),y                                                     ; 9451: b1 b4       ..             ; Get first argument char
     and #&7f                                                          ; 9453: 29 7f       ).             ; Strip bit 7
     cmp #&5e ; '^'                                                    ; 9455: c9 5e       .^             ; Is it '^' (parent directory)?
-    bne c9463                                                         ; 9457: d0 0a       ..             ; No, check for '@'
+    bne check_at_sign                                                 ; 9457: d0 0a       ..             ; No, check for '@'
     lda #&c0                                                          ; 9459: a9 c0       ..             ; '^': point to dir parent sector
     sta zp_b6                                                         ; 945b: 85 b6       ..             ; Set (&B6) low to &C0
     lda #&16                                                          ; 945d: a9 16       ..             ; Set (&B6) high to &16 (dir footer)
     sta zp_b7                                                         ; 945f: 85 b7       ..             ; Store high byte
-    bne c946f                                                         ; 9461: d0 0c       ..             ; Set Z flag (matched); ALWAYS branch
+    bne set_matched_flag                                              ; 9461: d0 0c       ..             ; Set Z flag (matched); ALWAYS branch
 
 ; &9463 referenced 1 time by &9457
-.c9463
+.check_at_sign
     cmp #&40 ; '@'                                                    ; 9463: c9 40       .@             ; Is it '@' (current directory)?
     bne return_20                                                     ; 9465: d0 09       ..             ; No, return Z clear (no match)
     lda #&fe                                                          ; 9467: a9 fe       ..             ; '@': point to workspace at &10FE
@@ -4124,7 +4124,7 @@ oscli                                           = &fff7
     lda #&10                                                          ; 946b: a9 10       ..             ; Set (&B6) high to &10 (workspace)
     sta zp_b7                                                         ; 946d: 85 b7       ..             ; Store high byte
 ; &946f referenced 1 time by &9461
-.c946f
+.set_matched_flag
     tya                                                               ; 946f: 98          .              ; Transfer Y=0 to A, setting Z flag
 ; &9470 referenced 2 times by &9465, &947d
 .return_20
@@ -4253,27 +4253,27 @@ oscli                                           = &fff7
     jsr oswrch                                                        ; 9504: 20 ee ff     ..            ; Print space after access string; Write character
     ldy #4                                                            ; 9507: a0 04       ..             ; Y=4: check first access nibble byte
     lda (zp_b6),y                                                     ; 9509: b1 b6       ..             ; Get access/attribute byte
-    bmi c953c                                                         ; 950b: 30 2f       0/             ; Bit 7 (E attribute): suppress info
+    bmi print_newline_return                                          ; 950b: 30 2f       0/             ; Bit 7 (E attribute): suppress info
     dey                                                               ; 950d: 88          .              ; Y=3: get access byte for format; Y=&03
     lda (zp_b6),y                                                     ; 950e: b1 b6       ..             ; Get access byte
     rol a                                                             ; 9510: 2a          *              ; Shift bit 7 into C (directory flag)
     ldx #&0a                                                          ; 9511: a2 0a       ..             ; X=&0A: start offset (3-byte addrs)
     ldy #&0d                                                          ; 9513: a0 0d       ..             ; Y=&0D: end offset for 3-byte format
-    bcc c951b                                                         ; 9515: 90 04       ..             ; C=0: 3-byte addresses
+    bcc print_entry_field_loop                                        ; 9515: 90 04       ..             ; C=0: 3-byte addresses
     ldx #&17                                                          ; 9517: a2 17       ..             ; X=&17: start offset (4-byte addrs)
     ldy #&18                                                          ; 9519: a0 18       ..             ; Y=&18: end offset for 4-byte format
 ; &951b referenced 2 times by &9515, &953a
-.c951b
+.print_entry_field_loop
     cpx #&16                                                          ; 951b: e0 16       ..             ; Skip sector field boundary?
-    beq c9524                                                         ; 951d: f0 05       ..             ; Yes, skip the sector field gap
+    beq check_field_boundary                                          ; 951d: f0 05       ..             ; Yes, skip the sector field gap
     lda (zp_b6),y                                                     ; 951f: b1 b6       ..             ; Get byte from entry
     jsr sub_c931b                                                     ; 9521: 20 1b 93     ..            ; Print as 2 hex digits
 ; &9524 referenced 1 time by &951d
-.c9524
+.check_field_boundary
     txa                                                               ; 9524: 8a          .              ; Check if at field boundary
     and #3                                                            ; 9525: 29 03       ).             ; Field boundary every 4 bytes (X&3=1)
     cmp #1                                                            ; 9527: c9 01       ..             ; X mod 4 == 1? Field boundary
-    bne c9536                                                         ; 9529: d0 0b       ..             ; Not at boundary, continue
+    bne next_entry_byte                                               ; 9529: d0 0b       ..             ; Not at boundary, continue
     jsr ca016                                                         ; 952b: 20 16 a0     ..            ; Print two spaces between fields
     jsr ca016                                                         ; 952e: 20 16 a0     ..            ; Print second padding space
     txa                                                               ; 9531: 8a          .              ; Skip ahead to next field
@@ -4281,13 +4281,13 @@ oscli                                           = &fff7
     adc #5                                                            ; 9533: 69 05       i.             ; Advance Y by 5
     tay                                                               ; 9535: a8          .              ; Transfer new Y offset
 ; &9536 referenced 1 time by &9529
-.c9536
+.next_entry_byte
     dey                                                               ; 9536: 88          .              ; Next byte backwards
     inx                                                               ; 9537: e8          .              ; Advance field index
     cpx #&1a                                                          ; 9538: e0 1a       ..             ; Past end of entry (X=&1A)?
-    bne c951b                                                         ; 953a: d0 df       ..             ; No, continue printing
+    bne print_entry_field_loop                                        ; 953a: d0 df       ..             ; No, continue printing
 ; &953c referenced 1 time by &950b
-.c953c
+.print_newline_return
     jmp osnewl                                                        ; 953c: 4c e7 ff    L..            ; Print newline at end of entry; Write newline (characters 10 and 13)
 
 ; ***************************************************************************************
@@ -4302,25 +4302,25 @@ oscli                                           = &fff7
     jsr c947f                                                         ; 953f: 20 7f 94     ..            ; Parse path and load target dir
     ldy #9                                                            ; 9542: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &9544 referenced 1 time by &954b
-.loop_c9544
+.copy_dir_name_loop
     lda dir_name,y                                                    ; 9544: b9 cc 16    ...            ; Get name byte from dir buffer
     sta wksp_csd_name,y                                               ; 9547: 99 00 11    ...            ; Store as CSD name
     dey                                                               ; 954a: 88          .              ; Next byte in name copy
-    bpl loop_c9544                                                    ; 954b: 10 f7       ..             ; Loop for all 10 bytes
+    bpl copy_dir_name_loop                                            ; 954b: 10 f7       ..             ; Loop for all 10 bytes
     lda wksp_saved_drive                                              ; 954d: ad 2f 10    ./.            ; Get saved drive number
     cmp #&ff                                                          ; 9550: c9 ff       ..             ; Is it &FF (not set)?
-    bne c9557                                                         ; 9552: d0 03       ..             ; No, use saved drive
+    bne store_csd_drive                                               ; 9552: d0 03       ..             ; No, use saved drive
     lda wksp_current_drive                                            ; 9554: ad 17 11    ...            ; Use current drive instead
 ; &9557 referenced 1 time by &9552
-.c9557
+.store_csd_drive
     sta l111f                                                         ; 9557: 8d 1f 11    ...            ; Store as new CSD drive
     ldy #2                                                            ; 955a: a0 02       ..             ; Y=2: copy 3-byte sector address
 ; &955c referenced 1 time by &9563
-.loop_c955c
+.copy_csd_sector_loop
     lda wksp_csd_drive_sector,y                                       ; 955c: b9 2c 10    .,.            ; Get CSD sector address byte
     sta wksp_prev_dir_sector,y                                        ; 955f: 99 1c 11    ...            ; Save as previous dir sector (*BACK)
     dey                                                               ; 9562: 88          .              ; Next byte in sector copy
-    bpl loop_c955c                                                    ; 9563: 10 f7       ..             ; Loop for 3 bytes
+    bpl copy_csd_sector_loop                                          ; 9563: 10 f7       ..             ; Loop for 3 bytes
     lda #&ff                                                          ; 9565: a9 ff       ..             ; A=&FF: mark as unset
     sta l102e                                                         ; 9567: 8d 2e 10    ...            ; Clear alternative workspace ptr
     sta wksp_saved_drive                                              ; 956a: 8d 2f 10    ./.            ; Clear saved drive
@@ -5112,11 +5112,11 @@ oscli                                           = &fff7
 ; &9a63 referenced 3 times by &9ad7, &9b4b, &9bfb
 .hd_init_detect
     lda #&5a ; 'Z'                                                    ; 9a63: a9 5a       .Z             ; Write &5A to SCSI data register
-    jsr sub_c9a6c                                                     ; 9a65: 20 6c 9a     l.            ; Check if value survived
+    jsr scsi_write_read_test                                          ; 9a65: 20 6c 9a     l.            ; Check if value survived
     bne return_22                                                     ; 9a68: d0 0d       ..             ; No match: SCSI hardware not present
     lda #&a5                                                          ; 9a6a: a9 a5       ..             ; Write complement &A5
 ; &9a6c referenced 1 time by &9a65
-.sub_c9a6c
+.scsi_write_read_test
     sta fred_hard_drive_0                                             ; 9a6c: 8d 40 fc    .@.            ; Write test value to SCSI data port
     ldx #0                                                            ; 9a6f: a2 00       ..             ; X=0: clear IRQ enable register
     stx fred_hard_drive_3                                             ; 9a71: 8e 43 fc    .C.            ; Disable SCSI interrupts
@@ -5825,10 +5825,10 @@ l9dd3 = sub_c9dd2+1
     lsr a                                                             ; 9e32: 4a          J              ; Shift high nibble to low
     lsr a                                                             ; 9e33: 4a          J              ; 4 right shifts total
     lsr a                                                             ; 9e34: 4a          J              ; 4th shift
-    jsr sub_c927b                                                     ; 9e35: 20 7b 92     {.            ; Print as hex digit
+    jsr setup_entry_name_ptr                                          ; 9e35: 20 7b 92     {.            ; Print as hex digit
     pla                                                               ; 9e38: 68          h              ; Restore address byte
     and #&0f                                                          ; 9e39: 29 0f       ).             ; Isolate low nibble
-    jsr sub_c927b                                                     ; 9e3b: 20 7b 92     {.            ; Print as hex digit
+    jsr setup_entry_name_ptr                                          ; 9e3b: 20 7b 92     {.            ; Print as hex digit
     jsr osnewl                                                        ; 9e3e: 20 e7 ff     ..            ; Print newline; Write newline (characters 10 and 13)
     pla                                                               ; 9e41: 68          h              ; Restore table index
     tax                                                               ; 9e42: aa          .              ; Restore table index to X
@@ -11629,6 +11629,7 @@ save pydis_start, pydis_end
 ;     oscli:                                              3
 ;     oscli_at_x:                                         3
 ;     print_entry_info:                                   3
+;     print_padded_name:                                  3
 ;     return_10:                                          3
 ;     return_14:                                          3
 ;     return_15:                                          3
@@ -11641,7 +11642,6 @@ save pydis_start, pydis_end
 ;     sub_c8dbd:                                          3
 ;     sub_c8e6f:                                          3
 ;     sub_c8f4c:                                          3
-;     sub_c9287:                                          3
 ;     sub_c92c4:                                          3
 ;     sub_c93c5:                                          3
 ;     sub_caaf3:                                          3
@@ -11683,7 +11683,6 @@ save pydis_start, pydis_end
 ;     c85c1:                                              2
 ;     c8656:                                              2
 ;     c8703:                                              2
-;     c872a:                                              2
 ;     c8798:                                              2
 ;     c87a5:                                              2
 ;     c87cf:                                              2
@@ -11709,12 +11708,10 @@ save pydis_start, pydis_end
 ;     c91c2:                                              2
 ;     c91f0:                                              2
 ;     c921f:                                              2
-;     c9299:                                              2
 ;     c93dc:                                              2
 ;     c941c:                                              2
 ;     c9439:                                              2
 ;     c94ef:                                              2
-;     c951b:                                              2
 ;     c95a4:                                              2
 ;     c95b7:                                              2
 ;     c9666:                                              2
@@ -11844,9 +11841,11 @@ save pydis_start, pydis_end
 ;     nmi_0d0c:                                           2
 ;     nmi_0d5d:                                           2
 ;     nmi_0dff:                                           2
+;     pad_with_spaces:                                    2
 ;     parse_dir_argument:                                 2
 ;     parse_drive_argument:                               2
 ;     print_decimal_digit:                                2
+;     print_entry_field_loop:                             2
 ;     print_space_value:                                  2
 ;     ra_buffer_1:                                        2
 ;     return_11:                                          2
@@ -11858,6 +11857,8 @@ save pydis_start, pydis_end
 ;     return_40:                                          2
 ;     return_42:                                          2
 ;     return_48:                                          2
+;     set_terminator_flag:                                2
+;     setup_entry_name_ptr:                               2
 ;     skip_filename:                                      2
 ;     star_close:                                         2
 ;     store_wksp_checksum_ba_y:                           2
@@ -11877,7 +11878,6 @@ save pydis_start, pydis_end
 ;     sub_c8f52:                                          2
 ;     sub_c9009:                                          2
 ;     sub_c905c:                                          2
-;     sub_c927b:                                          2
 ;     sub_c92de:                                          2
 ;     sub_c932a:                                          2
 ;     sub_c9945:                                          2
@@ -12027,15 +12027,9 @@ save pydis_start, pydis_end
 ;     c93f8:                                              1
 ;     c9405:                                              1
 ;     c9419:                                              1
-;     c9463:                                              1
-;     c946f:                                              1
 ;     c9492:                                              1
 ;     c9497:                                              1
 ;     c94a8:                                              1
-;     c9524:                                              1
-;     c9536:                                              1
-;     c953c:                                              1
-;     c9557:                                              1
 ;     c95c3:                                              1
 ;     c95c5:                                              1
 ;     c9619:                                              1
@@ -12281,10 +12275,14 @@ save pydis_start, pydis_end
 ;     cbfd8:                                              1
 ;     cbfe0:                                              1
 ;     cbff1:                                              1
+;     check_at_sign:                                      1
+;     check_field_boundary:                               1
 ;     claim_nmi:                                          1
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
 ;     copy_code_to_nmi_space:                             1
+;     copy_csd_sector_loop:                               1
+;     copy_dir_name_loop:                                 1
 ;     copy_tube_addr_loop:                                1
 ;     default_workspace_data:                             1
 ;     dir2_master_sequence:                               1
@@ -12464,7 +12462,6 @@ save pydis_start, pydis_end
 ;     loop_c91a2:                                         1
 ;     loop_c91cc:                                         1
 ;     loop_c91fa:                                         1
-;     loop_c9289:                                         1
 ;     loop_c92a8:                                         1
 ;     loop_c92ea:                                         1
 ;     loop_c92f9:                                         1
@@ -12473,8 +12470,6 @@ save pydis_start, pydis_end
 ;     loop_c949f:                                         1
 ;     loop_c94aa:                                         1
 ;     loop_c94b7:                                         1
-;     loop_c9544:                                         1
-;     loop_c955c:                                         1
 ;     loop_c9579:                                         1
 ;     loop_c95cf:                                         1
 ;     loop_c95e5:                                         1
@@ -12625,6 +12620,7 @@ save pydis_start, pydis_end
 ;     loop_cbd9a:                                         1
 ;     loop_cbef4:                                         1
 ;     my_osargs:                                          1
+;     next_entry_byte:                                    1
 ;     nmi_0d05:                                           1
 ;     nmi_0d34:                                           1
 ;     nmi_0d5f:                                           1
@@ -12639,6 +12635,8 @@ save pydis_start, pydis_end
 ;     osfile_dispatch_lo:                                 1
 ;     osrdch:                                             1
 ;     osword:                                             1
+;     print_name_char_loop:                               1
+;     print_newline_return:                               1
 ;     ra_buffer_2:                                        1
 ;     ra_buffer_3:                                        1
 ;     ra_buffer_4:                                        1
@@ -12681,16 +12679,19 @@ save pydis_start, pydis_end
 ;     scsi_request_sense:                                 1
 ;     scsi_send_byte_wrapper:                             1
 ;     scsi_start_command2:                                1
+;     scsi_write_read_test:                               1
 ;     service_call_handler:                               1
 ;     service_dispatch_hi:                                1
 ;     service_dispatch_lo:                                1
 ;     service_handler:                                    1
 ;     service_handler_0:                                  1
 ;     service_handler_1:                                  1
+;     set_matched_flag:                                   1
 ;     skip_leading_zero:                                  1
 ;     star_dir:                                           1
 ;     star_info:                                          1
 ;     star_remove:                                        1
+;     store_csd_drive:                                    1
 ;     store_digit:                                        1
 ;     str_at:                                             1
 ;     str_on_channel:                                     1
@@ -12709,7 +12710,6 @@ save pydis_start, pydis_end
 ;     sub_c9436:                                          1
 ;     sub_c9642:                                          1
 ;     sub_c98ae:                                          1
-;     sub_c9a6c:                                          1
 ;     sub_ca161:                                          1
 ;     sub_ca7f5:                                          1
 ;     sub_ca998:                                          1
@@ -12799,7 +12799,6 @@ save pydis_start, pydis_end
 ;     c86f1
 ;     c86fa
 ;     c8703
-;     c872a
 ;     c8737
 ;     c8744
 ;     c877d
@@ -12916,7 +12915,6 @@ save pydis_start, pydis_end
 ;     c921b
 ;     c921f
 ;     c9229
-;     c9299
 ;     c92b2
 ;     c92f6
 ;     c9302
@@ -12927,18 +12925,11 @@ save pydis_start, pydis_end
 ;     c9419
 ;     c941c
 ;     c9439
-;     c9463
-;     c946f
 ;     c947f
 ;     c9492
 ;     c9497
 ;     c94a8
 ;     c94ef
-;     c951b
-;     c9524
-;     c9536
-;     c953c
-;     c9557
 ;     c95a4
 ;     c95b7
 ;     c95c3
@@ -13550,7 +13541,6 @@ save pydis_start, pydis_end
 ;     loop_c91a2
 ;     loop_c91cc
 ;     loop_c91fa
-;     loop_c9289
 ;     loop_c92a8
 ;     loop_c92ea
 ;     loop_c92f9
@@ -13559,8 +13549,6 @@ save pydis_start, pydis_end
 ;     loop_c949f
 ;     loop_c94aa
 ;     loop_c94b7
-;     loop_c9544
-;     loop_c955c
 ;     loop_c9579
 ;     loop_c95cf
 ;     loop_c95e5
@@ -13800,8 +13788,6 @@ save pydis_start, pydis_end
 ;     sub_c907c
 ;     sub_c9101
 ;     sub_c911e
-;     sub_c927b
-;     sub_c9287
 ;     sub_c92c4
 ;     sub_c92de
 ;     sub_c931b
@@ -13814,7 +13800,6 @@ save pydis_start, pydis_end
 ;     sub_c9642
 ;     sub_c98ae
 ;     sub_c9945
-;     sub_c9a6c
 ;     sub_c9dd2
 ;     sub_c9dda
 ;     sub_c9fd8
