@@ -6562,9 +6562,9 @@ l9dd3 = check_help_adfs_keyword+1
 .print_help_data_commands
     lda tbl_commands,x                                                ; 9e0d: bd e3 9e    ...            ; Get command table byte
     bmi l9dd3                                                         ; 9e10: 30 c1       0.             ; Bit 7 set: end of table
-    jsr print_inline_string                                           ; 9e12: 20 a0 92     ..            ; Print leading spaces; Print bit-7-terminated inline string
+    jsr print_inline_string                                           ; 9e12: 20 a0 92     ..            ; Print "  " indent before command name; Print bit-7-terminated inline string
     equs " "                                                          ; 9e15: 20
-    equb &a0                                                          ; 9e16: a0          .
+    equb &a0                                                          ; 9e16: a0          .              ; ' ' + bit 7: end of inline string
 
     ldy #9                                                            ; 9e17: a0 09       ..             ; Y=9: max 10 chars per command name
 ; &9e19 referenced 1 time by &9e23

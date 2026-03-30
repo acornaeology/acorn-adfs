@@ -4324,7 +4324,8 @@ comment(0x9E08, "Print version info", inline=True)
 comment(0x9E0B, "X=0: start of command table", inline=True)
 comment(0x9E0D, "Get command table byte", inline=True)
 comment(0x9E10, "Bit 7 set: end of table", inline=True)
-comment(0x9E12, "Print leading spaces", inline=True)
+comment(0x9E12, 'Print "  " indent before command name', inline=True)
+comment(0x9E16, "' ' + bit 7: end of inline string", inline=True)
 
 # *HELP command list loop (&9E17)
 # Prints each command from the table, padded to 10 chars,
