@@ -6605,14 +6605,15 @@ l9dd3 = check_help_adfs_keyword+1
 ; Eight low-byte pointers into the &9Fxx page, indexing the
 ; parameter format strings displayed after each command name
 ; in the *HELP ADFS output. Each command's third table byte
-; encodes two nibble indices: high nibble selects the first
-; parameter string, low nibble selects the second.
+; packs two nibble indices: the high nibble selects the first
+; parameter string, the low nibble selects the second. For
+; example, *ACCESS has byte &16 meaning index 1 then index 6,
+; producing "ACCESS <List Spec> (L)(W)(R)(E)" in the listing.
 ; 
-;   0: (none)         5: <SP> <LP>
-;   1: <List Spec>    6: (L)(W)(R)(E)
-;   2: <Ob Spec>      7: <Title>
-;   3: <*Ob Spec*>
-;   4: (<Drive>)
+;   0: (none)         4: (<Drive>)
+;   1: <List Spec>    5: <SP> <LP>
+;   2: <Ob Spec>      6: (L)(W)(R)(E)
+;   3: <*Ob Spec*>    7: <Title>
 ; 
 ; ***************************************************************************************
 ; &9e48 referenced 1 time by &9280
