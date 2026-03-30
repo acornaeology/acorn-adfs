@@ -5785,15 +5785,26 @@ lffff                                           = &ffff
     rts                                                               ; 9a77: 60          `              ; Return
 
 ; ***************************************************************************************
-; Auto-boot data and command strings
+; Boot option OSCLI address table and command strings
 ; 
-; Boot option data (3 bytes) and CR-terminated OSCLI command
-; strings for auto-boot: 'L.$.!BOOT' (load option) and
-; 'E.$.!BOOT' (exec option).
+; Three-byte lookup table of OSCLI string low addresses, indexed
+; by boot option number (1-3). The high byte is always &9A.
+; The auto-boot code reads fsm_s1_boot_option and uses it as
+; an index into this table to select the OSCLI command.
+; 
+;   Option 1 (Load): &7B -> "L.$.!BOOT" at &9A7B
+;   Option 2 (Run):  &7D -> "$.!BOOT" at &9A7D (*RUN)
+;   Option 3 (Exec): &85 -> "E.$.!BOOT" at &9A85
+; 
+; Option 2 cleverly points into the middle of the "L.$.!BOOT"
+; string to get just "$.!BOOT", which OSCLI interprets as
+; *RUN $.!BOOT.
 ; 
 ; ***************************************************************************************
-.boot_data
-    equb &7b, &7d, &85                                                ; 9a78: 7b 7d 85    {}.
+.boot_option_addr_table
+    equb &7b                                                          ; 9a78: 7b          {              ; Option 1: &7B -> &9A7B 'L.$.!BOOT' (Load)
+    equb &7d                                                          ; 9a79: 7d          }              ; Option 2: &7D -> &9A7D '$.!BOOT' (*RUN)
+    equb &85                                                          ; 9a7a: 85          .              ; Option 3: &85 -> &9A85 'E.$.!BOOT' (Exec)
 .str_l_boot
     equs "L.$.!BOOT", &0d                                             ; 9a7b: 4c 2e 24... L.$            ; "L.$.!BOOT" + CR: load boot file
 .str_e_boot

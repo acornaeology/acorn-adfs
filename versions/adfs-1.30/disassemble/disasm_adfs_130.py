@@ -1109,7 +1109,14 @@ byte(0x9A61)
 comment(0x9A61, "Library drive: 0", inline=True)
 byte(0x9A62)
 comment(0x9A62, "Previous dir sector low: 2 (root dir)", inline=True)
+label(0x9A78, "boot_option_addr_table")
 entry(0x9A78)
+byte(0x9A78)
+comment(0x9A78, "Option 1: &7B -> &9A7B 'L.$.!BOOT' (Load)", inline=True)
+byte(0x9A79)
+comment(0x9A79, "Option 2: &7D -> &9A7D '$.!BOOT' (*RUN)", inline=True)
+byte(0x9A7A)
+comment(0x9A7A, "Option 3: &85 -> &9A85 'E.$.!BOOT' (Exec)", inline=True)
 entry(0x9A8F)
 entry(0x9CC1)
 entry(0x9CD6)
@@ -7712,8 +7719,8 @@ comment(0xB1B5, "Y=0: close all files", inline=True)
 # floppy_set_side_1 (&BD22)
 comment(0xBD22, "Set side select flag", inline=True)
 
-# Boot file strings
-label(0x9A78, "boot_data")
+# Boot file strings (label and byte directives for boot_option_addr_table
+# are in the interstitial data section near the entry() calls)
 label(0x9A7B, "str_l_boot")
 stringcr(0x9A7B)
 comment(0x9A7B, '"L.$.!BOOT" + CR: load boot file', inline=True)
@@ -11454,12 +11461,21 @@ on drive 0, sector 2.
 +1C  wksp_prev_dir_sector low: sector 2
 """)
 
-subroutine(0x9A78, "boot_data",
-    title="Auto-boot data and command strings",
+subroutine(0x9A78, "boot_option_addr_table",
+    title="Boot option OSCLI address table and command strings",
     description="""\
-Boot option data (3 bytes) and CR-terminated OSCLI command
-strings for auto-boot: 'L.$.!BOOT' (load option) and
-'E.$.!BOOT' (exec option).
+Three-byte lookup table of OSCLI string low addresses, indexed
+by boot option number (1-3). The high byte is always &9A.
+The auto-boot code reads fsm_s1_boot_option and uses it as
+an index into this table to select the OSCLI command.
+
+  Option 1 (Load): &7B -> "L.$.!BOOT" at &9A7B
+  Option 2 (Run):  &7D -> "$.!BOOT" at &9A7D (*RUN)
+  Option 3 (Exec): &85 -> "E.$.!BOOT" at &9A85
+
+Option 2 cleverly points into the middle of the "L.$.!BOOT"
+string to get just "$.!BOOT", which OSCLI interprets as
+*RUN $.!BOOT.
 """)
 
 subroutine(0x9A8F, "service_dispatch_lo",
