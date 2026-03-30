@@ -4316,7 +4316,7 @@ lffff                                           = &ffff
 
 ; &9299 referenced 2 times by &928f, &929d
 .pad_with_spaces
-    jsr ca016                                                         ; 9299: 20 16 a0     ..            ; Print space padding; Print a space character
+    jsr print_space                                                   ; 9299: 20 16 a0     ..            ; Print space padding; Print a space character
     dex                                                               ; 929c: ca          .              ; Pad with spaces
     bne pad_with_spaces                                               ; 929d: d0 fa       ..             ; Loop for remaining columns
     rts                                                               ; 929f: 60          `              ; Return
@@ -4399,7 +4399,7 @@ lffff                                           = &ffff
 .print_entry_name_and_access
     ldx #&0a                                                          ; 92de: a2 0a       ..             ; X=&0A: print up to 10 name chars
     jsr print_padded_name                                             ; 92e0: 20 87 92     ..            ; Print name characters
-    jsr ca016                                                         ; 92e3: 20 16 a0     ..            ; Print space after name; Print a space character
+    jsr print_space                                                   ; 92e3: 20 16 a0     ..            ; Print space after name; Print a space character
     ldy #4                                                            ; 92e6: a0 04       ..             ; Y=4: check 5 attribute bytes
     ldx #3                                                            ; 92e8: a2 03       ..             ; X=3: print RWLD attribute chars
 ; &92ea referenced 1 time by &92f7
@@ -4418,7 +4418,7 @@ lffff                                           = &ffff
 .print_access_chars_loop
     dex                                                               ; 92f9: ca          .              ; Decrement space counter
     bmi print_access_done                                             ; 92fa: 30 06       0.             ; All printed: add '/' separator
-    jsr ca016                                                         ; 92fc: 20 16 a0     ..            ; Print space for unset attribute; Print a space character
+    jsr print_space                                                   ; 92fc: 20 16 a0     ..            ; Print space for unset attribute; Print a space character
     jmp print_access_chars_loop                                       ; 92ff: 4c f9 92    L..            ; Continue attribute loop
 
 ; &9302 referenced 1 time by &92fa
@@ -4430,7 +4430,7 @@ lffff                                           = &ffff
     jsr print_hex_byte                                                ; 930b: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     lda #&29 ; ')'                                                    ; 930e: a9 29       .)             ; Print ')' after sequence number
     jsr oswrch                                                        ; 9310: 20 ee ff     ..            ; Write character 41
-    jmp ca016                                                         ; 9313: 4c 16 a0    L..            ; Print space and return; Print a space character
+    jmp print_space                                                   ; 9313: 4c 16 a0    L..            ; Print space and return; Print a space character
 
 ; ***************************************************************************************
 ; Access attribute character table
@@ -4576,7 +4576,7 @@ lffff                                           = &ffff
 
 ; &93f5 referenced 1 time by &93e8
 .advance_cat_entry
-    jsr ca016                                                         ; 93f5: 20 16 a0     ..            ; Print space between entries; Print a space character
+    jsr print_space                                                   ; 93f5: 20 16 a0     ..            ; Print space between entries; Print a space character
 ; &93f8 referenced 1 time by &93f2
 .print_cat_pair
     clc                                                               ; 93f8: 18          .              ; Clear carry for pointer advance
@@ -4859,8 +4859,8 @@ lffff                                           = &ffff
     and #3                                                            ; 9525: 29 03       ).             ; Field boundary every 4 bytes (X&3=1)
     cmp #1                                                            ; 9527: c9 01       ..             ; X mod 4 == 1? Field boundary
     bne next_entry_byte                                               ; 9529: d0 0b       ..             ; Not at boundary, continue
-    jsr ca016                                                         ; 952b: 20 16 a0     ..            ; Print two spaces between fields; Print a space character
-    jsr ca016                                                         ; 952e: 20 16 a0     ..            ; Print second padding space; Print a space character
+    jsr print_space                                                   ; 952b: 20 16 a0     ..            ; Print two spaces between fields; Print a space character
+    jsr print_space                                                   ; 952e: 20 16 a0     ..            ; Print second padding space; Print a space character
     txa                                                               ; 9531: 8a          .              ; Skip ahead to next field
     clc                                                               ; 9532: 18          .              ; Clear carry for addition
     adc #5                                                            ; 9533: 69 05       i.             ; Advance Y by 5
@@ -6576,7 +6576,7 @@ l9dd3 = check_help_adfs_keyword+1
     bpl print_data_cmd_name_loop                                      ; 9e23: 10 f4       ..             ; Loop for up to 10 chars
 ; &9e25 referenced 2 times by &9e1c, &9e29
 .end_of_data_command
-    jsr ca016                                                         ; 9e25: 20 16 a0     ..            ; Print space for padding; Print a space character
+    jsr print_space                                                   ; 9e25: 20 16 a0     ..            ; Print space for padding; Print a space character
     dey                                                               ; 9e28: 88          .              ; Decrement padding counter
     bpl end_of_data_command                                           ; 9e29: 10 fa       ..             ; Loop until 10 columns filled
     txa                                                               ; 9e2b: 8a          .              ; Save table index
@@ -6663,25 +6663,25 @@ l9dd3 = check_help_adfs_keyword+1
 ; ***************************************************************************************
 ; &9e6d referenced 1 time by &9e64
 .fscv_dispatch_lo
-    equb <(sub_c9fdd-1)                                               ; 9e6d: dc          .
+    equb <(fsc0_star_opt-1)                                           ; 9e6d: dc          .
     equb <(check_eof_for_handle-1)                                    ; 9e6e: 39          9
     equb <(star_run-1)                                                ; 9e6f: 98          .
     equb <(star_cmd-1)                                                ; 9e70: 7e          ~
     equb <(star_run-1)                                                ; 9e71: 98          .
     equb <(print_catalogue_entries-1)                                 ; 9e72: cd          .
     equb <(fsc6_new_filing_system-1)                                  ; 9e73: 3b          ;
-    equb <(sub_c9fd8-1)                                               ; 9e74: d7          .
+    equb <(fsc7_read_handle_range-1)                                  ; 9e74: d7          .
     equb <(check_compaction_recommended-1)                            ; 9e75: 93          .
 ; &9e76 referenced 1 time by &9e60
 .fscv_dispatch_hi
-    equb >(sub_c9fdd-1)                                               ; 9e76: 9f          .
+    equb >(fsc0_star_opt-1)                                           ; 9e76: 9f          .
     equb >(check_eof_for_handle-1)                                    ; 9e77: ad          .
     equb >(star_run-1)                                                ; 9e78: a3          .
     equb >(star_cmd-1)                                                ; 9e79: 9e          .
     equb >(star_run-1)                                                ; 9e7a: a3          .
     equb >(print_catalogue_entries-1)                                 ; 9e7b: 93          .
     equb >(fsc6_new_filing_system-1)                                  ; 9e7c: a9          .
-    equb >(sub_c9fd8-1)                                               ; 9e7d: 9f          .
+    equb >(fsc7_read_handle_range-1)                                  ; 9e7d: 9f          .
     equb >(check_compaction_recommended-1)                            ; 9e7e: a0          .
 
 ; ***************************************************************************************
@@ -6896,35 +6896,55 @@ l9ee5 = tbl_commands+2
     equs "(L)(W)(R)(E)", 0                                            ; 9fc3: 28 4c 29... (L)            ; Index 6: access attribute flags
     equs "<Title>", 0                                                 ; 9fd0: 3c 54 69... <Ti            ; Index 7: directory title string
 
-.sub_c9fd8
-    ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0             ; X=&30: *CAT address low
-    ldy #&39 ; '9'                                                    ; 9fda: a0 39       .9             ; Y=&39: *CAT address high
-    rts                                                               ; 9fdc: 60          `              ; Return to FSC dispatcher
+; ***************************************************************************************
+; FSC 7: return ADFS file handle range
+; 
+; Return the range of file handles used by ADFS. The MOS calls
+; FSC 7 to determine which handles belong to the current filing
+; system. ADFS uses handles &30-&39 (10 channels).
+; 
+; On exit:
+;   X = &30 (lowest handle)
+;   Y = &39 (highest handle)
+; 
+; ***************************************************************************************
+.fsc7_read_handle_range
+    ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0             ; X=&30: lowest ADFS file handle; X=&30: *CAT address low
+    ldy #&39 ; '9'                                                    ; 9fda: a0 39       .9             ; Y=&39: highest ADFS file handle; Y=&39: *CAT address high
+    rts                                                               ; 9fdc: 60          `              ; Return X=&30, Y=&39 to MOS; Return to FSC dispatcher
 
-.sub_c9fdd
+; ***************************************************************************************
+; FSC 0: *OPT command handler
+; 
+; Handle the *OPT command. *OPT 1,N controls verbose mode
+; (bit 2 of zp_adfs_flags). *OPT 4,N sets the disc boot
+; option in the free space map.
+; 
+; ***************************************************************************************
+.fsc0_star_opt
     ldx zp_text_ptr_lo                                                ; 9fdd: a6 b4       ..             ; Get *OPT first parameter
-    beq c9fed                                                         ; 9fdf: f0 0c       ..             ; Param=0: *OPT 0 (clear OPT1)
+    beq clear_opt1_verbose                                            ; 9fdf: f0 0c       ..             ; Param=0: *OPT 0 (clear OPT1)
     dex                                                               ; 9fe1: ca          .              ; Param-1: check for *OPT 1
-    bne c9ff6                                                         ; 9fe2: d0 12       ..             ; Not *OPT 1: check *OPT 4
+    bne check_opt4_boot                                               ; 9fe2: d0 12       ..             ; Not *OPT 1: check *OPT 4
     tya                                                               ; 9fe4: 98          .              ; Param=1: check second parameter
-    beq c9fed                                                         ; 9fe5: f0 06       ..             ; Second param=0: clear OPT1
+    beq clear_opt1_verbose                                            ; 9fe5: f0 06       ..             ; Second param=0: clear OPT1
     lda zp_adfs_flags                                                 ; 9fe7: a5 cd       ..             ; Get ADFS flags
     ora #4                                                            ; 9fe9: 09 04       ..             ; Set bit 2 (*OPT1 verbose on)
-    bne c9ff1                                                         ; 9feb: d0 04       ..             ; ALWAYS branch
+    bne store_opt_flags                                               ; 9feb: d0 04       ..             ; ALWAYS branch
 
 ; &9fed referenced 2 times by &9fdf, &9fe5
-.c9fed
+.clear_opt1_verbose
     lda zp_adfs_flags                                                 ; 9fed: a5 cd       ..             ; Clear bit 2 (OPT1 verbose off)
     and #&fb                                                          ; 9fef: 29 fb       ).             ; Clear bit 2 (*OPT1 verbose off)
 ; &9ff1 referenced 1 time by &9feb
-.c9ff1
+.store_opt_flags
     sta zp_adfs_flags                                                 ; 9ff1: 85 cd       ..             ; Store updated flags
     jmp save_wksp_and_return                                          ; 9ff3: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; &9ff6 referenced 1 time by &9fe2
-.c9ff6
+.check_opt4_boot
     cpx #3                                                            ; 9ff6: e0 03       ..             ; Check for *OPT 4 (boot option)
-    bne ca00a                                                         ; 9ff8: d0 10       ..             ; Not *OPT 4: bad opt error
+    bne bad_opt_error                                                 ; 9ff8: d0 10       ..             ; Not *OPT 4: bad opt error
     jsr mark_directory_dirty                                          ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified; Validate FSM checksums and mark directory dirty
     jsr check_drive_and_reload_fsm                                    ; 9ffd: 20 f5 b4     ..            ; Ensure dir loaded and writable; Check disc changed and reload FSM if needed
     lda zp_text_ptr_hi                                                ; a000: a5 b5       ..             ; Get boot option value (second param)
@@ -6933,7 +6953,7 @@ l9ee5 = tbl_commands+2
     jmp write_dir_and_validate                                        ; a007: 4c 86 8f    L..            ; Write FSM back to disc; Write directory and FSM back to disc
 
 ; &a00a referenced 1 time by &9ff8
-.ca00a
+.bad_opt_error
     jsr reload_fsm_and_dir_then_brk                                   ; a00a: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &cb                                                          ; a00d: cb          .              ; Error &CB: Bad opt
     equs "Bad opt", 0                                                 ; a00e: 42 61 64... Bad
@@ -6945,6 +6965,7 @@ l9ee5 = tbl_commands+2
 ; 
 ; ***************************************************************************************
 ; &a016 referenced 8 times by &9299, &92e3, &92fc, &9313, &93f5, &952b, &952e, &9e25
+.print_space
 .ca016
     lda #&20 ; ' '                                                    ; a016: a9 20       .              ; A=&20: space character
     jmp oswrch                                                        ; a018: 4c ee ff    L..            ; Write character 32
@@ -12477,7 +12498,9 @@ la868 = check_dest_terminator+1
 
     assert <(check_compaction_recommended-1) == &93
     assert <(check_eof_for_handle-1) == &39
+    assert <(fsc0_star_opt-1) == &dc
     assert <(fsc6_new_filing_system-1) == &3b
+    assert <(fsc7_read_handle_range-1) == &d7
     assert <(l10c8) == &c8
     assert <(print_catalogue_entries-1) == &cd
     assert <(service_handler_0-1) == &b7
@@ -12490,12 +12513,12 @@ la868 = check_dest_terminator+1
     assert <(star_cmd-1) == &7e
     assert <(star_run-1) == &98
     assert <(str_e_boot) == &85
-    assert <(sub_c9fd8-1) == &d7
-    assert <(sub_c9fdd-1) == &dc
     assert <(svc5_irq-1) == &77
     assert >(check_compaction_recommended-1) == &a0
     assert >(check_eof_for_handle-1) == &ad
+    assert >(fsc0_star_opt-1) == &9f
     assert >(fsc6_new_filing_system-1) == &a9
+    assert >(fsc7_read_handle_range-1) == &9f
     assert >(l10c8) == &10
     assert >(print_catalogue_entries-1) == &93
     assert >(service_handler_0-1) == &9a
@@ -12508,8 +12531,6 @@ la868 = check_dest_terminator+1
     assert >(star_cmd-1) == &9e
     assert >(star_run-1) == &a3
     assert >(str_e_boot) == &9a
-    assert >(sub_c9fd8-1) == &9f
-    assert >(sub_c9fdd-1) == &9f
     assert >(svc5_irq-1) == &ab
     assert copyright - rom_header == &18
     assert osfile_delete_handler-1 == &9100
@@ -12632,6 +12653,7 @@ save pydis_start, pydis_end
 ;     l1116:                                              8
 ;     oswrch:                                             8
 ;     parse_path_and_load:                                8
+;     print_space:                                        8
 ;     save_workspace_state:                               8
 ;     wksp_disc_op_mem_addr:                              8
 ;     bad_checksum_error:                                 7
@@ -12896,7 +12918,6 @@ save pydis_start, pydis_end
 ;     boot_run_option:                                    2
 ;     broken_directory_error:                             2
 ;     c8dab:                                              2
-;     c9fed:                                              2
 ;     calc_bget_sector_addr:                              2
 ;     calc_buffer_address:                                2
 ;     calc_buffer_page_from_offset:                       2
@@ -12927,6 +12948,7 @@ save pydis_start, pydis_end
 ;     check_trailing_star:                                2
 ;     check_wksp_checksum:                                2
 ;     claim_nmi_and_init:                                 2
+;     clear_opt1_verbose:                                 2
 ;     clear_rwl_attributes:                               2
 ;     clear_seek_flag:                                    2
 ;     close_read_only:                                    2
@@ -13146,6 +13168,7 @@ save pydis_start, pydis_end
 ;     append_sector_hex:                                  1
 ;     apply_access_bits_loop:                             1
 ;     bad_command_error:                                  1
+;     bad_opt_error:                                      1
 ;     begin_format_operation:                             1
 ;     begin_pathname_scan:                                1
 ;     begin_step_sequence:                                1
@@ -13156,9 +13179,6 @@ save pydis_start, pydis_end
 ;     build_access_byte_loop:                             1
 ;     build_filename_loop:                                1
 ;     build_osfile_control_block:                         1
-;     c9ff1:                                              1
-;     c9ff6:                                              1
-;     ca00a:                                              1
 ;     calc_channel_buffer_page:                           1
 ;     calc_disc_sector_for_channel:                       1
 ;     calc_end_position_loop:                             1
@@ -13216,6 +13236,7 @@ save pydis_start, pydis_end
 ;     check_name_char_loop:                               1
 ;     check_open_channel_loop:                            1
 ;     check_open_conflict_loop:                           1
+;     check_opt4_boot:                                    1
 ;     check_partial_sector_needed:                        1
 ;     check_partial_sectors_done:                         1
 ;     check_pattern_exhausted:                            1
@@ -13877,6 +13898,7 @@ save pydis_start, pydis_end
 ;     store_new_entry_loop:                               1
 ;     store_new_ptr_in_channel:                           1
 ;     store_nmi_completion:                               1
+;     store_opt_flags:                                    1
 ;     store_osword_result:                                1
 ;     store_read_result:                                  1
 ;     store_remaining_count:                              1
@@ -13958,10 +13980,6 @@ save pydis_start, pydis_end
 
 ; Automatically generated labels:
 ;     c8dab
-;     c9fed
-;     c9ff1
-;     c9ff6
-;     ca00a
 ;     cbc91
 ;     cbc93
 ;     cbca5
@@ -14171,8 +14189,6 @@ save pydis_start, pydis_end
 ;     return_8
 ;     return_9
 ;     sub_c9b86
-;     sub_c9fd8
-;     sub_c9fdd
 ;     sub_ca153
 ;     sub_cbe69
 

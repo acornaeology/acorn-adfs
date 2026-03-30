@@ -1394,6 +1394,17 @@ comment(0x9FC3, "Index 6: access attribute flags", inline=True)
 stringz(0x9FD0)
 comment(0x9FD0, "Index 7: directory title string", inline=True)
 
+# FSC 7: read file handle range
+label(0x9FD8, "fsc7_read_handle_range")
+entry(0x9FD8)
+comment(0x9FD8, "X=&30: lowest ADFS file handle", inline=True)
+comment(0x9FDA, "Y=&39: highest ADFS file handle", inline=True)
+comment(0x9FDC, "Return X=&30, Y=&39 to MOS", inline=True)
+
+# FSC 0: *OPT handler
+label(0x9FDD, "fsc0_star_opt")
+entry(0x9FDD)
+
 # ===========================================================================
 # Code label renames
 # ===========================================================================
@@ -3886,6 +3897,11 @@ label(0x9EB4, "end_of_table_name")
 label(0x9EC3, "advance_past_command")
 label(0x9ECD, "skip_spaces_before_args")
 label(0x9EDA, "dispatch_command")
+label(0x9FED, "clear_opt1_verbose")
+label(0x9FF1, "store_opt_flags")
+label(0x9FF6, "check_opt4_boot")
+label(0xA00A, "bad_opt_error")
+label(0xA016, "print_space")
 label(0xA031, "print_used_space")
 label(0xA061, "print_map_header")
 label(0xA06D, "print_fsm_entries_loop")
@@ -11852,6 +11868,26 @@ output for commands with no parameters.
   5: "<SP> <LP>"       Start page and length page
   6: "(L)(W)(R)(E)"    Access attribute flags
   7: "<Title>"         Directory title string
+""")
+
+subroutine(0x9FD8, "fsc7_read_handle_range",
+    title="FSC 7: return ADFS file handle range",
+    description="""\
+Return the range of file handles used by ADFS. The MOS calls
+FSC 7 to determine which handles belong to the current filing
+system. ADFS uses handles &30-&39 (10 channels).
+
+On exit:
+  X = &30 (lowest handle)
+  Y = &39 (highest handle)
+""")
+
+subroutine(0x9FDD, "fsc0_star_opt",
+    title="FSC 0: *OPT command handler",
+    description="""\
+Handle the *OPT command. *OPT 1,N controls verbose mode
+(bit 2 of zp_adfs_flags). *OPT 4,N sets the disc boot
+option in the free space map.
 """)
 
 subroutine(0xBC79, "nmi_code_start",
