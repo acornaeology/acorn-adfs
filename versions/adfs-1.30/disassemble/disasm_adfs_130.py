@@ -1135,6 +1135,50 @@ comment(0x9CBD, "FINDV: &FF2A (OSFIND)", inline=True)
 word(0x9CBF)
 comment(0x9CBF, "FSCV:  &FF2D (FSC)", inline=True)
 entry(0x9CC1)
+# Extended vector table: 7 entries of 3 bytes (addr_lo, addr_hi, ROM)
+# ROM byte is &FF, patched to actual ROM number at install time.
+byte(0x9CC1)
+comment(0x9CC1, "FILEV low:  <my_osfile (&923E)", inline=True)
+byte(0x9CC2)
+comment(0x9CC2, "FILEV high: >my_osfile", inline=True)
+byte(0x9CC3)
+comment(0x9CC3, "FILEV ROM:  &FF (patched at runtime)", inline=True)
+byte(0x9CC4)
+comment(0x9CC4, "ARGSV low:  <my_osargs (&A955)", inline=True)
+byte(0x9CC5)
+comment(0x9CC5, "ARGSV high: >my_osargs", inline=True)
+byte(0x9CC6)
+comment(0x9CC6, "ARGSV ROM:  &FF (patched at runtime)", inline=True)
+byte(0x9CC7)
+comment(0x9CC7, "BGETV low:  <my_osbget (&AD63)", inline=True)
+byte(0x9CC8)
+comment(0x9CC8, "BGETV high: >my_osbget", inline=True)
+byte(0x9CC9)
+comment(0x9CC9, "BGETV ROM:  &FF (patched at runtime)", inline=True)
+byte(0x9CCA)
+comment(0x9CCA, "BPUTV low:  <my_osbput (&B08F)", inline=True)
+byte(0x9CCB)
+comment(0x9CCB, "BPUTV high: >my_osbput", inline=True)
+byte(0x9CCC)
+comment(0x9CCC, "BPUTV ROM:  &FF (patched at runtime)", inline=True)
+byte(0x9CCD)
+comment(0x9CCD, "GBPBV low:  <my_osgbpb (&B57F)", inline=True)
+byte(0x9CCE)
+comment(0x9CCE, "GBPBV high: >my_osgbpb", inline=True)
+byte(0x9CCF)
+comment(0x9CCF, "GBPBV ROM:  &FF (patched at runtime)", inline=True)
+byte(0x9CD0)
+comment(0x9CD0, "FINDV low:  <my_osfind (&B1B6)", inline=True)
+byte(0x9CD1)
+comment(0x9CD1, "FINDV high: >my_osfind", inline=True)
+byte(0x9CD2)
+comment(0x9CD2, "FINDV ROM:  &FF (patched at runtime)", inline=True)
+byte(0x9CD3)
+comment(0x9CD3, "FSCV low:   <my_fscv (&9E50)", inline=True)
+byte(0x9CD4)
+comment(0x9CD4, "FSCV high:  >my_fscv", inline=True)
+byte(0x9CD5)
+comment(0x9CD5, "FSCV ROM:   &FF (patched at runtime)", inline=True)
 entry(0x9CD6)
 entry(0x9E6D)
 entry(0x9EE3)
@@ -11521,10 +11565,19 @@ tbl_extended_vectors to reach the actual ADFS handler routines.
 subroutine(0x9CC1, "tbl_extended_vectors",
     title="Extended vector table",
     description="""\
-Extended vector entries for FILEV, ARGSV, BGETV, BPUTV,
-and GBPBV. Each entry is a 3-byte record: address low,
-address high, ROM number. Installed when ADFS is selected
-as the current filing system.
+Seven 3-byte extended vector entries for the filing system
+API. Each entry is: handler address low, handler address
+high, ROM number (&FF, patched to actual ROM number when
+installed). Copied to the MOS extended vector area when
+ADFS is selected as the current filing system.
+
+  FILEV  &923E  my_osfile
+  ARGSV  &A955  my_osargs
+  BGETV  &AD63  my_osbget
+  BPUTV  &B08F  my_osbput
+  GBPBV  &B57F  my_osgbpb
+  FINDV  &B1B6  my_osfind
+  FSCV   &9E50  my_fscv
 """)
 
 subroutine(0x9CD6, "str_filing_system_name",

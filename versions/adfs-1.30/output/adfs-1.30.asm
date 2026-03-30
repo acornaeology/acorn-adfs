@@ -81,7 +81,6 @@ zp_floppy_track                                 = &00a3
 zp_floppy_sector                                = &00a4
 zp_floppy_track_num                             = &00a5
 zp_floppy_dest_page                             = &00a6
-l00a9                                           = &00a9
 zp_ctrl_blk_lo                                  = &00b0
 zp_ctrl_blk_hi                                  = &00b1
 zp_mem_ptr_lo                                   = &00b2
@@ -393,7 +392,6 @@ fdc_1770_track                                  = &fe85
 fdc_1770_sector                                 = &fe86
 fdc_1770_data                                   = &fe87
 tube_data_register_3                            = &fee5
-lff92                                           = &ff92
 osargs                                          = &ffda
 osrdch                                          = &ffe0
 osasci                                          = &ffe3
@@ -6240,22 +6238,47 @@ boot_run_option = sub_c9b86+1
     equw &ff27                                                        ; 9cbb: 27 ff       '.             ; GBPBV: &FF27 (OSGBPB)
     equw &ff2a                                                        ; 9cbd: 2a ff       *.             ; FINDV: &FF2A (OSFIND)
     equw &ff2d                                                        ; 9cbf: 2d ff       -.             ; FSCV:  &FF2D (FSC)
-
 ; ***************************************************************************************
 ; Extended vector table
 ; 
-; Extended vector entries for FILEV, ARGSV, BGETV, BPUTV,
-; and GBPBV. Each entry is a 3-byte record: address low,
-; address high, ROM number. Installed when ADFS is selected
-; as the current filing system.
+; Seven 3-byte extended vector entries for the filing system
+; API. Each entry is: handler address low, handler address
+; high, ROM number (&FF, patched to actual ROM number when
+; installed). Copied to the MOS extended vector area when
+; ADFS is selected as the current filing system.
+; 
+;   FILEV  &923E  my_osfile
+;   ARGSV  &A955  my_osargs
+;   BGETV  &AD63  my_osbget
+;   BPUTV  &B08F  my_osbput
+;   GBPBV  &B57F  my_osgbpb
+;   FINDV  &B1B6  my_osfind
+;   FSCV   &9E50  my_fscv
 ; 
 ; ***************************************************************************************
 ; &9cc1 referenced 1 time by &9bb2
 .tbl_extended_vectors
-    rol lff92,x                                                       ; 9cc1: 3e 92 ff    >..
-    eor l00a9,x                                                       ; 9cc4: 55 a9       U.
-    equb &ff, &63, &ad, &ff, &8f, &b0, &ff, &7f, &b5, &ff, &b6, &b1   ; 9cc6: ff 63 ad... .c.
-    equb &ff, &50, &9e, &ff                                           ; 9cd2: ff 50 9e... .P.
+    equb &3e                                                          ; 9cc1: 3e          >              ; FILEV low:  <my_osfile (&923E)
+    equb &92                                                          ; 9cc2: 92          .              ; FILEV high: >my_osfile
+    equb &ff                                                          ; 9cc3: ff          .              ; FILEV ROM:  &FF (patched at runtime)
+    equb &55                                                          ; 9cc4: 55          U              ; ARGSV low:  <my_osargs (&A955)
+    equb &a9                                                          ; 9cc5: a9          .              ; ARGSV high: >my_osargs
+    equb &ff                                                          ; 9cc6: ff          .              ; ARGSV ROM:  &FF (patched at runtime)
+    equb &63                                                          ; 9cc7: 63          c              ; BGETV low:  <my_osbget (&AD63)
+    equb &ad                                                          ; 9cc8: ad          .              ; BGETV high: >my_osbget
+    equb &ff                                                          ; 9cc9: ff          .              ; BGETV ROM:  &FF (patched at runtime)
+    equb &8f                                                          ; 9cca: 8f          .              ; BPUTV low:  <my_osbput (&B08F)
+    equb &b0                                                          ; 9ccb: b0          .              ; BPUTV high: >my_osbput
+    equb &ff                                                          ; 9ccc: ff          .              ; BPUTV ROM:  &FF (patched at runtime)
+    equb &7f                                                          ; 9ccd: 7f          .              ; GBPBV low:  <my_osgbpb (&B57F)
+    equb &b5                                                          ; 9cce: b5          .              ; GBPBV high: >my_osgbpb
+    equb &ff                                                          ; 9ccf: ff          .              ; GBPBV ROM:  &FF (patched at runtime)
+    equb &b6                                                          ; 9cd0: b6          .              ; FINDV low:  <my_osfind (&B1B6)
+    equb &b1                                                          ; 9cd1: b1          .              ; FINDV high: >my_osfind
+    equb &ff                                                          ; 9cd2: ff          .              ; FINDV ROM:  &FF (patched at runtime)
+    equb &50                                                          ; 9cd3: 50          P              ; FSCV low:   <my_fscv (&9E50)
+    equb &9e                                                          ; 9cd4: 9e          .              ; FSCV high:  >my_fscv
+    equb &ff                                                          ; 9cd5: ff          .              ; FSCV ROM:   &FF (patched at runtime)
 ; ***************************************************************************************
 ; Filing system name string
 ; 
@@ -13405,7 +13428,6 @@ save pydis_start, pydis_end
 ;     issue_step_command:                                 1
 ;     jmp_indirect_fscv:                                  1
 ;     l0043:                                              1
-;     l00a9:                                              1
 ;     l00ef:                                              1
 ;     l00f1:                                              1
 ;     l0102:                                              1
@@ -13448,7 +13470,6 @@ save pydis_start, pydis_end
 ;     la154:                                              1
 ;     la868:                                              1
 ;     last_char_reached:                                  1
-;     lff92:                                              1
 ;     lffff:                                              1
 ;     load_dest_directory:                                1
 ;     load_dir_and_list_entries:                          1
@@ -13875,7 +13896,6 @@ save pydis_start, pydis_end
 ;     l0002
 ;     l0003
 ;     l0043
-;     l00a9
 ;     l00ef
 ;     l00f0
 ;     l00f1
@@ -14027,7 +14047,6 @@ save pydis_start, pydis_end
 ;     l9ee5
 ;     la154
 ;     la868
-;     lff92
 ;     lffff
 ;     loop_cbc9e
 ;     return_1
@@ -14087,11 +14106,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14992 bytes (92%)
-;     Data                     = 1392 bytes (8%)
+;     Code                     = 14987 bytes (91%)
+;     Data                     = 1397 bytes (9%)
 ;
-;     Number of instructions   = 6980
-;     Number of data bytes     = 436 bytes
+;     Number of instructions   = 6978
+;     Number of data bytes     = 441 bytes
 ;     Number of data words     = 30 bytes
 ;     Number of string bytes   = 926 bytes
 ;     Number of strings        = 106
