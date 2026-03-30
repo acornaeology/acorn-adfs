@@ -6982,7 +6982,7 @@ l9ee5 = tbl_commands+2
     jsr print_space_value                                             ; a01e: 20 c6 a1     ..            ; Print free space with header; Print space value in hex and decimal
     jsr print_inline_string                                           ; a021: 20 a0 92     ..            ; Print "Free" + CR; Print bit-7-terminated inline string
     equs "Free"                                                       ; a024: 46 72 65... Fre
-    equb &8d                                                          ; a028: 8d          .
+    equb &8d                                                          ; a028: 8d          .              ; CR + bit 7: end of inline string
 
     jsr calc_total_free_space                                         ; a029: 20 aa a1     ..            ; Calculate total free space again; Calculate total free space on disc
     ldy #1                                                            ; a02c: a0 01       ..             ; Y=1: start from FSM byte 1
@@ -6999,7 +6999,7 @@ l9ee5 = tbl_commands+2
     jsr print_space_value                                             ; a03e: 20 c6 a1     ..            ; Print used space with header; Print space value in hex and decimal
     jsr print_inline_string                                           ; a041: 20 a0 92     ..            ; Print "Used" + CR; Print bit-7-terminated inline string
     equs "Used"                                                       ; a044: 55 73 65... Use
-    equb &8d                                                          ; a048: 8d          .
+    equb &8d                                                          ; a048: 8d          .              ; CR + bit 7: end of inline string
 
 ; &a049 referenced 4 times by &a064, &a097, &a09e, &a0be
 .return_27
@@ -7013,9 +7013,9 @@ l9ee5 = tbl_commands+2
 ; 
 ; ***************************************************************************************
 .star_map
-    jsr print_inline_string                                           ; a04a: 20 a0 92     ..            ; Print column header; Print bit-7-terminated inline string
+    jsr print_inline_string                                           ; a04a: 20 a0 92     ..            ; Print "Address :  Length" + CR header; Print bit-7-terminated inline string
     equs "Address :  Length"                                          ; a04d: 41 64 64... Add
-    equb &8d                                                          ; a05e: 8d          .
+    equb &8d                                                          ; a05e: 8d          .              ; CR + bit 7: end of inline string
 
     ldx #0                                                            ; a05f: a2 00       ..             ; X=0: start of FSM entries
 ; &a061 referenced 1 time by &a092
