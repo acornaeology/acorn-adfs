@@ -3969,6 +3969,16 @@ label(0xA179, "mount_read_root_dir")
 label(0xA189, "mount_set_boot_option")
 label(0xA1AE, "clear_accumulators_loop")
 label(0xA1BC, "copy_result_loop")
+label(0xA1EF, "clear_bcd_digits_loop")
+label(0xA1F5, "shift_binary_bit")
+label(0xA205, "dabble_digit_loop")
+label(0xA20F, "store_bcd_digit")
+label(0xA21F, "print_digit_loop")
+label(0xA223, "check_leading_zero")
+label(0xA230, "print_nonzero_digit")
+label(0xA235, "output_digit_char")
+label(0xA240, "print_comma_separator")
+label(0xA244, "next_digit")
 label(0xA25D, "copy_title_loop")
 label(0xA269, "pad_title_with_cr")
 label(0xA26B, "store_title_char")
@@ -7575,9 +7585,22 @@ label(0xA1C6, "print_space_value")
 subroutine(0xA1C6, "print_space_value",
     title="Print space value in hex and decimal",
     description="""\
-Print a 3-byte space value from the disc op workspace
-as hex bytes followed by ' Sectors = NNN Bytes'.
-Used by *FREE for displaying free and used space.
+Print a 3-byte sector count from the disc op workspace as
+hex bytes, then convert to decimal bytes and print as
+' Sectors = NNN,NNN,NNN Bytes'. Used by *FREE to display
+free and used space.
+
+The hex part prints the 3-byte value at &1016-&1018. The
+decimal part uses the double-dabble algorithm (also called
+shift-and-add-3) to convert the 4-byte binary value at
+&1015-&1018 into 10 BCD digits stored at &1040-&1049.
+Each iteration shifts the binary value left one bit and
+rotates the carry into the BCD digits, subtracting 10
+from any digit that reaches 10 or above (carrying into
+the next digit). After 31 iterations (32 bits minus the
+sign bit), the BCD digits are printed with leading-zero
+suppression and comma separators at positions 3 and 6
+(thousands and millions).
 """)
 comment(0xA1C6, "Print high byte as hex", inline=True)
 comment(0xA1CC, "Print mid byte as hex", inline=True)
@@ -8729,6 +8752,54 @@ comment(0xA1C9, "Print mid byte as hex", inline=True)
 comment(0xA1CF, "Print low byte as hex", inline=True)
 comment(0xA1D5, "Print result byte as hex", inline=True)
 comment(0xA1E5, "' ' + bit 7: end of inline string", inline=True)
+
+# Double-dabble binary-to-decimal conversion and printing
+comment(0xA1E6, "X=&1F: 31 bit shifts (32-bit value)", inline=True)
+comment(0xA1E8, "Store bit counter in workspace", inline=True)
+comment(0xA1EB, "A=0: clear all BCD digit accumulators", inline=True)
+comment(0xA1ED, "X=9: clear 10 BCD digits (0-9)", inline=True)
+comment(0xA1EF, "Clear BCD digit at &1040+X", inline=True)
+comment(0xA1F2, "Next digit", inline=True)
+comment(0xA1F3, "Loop for all 10 digits", inline=True)
+comment(0xA1F5, "Shift binary value left: byte 0", inline=True)
+comment(0xA1F8, "Rotate carry into byte 1", inline=True)
+comment(0xA1FB, "Rotate carry into byte 2", inline=True)
+comment(0xA1FE, "Rotate carry into byte 3", inline=True)
+comment(0xA201, "X=0: start from least significant digit", inline=True)
+comment(0xA203, "Y=9: process 10 BCD digits", inline=True)
+comment(0xA205, "Get BCD digit", inline=True)
+comment(0xA208, "Rotate shifted bit into digit", inline=True)
+comment(0xA209, "Digit >= 10?", inline=True)
+comment(0xA20B, "No: digit is valid (0-9)", inline=True)
+comment(0xA20D, "Yes: subtract 10 (carry propagates)", inline=True)
+comment(0xA20F, "Store corrected BCD digit", inline=True)
+comment(0xA212, "Next digit (toward most significant)", inline=True)
+comment(0xA213, "Decrement digit counter", inline=True)
+comment(0xA214, "Loop for all 10 digits", inline=True)
+comment(0xA216, "Decrement bit counter", inline=True)
+comment(0xA219, "Loop for all 31 bits", inline=True)
+comment(0xA21B, "Y=' ': separator starts as space", inline=True)
+comment(0xA21D, "X=8: start from most significant digit", inline=True)
+comment(0xA21F, "X!=0: not at units position yet", inline=True)
+comment(0xA221, "X=0: switch separator to comma", inline=True)
+comment(0xA223, "Get BCD digit value", inline=True)
+comment(0xA226, "Non-zero: print this digit", inline=True)
+comment(0xA228, "Zero: has a non-zero digit been seen?", inline=True)
+comment(0xA22A, "Yes (separator=comma): print zero", inline=True)
+comment(0xA22C, "No: suppress leading zero with space", inline=True)
+comment(0xA22E, "Skip to output", inline=True)
+comment(0xA230, "Mark that we've seen a non-zero digit", inline=True)
+comment(0xA232, "Clear carry for addition", inline=True)
+comment(0xA233, "Convert BCD digit to ASCII ('0'-'9')", inline=True)
+comment(0xA235, "Print digit or space", inline=True)
+comment(0xA238, "At position 6 (millions boundary)?", inline=True)
+comment(0xA23A, "Yes: print comma separator", inline=True)
+comment(0xA23C, "At position 3 (thousands boundary)?", inline=True)
+comment(0xA23E, "No: skip separator", inline=True)
+comment(0xA240, "Print separator (space or comma)", inline=True)
+comment(0xA241, "Output separator character", inline=True)
+comment(0xA244, "Next digit (toward least significant)", inline=True)
+comment(0xA245, "Loop for 9 digits (8 down to 0)", inline=True)
 
 # restore_csd - remaining items
 comment(0xA47B, "Next byte", inline=True)

@@ -7333,9 +7333,22 @@ la154 = sub_ca153+1
 ; ***************************************************************************************
 ; Print space value in hex and decimal
 ; 
-; Print a 3-byte space value from the disc op workspace
-; as hex bytes followed by ' Sectors = NNN Bytes'.
-; Used by *FREE for displaying free and used space.
+; Print a 3-byte sector count from the disc op workspace as
+; hex bytes, then convert to decimal bytes and print as
+; ' Sectors = NNN,NNN,NNN Bytes'. Used by *FREE to display
+; free and used space.
+; 
+; The hex part prints the 3-byte value at &1016-&1018. The
+; decimal part uses the double-dabble algorithm (also called
+; shift-and-add-3) to convert the 4-byte binary value at
+; &1015-&1018 into 10 BCD digits stored at &1040-&1049.
+; Each iteration shifts the binary value left one bit and
+; rotates the carry into the BCD digits, subtracting 10
+; from any digit that reaches 10 or above (carrying into
+; the next digit). After 31 iterations (32 bits minus the
+; sign bit), the BCD digits are printed with leading-zero
+; suppression and comma separators at positions 3 and 6
+; (thousands and millions).
 ; 
 ; ***************************************************************************************
 ; &a1c6 referenced 2 times by &a01e, &a03e
@@ -7350,73 +7363,73 @@ la154 = sub_ca153+1
     equs " Sectors ="                                                 ; a1db: 20 53 65...  Se
     equb &a0                                                          ; a1e5: a0          .              ; ' ' + bit 7: end of inline string
 
-    ldx #&1f                                                          ; a1e6: a2 1f       ..
-    stx wksp_last_access_drive                                        ; a1e8: 8e 33 10    .3.
-    lda #0                                                            ; a1eb: a9 00       ..
-    ldx #9                                                            ; a1ed: a2 09       ..
+    ldx #&1f                                                          ; a1e6: a2 1f       ..             ; X=&1F: 31 bit shifts (32-bit value)
+    stx wksp_last_access_drive                                        ; a1e8: 8e 33 10    .3.            ; Store bit counter in workspace
+    lda #0                                                            ; a1eb: a9 00       ..             ; A=0: clear all BCD digit accumulators
+    ldx #9                                                            ; a1ed: a2 09       ..             ; X=9: clear 10 BCD digits (0-9)
 ; &a1ef referenced 1 time by &a1f3
-.loop_ca1ef
-    sta wksp_osfile_block,x                                           ; a1ef: 9d 40 10    .@.
-    dex                                                               ; a1f2: ca          .
-    bpl loop_ca1ef                                                    ; a1f3: 10 fa       ..
+.clear_bcd_digits_loop
+    sta wksp_osfile_block,x                                           ; a1ef: 9d 40 10    .@.            ; Clear BCD digit at &1040+X
+    dex                                                               ; a1f2: ca          .              ; Next digit
+    bpl clear_bcd_digits_loop                                         ; a1f3: 10 fa       ..             ; Loop for all 10 digits
 ; &a1f5 referenced 1 time by &a219
-.ca1f5
-    asl wksp_disc_op_result                                           ; a1f5: 0e 15 10    ...
-    rol wksp_disc_op_mem_addr                                         ; a1f8: 2e 16 10    ...
-    rol l1017                                                         ; a1fb: 2e 17 10    ...
-    rol l1018                                                         ; a1fe: 2e 18 10    ...
-    ldx #0                                                            ; a201: a2 00       ..
-    ldy #9                                                            ; a203: a0 09       ..
+.shift_binary_bit
+    asl wksp_disc_op_result                                           ; a1f5: 0e 15 10    ...            ; Shift binary value left: byte 0
+    rol wksp_disc_op_mem_addr                                         ; a1f8: 2e 16 10    ...            ; Rotate carry into byte 1
+    rol l1017                                                         ; a1fb: 2e 17 10    ...            ; Rotate carry into byte 2
+    rol l1018                                                         ; a1fe: 2e 18 10    ...            ; Rotate carry into byte 3
+    ldx #0                                                            ; a201: a2 00       ..             ; X=0: start from least significant digit
+    ldy #9                                                            ; a203: a0 09       ..             ; Y=9: process 10 BCD digits
 ; &a205 referenced 1 time by &a214
-.loop_ca205
-    lda wksp_osfile_block,x                                           ; a205: bd 40 10    .@.
-    rol a                                                             ; a208: 2a          *
-    cmp #&0a                                                          ; a209: c9 0a       ..
-    bcc ca20f                                                         ; a20b: 90 02       ..
-    sbc #&0a                                                          ; a20d: e9 0a       ..
+.dabble_digit_loop
+    lda wksp_osfile_block,x                                           ; a205: bd 40 10    .@.            ; Get BCD digit
+    rol a                                                             ; a208: 2a          *              ; Rotate shifted bit into digit
+    cmp #&0a                                                          ; a209: c9 0a       ..             ; Digit >= 10?
+    bcc store_bcd_digit                                               ; a20b: 90 02       ..             ; No: digit is valid (0-9)
+    sbc #&0a                                                          ; a20d: e9 0a       ..             ; Yes: subtract 10 (carry propagates)
 ; &a20f referenced 1 time by &a20b
-.ca20f
-    sta wksp_osfile_block,x                                           ; a20f: 9d 40 10    .@.
-    inx                                                               ; a212: e8          .
-    dey                                                               ; a213: 88          .
-    bpl loop_ca205                                                    ; a214: 10 ef       ..
-    dec wksp_last_access_drive                                        ; a216: ce 33 10    .3.
-    bpl ca1f5                                                         ; a219: 10 da       ..
-    ldy #&20 ; ' '                                                    ; a21b: a0 20       .
-    ldx #8                                                            ; a21d: a2 08       ..
+.store_bcd_digit
+    sta wksp_osfile_block,x                                           ; a20f: 9d 40 10    .@.            ; Store corrected BCD digit
+    inx                                                               ; a212: e8          .              ; Next digit (toward most significant)
+    dey                                                               ; a213: 88          .              ; Decrement digit counter
+    bpl dabble_digit_loop                                             ; a214: 10 ef       ..             ; Loop for all 10 digits
+    dec wksp_last_access_drive                                        ; a216: ce 33 10    .3.            ; Decrement bit counter
+    bpl shift_binary_bit                                              ; a219: 10 da       ..             ; Loop for all 31 bits
+    ldy #&20 ; ' '                                                    ; a21b: a0 20       .              ; Y=' ': separator starts as space
+    ldx #8                                                            ; a21d: a2 08       ..             ; X=8: start from most significant digit
 ; &a21f referenced 1 time by &a245
-.ca21f
-    bne ca223                                                         ; a21f: d0 02       ..
-    ldy #&2c ; ','                                                    ; a221: a0 2c       .,
+.print_digit_loop
+    bne check_leading_zero                                            ; a21f: d0 02       ..             ; X!=0: not at units position yet
+    ldy #&2c ; ','                                                    ; a221: a0 2c       .,             ; X=0: switch separator to comma
 ; &a223 referenced 1 time by &a21f
-.ca223
-    lda wksp_osfile_block,x                                           ; a223: bd 40 10    .@.
-    bne ca230                                                         ; a226: d0 08       ..
-    cpy #&2c ; ','                                                    ; a228: c0 2c       .,
-    beq ca230                                                         ; a22a: f0 04       ..
-    lda #&20 ; ' '                                                    ; a22c: a9 20       .
-    bne ca235                                                         ; a22e: d0 05       ..             ; ALWAYS branch
+.check_leading_zero
+    lda wksp_osfile_block,x                                           ; a223: bd 40 10    .@.            ; Get BCD digit value
+    bne print_nonzero_digit                                           ; a226: d0 08       ..             ; Non-zero: print this digit
+    cpy #&2c ; ','                                                    ; a228: c0 2c       .,             ; Zero: has a non-zero digit been seen?
+    beq print_nonzero_digit                                           ; a22a: f0 04       ..             ; Yes (separator=comma): print zero
+    lda #&20 ; ' '                                                    ; a22c: a9 20       .              ; No: suppress leading zero with space
+    bne output_digit_char                                             ; a22e: d0 05       ..             ; Skip to output; ALWAYS branch
 
 ; &a230 referenced 2 times by &a226, &a22a
-.ca230
-    ldy #&2c ; ','                                                    ; a230: a0 2c       .,
-    clc                                                               ; a232: 18          .
-    adc #&30 ; '0'                                                    ; a233: 69 30       i0
+.print_nonzero_digit
+    ldy #&2c ; ','                                                    ; a230: a0 2c       .,             ; Mark that we've seen a non-zero digit
+    clc                                                               ; a232: 18          .              ; Clear carry for addition
+    adc #&30 ; '0'                                                    ; a233: 69 30       i0             ; Convert BCD digit to ASCII ('0'-'9')
 ; &a235 referenced 1 time by &a22e
-.ca235
-    jsr oswrch                                                        ; a235: 20 ee ff     ..            ; Write character
-    cpx #6                                                            ; a238: e0 06       ..
-    beq ca240                                                         ; a23a: f0 04       ..
-    cpx #3                                                            ; a23c: e0 03       ..
-    bne ca244                                                         ; a23e: d0 04       ..
+.output_digit_char
+    jsr oswrch                                                        ; a235: 20 ee ff     ..            ; Print digit or space; Write character
+    cpx #6                                                            ; a238: e0 06       ..             ; At position 6 (millions boundary)?
+    beq print_comma_separator                                         ; a23a: f0 04       ..             ; Yes: print comma separator
+    cpx #3                                                            ; a23c: e0 03       ..             ; At position 3 (thousands boundary)?
+    bne next_digit                                                    ; a23e: d0 04       ..             ; No: skip separator
 ; &a240 referenced 1 time by &a23a
-.ca240
-    tya                                                               ; a240: 98          .
-    jsr oswrch                                                        ; a241: 20 ee ff     ..            ; Write character
+.print_comma_separator
+    tya                                                               ; a240: 98          .              ; Print separator (space or comma)
+    jsr oswrch                                                        ; a241: 20 ee ff     ..            ; Output separator character; Write character
 ; &a244 referenced 1 time by &a23e
-.ca244
-    dex                                                               ; a244: ca          .
-    bpl ca21f                                                         ; a245: 10 d8       ..
+.next_digit
+    dex                                                               ; a244: ca          .              ; Next digit (toward least significant)
+    bpl print_digit_loop                                              ; a245: 10 d8       ..             ; Loop for 9 digits (8 down to 0)
     jsr print_inline_string                                           ; a247: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs " Bytes"                                                     ; a24a: 20 42 79...  By
     equb &a0                                                          ; a250: a0          .              ; ' ' + bit 7: end of inline string
@@ -13023,7 +13036,6 @@ save pydis_start, pydis_end
 ;     boot_run_option:                                    2
 ;     broken_directory_error:                             2
 ;     c8dab:                                              2
-;     ca230:                                              2
 ;     calc_bget_sector_addr:                              2
 ;     calc_buffer_address:                                2
 ;     calc_buffer_page_from_offset:                       2
@@ -13156,6 +13168,7 @@ save pydis_start, pydis_end
 ;     print_newline_and_entry:                            2
 ;     print_next_entry_loop:                              2
 ;     print_no_access_flag:                               2
+;     print_nonzero_digit:                                2
 ;     print_space_value:                                  2
 ;     proceed_with_delete:                                2
 ;     ra_buffer_1:                                        2
@@ -13285,13 +13298,6 @@ save pydis_start, pydis_end
 ;     build_access_byte_loop:                             1
 ;     build_filename_loop:                                1
 ;     build_osfile_control_block:                         1
-;     ca1f5:                                              1
-;     ca20f:                                              1
-;     ca21f:                                              1
-;     ca223:                                              1
-;     ca235:                                              1
-;     ca240:                                              1
-;     ca244:                                              1
 ;     calc_channel_buffer_page:                           1
 ;     calc_disc_sector_for_channel:                       1
 ;     calc_end_position_loop:                             1
@@ -13340,6 +13346,7 @@ save pydis_start, pydis_end
 ;     check_if_dir_entry:                                 1
 ;     check_if_first_fit:                                 1
 ;     check_if_updating_length:                           1
+;     check_leading_zero:                                 1
 ;     check_locked_attr_loop:                             1
 ;     check_locked_loop:                                  1
 ;     check_merge_with_prev:                              1
@@ -13389,6 +13396,7 @@ save pydis_start, pydis_end
 ;     clean_dir_rename_bit:                               1
 ;     clear_accumulators_loop:                            1
 ;     clear_attr_bits_loop:                               1
+;     clear_bcd_digits_loop:                              1
 ;     clear_fsm_flag_after_load:                          1
 ;     clear_new_file_osfile:                              1
 ;     clear_osfile_block_loop:                            1
@@ -13532,6 +13540,7 @@ save pydis_start, pydis_end
 ;     create_new_dir_entry:                               1
 ;     create_root_dir:                                    1
 ;     cross_dir_rename:                                   1
+;     dabble_digit_loop:                                  1
 ;     decrement_fill_sector:                              1
 ;     default_workspace_data:                             1
 ;     delete_existing_before_save:                        1
@@ -13683,8 +13692,6 @@ save pydis_start, pydis_end
 ;     load_fsm_for_boot:                                  1
 ;     load_root_directory:                                1
 ;     load_sector_check_result:                           1
-;     loop_ca1ef:                                         1
-;     loop_ca205:                                         1
 ;     loop_cbc9e:                                         1
 ;     mark_directory_modified:                            1
 ;     mark_entry_created:                                 1
@@ -13701,6 +13708,7 @@ save pydis_start, pydis_end
 ;     mount_set_boot_option:                              1
 ;     my_osargs:                                          1
 ;     name_length_ok:                                     1
+;     next_digit:                                         1
 ;     next_entry_byte:                                    1
 ;     next_entry_not_found:                               1
 ;     nmi_0d05:                                           1
@@ -13732,6 +13740,7 @@ save pydis_start, pydis_end
 ;     output_boot_and_drive:                              1
 ;     output_byte_direct:                                 1
 ;     output_command_name_loop:                           1
+;     output_digit_char:                                  1
 ;     output_entries_loop:                                1
 ;     output_name_char_loop:                              1
 ;     output_title_chars_loop:                            1
@@ -13761,7 +13770,9 @@ save pydis_start, pydis_end
 ;     print_cat_pair:                                     1
 ;     print_cat_pair_second:                              1
 ;     print_char_loop:                                    1
+;     print_comma_separator:                              1
 ;     print_data_cmd_name_loop:                           1
+;     print_digit_loop:                                   1
 ;     print_entry_char_loop:                              1
 ;     print_entry_hex_loop:                               1
 ;     print_entry_name_loop:                              1
@@ -13969,6 +13980,7 @@ save pydis_start, pydis_end
 ;     setup_tube_nmi_transfer:                            1
 ;     setup_tube_read_nmi:                                1
 ;     setup_tube_write_256:                               1
+;     shift_binary_bit:                                   1
 ;     shift_drive_mask_loop:                              1
 ;     shift_entries_down_loop:                            1
 ;     shift_entries_up_loop:                              1
@@ -13996,6 +14008,7 @@ save pydis_start, pydis_end
 ;     step_rate_fast:                                     1
 ;     store_adjusted_count:                               1
 ;     store_allocated_sector:                             1
+;     store_bcd_digit:                                    1
 ;     store_converted_byte:                               1
 ;     store_csd_drive:                                    1
 ;     store_default_allocation:                           1
@@ -14095,14 +14108,6 @@ save pydis_start, pydis_end
 
 ; Automatically generated labels:
 ;     c8dab
-;     ca1f5
-;     ca20f
-;     ca21f
-;     ca223
-;     ca230
-;     ca235
-;     ca240
-;     ca244
 ;     cbc91
 ;     cbc93
 ;     cbca5
@@ -14261,8 +14266,6 @@ save pydis_start, pydis_end
 ;     la154
 ;     la868
 ;     lffff
-;     loop_ca1ef
-;     loop_ca205
 ;     loop_cbc9e
 ;     return_1
 ;     return_10
