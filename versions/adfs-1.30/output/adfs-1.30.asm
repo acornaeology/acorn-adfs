@@ -1468,36 +1468,36 @@ oscli                                           = &fff7
     lda l1037                                                         ; 84b5: ad 37 10    .7.            ; Check if object has non-zero size
     ora wksp_1038                                                     ; 84b8: 0d 38 10    .8.            ; OR with size mid byte
     ora l1039                                                         ; 84bb: 0d 39 10    .9.            ; OR with size high byte
-    bne c84c1                                                         ; 84be: d0 01       ..             ; Size is zero, nothing to release
+    bne find_fsm_position                                             ; 84be: d0 01       ..             ; Size is zero, nothing to release
     rts                                                               ; 84c0: 60          `              ; Size is zero: return
 
 ; &84c1 referenced 1 time by &84be
-.c84c1
+.find_fsm_position
     ldx #0                                                            ; 84c1: a2 00       ..             ; X=0: start of FSM entries
 ; &84c3 referenced 1 time by &84da
-.loop_c84c3
+.scan_fsm_entries_loop
     cpx fsm_s1_total_sectors_lo                                       ; 84c3: ec fe 0f    ...            ; Past end of free space list?
-    bcs c84fa                                                         ; 84c6: b0 32       .2             ; Yes, insert at end
+    bcs insert_new_fsm_entry                                          ; 84c6: b0 32       .2             ; Yes, insert at end
     inx                                                               ; 84c8: e8          .              ; Advance X by 3 (entry size)
     inx                                                               ; 84c9: e8          .              ; Advance X (2nd byte of entry)
     inx                                                               ; 84ca: e8          .              ; Advance X (3rd byte of entry)
     stx zp_b2                                                         ; 84cb: 86 b2       ..             ; Save X for backtrack
     ldy #2                                                            ; 84cd: a0 02       ..             ; Y=2: compare 3-byte address
 ; &84cf referenced 1 time by &84df
-.loop_c84cf
+.compare_fsm_addr_loop
     dex                                                               ; 84cf: ca          .              ; Back up X to compare bytes
     lda fsm_sector_0,x                                                ; 84d0: bd 00 0e    ...            ; Get FSM entry address byte
     cmp wksp_object_sector,y                                          ; 84d3: d9 34 10    .4.            ; Compare with object sector byte
-    bcs c84dc                                                         ; 84d6: b0 04       ..             ; FSM entry >= object? Found position
+    bcs check_exact_match                                             ; 84d6: b0 04       ..             ; FSM entry >= object? Found position
     ldx zp_b2                                                         ; 84d8: a6 b2       ..             ; Restore X, try next entry
-    bne loop_c84c3                                                    ; 84da: d0 e7       ..             ; Try next FSM entry
+    bne scan_fsm_entries_loop                                         ; 84da: d0 e7       ..             ; Try next FSM entry
 ; &84dc referenced 1 time by &84d6
-.c84dc
-    bne c84e1                                                         ; 84dc: d0 03       ..             ; Exact match on this byte?
+.check_exact_match
+    bne found_insertion_point                                         ; 84dc: d0 03       ..             ; Exact match on this byte?
     dey                                                               ; 84de: 88          .              ; Compare next byte down
-    bpl loop_c84cf                                                    ; 84df: 10 ee       ..             ; Continue comparing bytes
+    bpl compare_fsm_addr_loop                                         ; 84df: 10 ee       ..             ; Continue comparing bytes
 ; &84e1 referenced 1 time by &84dc
-.c84e1
+.found_insertion_point
     ldx zp_b2                                                         ; 84e1: a6 b2       ..             ; Back to entry start
     dex                                                               ; 84e3: ca          .              ; Back up to entry start
     dex                                                               ; 84e4: ca          .              ; 2nd byte back
@@ -1507,55 +1507,55 @@ oscli                                           = &fff7
     php                                                               ; 84e9: 08          .              ; Save carry for multi-byte add
     ldy #0                                                            ; 84ea: a0 00       ..             ; Y=0: compare 3 address bytes
 ; &84ec referenced 1 time by &8501
-.loop_c84ec
+.check_adjacent_to_next_loop
     plp                                                               ; 84ec: 28          (              ; Restore carry
     lda wksp_object_sector,y                                          ; 84ed: b9 34 10    .4.            ; Object sector + object size
     adc l1037,y                                                       ; 84f0: 79 37 10    y7.            ; Add object size byte
     php                                                               ; 84f3: 08          .              ; Save carry
     cmp fsm_sector_0,x                                                ; 84f4: dd 00 0e    ...            ; Compare with FSM entry address
-    beq c84fd                                                         ; 84f7: f0 04       ..             ; Match? Object is adjacent to entry
+    beq adjacent_next_byte                                            ; 84f7: f0 04       ..             ; Match? Object is adjacent to entry
     plp                                                               ; 84f9: 28          (              ; Restore carry after mismatch
 ; &84fa referenced 1 time by &84c6
-.c84fa
-    jmp c8588                                                         ; 84fa: 4c 88 85    L..            ; No match, insert new entry
+.insert_new_fsm_entry
+    jmp check_merge_with_prev                                         ; 84fa: 4c 88 85    L..            ; No match, insert new entry
 
 ; &84fd referenced 1 time by &84f7
-.c84fd
+.adjacent_next_byte
     inx                                                               ; 84fd: e8          .              ; Next compare byte
     iny                                                               ; 84fe: c8          .              ; Next object sector byte
     cpy #3                                                            ; 84ff: c0 03       ..             ; Compared all 3 bytes?
-    bne loop_c84ec                                                    ; 8501: d0 e9       ..             ; No, continue comparing
+    bne check_adjacent_to_next_loop                                   ; 8501: d0 e9       ..             ; No, continue comparing
     plp                                                               ; 8503: 28          (              ; Restore carry from addition
     ldx zp_b2                                                         ; 8504: a6 b2       ..             ; Get FSM entry index back
-    beq c856b                                                         ; 8506: f0 63       .c             ; Entry 0: no preceding entry to merge
+    beq add_size_to_existing_entry                                    ; 8506: f0 63       .c             ; Entry 0: no preceding entry to merge
     clc                                                               ; 8508: 18          .              ; Clear carry for addition
     php                                                               ; 8509: 08          .              ; Save carry for multi-byte add
     ldy #0                                                            ; 850a: a0 00       ..             ; Y=0: compare bytes of prev+size
 ; &850c referenced 1 time by &8523
-.loop_c850c
+.check_adjacent_to_prev_loop
     plp                                                               ; 850c: 28          (              ; Restore carry
     lda nmi_0dfd,x                                                    ; 850d: bd fd 0d    ...            ; Get prev entry address byte
     adc fsm_s0_boot_option,x                                          ; 8510: 7d fd 0e    }..            ; Add prev entry length byte
     php                                                               ; 8513: 08          .              ; Save carry
     cmp wksp_object_sector,y                                          ; 8514: d9 34 10    .4.            ; Compare prev+size with object sector
-    beq c851f                                                         ; 8517: f0 06       ..             ; Match: prev is adjacent (merge back)
+    beq adjacent_prev_byte                                            ; 8517: f0 06       ..             ; Match: prev is adjacent (merge back)
     ldx zp_b2                                                         ; 8519: a6 b2       ..             ; No match: insert new entry
     plp                                                               ; 851b: 28          (              ; Restore carry
-    jmp c856b                                                         ; 851c: 4c 6b 85    Lk.            ; Not adjacent: insert new entry
+    jmp add_size_to_existing_entry                                    ; 851c: 4c 6b 85    Lk.            ; Not adjacent: insert new entry
 
 ; &851f referenced 1 time by &8517
-.c851f
+.adjacent_prev_byte
     inx                                                               ; 851f: e8          .              ; Next byte
     iny                                                               ; 8520: c8          .              ; Next object sector byte
     cpy #3                                                            ; 8521: c0 03       ..             ; Compared all 3 bytes?
-    bne loop_c850c                                                    ; 8523: d0 e7       ..             ; No, continue
+    bne check_adjacent_to_prev_loop                                   ; 8523: d0 e7       ..             ; No, continue
     plp                                                               ; 8525: 28          (              ; Adjacent to prev: merge backward
     ldx zp_b2                                                         ; 8526: a6 b2       ..             ; Restore FSM index
     ldy #0                                                            ; 8528: a0 00       ..             ; Y=0: add released size to prev length
     clc                                                               ; 852a: 18          .              ; Clear carry for addition
     php                                                               ; 852b: 08          .              ; Save carry
 ; &852c referenced 1 time by &853b
-.loop_c852c
+.merge_with_prev_loop
     plp                                                               ; 852c: 28          (              ; Restore carry
     lda fsm_s0_boot_option,x                                          ; 852d: bd fd 0e    ...            ; Get prev entry length byte
     adc l1037,y                                                       ; 8530: 79 37 10    y7.            ; Add released size byte
@@ -1564,31 +1564,31 @@ oscli                                           = &fff7
     inx                                                               ; 8537: e8          .              ; Next entry byte
     iny                                                               ; 8538: c8          .              ; Next size byte
     cpy #3                                                            ; 8539: c0 03       ..             ; All 3 bytes?
-    bne loop_c852c                                                    ; 853b: d0 ef       ..             ; No, continue adding
+    bne merge_with_prev_loop                                          ; 853b: d0 ef       ..             ; No, continue adding
     plp                                                               ; 853d: 28          (              ; Restore carry
     ldy #2                                                            ; 853e: a0 02       ..             ; Y=2: check if merged entry is now
     ldx zp_b2                                                         ; 8540: a6 b2       ..             ; adjacent to the NEXT entry too
     clc                                                               ; 8542: 18          .              ; Clear carry for addition
 ; &8543 referenced 1 time by &854e
-.loop_c8543
+.check_triple_merge_loop
     lda fsm_s0_boot_option,x                                          ; 8543: bd fd 0e    ...            ; Get merged entry address byte
     adc fsm_sector_1,x                                                ; 8546: 7d 00 0f    }..            ; Add merged entry length byte
     sta fsm_s0_boot_option,x                                          ; 8549: 9d fd 0e    ...            ; Store sum (prev+released+next?)
     inx                                                               ; 854c: e8          .              ; Next byte
     dey                                                               ; 854d: 88          .              ; Decrement counter
-    bpl loop_c8543                                                    ; 854e: 10 f3       ..             ; Loop for 3 bytes
+    bpl check_triple_merge_loop                                       ; 854e: 10 f3       ..             ; Loop for 3 bytes
 ; &8550 referenced 1 time by &8562
-.loop_c8550
+.shift_entries_down_loop
     cpx fsm_s1_total_sectors_lo                                       ; 8550: ec fe 0f    ...            ; Check if past end of FSM list
-    bcs c8564                                                         ; 8553: b0 0f       ..             ; Yes: shrink list by removing entry
+    bcs shrink_fsm_list                                               ; 8553: b0 0f       ..             ; Yes: shrink list by removing entry
     lda fsm_sector_1,x                                                ; 8555: bd 00 0f    ...            ; Get next entry length
     sta fsm_s0_boot_option,x                                          ; 8558: 9d fd 0e    ...            ; Store over current (shift down)
     lda fsm_sector_0,x                                                ; 855b: bd 00 0e    ...            ; Get next entry address
     sta nmi_0dfd,x                                                    ; 855e: 9d fd 0d    ...            ; Store over current (shift down)
     inx                                                               ; 8561: e8          .              ; Next entry
-    bne loop_c8550                                                    ; 8562: d0 ec       ..             ; Loop shifting entries
+    bne shift_entries_down_loop                                       ; 8562: d0 ec       ..             ; Loop shifting entries
 ; &8564 referenced 1 time by &8553
-.c8564
+.shrink_fsm_list
     dex                                                               ; 8564: ca          .              ; Adjust end-of-list pointer
     dex                                                               ; 8565: ca          .              ; Back 3 bytes
     dex                                                               ; 8566: ca          .              ; Back 3 bytes total
@@ -1596,12 +1596,12 @@ oscli                                           = &fff7
     rts                                                               ; 856a: 60          `              ; Return
 
 ; &856b referenced 2 times by &8506, &851c
-.c856b
+.add_size_to_existing_entry
     ldy #0                                                            ; 856b: a0 00       ..             ; Y=0: copy+add 3-byte address+length
     clc                                                               ; 856d: 18          .              ; Clear carry for addition
     php                                                               ; 856e: 08          .              ; Save carry for multi-byte operation
 ; &856f referenced 1 time by &8584
-.loop_c856f
+.merge_forward_loop
     lda wksp_object_sector,y                                          ; 856f: b9 34 10    .4.            ; Get object sector byte
     sta fsm_sector_0,x                                                ; 8572: 9d 00 0e    ...            ; Store as FSM entry address
     plp                                                               ; 8575: 28          (              ; Restore carry from prev iteration
@@ -1612,41 +1612,41 @@ oscli                                           = &fff7
     iny                                                               ; 8580: c8          .              ; Next byte
     inx                                                               ; 8581: e8          .              ; Next FSM byte
     cpy #3                                                            ; 8582: c0 03       ..             ; All 3 bytes?
-    bne loop_c856f                                                    ; 8584: d0 e9       ..             ; No, continue
+    bne merge_forward_loop                                            ; 8584: d0 e9       ..             ; No, continue
     plp                                                               ; 8586: 28          (              ; Restore final carry
     rts                                                               ; 8587: 60          `              ; Return (merge complete)
 
 ; &8588 referenced 1 time by &84fa
-.c8588
+.check_merge_with_prev
     ldx zp_b2                                                         ; 8588: a6 b2       ..             ; Get FSM entry index
-    beq c85c1                                                         ; 858a: f0 35       .5             ; Entry 0: no predecessor, insert new
+    beq insert_new_entry                                              ; 858a: f0 35       .5             ; Entry 0: no predecessor, insert new
     clc                                                               ; 858c: 18          .              ; Clear carry for addition
     php                                                               ; 858d: 08          .              ; Save carry for multi-byte add
     ldy #0                                                            ; 858e: a0 00       ..             ; Y=0: compare prev+size with object
 ; &8590 referenced 1 time by &85a5
-.loop_c8590
+.compare_prev_plus_size_loop
     plp                                                               ; 8590: 28          (              ; Restore carry
     lda nmi_0dfd,x                                                    ; 8591: bd fd 0d    ...            ; Get prev entry address byte
     adc fsm_s0_boot_option,x                                          ; 8594: 7d fd 0e    }..            ; Add prev entry length byte
     php                                                               ; 8597: 08          .              ; Save carry
     cmp wksp_object_sector,y                                          ; 8598: d9 34 10    .4.            ; Compare with object sector byte
-    beq c85a1                                                         ; 859b: f0 04       ..             ; Match: prev is adjacent
+    beq merge_size_into_prev                                          ; 859b: f0 04       ..             ; Match: prev is adjacent
     plp                                                               ; 859d: 28          (              ; Restore carry, no match
-    jmp c85c1                                                         ; 859e: 4c c1 85    L..            ; Not adjacent: insert new entry
+    jmp insert_new_entry                                              ; 859e: 4c c1 85    L..            ; Not adjacent: insert new entry
 
 ; &85a1 referenced 1 time by &859b
-.c85a1
+.merge_size_into_prev
     inx                                                               ; 85a1: e8          .              ; Next byte
     iny                                                               ; 85a2: c8          .              ; Next object byte
     cpy #3                                                            ; 85a3: c0 03       ..             ; All 3 bytes?
-    bne loop_c8590                                                    ; 85a5: d0 e9       ..             ; No, continue
+    bne compare_prev_plus_size_loop                                   ; 85a5: d0 e9       ..             ; No, continue
     plp                                                               ; 85a7: 28          (              ; Restore carry (all matched)
     ldy #0                                                            ; 85a8: a0 00       ..             ; Y=0: add released size to prev
     ldx zp_b2                                                         ; 85aa: a6 b2       ..             ; Get FSM entry index
     clc                                                               ; 85ac: 18          .              ; Clear carry for addition
     php                                                               ; 85ad: 08          .              ; Save carry for multi-byte add
 ; &85ae referenced 1 time by &85bd
-.loop_c85ae
+.add_size_to_prev_loop
     plp                                                               ; 85ae: 28          (              ; Restore carry
     lda fsm_s0_boot_option,x                                          ; 85af: bd fd 0e    ...            ; Get prev entry length byte
     adc l1037,y                                                       ; 85b2: 79 37 10    y7.            ; Add released size byte
@@ -1655,38 +1655,38 @@ oscli                                           = &fff7
     inx                                                               ; 85b9: e8          .              ; Next FSM byte
     iny                                                               ; 85ba: c8          .              ; Next size byte
     cpy #3                                                            ; 85bb: c0 03       ..             ; All 3 bytes?
-    bne loop_c85ae                                                    ; 85bd: d0 ef       ..             ; No, continue
+    bne add_size_to_prev_loop                                         ; 85bd: d0 ef       ..             ; No, continue
     plp                                                               ; 85bf: 28          (              ; Restore carry
     rts                                                               ; 85c0: 60          `              ; Return (merge with prev complete)
 
 ; &85c1 referenced 2 times by &858a, &859e
-.c85c1
+.insert_new_entry
     lda fsm_s1_total_sectors_lo                                       ; 85c1: ad fe 0f    ...            ; Get end-of-list pointer
     cmp #&f6                                                          ; 85c4: c9 f6       ..             ; Room for new entry (< &F6)?
-    bcc c85d5                                                         ; 85c6: 90 0d       ..             ; Yes: proceed with insert
+    bcc shift_entries_up_start                                        ; 85c6: 90 0d       ..             ; Yes: proceed with insert
     jsr sub_c832b                                                     ; 85c8: 20 2b 83     +.            ; Save drive state and raise error
     equb &99                                                          ; 85cb: 99          .
     equs "Map full", 0                                                ; 85cc: 4d 61 70... Map
 
 ; &85d5 referenced 1 time by &85c6
-.c85d5
+.shift_entries_up_start
     ldx fsm_s1_total_sectors_lo                                       ; 85d5: ae fe 0f    ...            ; Get end-of-list pointer
 ; &85d8 referenced 1 time by &85e9
-.loop_c85d8
+.shift_entries_up_loop
     cpx zp_b2                                                         ; 85d8: e4 b2       ..             ; Reached insertion point?
-    beq c85ec                                                         ; 85da: f0 10       ..             ; Yes: insert here
+    beq store_new_entry                                               ; 85da: f0 10       ..             ; Yes: insert here
     dex                                                               ; 85dc: ca          .              ; Shift entries up by 3 bytes
     lda fsm_sector_0,x                                                ; 85dd: bd 00 0e    ...            ; Get FSM address byte to shift
     sta l0e03,x                                                       ; 85e0: 9d 03 0e    ...            ; Store 3 bytes higher
     lda fsm_sector_1,x                                                ; 85e3: bd 00 0f    ...            ; Get FSM length byte to shift
     sta fsm_s1_first_length,x                                         ; 85e6: 9d 03 0f    ...            ; Store 3 bytes higher
-    jmp loop_c85d8                                                    ; 85e9: 4c d8 85    L..            ; Continue shifting
+    jmp shift_entries_up_loop                                         ; 85e9: 4c d8 85    L..            ; Continue shifting
 
 ; &85ec referenced 1 time by &85da
-.c85ec
+.store_new_entry
     ldy #0                                                            ; 85ec: a0 00       ..             ; Y=0: store new entry at gap
 ; &85ee referenced 1 time by &85fe
-.loop_c85ee
+.store_new_entry_loop
     lda wksp_object_sector,y                                          ; 85ee: b9 34 10    .4.            ; Get object sector byte
     sta fsm_sector_0,x                                                ; 85f1: 9d 00 0e    ...            ; Store as FSM entry address
     lda l1037,y                                                       ; 85f4: b9 37 10    .7.            ; Get released size byte
@@ -1694,7 +1694,7 @@ oscli                                           = &fff7
     inx                                                               ; 85fa: e8          .              ; Next byte
     iny                                                               ; 85fb: c8          .              ; Next source byte
     cpy #3                                                            ; 85fc: c0 03       ..             ; All 3 bytes?
-    bne loop_c85ee                                                    ; 85fe: d0 ee       ..             ; No, continue
+    bne store_new_entry_loop                                          ; 85fe: d0 ee       ..             ; No, continue
     lda fsm_s1_total_sectors_lo                                       ; 8600: ad fe 0f    ...            ; Get end-of-list pointer
     adc #2                                                            ; 8603: 69 02       i.             ; Add 3 (new entry size)
     sta fsm_s1_total_sectors_lo                                       ; 8605: 8d fe 0f    ...            ; Store updated pointer
@@ -1703,20 +1703,20 @@ oscli                                           = &fff7
     rts                                                               ; 8608: 60          `              ; Return
 
 ; &8609 referenced 2 times by &8642, &a1b7
-.sub_c8609
+.sum_free_space
     ldx #0                                                            ; 8609: a2 00       ..             ; X=0: start scanning FSM
     stx wksp_105d                                                     ; 860b: 8e 5d 10    .].            ; Clear accumulator low byte
     stx wksp_105e                                                     ; 860e: 8e 5e 10    .^.            ; Clear accumulator mid byte
     stx l105f                                                         ; 8611: 8e 5f 10    ._.            ; Clear accumulator high byte
 ; &8614 referenced 1 time by &862f
-.loop_c8614
+.sum_fsm_entries_loop
     cpx fsm_s1_total_sectors_lo                                       ; 8614: ec fe 0f    ...            ; Past end of FSM entries?
     beq return_7                                                      ; 8617: f0 ef       ..             ; Yes: return total
     ldy #0                                                            ; 8619: a0 00       ..             ; Y=0: sum this 3-byte entry
     clc                                                               ; 861b: 18          .              ; Clear carry for addition
     php                                                               ; 861c: 08          .              ; Save carry for multi-byte add
 ; &861d referenced 1 time by &862c
-.loop_c861d
+.sum_entry_bytes_loop
     plp                                                               ; 861d: 28          (              ; Restore carry
     lda fsm_sector_1,x                                                ; 861e: bd 00 0f    ...            ; Get FSM length byte
     adc wksp_105d,y                                                   ; 8621: 79 5d 10    y].            ; Add to accumulator
@@ -1725,62 +1725,62 @@ oscli                                           = &fff7
     iny                                                               ; 8628: c8          .              ; Next accumulator byte
     inx                                                               ; 8629: e8          .              ; Next FSM byte
     cpy #3                                                            ; 862a: c0 03       ..             ; All 3 bytes?
-    bne loop_c861d                                                    ; 862c: d0 ef       ..             ; No, continue
+    bne sum_entry_bytes_loop                                          ; 862c: d0 ef       ..             ; No, continue
     plp                                                               ; 862e: 28          (              ; Restore carry
-    jmp loop_c8614                                                    ; 862f: 4c 14 86    L..            ; Loop for next FSM entry
+    jmp sum_fsm_entries_loop                                          ; 862f: 4c 14 86    L..            ; Loop for next FSM entry
 
 ; &8632 referenced 3 times by &8f55, &9895, &af0b
-.sub_c8632
+.allocate_disc_space
     ldx #&ff                                                          ; 8632: a2 ff       ..             ; X=&FF: no best-fit entry yet
     stx zp_b3                                                         ; 8634: 86 b3       ..             ; Store as best-fit index
     inx                                                               ; 8636: e8          .              ; X=&00
 ; &8637 referenced 1 time by &8705
-.c8637
+.scan_for_best_fit
     cpx fsm_s1_total_sectors_lo                                       ; 8637: ec fe 0f    ...            ; Past end of FSM entries?
-    bcc c86b8                                                         ; 863a: 90 7c       .|             ; No: check this entry
+    bcc compare_entry_size                                            ; 863a: 90 7c       .|             ; No: check this entry
     ldx zp_b3                                                         ; 863c: a6 b3       ..             ; Get best-fit index
     cpx #&ff                                                          ; 863e: e0 ff       ..             ; Still &FF (no fit found)?
-    bne c867c                                                         ; 8640: d0 3a       .:             ; Found a fit: use it
-    jsr sub_c8609                                                     ; 8642: 20 09 86     ..            ; No fit: sum all free space
+    bne use_best_fit_entry                                            ; 8640: d0 3a       .:             ; Found a fit: use it
+    jsr sum_free_space                                                ; 8642: 20 09 86     ..            ; No fit: sum all free space
     ldy #0                                                            ; 8645: a0 00       ..             ; Y=0: compare total vs requested
     ldx #2                                                            ; 8647: a2 02       ..             ; X=2: compare 3 bytes
     sec                                                               ; 8649: 38          8              ; Set carry for subtraction
 ; &864a referenced 1 time by &8652
-.loop_c864a
+.compare_total_vs_requested
     lda wksp_105d,y                                                   ; 864a: b9 5d 10    .].            ; Get total free space byte
     sbc l103d,y                                                       ; 864d: f9 3d 10    .=.            ; Subtract requested size byte
     iny                                                               ; 8650: c8          .              ; Next byte
     dex                                                               ; 8651: ca          .              ; Next requested byte
-    bpl loop_c864a                                                    ; 8652: 10 f6       ..             ; All 3 bytes?
-    bcs c8664                                                         ; 8654: b0 0e       ..             ; Total >= requested: space exists
+    bpl compare_total_vs_requested                                    ; 8652: 10 f6       ..             ; All 3 bytes?
+    bcs compaction_required_error                                     ; 8654: b0 0e       ..             ; Total >= requested: space exists
 ; &8656 referenced 2 times by &8f3a, &aed4
-.c8656
+.disc_full_error
     jsr sub_c832b                                                     ; 8656: 20 2b 83     +.            ; Not enough: Disc full error
     equb &c6                                                          ; 8659: c6          .
     equs "Disc full", 0                                               ; 865a: 44 69 73... Dis
 
 ; &8664 referenced 1 time by &8654
-.c8664
+.compaction_required_error
     jsr sub_c832b                                                     ; 8664: 20 2b 83     +.            ; Compaction needed: error
     equb &98                                                          ; 8667: 98          .
     equs "Compaction required", 0                                     ; 8668: 43 6f 6d... Com
 
 ; &867c referenced 1 time by &8640
-.c867c
+.use_best_fit_entry
     ldy #2                                                            ; 867c: a0 02       ..             ; Y=2: copy best-fit entry sector addr
 ; &867e referenced 1 time by &8686
-.loop_c867e
+.copy_allocated_sector_loop
     dex                                                               ; 867e: ca          .              ; Back up to entry start
     lda fsm_sector_0,x                                                ; 867f: bd 00 0e    ...            ; Get FSM address byte
     sta wksp_103a,y                                                   ; 8682: 99 3a 10    .:.            ; Store as allocated sector
     dey                                                               ; 8685: 88          .              ; Next byte
-    bpl loop_c867e                                                    ; 8686: 10 f6       ..             ; Loop for 3 bytes
+    bpl copy_allocated_sector_loop                                    ; 8686: 10 f6       ..             ; Loop for 3 bytes
     iny                                                               ; 8688: c8          .              ; Y=1 (adjusted for carry)
     ldx zp_b3                                                         ; 8689: a6 b3       ..             ; Restore best-fit index
     clc                                                               ; 868b: 18          .              ; Clear carry for addition
     php                                                               ; 868c: 08          .              ; Save carry
 ; &868d referenced 1 time by &869c
-.loop_c868d
+.advance_entry_addr_loop
     plp                                                               ; 868d: 28          (              ; Restore carry
     lda nmi_0dfd,x                                                    ; 868e: bd fd 0d    ...            ; Get entry address byte
     adc l103d,y                                                       ; 8691: 79 3d 10    y=.            ; Add requested size to advance addr
@@ -1789,14 +1789,14 @@ oscli                                           = &fff7
     inx                                                               ; 8698: e8          .              ; Next entry byte
     iny                                                               ; 8699: c8          .              ; Next requested byte
     cpy #3                                                            ; 869a: c0 03       ..             ; All 3 bytes?
-    bne loop_c868d                                                    ; 869c: d0 ef       ..             ; No, continue
+    bne advance_entry_addr_loop                                       ; 869c: d0 ef       ..             ; No, continue
     plp                                                               ; 869e: 28          (              ; Restore carry
     ldy #0                                                            ; 869f: a0 00       ..             ; Y=0: subtract requested from length
     ldx zp_b3                                                         ; 86a1: a6 b3       ..             ; Get best-fit index
     sec                                                               ; 86a3: 38          8              ; Set carry for subtraction
     php                                                               ; 86a4: 08          .              ; Save carry
 ; &86a5 referenced 1 time by &86b4
-.loop_c86a5
+.subtract_from_length_loop
     plp                                                               ; 86a5: 28          (              ; Restore carry
     lda fsm_s0_boot_option,x                                          ; 86a6: bd fd 0e    ...            ; Get entry length byte
     sbc l103d,y                                                       ; 86a9: f9 3d 10    .=.            ; Subtract requested size
@@ -1805,67 +1805,67 @@ oscli                                           = &fff7
     inx                                                               ; 86b0: e8          .              ; Next entry byte
     iny                                                               ; 86b1: c8          .              ; Next requested byte
     cpy #3                                                            ; 86b2: c0 03       ..             ; All 3 bytes?
-    bne loop_c86a5                                                    ; 86b4: d0 ef       ..             ; No, continue
+    bne subtract_from_length_loop                                     ; 86b4: d0 ef       ..             ; No, continue
     plp                                                               ; 86b6: 28          (              ; Restore carry
     rts                                                               ; 86b7: 60          `              ; Return (allocation complete)
 
 ; &86b8 referenced 1 time by &863a
-.c86b8
+.compare_entry_size
     ldy #2                                                            ; 86b8: a0 02       ..             ; Y=2: compare entry length backwards
     inx                                                               ; 86ba: e8          .              ; Advance X to entry+3
     inx                                                               ; 86bb: e8          .              ; 2nd byte
     inx                                                               ; 86bc: e8          .              ; 3rd byte
     stx zp_b2                                                         ; 86bd: 86 b2       ..             ; Save entry end index
 ; &86bf referenced 1 time by &86cb
-.loop_c86bf
+.compare_size_bytes_loop
     dex                                                               ; 86bf: ca          .              ; Back up one byte
     lda fsm_sector_1,x                                                ; 86c0: bd 00 0f    ...            ; Get entry length byte
     cmp l103d,y                                                       ; 86c3: d9 3d 10    .=.            ; Compare with requested size
-    bcc c8703                                                         ; 86c6: 90 3b       .;             ; Entry < requested: too small
-    bne c86fa                                                         ; 86c8: d0 30       .0             ; Not equal: entry is larger
+    bcc continue_scanning                                             ; 86c6: 90 3b       .;             ; Entry < requested: too small
+    bne check_if_first_fit                                            ; 86c8: d0 30       .0             ; Not equal: entry is larger
     dey                                                               ; 86ca: 88          .              ; Next byte (decreasing Y)
-    bpl loop_c86bf                                                    ; 86cb: 10 f2       ..             ; Loop for 3 bytes
+    bpl compare_size_bytes_loop                                       ; 86cb: 10 f2       ..             ; Loop for 3 bytes
     ldx zp_b2                                                         ; 86cd: a6 b2       ..             ; Exact match: use this entry
     ldy #2                                                            ; 86cf: a0 02       ..             ; Y=2: copy entry address
 ; &86d1 referenced 1 time by &86d9
-.loop_c86d1
+.copy_exact_match_addr_loop
     dex                                                               ; 86d1: ca          .              ; Back up
     lda fsm_sector_0,x                                                ; 86d2: bd 00 0e    ...            ; Get entry address byte
     sta wksp_103a,y                                                   ; 86d5: 99 3a 10    .:.            ; Store as allocated sector
     dey                                                               ; 86d8: 88          .              ; Next byte
-    bpl loop_c86d1                                                    ; 86d9: 10 f6       ..             ; Loop for 3 bytes
+    bpl copy_exact_match_addr_loop                                    ; 86d9: 10 f6       ..             ; Loop for 3 bytes
     ldx zp_b2                                                         ; 86db: a6 b2       ..             ; Restore entry index
 ; &86dd referenced 1 time by &86ef
-.loop_c86dd
+.remove_exact_entry_loop
     cpx fsm_s1_total_sectors_lo                                       ; 86dd: ec fe 0f    ...            ; Past end of entries?
-    bcs c86f1                                                         ; 86e0: b0 0f       ..             ; Yes: shrink list
+    bcs shrink_list_after_exact                                       ; 86e0: b0 0f       ..             ; Yes: shrink list
     lda fsm_sector_0,x                                                ; 86e2: bd 00 0e    ...            ; Shift entries down
     sta nmi_0dfd,x                                                    ; 86e5: 9d fd 0d    ...            ; Store 3 bytes lower (addresses)
     lda fsm_sector_1,x                                                ; 86e8: bd 00 0f    ...            ; Get length entry to shift
     sta fsm_s0_boot_option,x                                          ; 86eb: 9d fd 0e    ...            ; Store 3 bytes lower (lengths)
     inx                                                               ; 86ee: e8          .              ; Next entry
-    bne loop_c86dd                                                    ; 86ef: d0 ec       ..             ; Loop shifting entries
+    bne remove_exact_entry_loop                                       ; 86ef: d0 ec       ..             ; Loop shifting entries
 ; &86f1 referenced 1 time by &86e0
-.c86f1
+.shrink_list_after_exact
     lda fsm_s1_total_sectors_lo                                       ; 86f1: ad fe 0f    ...            ; Get end-of-list pointer
     sbc #3                                                            ; 86f4: e9 03       ..             ; Subtract 3 (removed entry)
     sta fsm_s1_total_sectors_lo                                       ; 86f6: 8d fe 0f    ...            ; Store updated pointer
     rts                                                               ; 86f9: 60          `              ; Return (exact match used)
 
 ; &86fa referenced 1 time by &86c8
-.c86fa
+.check_if_first_fit
     ldx zp_b3                                                         ; 86fa: a6 b3       ..             ; Get current best-fit
     inx                                                               ; 86fc: e8          .              ; X+1: was &FF (no fit yet)?
-    bne c8703                                                         ; 86fd: d0 04       ..             ; Non-zero: this entry is new best
+    bne continue_scanning                                             ; 86fd: d0 04       ..             ; Non-zero: this entry is new best
     lda zp_b2                                                         ; 86ff: a5 b2       ..             ; No previous fit: store this one
     sta zp_b3                                                         ; 8701: 85 b3       ..             ; Store as best-fit index
 ; &8703 referenced 2 times by &86c6, &86fd
-.c8703
+.continue_scanning
     ldx zp_b2                                                         ; 8703: a6 b2       ..             ; Restore entry index
-    jmp c8637                                                         ; 8705: 4c 37 86    L7.            ; Continue scanning
+    jmp scan_for_best_fit                                             ; 8705: 4c 37 86    L7.            ; Continue scanning
 
 ; &8708 referenced 3 times by &885a, &8872, &88c1
-.sub_c8708
+.advance_text_ptr
     inc zp_b4                                                         ; 8708: e6 b4       ..             ; Increment pointer low byte
     bne return_8                                                      ; 870a: d0 02       ..             ; No page crossing: return
     inc zp_b5                                                         ; 870c: e6 b5       ..             ; Increment pointer high byte
@@ -1874,7 +1874,7 @@ oscli                                           = &fff7
     rts                                                               ; 870e: 60          `              ; Return
 
 ; &870f referenced 2 times by &884c, &8851
-.sub_c870f
+.parse_and_setup_search
     jsr skip_spaces                                                   ; 870f: 20 cf a4     ..            ; Skip leading spaces in command argument
     jsr sub_c8d6e                                                     ; 8712: 20 6e 8d     n.            ; Set up directory for search
     ldy #0                                                            ; 8715: a0 00       ..             ; Y=0: clear search flag
@@ -2144,15 +2144,15 @@ oscli                                           = &fff7
 
 ; &884c referenced 2 times by &8bb3, &8fdf
 .sub_c884c
-    jsr sub_c870f                                                     ; 884c: 20 0f 87     ..            ; Get filename from (&B4)
+    jsr parse_and_setup_search                                        ; 884c: 20 0f 87     ..            ; Get filename from (&B4)
     beq c8849                                                         ; 884f: f0 f8       ..             ; Empty filename: bad name
 ; &8851 referenced 1 time by &947f
 .sub_c8851
-    jsr sub_c870f                                                     ; 8851: 20 0f 87     ..            ; Get first path character
+    jsr parse_and_setup_search                                        ; 8851: 20 0f 87     ..            ; Get first path character
     beq c8875                                                         ; 8854: f0 1f       ..             ; Empty: use current directory
     cmp #&3a ; ':'                                                    ; 8856: c9 3a       .:             ; Is it ':' (drive specifier)?
     bne c88c4                                                         ; 8858: d0 6a       .j             ; No colon: check for $ or path
-    jsr sub_c8708                                                     ; 885a: 20 08 87     ..            ; Advance past ':'
+    jsr advance_text_ptr                                              ; 885a: 20 08 87     ..            ; Advance past ':'
     ldx wksp_saved_drive                                              ; 885d: ae 2f 10    ./.            ; Check if drive already saved
     inx                                                               ; 8860: e8          .              ; Saved drive = &FF (not set)?
     bne c8869                                                         ; 8861: d0 06       ..             ; Already set: keep it
@@ -2165,7 +2165,7 @@ oscli                                           = &fff7
     sta wksp_current_drive                                            ; 886f: 8d 17 11    ...            ; Store as new current drive
 ; &8872 referenced 1 time by &88cd
 .c8872
-    jsr sub_c8708                                                     ; 8872: 20 08 87     ..            ; Advance past drive number
+    jsr advance_text_ptr                                              ; 8872: 20 08 87     ..            ; Advance past drive number
 ; &8875 referenced 1 time by &8854
 .c8875
     ldx wksp_current_drive                                            ; 8875: ae 17 11    ...            ; Check drive is initialised
@@ -2207,7 +2207,7 @@ oscli                                           = &fff7
     jsr check_char_is_terminator                                      ; 88ba: 20 1a 87     ..            ; Get next character; Check if character is a filename terminator
     cmp #&2e ; '.'                                                    ; 88bd: c9 2e       ..             ; Is it '.' (path separator)?
     bne c88e5                                                         ; 88bf: d0 24       .$             ; No dot: this is the final component
-    jsr sub_c8708                                                     ; 88c1: 20 08 87     ..            ; Skip past dot separator
+    jsr advance_text_ptr                                              ; 88c1: 20 08 87     ..            ; Skip past dot separator
 ; &88c4 referenced 1 time by &8858
 .c88c4
     ldy #0                                                            ; 88c4: a0 00       ..             ; Y=0: check for $ or path component
@@ -3290,7 +3290,7 @@ oscli                                           = &fff7
     dex                                                               ; 8f35: ca          .              ; Next byte
     bpl loop_c8f2d                                                    ; 8f36: 10 f5       ..             ; Loop for 3 bytes
     bcc c8f3d                                                         ; 8f38: 90 03       ..             ; No overflow: proceed
-    jmp c8656                                                         ; 8f3a: 4c 56 86    LV.            ; Overflow: Disc full error
+    jmp disc_full_error                                               ; 8f3a: 4c 56 86    LV.            ; Overflow: Disc full error
 
 ; &8f3d referenced 1 time by &8f38
 .c8f3d
@@ -3310,7 +3310,7 @@ oscli                                           = &fff7
 ; &8f52 referenced 2 times by &95ca, &a8e2
 .sub_c8f52
     jsr sub_c8e8b                                                     ; 8f52: 20 8b 8e     ..            ; Y=&0D: copy load/exec/length; X=&0B: 12 bytes
-    jsr sub_c8632                                                     ; 8f55: 20 32 86     2.            ; Store in entry
+    jsr allocate_disc_space                                           ; 8f55: 20 32 86     2.            ; Store in entry
 ; &8f58 referenced 1 time by &a660
 .sub_c8f58
     ldy #&18                                                          ; 8f58: a0 18       ..             ; Y=&18: get OSFILE data bytes
@@ -4792,7 +4792,7 @@ oscli                                           = &fff7
     dex                                                               ; 988f: ca          .              ; Next byte
     bpl loop_c987b                                                    ; 9890: 10 e9       ..             ; Loop for 3 bytes
     jsr release_disc_space                                            ; 9892: 20 b5 84     ..            ; Release disc space back to free space map
-    jsr sub_c8632                                                     ; 9895: 20 32 86     2.            ; Allocate space from FSM
+    jsr allocate_disc_space                                           ; 9895: 20 32 86     2.            ; Allocate space from FSM
     ldx #2                                                            ; 9898: a2 02       ..             ; X=2: copy new sector address
     ldy #&18                                                          ; 989a: a0 18       ..             ; Y=&18: start sector in entry
 ; &989c referenced 1 time by &98a6
@@ -6386,7 +6386,7 @@ la154 = sub_ca153+1
     sta wksp_tube_transfer_addr_1,x                                   ; a1b1: 9d 27 10    .'.            ; Clear Tube transfer bytes
     dex                                                               ; a1b4: ca          .              ; Next byte
     bpl clear_accumulators_loop                                       ; a1b5: 10 f7       ..             ; Loop for 4 bytes
-    jsr sub_c8609                                                     ; a1b7: 20 09 86     ..            ; Sum the free space entries
+    jsr sum_free_space                                                ; a1b7: 20 09 86     ..            ; Sum the free space entries
     ldx #2                                                            ; a1ba: a2 02       ..             ; X=2: copy 3 bytes of result
 ; &a1bc referenced 1 time by &a1c3
 .copy_result_loop
@@ -8542,7 +8542,7 @@ la868 = check_dest_terminator+1
     adc l109d                                                         ; aecc: 6d 9d 10    m..            ; Add PTR high + carry
     sta l109f                                                         ; aecf: 8d 9f 10    ...            ; Store new allocation high
     bcc caed7                                                         ; aed2: 90 03       ..             ; No overflow: proceed
-    jmp c8656                                                         ; aed4: 4c 56 86    LV.            ; Overflow: Disc full error
+    jmp disc_full_error                                               ; aed4: 4c 56 86    LV.            ; Overflow: Disc full error
 
 ; &aed7 referenced 1 time by &aed2
 .caed7
@@ -8565,7 +8565,7 @@ la868 = check_dest_terminator+1
     lda l109f                                                         ; af02: ad 9f 10    ...            ; Get new allocation high
     sta l103f                                                         ; af05: 8d 3f 10    .?.            ; Store as extension high
     jsr release_disc_space                                            ; af08: 20 b5 84     ..            ; Release disc space back to free space map
-    jsr sub_c8632                                                     ; af0b: 20 32 86     2.            ; Allocate disc space from FSM
+    jsr allocate_disc_space                                           ; af0b: 20 32 86     2.            ; Allocate disc space from FSM
     ldy #&12                                                          ; af0e: a0 12       ..             ; Y=&12: update dir entry length
     lda #0                                                            ; af10: a9 00       ..             ; A=0: clear length low byte
     ldx zp_channel_offset                                             ; af12: a6 cf       ..             ; Get channel index
@@ -11567,6 +11567,8 @@ save pydis_start, pydis_end
 ;     wksp_stack_save:                                    4
 ;     zp_c4:                                              4
 ;     zp_c9:                                              4
+;     advance_text_ptr:                                   3
+;     allocate_disc_space:                                3
 ;     bad_address_error:                                  3
 ;     c80af:                                              3
 ;     c8282:                                              3
@@ -11635,8 +11637,6 @@ save pydis_start, pydis_end
 ;     return_18:                                          3
 ;     scsi_start_command:                                 3
 ;     skip_spaces_before_attrs:                           3
-;     sub_c8632:                                          3
-;     sub_c8708:                                          3
 ;     sub_c8be5:                                          3
 ;     sub_c8cc9:                                          3
 ;     sub_c8dbd:                                          3
@@ -11670,6 +11670,7 @@ save pydis_start, pydis_end
 ;     zp_ca:                                              3
 ;     zp_cb:                                              3
 ;     zp_scsi_status:                                     3
+;     add_size_to_existing_entry:                         2
 ;     advance_past_command:                               2
 ;     apply_head_load_flag:                               2
 ;     apply_writable_mask:                                2
@@ -11681,10 +11682,6 @@ save pydis_start, pydis_end
 ;     c81ea:                                              2
 ;     c8200:                                              2
 ;     c8291:                                              2
-;     c856b:                                              2
-;     c85c1:                                              2
-;     c8656:                                              2
-;     c8703:                                              2
 ;     c8798:                                              2
 ;     c87a5:                                              2
 ;     c87cf:                                              2
@@ -11783,9 +11780,11 @@ save pydis_start, pydis_end
 ;     clear_seek_flag:                                    2
 ;     compare_filename:                                   2
 ;     conditional_info_display:                           2
+;     continue_scanning:                                  2
 ;     dec_number_error_100_y:                             2
 ;     dir2_title:                                         2
 ;     dir_parent_sector:                                  2
+;     disc_full_error:                                    2
 ;     divide_loop:                                        2
 ;     end_of_spaces:                                      2
 ;     eof_error:                                          2
@@ -11803,6 +11802,7 @@ save pydis_start, pydis_end
 ;     help_print_header:                                  2
 ;     hex_number_error_100_y:                             2
 ;     increment_ptr_after_write:                          2
+;     insert_new_entry:                                   2
 ;     l00ff:                                              2
 ;     l102d:                                              2
 ;     l103c:                                              2
@@ -11838,6 +11838,7 @@ save pydis_start, pydis_end
 ;     nmi_0dff:                                           2
 ;     not_open_for_update_error:                          2
 ;     pad_with_spaces:                                    2
+;     parse_and_setup_search:                             2
 ;     parse_attr_char:                                    2
 ;     parse_dir_argument:                                 2
 ;     parse_drive_argument:                               2
@@ -11868,8 +11869,6 @@ save pydis_start, pydis_end
 ;     str_filing_system_name:                             2
 ;     str_hugo:                                           2
 ;     sub_c81dd:                                          2
-;     sub_c8609:                                          2
-;     sub_c870f:                                          2
 ;     sub_c8822:                                          2
 ;     sub_c884c:                                          2
 ;     sub_c8a45:                                          2
@@ -11894,6 +11893,7 @@ save pydis_start, pydis_end
 ;     sub_cb8fc:                                          2
 ;     sub_cbb92:                                          2
 ;     sub_cbcfd:                                          2
+;     sum_free_space:                                     2
 ;     tube_start_xfer_sei:                                2
 ;     update_moved_dir_parent:                            2
 ;     wksp:                                               2
@@ -11904,8 +11904,12 @@ save pydis_start, pydis_end
 ;     zp_bb:                                              2
 ;     zp_bf:                                              2
 ;     zp_c7:                                              2
+;     add_size_to_prev_loop:                              1
+;     adjacent_next_byte:                                 1
+;     adjacent_prev_byte:                                 1
 ;     advance_and_continue:                               1
 ;     advance_dest_scan:                                  1
+;     advance_entry_addr_loop:                            1
 ;     advance_past_char:                                  1
 ;     advance_past_component:                             1
 ;     already_exists_error:                               1
@@ -11937,23 +11941,6 @@ save pydis_start, pydis_end
 ;     c83f2:                                              1
 ;     c83fa:                                              1
 ;     c8419:                                              1
-;     c84c1:                                              1
-;     c84dc:                                              1
-;     c84e1:                                              1
-;     c84fa:                                              1
-;     c84fd:                                              1
-;     c851f:                                              1
-;     c8564:                                              1
-;     c8588:                                              1
-;     c85a1:                                              1
-;     c85d5:                                              1
-;     c85ec:                                              1
-;     c8637:                                              1
-;     c8664:                                              1
-;     c867c:                                              1
-;     c86b8:                                              1
-;     c86f1:                                              1
-;     c86fa:                                              1
 ;     c877d:                                              1
 ;     c8782:                                              1
 ;     c87c9:                                              1
@@ -12226,17 +12213,23 @@ save pydis_start, pydis_end
 ;     cbf47:                                              1
 ;     cbf51:                                              1
 ;     check_adfs_prefix:                                  1
+;     check_adjacent_to_next_loop:                        1
+;     check_adjacent_to_prev_loop:                        1
 ;     check_alt_workspace:                                1
 ;     check_at_sign:                                      1
 ;     check_attr_terminator:                              1
 ;     check_buffer_state:                                 1
 ;     check_dot_in_dest:                                  1
 ;     check_dot_separator:                                1
+;     check_exact_match:                                  1
 ;     check_ext_vs_allocation:                            1
 ;     check_field_boundary:                               1
+;     check_if_first_fit:                                 1
+;     check_merge_with_prev:                              1
 ;     check_multi_sector_range:                           1
 ;     check_name_char_loop:                               1
 ;     check_special_dir:                                  1
+;     check_triple_merge_loop:                            1
 ;     check_tube_for_nmi:                                 1
 ;     check_workspace_claimed:                            1
 ;     claim_nmi:                                          1
@@ -12246,7 +12239,14 @@ save pydis_start, pydis_end
 ;     clear_side_flag:                                    1
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
+;     compaction_required_error:                          1
+;     compare_entry_size:                                 1
+;     compare_fsm_addr_loop:                              1
+;     compare_prev_plus_size_loop:                        1
+;     compare_size_bytes_loop:                            1
 ;     compare_src_dest_dir_loop:                          1
+;     compare_total_vs_requested:                         1
+;     copy_allocated_sector_loop:                         1
 ;     copy_code_to_nmi_space:                             1
 ;     copy_csd_for_dest_loop:                             1
 ;     copy_csd_sector_loop:                               1
@@ -12259,6 +12259,7 @@ save pydis_start, pydis_end
 ;     copy_entry_name_loop:                               1
 ;     copy_entry_sector_loop:                             1
 ;     copy_entry_sector_loop2:                            1
+;     copy_exact_match_addr_loop:                         1
 ;     copy_file_entry:                                    1
 ;     copy_lib_name_loop:                                 1
 ;     copy_lib_sector_loop:                               1
@@ -12299,10 +12300,12 @@ save pydis_start, pydis_end
 ;     exec_floppy_write_bput_sector:                      1
 ;     exec_floppy_write_bput_sector_ind:                  1
 ;     filev:                                              1
+;     find_fsm_position:                                  1
 ;     floppy_calc_track_sector_from_block_check_range:    1
 ;     floppy_check_present:                               1
 ;     floppy_format_track:                                1
 ;     floppy_partial_sector:                              1
+;     found_insertion_point:                              1
 ;     fred_hard_drive_2:                                  1
 ;     fsc6_new_filing_system:                             1
 ;     fscv:                                               1
@@ -12318,6 +12321,7 @@ save pydis_start, pydis_end
 ;     hd_command_partial_sector:                          1
 ;     hd_data_transfer_256:                               1
 ;     increment_ptr_mid_bytes:                            1
+;     insert_new_fsm_entry:                               1
 ;     invalidate_sectors_loop:                            1
 ;     jmp_indirect_fscv:                                  1
 ;     l00ef:                                              1
@@ -12377,27 +12381,6 @@ save pydis_start, pydis_end
 ;     loop_c8385:                                         1
 ;     loop_c83ac:                                         1
 ;     loop_c83c3:                                         1
-;     loop_c84c3:                                         1
-;     loop_c84cf:                                         1
-;     loop_c84ec:                                         1
-;     loop_c850c:                                         1
-;     loop_c852c:                                         1
-;     loop_c8543:                                         1
-;     loop_c8550:                                         1
-;     loop_c856f:                                         1
-;     loop_c8590:                                         1
-;     loop_c85ae:                                         1
-;     loop_c85d8:                                         1
-;     loop_c85ee:                                         1
-;     loop_c8614:                                         1
-;     loop_c861d:                                         1
-;     loop_c864a:                                         1
-;     loop_c867e:                                         1
-;     loop_c868d:                                         1
-;     loop_c86a5:                                         1
-;     loop_c86bf:                                         1
-;     loop_c86d1:                                         1
-;     loop_c86dd:                                         1
 ;     loop_c87a9:                                         1
 ;     loop_c87c6:                                         1
 ;     loop_c8898:                                         1
@@ -12563,7 +12546,10 @@ save pydis_start, pydis_end
 ;     loop_cbef4:                                         1
 ;     match_command_loop:                                 1
 ;     match_rwl_loop:                                     1
+;     merge_forward_loop:                                 1
 ;     merge_name_attributes_loop:                         1
+;     merge_size_into_prev:                               1
+;     merge_with_prev_loop:                               1
 ;     my_osargs:                                          1
 ;     name_length_ok:                                     1
 ;     next_entry_byte:                                    1
@@ -12598,6 +12584,7 @@ save pydis_start, pydis_end
 ;     release_nmi:                                        1
 ;     release_tube_after_floppy:                          1
 ;     reload_and_parse_source:                            1
+;     remove_exact_entry_loop:                            1
 ;     restore_attributes_loop:                            1
 ;     restore_csd_sector_loop:                            1
 ;     restore_csd_sector_loop2:                           1
@@ -12647,6 +12634,8 @@ save pydis_start, pydis_end
 ;     scan_component_chars:                               1
 ;     scan_dest_for_parent_ref:                           1
 ;     scan_filename_loop:                                 1
+;     scan_for_best_fit:                                  1
+;     scan_fsm_entries_loop:                              1
 ;     scan_source_entries_loop:                           1
 ;     scan_spaces_loop:                                   1
 ;     scsi_read_settle_loop:                              1
@@ -12669,6 +12658,11 @@ save pydis_start, pydis_end
 ;     setup_direct_write_nmi:                             1
 ;     setup_tube_nmi_transfer:                            1
 ;     setup_tube_read_nmi:                                1
+;     shift_entries_down_loop:                            1
+;     shift_entries_up_loop:                              1
+;     shift_entries_up_start:                             1
+;     shrink_fsm_list:                                    1
+;     shrink_list_after_exact:                            1
 ;     skip_dir_entry_or_done:                             1
 ;     skip_filename_loop:                                 1
 ;     skip_leading_zero:                                  1
@@ -12686,6 +12680,8 @@ save pydis_start, pydis_end
 ;     store_digit:                                        1
 ;     store_hex_nibble:                                   1
 ;     store_merged_name_byte:                             1
+;     store_new_entry:                                    1
+;     store_new_entry_loop:                               1
 ;     store_nmi_completion:                               1
 ;     store_second_partial:                               1
 ;     store_title_char:                                   1
@@ -12716,6 +12712,9 @@ save pydis_start, pydis_end
 ;     sub_cba0c:                                          1
 ;     sub_cbda6:                                          1
 ;     sub_cbe84:                                          1
+;     subtract_from_length_loop:                          1
+;     sum_entry_bytes_loop:                               1
+;     sum_fsm_entries_loop:                               1
 ;     sum_workspace_loop:                                 1
 ;     swap_csd_to_lib_loop:                               1
 ;     swap_dir_sectors_loop:                              1
@@ -12723,6 +12722,7 @@ save pydis_start, pydis_end
 ;     tbl_extended_vectors:                               1
 ;     tube_start_xfer:                                    1
 ;     update_parent_sector:                               1
+;     use_best_fit_entry:                                 1
 ;     volume_error:                                       1
 ;     wait_bus_free_loop:                                 1
 ;     wait_target_bsy_loop:                               1
@@ -12778,27 +12778,6 @@ save pydis_start, pydis_end
 ;     c83f2
 ;     c83fa
 ;     c8419
-;     c84c1
-;     c84dc
-;     c84e1
-;     c84fa
-;     c84fd
-;     c851f
-;     c8564
-;     c856b
-;     c8588
-;     c85a1
-;     c85c1
-;     c85d5
-;     c85ec
-;     c8637
-;     c8656
-;     c8664
-;     c867c
-;     c86b8
-;     c86f1
-;     c86fa
-;     c8703
 ;     c877d
 ;     c8782
 ;     c8787
@@ -13373,27 +13352,6 @@ save pydis_start, pydis_end
 ;     loop_c8385
 ;     loop_c83ac
 ;     loop_c83c3
-;     loop_c84c3
-;     loop_c84cf
-;     loop_c84ec
-;     loop_c850c
-;     loop_c852c
-;     loop_c8543
-;     loop_c8550
-;     loop_c856f
-;     loop_c8590
-;     loop_c85ae
-;     loop_c85d8
-;     loop_c85ee
-;     loop_c8614
-;     loop_c861d
-;     loop_c864a
-;     loop_c867e
-;     loop_c868d
-;     loop_c86a5
-;     loop_c86bf
-;     loop_c86d1
-;     loop_c86dd
 ;     loop_c87a9
 ;     loop_c87c6
 ;     loop_c8898
@@ -13607,10 +13565,6 @@ save pydis_start, pydis_end
 ;     return_8
 ;     return_9
 ;     sub_c81dd
-;     sub_c8609
-;     sub_c8632
-;     sub_c8708
-;     sub_c870f
 ;     sub_c87e7
 ;     sub_c8822
 ;     sub_c884c

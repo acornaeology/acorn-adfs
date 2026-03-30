@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 66 / 115
-- Auto-labels renamed: 177 / 940
+- Reviewed: 67 / 115
+- Auto-labels renamed: 223 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -75,7 +75,7 @@ before their callers.
 | &830F | scsi_wait_for_req | 7 | 1 | REVIEWED |
 | &842D | hex_number_error_100_y | 11 | 2 | REVIEWED |
 | &8476 | invalidate_fsm_and_dir | 19 | 3 | REVIEWED |
-| &84B5 | release_disc_space | 295 | 46 | |
+| &84B5 | release_disc_space | 295 | 46 | REVIEWED |
 | &872D | check_filename_length | 14 | 3 | REVIEWED |
 | &9471 | parse_dir_argument | 42 | 9 | REVIEWED |
 | &94E7 | star_info | 11 | 1 | REVIEWED |
