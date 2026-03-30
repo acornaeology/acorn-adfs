@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 74 / 115
-- Auto-labels renamed: 272 / 940
+- Reviewed: 76 / 115
+- Auto-labels renamed: 303 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -104,9 +104,9 @@ before their callers.
 | &8353 | generate_error_suffix_x | 95 | 13 | REVIEWED |
 | &9109 | star_remove | 113 | 15 | REVIEWED |
 | &9433 | star_ex | 13 | 1 | REVIEWED |
-| &A276 | star_compact | 125 | 17 | |
+| &A276 | star_compact | 125 | 17 | REVIEWED |
 | &A6DE | verify_dir_integrity | 13 | 2 | REVIEWED |
-| &A731 | check_wksp_checksum | 116 | 16 | |
+| &A731 | check_wksp_checksum | 116 | 16 | REVIEWED |
 | &A955 | my_osargs | 159 | 21 | |
 | &AD63 | my_osbget | 330 | 42 | |
 | &B57F | my_osgbpb | 524 | 62 | |

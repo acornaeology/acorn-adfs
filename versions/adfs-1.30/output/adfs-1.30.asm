@@ -1279,7 +1279,7 @@ oscli                                           = &fff7
 .raise_brk_error
     lda l10ce                                                         ; 83f2: ad ce 10    ...            ; Check for additional error handling
     bne copy_brk_block_loop                                           ; 83f5: d0 03       ..             ; Non-zero: skip workspace update
-    jsr sub_ca7a2                                                     ; 83f7: 20 a2 a7     ..            ; Update workspace checksum
+    jsr load_dir_for_drive                                            ; 83f7: 20 a2 a7     ..            ; Update workspace checksum
 ; &83fa referenced 1 time by &83f5
 .copy_brk_block_loop
     lda #0                                                            ; 83fa: a9 00       ..             ; Store BRK opcode at start of page 1
@@ -5413,7 +5413,7 @@ oscli                                           = &fff7
     lda wksp_flags_save                                               ; 9bf1: ad 20 11    . .            ; Get saved flags from workspace
     and #4                                                            ; 9bf4: 29 04       ).             ; Keep only *OPT1 bit
     sta zp_flags                                                      ; 9bf6: 85 cd       ..             ; Set as current ADFS flags
-    jsr sub_ca7a2                                                     ; 9bf8: 20 a2 a7     ..            ; Store channel checksum
+    jsr load_dir_for_drive                                            ; 9bf8: 20 a2 a7     ..            ; Store channel checksum
     jsr hd_init_detect                                                ; 9bfb: 20 63 9a     c.            ; Detect hard drive hardware
     bne c9c06                                                         ; 9bfe: d0 06       ..             ; HD not found: skip HD flag
     lda zp_flags                                                      ; 9c00: a5 cd       ..             ; Get current flags
@@ -6473,28 +6473,28 @@ la154 = sub_ca153+1
     ldy #0                                                            ; a279: a0 00       ..             ; Y=0: check for argument
     lda (zp_b4),y                                                     ; a27b: b1 b4       ..             ; Get first char
     cmp #&21 ; '!'                                                    ; a27d: c9 21       .!             ; Printable char? Parse SP and LP
-    bcs ca2ab                                                         ; a27f: b0 2a       .*             ; Yes, parse hex SP LP arguments
+    bcs parse_compact_start_page                                      ; a27f: b0 2a       .*             ; Yes, parse hex SP LP arguments
     lda #osbyte_read_himem                                            ; a281: a9 84       ..             ; OSBYTE &84: read top of user memory
     jsr osbyte                                                        ; a283: 20 f4 ff     ..            ; Read top of user memory (HIMEM)
     txa                                                               ; a286: 8a          .              ; X = HIMEM low byte; X and Y contain the address of HIMEM (low, high)
-    bne ca29b                                                         ; a287: d0 12       ..             ; Non-zero low byte: bad compact
+    bne bad_compact_error                                             ; a287: d0 12       ..             ; Non-zero low byte: bad compact
     tya                                                               ; a289: 98          .              ; Y = HIMEM high byte
-    bmi ca29b                                                         ; a28a: 30 0f       0.             ; Bit 7 set (>= &80): bad compact
+    bmi bad_compact_error                                             ; a28a: 30 0f       0.             ; Bit 7 set (>= &80): bad compact
     sta wksp_1060                                                     ; a28c: 8d 60 10    .`.            ; Store HIMEM page as start page
     lda #&80                                                          ; a28f: a9 80       ..             ; Calculate length: &80 - start
     sec                                                               ; a291: 38          8              ; Set carry for subtraction
     sbc wksp_1060                                                     ; a292: ed 60 10    .`.            ; Subtract start page from HIMEM
     sta l1061                                                         ; a295: 8d 61 10    .a.            ; Store buffer length in pages
-    jmp ca344                                                         ; a298: 4c 44 a3    LD.            ; Jump to compaction main loop
+    jmp begin_compaction                                              ; a298: 4c 44 a3    LD.            ; Jump to compaction main loop
 
 ; &a29b referenced 11 times by &a287, &a28a, &a2bd, &a2e6, &a2ef, &a301, &a305, &a313, &a31f, &a331, &a341
-.ca29b
+.bad_compact_error
     jsr reload_fsm_and_dir_then_brk                                   ; a29b: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &94                                                          ; a29e: 94          .
     equs "Bad compact", 0                                             ; a29f: 42 61 64... Bad
 
 ; &a2ab referenced 1 time by &a27f
-.ca2ab
+.parse_compact_start_page
     sta wksp_disc_op_result                                           ; a2ab: 8d 15 10    ...            ; Store first hex digit
     iny                                                               ; a2ae: c8          .              ; Next argument character
     lda (zp_b4),y                                                     ; a2af: b1 b4       ..             ; Get second hex digit
@@ -6502,91 +6502,91 @@ la154 = sub_ca153+1
     iny                                                               ; a2b4: c8          .              ; Next character
     lda (zp_b4),y                                                     ; a2b5: b1 b4       ..             ; Get separator/terminator
     cmp #&20 ; ' '                                                    ; a2b7: c9 20       .              ; Is it a space?
-    beq ca2bf                                                         ; a2b9: f0 04       ..             ; Yes, skip to length parameter
+    beq skip_separator_spaces                                         ; a2b9: f0 04       ..             ; Yes, skip to length parameter
     cmp #&2c ; ','                                                    ; a2bb: c9 2c       .,             ; Is it a comma?
-    bne ca29b                                                         ; a2bd: d0 dc       ..             ; No separator: bad compact error
+    bne bad_compact_error                                             ; a2bd: d0 dc       ..             ; No separator: bad compact error
 ; &a2bf referenced 2 times by &a2b9, &a2c4
-.ca2bf
+.skip_separator_spaces
     iny                                                               ; a2bf: c8          .              ; Skip spaces/commas
     lda (zp_b4),y                                                     ; a2c0: b1 b4       ..             ; Get length first digit
     cmp #&20 ; ' '                                                    ; a2c2: c9 20       .              ; Is it a space?
-    beq ca2bf                                                         ; a2c4: f0 f9       ..             ; Yes, skip more spaces
+    beq skip_separator_spaces                                         ; a2c4: f0 f9       ..             ; Yes, skip more spaces
     sta l1017                                                         ; a2c6: 8d 17 10    ...            ; Store length first digit
     iny                                                               ; a2c9: c8          .              ; Next character
     lda (zp_b4),y                                                     ; a2ca: b1 b4       ..             ; Get length second digit
     sta l1018                                                         ; a2cc: 8d 18 10    ...            ; Store length second digit
     cmp #&21 ; '!'                                                    ; a2cf: c9 21       .!             ; Is second digit printable?
-    bcs ca2df                                                         ; a2d1: b0 0c       ..             ; Yes, both digits present
+    bcs skip_trailing_spaces                                          ; a2d1: b0 0c       ..             ; Yes, both digits present
     lda l1017                                                         ; a2d3: ad 17 10    ...            ; Only one digit: treat as low nibble
     sta l1018                                                         ; a2d6: 8d 18 10    ...            ; Move to high position
     lda #&30 ; '0'                                                    ; a2d9: a9 30       .0             ; Set low nibble to '0'
     sta l1017                                                         ; a2db: 8d 17 10    ...            ; Store '0' as low nibble
     dey                                                               ; a2de: 88          .              ; Back up one char position
 ; &a2df referenced 2 times by &a2d1, &a2e4
-.ca2df
+.skip_trailing_spaces
     iny                                                               ; a2df: c8          .              ; Skip past length argument
     lda (zp_b4),y                                                     ; a2e0: b1 b4       ..             ; Get next character
     cmp #&20 ; ' '                                                    ; a2e2: c9 20       .              ; Is it a space?
-    beq ca2df                                                         ; a2e4: f0 f9       ..             ; Yes, skip spaces
-    bcs ca29b                                                         ; a2e6: b0 b3       ..             ; Printable after length: bad compact
+    beq skip_trailing_spaces                                          ; a2e4: f0 f9       ..             ; Yes, skip spaces
+    bcs bad_compact_error                                             ; a2e6: b0 b3       ..             ; Printable after length: bad compact
     ldx #3                                                            ; a2e8: a2 03       ..             ; X=3: convert 4 hex digits to 2 bytes
 ; &a2ea referenced 1 time by &a30d
-.ca2ea
+.convert_hex_digits_loop
     lda wksp_disc_op_result,x                                         ; a2ea: bd 15 10    ...            ; Get hex digit
     cmp #&30 ; '0'                                                    ; a2ed: c9 30       .0             ; Is it '0'-'9'?
-    bcc ca29b                                                         ; a2ef: 90 aa       ..             ; Below '0': bad compact
+    bcc bad_compact_error                                             ; a2ef: 90 aa       ..             ; Below '0': bad compact
     cmp #&3a ; ':'                                                    ; a2f1: c9 3a       .:             ; Above '9'?
-    bcs ca2fd                                                         ; a2f3: b0 08       ..             ; No, it's '0'-'9': convert
+    bcs check_hex_af                                                  ; a2f3: b0 08       ..             ; No, it's '0'-'9': convert
     sec                                                               ; a2f5: 38          8              ; Set carry for subtraction
     sbc #&30 ; '0'                                                    ; a2f6: e9 30       .0             ; Convert ASCII digit to value
     sta wksp_disc_op_result,x                                         ; a2f8: 9d 15 10    ...            ; Store value
-    bpl ca30c                                                         ; a2fb: 10 0f       ..             ; Always branch (non-negative)
+    bpl store_converted_byte                                          ; a2fb: 10 0f       ..             ; Always branch (non-negative)
 ; &a2fd referenced 1 time by &a2f3
-.ca2fd
+.check_hex_af
     and #&5f ; '_'                                                    ; a2fd: 29 5f       )_             ; Convert to uppercase
     cmp #&41 ; 'A'                                                    ; a2ff: c9 41       .A             ; Below 'A'?
-    bcc ca29b                                                         ; a301: 90 98       ..             ; Yes: bad compact
+    bcc bad_compact_error                                             ; a301: 90 98       ..             ; Yes: bad compact
     cmp #&47 ; 'G'                                                    ; a303: c9 47       .G             ; Above 'F'?
-    bcs ca29b                                                         ; a305: b0 94       ..             ; Yes: bad compact
+    bcs bad_compact_error                                             ; a305: b0 94       ..             ; Yes: bad compact
     sbc #&36 ; '6'                                                    ; a307: e9 36       .6             ; Convert 'A'-'F' to 10-15
     sta wksp_disc_op_result,x                                         ; a309: 9d 15 10    ...            ; Store value
 ; &a30c referenced 1 time by &a2fb
-.ca30c
+.store_converted_byte
     dex                                                               ; a30c: ca          .              ; Next digit
-    bpl ca2ea                                                         ; a30d: 10 db       ..             ; Loop for 4 digits
+    bpl convert_hex_digits_loop                                       ; a30d: 10 db       ..             ; Loop for 4 digits
     inx                                                               ; a30f: e8          .              ; X=0: combine first pair
-    jsr sub_ca35a                                                     ; a310: 20 5a a3     Z.            ; Combine two hex digits into byte
-    bmi ca29b                                                         ; a313: 30 86       0.             ; Negative result: bad compact
+    jsr combine_hex_digit_pair                                        ; a310: 20 5a a3     Z.            ; Combine two hex digits into byte
+    bmi bad_compact_error                                             ; a313: 30 86       0.             ; Negative result: bad compact
     sta wksp_1060                                                     ; a315: 8d 60 10    .`.            ; Store as start page
     ldx #2                                                            ; a318: a2 02       ..             ; X=2: combine second pair
-    jsr sub_ca35a                                                     ; a31a: 20 5a a3     Z.            ; Combine two hex digits into byte
-    bpl ca322                                                         ; a31d: 10 03       ..             ; Positive result: valid
+    jsr combine_hex_digit_pair                                        ; a31a: 20 5a a3     Z.            ; Combine two hex digits into byte
+    bpl convert_two_digits                                            ; a31d: 10 03       ..             ; Positive result: valid
 ; &a31f referenced 1 time by &a322
-.loop_ca31f
-    jmp ca29b                                                         ; a31f: 4c 9b a2    L..            ; Zero length: bad compact
+.check_hex_digit_valid
+    jmp bad_compact_error                                             ; a31f: 4c 9b a2    L..            ; Zero length: bad compact
 
 ; &a322 referenced 1 time by &a31d
-.ca322
-    beq loop_ca31f                                                    ; a322: f0 fb       ..             ; Also zero: bad compact
+.convert_two_digits
+    beq check_hex_digit_valid                                         ; a322: f0 fb       ..             ; Also zero: bad compact
     sta l1061                                                         ; a324: 8d 61 10    .a.            ; Store as buffer length in pages
     ldx romsel_copy                                                   ; a327: a6 f4       ..             ; Get our ROM number
     lda nmi_0df0,x                                                    ; a329: bd f0 0d    ...            ; Get workspace page from ROM table
     cmp wksp_1060                                                     ; a32c: cd 60 10    .`.            ; Start page below workspace?
-    bcc ca334                                                         ; a32f: 90 03       ..             ; Yes: buffer doesn't overlap
-    jmp ca29b                                                         ; a331: 4c 9b a2    L..            ; No: bad compact (overlaps workspace)
+    bcc combine_hex_nibbles                                           ; a32f: 90 03       ..             ; Yes: buffer doesn't overlap
+    jmp bad_compact_error                                             ; a331: 4c 9b a2    L..            ; No: bad compact (overlaps workspace)
 
 ; &a334 referenced 1 time by &a32f
-.ca334
+.combine_hex_nibbles
     clc                                                               ; a334: 18          .              ; Clear carry for addition
     lda wksp_1060                                                     ; a335: ad 60 10    .`.            ; Start page + length
     adc l1061                                                         ; a338: 6d 61 10    ma.            ; Add buffer length
-    bpl ca344                                                         ; a33b: 10 07       ..             ; Result > &7F: check for exactly &80
+    bpl begin_compaction                                              ; a33b: 10 07       ..             ; Result > &7F: check for exactly &80
     cmp #&80                                                          ; a33d: c9 80       ..             ; Is it exactly &80?
-    beq ca344                                                         ; a33f: f0 03       ..             ; Yes: OK (up to screen memory)
-    jmp ca29b                                                         ; a341: 4c 9b a2    L..            ; Above &80: bad compact
+    beq begin_compaction                                              ; a33f: f0 03       ..             ; Yes: OK (up to screen memory)
+    jmp bad_compact_error                                             ; a341: 4c 9b a2    L..            ; Above &80: bad compact
 
 ; &a344 referenced 3 times by &a298, &a33b, &a33f
-.ca344
+.begin_compaction
     jsr star_close                                                    ; a344: 20 b3 b1     ..            ; *CLOSE command handler
     jsr wait_ensuring                                                 ; a347: 20 05 83     ..            ; Wait while files are being ensured
     lda zp_flags                                                      ; a34a: a5 cd       ..             ; Set bit 3 of ADFS flags
@@ -6599,7 +6599,7 @@ la154 = sub_ca153+1
     rts                                                               ; a359: 60          `              ; Return
 
 ; &a35a referenced 2 times by &a310, &a31a
-.sub_ca35a
+.combine_hex_digit_pair
     lda wksp_disc_op_result,x                                         ; a35a: bd 15 10    ...            ; Get hex digit pair high nibble
     asl a                                                             ; a35d: 0a          .              ; Shift left 4 positions
     asl a                                                             ; a35e: 0a          .              ; Second shift
@@ -6609,7 +6609,7 @@ la154 = sub_ca153+1
     rts                                                               ; a364: 60          `              ; Return combined byte
 
 ; &a365 referenced 4 times by &a544, &a5a1, &a62e, &a864
-.sub_ca365
+.parse_second_filename
     jsr skip_filename                                                 ; a365: 20 b7 a4     ..            ; Skip past filename in command string
     lda zp_b5                                                         ; a368: a5 b5       ..             ; Save text pointer high
     pha                                                               ; a36a: 48          H              ; Push on stack
@@ -6619,7 +6619,7 @@ la154 = sub_ca153+1
     ldy #0                                                            ; a371: a0 00       ..             ; Y=0: check for argument
     lda (zp_b4),y                                                     ; a373: b1 b4       ..             ; Get first char
     cmp #&20 ; ' '                                                    ; a375: c9 20       .              ; Is it printable?
-    bcs ca389                                                         ; a377: b0 10       ..             ; No: end of command
+    bcs bad_command_error                                             ; a377: b0 10       ..             ; No: end of command
     pla                                                               ; a379: 68          h              ; Restore text pointer low
     sta zp_b4                                                         ; a37a: 85 b4       ..             ; Store in (&B4)
     sta wksp_osfile_block                                             ; a37c: 8d 40 10    .@.            ; Also in OSFILE block
@@ -6629,10 +6629,10 @@ la154 = sub_ca153+1
     rts                                                               ; a385: 60          `              ; Return
 
 ; &a386 referenced 1 time by &a3b7
-.ca386
+.restore_csd_and_error
     jsr restore_csd                                                   ; a386: 20 73 a4     s.            ; Restore CSD sector from saved copy
 ; &a389 referenced 1 time by &a377
-.ca389
+.bad_command_error
     jsr reload_fsm_and_dir_then_brk                                   ; a389: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &fe                                                          ; a38c: fe          .
     equs "Bad command", 0                                             ; a38d: 42 61 64... Bad
@@ -6658,7 +6658,7 @@ la154 = sub_ca153+1
     sta zp_b5                                                         ; a3af: 85 b5       ..             ; Restore filename high
     jsr switch_to_library                                             ; a3b1: 20 60 a4     `.            ; Switch CSD to library directory; Switch CSD to library directory
     jsr sub_c8bb3                                                     ; a3b4: 20 b3 8b     ..            ; Try to find file in library
-    bne ca386                                                         ; a3b7: d0 cd       ..             ; Not in library either: Not found
+    bne restore_csd_and_error                                         ; a3b7: d0 cd       ..             ; Not in library either: Not found
     jsr restore_csd                                                   ; a3b9: 20 73 a4     s.            ; Restore CSD after library search; Restore CSD sector from saved copy
 ; &a3bc referenced 1 time by &a3a4
 .ca3bc
@@ -7009,7 +7009,7 @@ la154 = sub_ca153+1
     beq advance_dest_scan                                             ; a542: f0 f9       ..             ; Dot separator: continue past it
 ; &a544 referenced 1 time by &a51e
 .parse_destination_name
-    jsr sub_ca365                                                     ; a544: 20 65 a3     e.            ; Parse second arg (destination)
+    jsr parse_second_filename                                         ; a544: 20 65 a3     e.            ; Parse second arg (destination)
     jsr check_drive_colon                                             ; a547: 20 f6 a4     ..            ; Check for drive specifier colon
     lda #&40 ; '@'                                                    ; a54a: a9 40       .@             ; Set up OSFILE block pointer
     sta zp_b8                                                         ; a54c: 85 b8       ..             ; Store low byte
@@ -7065,7 +7065,7 @@ la154 = sub_ca153+1
     sta zp_b5                                                         ; a59c: 85 b5       ..             ; Store in (&B5)
     pla                                                               ; a59e: 68          h              ; Restore first arg low
     sta zp_b4                                                         ; a59f: 85 b4       ..             ; Store in (&B4)
-    jsr sub_ca365                                                     ; a5a1: 20 65 a3     e.            ; Parse last component of dest path
+    jsr parse_second_filename                                         ; a5a1: 20 65 a3     e.            ; Parse last component of dest path
 ; &a5a4 referenced 2 times by &a5ba, &a5be
 .find_last_path_component
     ldy #0                                                            ; a5a4: a0 00       ..             ; Y=0: scan for end of path component
@@ -7158,7 +7158,7 @@ la154 = sub_ca153+1
     iny                                                               ; a629: c8          .              ; Next name byte
     cpy #4                                                            ; a62a: c0 04       ..             ; Done 4 bytes?
     bne build_access_byte_loop                                        ; a62c: d0 f5       ..             ; No, continue building access
-    jsr sub_ca365                                                     ; a62e: 20 65 a3     e.            ; Parse dest path and switch dir
+    jsr parse_second_filename                                         ; a62e: 20 65 a3     e.            ; Parse dest path and switch dir
     ldy #&18                                                          ; a631: a0 18       ..             ; Y=&18: start sector in entry
     ldx #2                                                            ; a633: a2 02       ..             ; X=2: copy 3 sector bytes
 ; &a635 referenced 1 time by &a63c
@@ -7358,7 +7358,7 @@ la154 = sub_ca153+1
     cmp (zp_ba),y                                                     ; a734: d1 ba       ..             ; Compare with stored checksum
     beq return_32                                                     ; a736: f0 f8       ..             ; Match: workspace is valid
 ; &a738 referenced 7 times by &a752, &a761, &a765, &a76d, &a775, &ace6, &ae32
-.ca738
+.bad_checksum_error
     lda #&0f                                                          ; a738: a9 0f       ..             ; Checksum mismatch or corruption
     sta l10ce                                                         ; a73a: 8d ce 10    ...            ; Set error flag
     jsr generate_error_no_suffix                                      ; a73d: 20 51 83     Q.            ; Generate error without drive/sector suffix
@@ -7366,7 +7366,7 @@ la154 = sub_ca153+1
     equs "Bad sum", 0                                                 ; a741: 42 61 64... Bad
 
 ; &a749 referenced 8 times by &a95f, &a995, &ad42, &ad76, &b0e4, &b12f, &b1b6, &b57f
-.sub_ca749
+.save_workspace_state
     php                                                               ; a749: 08          .              ; Save all registers
     pha                                                               ; a74a: 48          H              ; Save A
     tya                                                               ; a74b: 98          .              ; Transfer Y to A
@@ -7374,40 +7374,40 @@ la154 = sub_ca153+1
     txa                                                               ; a74d: 8a          .              ; Transfer X to A
     pha                                                               ; a74e: 48          H              ; Save X
     lda l10ce                                                         ; a74f: ad ce 10    ...            ; Check error flag
-    bne ca738                                                         ; a752: d0 e4       ..             ; Non-zero: workspace corrupt, error
+    bne bad_checksum_error                                            ; a752: d0 e4       ..             ; Non-zero: workspace corrupt, error
     jsr sub_c8fea                                                     ; a754: 20 ea 8f     ..            ; Mark directory as modified
     clc                                                               ; a757: 18          .              ; Clear carry for scan
     ldx #&10                                                          ; a758: a2 10       ..             ; X=&10: scan open channel table
 ; &a75a referenced 1 time by &a76b
-.loop_ca75a
+.save_wksp_byte_loop
     lda wksp_1004,x                                                   ; a75a: bd 04 10    ...            ; Get channel state entry
     and #&21 ; '!'                                                    ; a75d: 29 21       )!             ; Check bits 0 and 5 (dirty flags)
-    beq ca767                                                         ; a75f: f0 06       ..             ; Both clear: channel clean
-    bcs ca738                                                         ; a761: b0 d5       ..             ; Carry set + dirty: corrupt
+    beq save_wksp_and_checksum                                        ; a75f: f0 06       ..             ; Both clear: channel clean
+    bcs bad_checksum_error                                            ; a761: b0 d5       ..             ; Carry set + dirty: corrupt
     cmp #1                                                            ; a763: c9 01       ..             ; Only bit 0 set: check value
-    bne ca738                                                         ; a765: d0 d1       ..             ; Not exactly 1: corrupt
+    bne bad_checksum_error                                            ; a765: d0 d1       ..             ; Not exactly 1: corrupt
 ; &a767 referenced 1 time by &a75f
-.ca767
+.save_wksp_and_checksum
     dex                                                               ; a767: ca          .              ; Step back 4 bytes
     dex                                                               ; a768: ca          .              ; Continue stepping
     dex                                                               ; a769: ca          .              ; Continue stepping
     dex                                                               ; a76a: ca          .              ; Continue stepping
-    bpl loop_ca75a                                                    ; a76b: 10 ed       ..             ; Loop for all entries
-    bcc ca738                                                         ; a76d: 90 c9       ..             ; No dirty entries + C=0: corrupt
-    jsr sub_ca797                                                     ; a76f: 20 97 a7     ..            ; Calculate channel checksum
+    bpl save_wksp_byte_loop                                           ; a76b: 10 ed       ..             ; Loop for all entries
+    bcc bad_checksum_error                                            ; a76d: 90 c9       ..             ; No dirty entries + C=0: corrupt
+    jsr restore_wksp_from_save                                        ; a76f: 20 97 a7     ..            ; Calculate channel checksum
     cmp l10c1                                                         ; a772: cd c1 10    ...            ; Compare with stored checksum
-    bne ca738                                                         ; a775: d0 c1       ..             ; Mismatch: corrupt
+    bne bad_checksum_error                                            ; a775: d0 c1       ..             ; Mismatch: corrupt
     pha                                                               ; a777: 48          H              ; Push 2 dummy bytes for stack frame
     pha                                                               ; a778: 48          H              ; Second push
     ldy #5                                                            ; a779: a0 05       ..             ; Y=5: shift 6 bytes on stack
     tsx                                                               ; a77b: ba          .              ; Get current stack pointer
 ; &a77c referenced 1 time by &a784
-.loop_ca77c
+.restore_workspace_state
     lda l0103,x                                                       ; a77c: bd 03 01    ...            ; Get byte from stack+3
     sta l0101,x                                                       ; a77f: 9d 01 01    ...            ; Move down to stack+1
     inx                                                               ; a782: e8          .              ; Next byte
     dey                                                               ; a783: 88          .              ; Decrement counter
-    bpl loop_ca77c                                                    ; a784: 10 f6       ..             ; Loop for 6 bytes
+    bpl restore_workspace_state                                       ; a784: 10 f6       ..             ; Loop for 6 bytes
     lda #&a1                                                          ; a786: a9 a1       ..             ; Insert return addr low = &A1
     sta l0101,x                                                       ; a788: 9d 01 01    ...            ; Store at stack+1
     lda #&a7                                                          ; a78b: a9 a7       ..             ; Insert return addr high = &A7
@@ -7421,26 +7421,26 @@ la154 = sub_ca153+1
     rts                                                               ; a796: 60          `              ; Return (via inserted &A7A2 addr)
 
 ; &a797 referenced 2 times by &a76f, &a7a8
-.sub_ca797
+.restore_wksp_from_save
     ldx #&78 ; 'x'                                                    ; a797: a2 78       .x             ; X=&78: sum 120 bytes of channel data
     txa                                                               ; a799: 8a          .              ; A=&78
     clc                                                               ; a79a: 18          .              ; Clear carry for summation
 ; &a79b referenced 1 time by &a79f
-.loop_ca79b
+.restore_wksp_byte_loop
     adc l1183,x                                                       ; a79b: 7d 83 11    }..            ; Add channel table byte
     dex                                                               ; a79e: ca          .              ; Next byte
-    bne loop_ca79b                                                    ; a79f: d0 fa       ..             ; Loop for 120 bytes
+    bne restore_wksp_byte_loop                                        ; a79f: d0 fa       ..             ; Loop for 120 bytes
     rts                                                               ; a7a1: 60          `              ; Return checksum in A
 
 ; &a7a2 referenced 2 times by &83f7, &9bf8
-.sub_ca7a2
+.load_dir_for_drive
     php                                                               ; a7a2: 08          .              ; Save all registers
     pha                                                               ; a7a3: 48          H              ; Save A
     tya                                                               ; a7a4: 98          .              ; Transfer Y to A
     pha                                                               ; a7a5: 48          H              ; Save Y
     txa                                                               ; a7a6: 8a          .              ; Transfer X to A
     pha                                                               ; a7a7: 48          H              ; Save X
-    jsr sub_ca797                                                     ; a7a8: 20 97 a7     ..            ; Calculate channel checksum
+    jsr restore_wksp_from_save                                        ; a7a8: 20 97 a7     ..            ; Calculate channel checksum
     sta l10c1                                                         ; a7ab: 8d c1 10    ...            ; Store checksum in workspace
     lda #0                                                            ; a7ae: a9 00       ..             ; A=0: clear flags
     sta l10d8                                                         ; a7b0: 8d d8 10    ...            ; Clear SPOOL/EXEC tracking
@@ -7455,7 +7455,7 @@ la154 = sub_ca153+1
     rts                                                               ; a7bf: 60          `              ; Return
 
 ; &a7c0 referenced 2 times by &a880, &a936
-.sub_ca7c0
+.setup_disc_read_for_dir
     lda l1091                                                         ; a7c0: ad 91 10    ...            ; Get saved filename pointer low
     sta zp_b4                                                         ; a7c3: 85 b4       ..             ; Store in (&B4)
     lda l1092                                                         ; a7c5: ad 92 10    ...            ; Get saved filename pointer high
@@ -7466,48 +7466,48 @@ la154 = sub_ca153+1
     sta zp_b6                                                         ; a7d2: 85 b6       ..             ; Store in (&B6)
     ldx #&0b                                                          ; a7d4: a2 0b       ..             ; X=&0B: copy 12-byte disc op template
 ; &a7d6 referenced 1 time by &a7dd
-.loop_ca7d6
+.copy_disc_op_template_loop
     lda l8816,x                                                       ; a7d6: bd 16 88    ...            ; Get template byte
     sta wksp_1014,x                                                   ; a7d9: 9d 14 10    ...            ; Copy to workspace
     dex                                                               ; a7dc: ca          .              ; Next byte
-    bne loop_ca7d6                                                    ; a7dd: d0 f7       ..             ; Loop for 12 bytes
+    bne copy_disc_op_template_loop                                    ; a7dd: d0 f7       ..             ; Loop for 12 bytes
     ldy #3                                                            ; a7df: a0 03       ..             ; Y=3: copy 4-byte sector address
 ; &a7e1 referenced 1 time by &a7f0
-.loop_ca7e1
+.copy_dir_sector_loop
     lda l106c,y                                                       ; a7e1: b9 6c 10    .l.            ; Get source sector byte
     sta l1114,y                                                       ; a7e4: 99 14 11    ...            ; Store in CSD sector
     cpx #0                                                            ; a7e7: e0 00       ..             ; X=0?
-    beq ca7ee                                                         ; a7e9: f0 03       ..             ; Yes, skip disc op sector store
+    beq read_dir_from_disc                                            ; a7e9: f0 03       ..             ; Yes, skip disc op sector store
     sta wksp_disc_op_command,x                                        ; a7eb: 9d 1a 10    ...            ; Store in disc op sector field
 ; &a7ee referenced 1 time by &a7e9
-.ca7ee
+.read_dir_from_disc
     inx                                                               ; a7ee: e8          .              ; Next X
     dey                                                               ; a7ef: 88          .              ; Next Y (decreasing)
-    bpl loop_ca7e1                                                    ; a7f0: 10 ef       ..             ; Loop for 4 bytes
+    bpl copy_dir_sector_loop                                          ; a7f0: 10 ef       ..             ; Loop for 4 bytes
     jmp c8287                                                         ; a7f2: 4c 87 82    L..            ; Execute disc read command
 
 ; &a7f5 referenced 1 time by &a8d9
-.sub_ca7f5
+.setup_fsm_read
     ldx #&0b                                                          ; a7f5: a2 0b       ..             ; X=&0B: copy 12-byte disc op template
 ; &a7f7 referenced 1 time by &a7fe
-.loop_ca7f7
+.copy_fsm_template_loop
     lda l8816,x                                                       ; a7f7: bd 16 88    ...            ; Get template byte
     sta wksp_1014,x                                                   ; a7fa: 9d 14 10    ...            ; Copy to workspace
     dex                                                               ; a7fd: ca          .              ; Next byte
-    bne loop_ca7f7                                                    ; a7fe: d0 f7       ..             ; Loop for 12 bytes
+    bne copy_fsm_template_loop                                        ; a7fe: d0 f7       ..             ; Loop for 12 bytes
     ldy #3                                                            ; a800: a0 03       ..             ; Y=3: copy 4-byte sector address
 ; &a802 referenced 1 time by &a811
-.loop_ca802
+.copy_fsm_sector_loop
     lda l1070,y                                                       ; a802: b9 70 10    .p.            ; Get dest sector byte
     sta l1114,y                                                       ; a805: 99 14 11    ...            ; Store in CSD sector
     cpx #0                                                            ; a808: e0 00       ..             ; X=0?
-    beq ca80f                                                         ; a80a: f0 03       ..             ; Yes, skip disc op store
+    beq read_fsm_from_disc                                            ; a80a: f0 03       ..             ; Yes, skip disc op store
     sta wksp_disc_op_command,x                                        ; a80c: 9d 1a 10    ...            ; Store in disc op sector field
 ; &a80f referenced 1 time by &a80a
-.ca80f
+.read_fsm_from_disc
     inx                                                               ; a80f: e8          .              ; Next X
     dey                                                               ; a810: 88          .              ; Next Y (decreasing)
-    bpl loop_ca802                                                    ; a811: 10 ef       ..             ; Loop for 4 bytes
+    bpl copy_fsm_sector_loop                                          ; a811: 10 ef       ..             ; Loop for 4 bytes
     jsr c8287                                                         ; a813: 20 87 82     ..            ; Execute disc read command
 ; ***************************************************************************************
 ; Load free space map from disc
@@ -7566,7 +7566,7 @@ la154 = sub_ca153+1
     sta wksp_csd_drive_sector,y                                       ; a85e: 99 2c 10    .,.            ; Set as target dir for copy
     dey                                                               ; a861: 88          .              ; Next byte
     bpl copy_csd_for_dest_loop                                        ; a862: 10 f7       ..             ; Loop for 4 bytes
-    jsr sub_ca365                                                     ; a864: 20 65 a3     e.            ; Parse destination path
+    jsr parse_second_filename                                         ; a864: 20 65 a3     e.            ; Parse destination path
 .check_dest_terminator
 la868 = check_dest_terminator+1
     jsr check_char_is_terminator                                      ; a867: 20 1a 87     ..            ; Check if character is a filename terminator
@@ -7585,7 +7585,7 @@ la868 = check_dest_terminator+1
     sta l1070,y                                                       ; a87a: 99 70 10    .p.            ; Store in workspace
     dey                                                               ; a87d: 88          .              ; Next byte
     bpl save_dest_dir_sector_loop                                     ; a87e: 10 f7       ..             ; Loop for 4 bytes
-    jsr sub_ca7c0                                                     ; a880: 20 c0 a7     ..            ; Set up disc read for source
+    jsr setup_disc_read_for_dir                                       ; a880: 20 c0 a7     ..            ; Set up disc read for source
 ; &a883 referenced 1 time by &a88f
 .scan_source_entries_loop
     ldy #4                                                            ; a883: a0 04       ..             ; Y=4: check entry access byte
@@ -7636,7 +7636,7 @@ la868 = check_dest_terminator+1
     bpl copy_source_name_loop                                         ; a8d2: 10 f6       ..             ; Loop for 10 bytes
     lda #&0d                                                          ; a8d4: a9 0d       ..             ; A=CR: terminate filename
     sta l107e                                                         ; a8d6: 8d 7e 10    .~.            ; Store terminator
-    jsr sub_ca7f5                                                     ; a8d9: 20 f5 a7     ..            ; Set up disc read for source file
+    jsr setup_fsm_read                                                ; a8d9: 20 f5 a7     ..            ; Set up disc read for source file
     jsr sub_c8df3                                                     ; a8dc: 20 f3 8d     ..            ; Check if file is open
     jsr sub_c8e6f                                                     ; a8df: 20 6f 8e     o.            ; Allocate space for dest file
     jsr sub_c8f52                                                     ; a8e2: 20 52 8f     R.            ; Write dest directory entry
@@ -7675,7 +7675,7 @@ la868 = check_dest_terminator+1
     pla                                                               ; a92f: 68          h              ; Restore original drive
     sta wksp_current_drive                                            ; a930: 8d 17 11    ...            ; Set as current drive
     jsr c8f86                                                         ; a933: 20 86 8f     ..            ; Write modified directory
-    jsr sub_ca7c0                                                     ; a936: 20 c0 a7     ..            ; Set up for next source file
+    jsr setup_disc_read_for_dir                                       ; a936: 20 c0 a7     ..            ; Set up for next source file
     jmp skip_dir_entry_or_done                                        ; a939: 4c 8c a8    L..            ; Loop to copy next file
 
 ; ***************************************************************************************
@@ -7720,7 +7720,7 @@ la868 = check_dest_terminator+1
 
 ; &a95f referenced 1 time by &a95a
 .ca95f
-    jsr sub_ca749                                                     ; a95f: 20 49 a7     I.            ; Save registers for later restore
+    jsr save_workspace_state                                          ; a95f: 20 49 a7     I.            ; Save registers for later restore
     stx zp_save_x                                                     ; a962: 86 c3       ..             ; Save X (zero page pointer)
     dey                                                               ; a964: 88          .              ; Y was function code; Y-1=0 means A=1
     bne ca97c                                                         ; a965: d0 15       ..             ; A!=1: check further functions
@@ -7757,7 +7757,7 @@ la868 = check_dest_terminator+1
 
 ; &a995 referenced 1 time by &a957
 .ca995
-    jsr sub_ca749                                                     ; a995: 20 49 a7     I.            ; Save regs for file-specific OSARGS
+    jsr save_workspace_state                                          ; a995: 20 49 a7     I.            ; Save regs for file-specific OSARGS
 ; &a998 referenced 1 time by &b5e1
 .sub_ca998
     stx zp_save_x                                                     ; a998: 86 c3       ..             ; Save X (ZP pointer)
@@ -8245,7 +8245,7 @@ la868 = check_dest_terminator+1
     dex                                                               ; ace2: ca          .              ; Continue stepping
     dex                                                               ; ace3: ca          .              ; Continue stepping
     bpl loop_cacd9                                                    ; ace4: 10 f3       ..             ; Loop for all entries
-    jmp ca738                                                         ; ace6: 4c 38 a7    L8.            ; No dirty buffers: workspace error
+    jmp bad_checksum_error                                            ; ace6: 4c 38 a7    L8.            ; No dirty buffers: workspace error
 
 ; &ace9 referenced 3 times by &ad05, &ad0b, &ad13
 .cace9
@@ -8322,7 +8322,7 @@ la868 = check_dest_terminator+1
     jsr check_set_channel_y                                           ; ad3c: 20 fe ac     ..            ; Validate and set channel number from Y
     ror a                                                             ; ad3f: 6a          j              ; Rotate flags bit 0 into carry
     bcs return_eof_status                                             ; ad40: b0 09       ..             ; Carry set: skip flush
-    jsr sub_ca749                                                     ; ad42: 20 49 a7     I.            ; Ensure workspace is valid
+    jsr save_workspace_state                                          ; ad42: 20 49 a7     I.            ; Ensure workspace is valid
     jsr sync_ext_to_ptr                                               ; ad45: 20 8c b1     ..            ; Flush channel buffer if dirty
     jsr compare_ext_to_ptr                                            ; ad48: 20 16 ad     ..            ; Compare file EXT to PTR
 ; &ad4b referenced 1 time by &ad40
@@ -8360,7 +8360,7 @@ la868 = check_dest_terminator+1
     jsr compare_ext_to_ptr                                            ; ad6f: 20 16 ad     ..            ; Compare EXT with PTR; Compare file EXT to PTR
     bcs cad8d                                                         ; ad72: b0 19       ..             ; EXT != PTR: not at EOF, read byte
     bne eof_error                                                     ; ad74: d0 dd       ..             ; EXT == PTR and EOF: raise error
-    jsr sub_ca749                                                     ; ad76: 20 49 a7     I.            ; Save registers for restore
+    jsr save_workspace_state                                          ; ad76: 20 49 a7     I.            ; Save registers for restore
     ldx zp_channel_offset                                             ; ad79: a6 cf       ..             ; Get channel index
     lda wksp_ch_flags,x                                               ; ad7b: bd ac 11    ...            ; Get channel flags
     and #&c0                                                          ; ad7e: 29 c0       ).             ; Keep open+writable bits only
@@ -8449,7 +8449,7 @@ la868 = check_dest_terminator+1
     lda (zp_b8),y                                                     ; ae2b: b1 b8       ..             ; Get first byte
     bne cae35                                                         ; ae2d: d0 06       ..             ; Non-zero: valid entry
     sta wksp_ch_flags,x                                               ; ae2f: 9d ac 11    ...            ; Zero: channel invalid, clear flags
-    jmp ca738                                                         ; ae32: 4c 38 a7    L8.            ; Bad checksum error
+    jmp bad_checksum_error                                            ; ae32: 4c 38 a7    L8.            ; Bad checksum error
 
 ; &ae35 referenced 1 time by &ae2d
 .cae35
@@ -8799,7 +8799,7 @@ la868 = check_dest_terminator+1
     adc #0                                                            ; b0de: 69 00       i.             ; Add carry
     sta l109d                                                         ; b0e0: 8d 9d 10    ...            ; Store next PTR high
     pla                                                               ; b0e3: 68          h              ; Restore byte to write
-    jsr sub_ca749                                                     ; b0e4: 20 49 a7     I.            ; Save registers for restore
+    jsr save_workspace_state                                          ; b0e4: 20 49 a7     I.            ; Save registers for restore
     pha                                                               ; b0e7: 48          H              ; Re-push byte to write
     dec l10cf                                                         ; b0e8: ce cf 10    ...            ; Set modification flag
     jsr sub_cae59                                                     ; b0eb: 20 59 ae     Y.            ; Validate PTR and load sector
@@ -8838,7 +8838,7 @@ la868 = check_dest_terminator+1
     bne return_39                                                     ; b128: d0 f8       ..             ; No wrap: done
     bit l10cf                                                         ; b12a: 2c cf 10    ,..            ; Check modification flag
     bmi increment_ptr_mid_bytes                                       ; b12d: 30 03       0.             ; Not modified: skip workspace save
-    jsr sub_ca749                                                     ; b12f: 20 49 a7     I.            ; Save workspace state
+    jsr save_workspace_state                                          ; b12f: 20 49 a7     I.            ; Save workspace state
 ; &b132 referenced 1 time by &b12d
 .increment_ptr_mid_bytes
     inc wksp_ch_ptr_ml,x                                              ; b132: fe 70 11    .p.            ; Increment PTR mid-low
@@ -8933,7 +8933,7 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &b1b6 referenced 2 times by &a12c, &a3dc
 .my_osfind
-    jsr sub_ca749                                                     ; b1b6: 20 49 a7     I.            ; Save registers for later restore
+    jsr save_workspace_state                                          ; b1b6: 20 49 a7     I.            ; Save registers for later restore
     stx wksp_osfile_block                                             ; b1b9: 8e 40 10    .@.            ; Save X in OSFILE block as filename
     stx zp_b4                                                         ; b1bc: 86 b4       ..             ; Filename pointer low = X
     stx zp_c5                                                         ; b1be: 86 c5       ..             ; Save Y for close channel
@@ -9470,7 +9470,7 @@ la868 = check_dest_terminator+1
 ; 
 ; ***************************************************************************************
 .my_osgbpb
-    jsr sub_ca749                                                     ; b57f: 20 49 a7     I.            ; Save registers for restore
+    jsr save_workspace_state                                          ; b57f: 20 49 a7     I.            ; Save registers for restore
     sta l10b4                                                         ; b582: 8d b4 10    ...            ; Store OSGBPB function code
     sta l10b5                                                         ; b585: 8d b5 10    ...            ; Store mode flag copy
     sty zp_c7                                                         ; b588: 84 c7       ..             ; Save control block pointer
@@ -11372,7 +11372,7 @@ save pydis_start, pydis_end
 ;     l1037:                                             12
 ;     l1061:                                             12
 ;     l109a:                                             12
-;     ca29b:                                             11
+;     bad_compact_error:                                 11
 ;     fsm_sector_1:                                      11
 ;     l0100:                                             11
 ;     l101d:                                             11
@@ -11421,11 +11421,11 @@ save pydis_start, pydis_end
 ;     l1116:                                              8
 ;     oswrch:                                             8
 ;     parse_path_and_load:                                8
+;     save_workspace_state:                               8
 ;     sub_c931b:                                          8
-;     sub_ca749:                                          8
 ;     wksp_disc_op_mem_addr:                              8
+;     bad_checksum_error:                                 7
 ;     c8ffa:                                              7
-;     ca738:                                              7
 ;     command_done:                                       7
 ;     fdc_8271_data_or_1770_command_or_status:            7
 ;     floppy_error:                                       7
@@ -11547,6 +11547,7 @@ save pydis_start, pydis_end
 ;     l8817:                                              4
 ;     nmi_0d56:                                           4
 ;     nmi_0d5a:                                           4
+;     parse_second_filename:                              4
 ;     restore_csd:                                        4
 ;     return_17:                                          4
 ;     return_27:                                          4
@@ -11554,7 +11555,6 @@ save pydis_start, pydis_end
 ;     sub_c8a3d:                                          4
 ;     sub_c8bb3:                                          4
 ;     sub_c8df3:                                          4
-;     sub_ca365:                                          4
 ;     sub_cb4f5:                                          4
 ;     sub_cb825:                                          4
 ;     wksp_1014:                                          4
@@ -11570,6 +11570,7 @@ save pydis_start, pydis_end
 ;     advance_text_ptr:                                   3
 ;     allocate_disc_space:                                3
 ;     bad_address_error:                                  3
+;     begin_compaction:                                   3
 ;     c80af:                                              3
 ;     c8282:                                              3
 ;     c8787:                                              3
@@ -11577,7 +11578,6 @@ save pydis_start, pydis_end
 ;     c8bd7:                                              3
 ;     c8bf0:                                              3
 ;     c9de5:                                              3
-;     ca344:                                              3
 ;     ca9bd:                                              3
 ;     caaa6:                                              3
 ;     cac5f:                                              3
@@ -11723,8 +11723,6 @@ save pydis_start, pydis_end
 ;     c9fed:                                              2
 ;     ca12f:                                              2
 ;     ca179:                                              2
-;     ca2bf:                                              2
-;     ca2df:                                              2
 ;     ca434:                                              2
 ;     ca976:                                              2
 ;     ca97c:                                              2
@@ -11769,6 +11767,7 @@ save pydis_start, pydis_end
 ;     claim_nmi_and_init:                                 2
 ;     clear_rwl_attributes:                               2
 ;     clear_seek_flag:                                    2
+;     combine_hex_digit_pair:                             2
 ;     compare_filename:                                   2
 ;     conditional_info_display:                           2
 ;     continue_scanning:                                  2
@@ -11821,6 +11820,7 @@ save pydis_start, pydis_end
 ;     l9316:                                              2
 ;     l9dd3:                                              2
 ;     last_break_type:                                    2
+;     load_dir_for_drive:                                 2
 ;     load_tube_workspace_ptr:                            2
 ;     match_command_char:                                 2
 ;     my_osfind:                                          2
@@ -11846,6 +11846,7 @@ save pydis_start, pydis_end
 ;     ra_buffer_1:                                        2
 ;     read_sector_byte_loop:                              2
 ;     release_entry_space:                                2
+;     restore_wksp_from_save:                             2
 ;     return_11:                                          2
 ;     return_19:                                          2
 ;     return_20:                                          2
@@ -11861,8 +11862,11 @@ save pydis_start, pydis_end
 ;     set_file_attributes:                                2
 ;     set_read_transfer_mode:                             2
 ;     set_terminator_flag:                                2
+;     setup_disc_read_for_dir:                            2
 ;     setup_entry_name_ptr:                               2
 ;     skip_filename:                                      2
+;     skip_separator_spaces:                              2
+;     skip_trailing_spaces:                               2
 ;     star_close:                                         2
 ;     store_channel_flags:                                2
 ;     store_wksp_checksum_ba_y:                           2
@@ -11882,10 +11886,6 @@ save pydis_start, pydis_end
 ;     sub_c92de:                                          2
 ;     sub_c932a:                                          2
 ;     sub_c9dda:                                          2
-;     sub_ca35a:                                          2
-;     sub_ca797:                                          2
-;     sub_ca7a2:                                          2
-;     sub_ca7c0:                                          2
 ;     sub_cabc9:                                          2
 ;     sub_cacd7:                                          2
 ;     sub_cadc5:                                          2
@@ -11918,6 +11918,7 @@ save pydis_start, pydis_end
 ;     append_hex_suffix:                                  1
 ;     append_sector_bytes_loop:                           1
 ;     append_sector_hex:                                  1
+;     bad_command_error:                                  1
 ;     branch_to_floppy_error:                             1
 ;     build_access_byte_loop:                             1
 ;     c8111:                                              1
@@ -12066,21 +12067,10 @@ save pydis_start, pydis_end
 ;     ca061:                                              1
 ;     ca0ce:                                              1
 ;     ca189:                                              1
-;     ca2ab:                                              1
-;     ca2ea:                                              1
-;     ca2fd:                                              1
-;     ca30c:                                              1
-;     ca322:                                              1
-;     ca334:                                              1
-;     ca386:                                              1
-;     ca389:                                              1
 ;     ca3bc:                                              1
 ;     ca3e9:                                              1
 ;     ca401:                                              1
 ;     ca41e:                                              1
-;     ca767:                                              1
-;     ca7ee:                                              1
-;     ca80f:                                              1
 ;     ca95f:                                              1
 ;     ca995:                                              1
 ;     ca9c7:                                              1
@@ -12215,6 +12205,8 @@ save pydis_start, pydis_end
 ;     check_exact_match:                                  1
 ;     check_ext_vs_allocation:                            1
 ;     check_field_boundary:                               1
+;     check_hex_af:                                       1
+;     check_hex_digit_valid:                              1
 ;     check_host_memory:                                  1
 ;     check_if_first_fit:                                 1
 ;     check_locked_attr_loop:                             1
@@ -12233,6 +12225,7 @@ save pydis_start, pydis_end
 ;     clear_attr_bits_loop:                               1
 ;     clear_sector_workspace_loop:                        1
 ;     clear_side_flag:                                    1
+;     combine_hex_nibbles:                                1
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
 ;     compaction_required_error:                          1
@@ -12243,6 +12236,8 @@ save pydis_start, pydis_end
 ;     compare_size_bytes_loop:                            1
 ;     compare_src_dest_dir_loop:                          1
 ;     compare_total_vs_requested:                         1
+;     convert_hex_digits_loop:                            1
+;     convert_two_digits:                                 1
 ;     copy_allocated_sector_loop:                         1
 ;     copy_at_string_loop:                                1
 ;     copy_brk_block_loop:                                1
@@ -12253,7 +12248,9 @@ save pydis_start, pydis_end
 ;     copy_default_name_loop:                             1
 ;     copy_dir_name_from_entry:                           1
 ;     copy_dir_name_loop:                                 1
+;     copy_dir_sector_loop:                               1
 ;     copy_disc_op_template:                              1
+;     copy_disc_op_template_loop:                         1
 ;     copy_entry_metadata_loop:                           1
 ;     copy_entry_name_loop:                               1
 ;     copy_entry_name_to_wksp_loop:                       1
@@ -12263,6 +12260,8 @@ save pydis_start, pydis_end
 ;     copy_error_msg_loop:                                1
 ;     copy_exact_match_addr_loop:                         1
 ;     copy_file_entry:                                    1
+;     copy_fsm_sector_loop:                               1
+;     copy_fsm_template_loop:                             1
 ;     copy_lib_name_loop:                                 1
 ;     copy_lib_sector_loop:                               1
 ;     copy_locked_name_loop:                              1
@@ -12480,16 +12479,8 @@ save pydis_start, pydis_end
 ;     loop_ca083:                                         1
 ;     loop_ca0d3:                                         1
 ;     loop_ca116:                                         1
-;     loop_ca31f:                                         1
 ;     loop_ca3cc:                                         1
 ;     loop_ca42f:                                         1
-;     loop_ca75a:                                         1
-;     loop_ca77c:                                         1
-;     loop_ca79b:                                         1
-;     loop_ca7d6:                                         1
-;     loop_ca7e1:                                         1
-;     loop_ca7f7:                                         1
-;     loop_ca802:                                         1
 ;     loop_ca97e:                                         1
 ;     loop_caaa8:                                         1
 ;     loop_cac1f:                                         1
@@ -12560,6 +12551,7 @@ save pydis_start, pydis_end
 ;     osword:                                             1
 ;     pad_title_with_cr:                                  1
 ;     pad_with_cr:                                        1
+;     parse_compact_start_page:                           1
 ;     parse_destination_name:                             1
 ;     path_not_found:                                     1
 ;     poll_nmi_complete:                                  1
@@ -12573,6 +12565,8 @@ save pydis_start, pydis_end
 ;     ra_buffer_4:                                        1
 ;     ra_buffer_5:                                        1
 ;     raise_brk_error:                                    1
+;     read_dir_from_disc:                                 1
+;     read_fsm_from_disc:                                 1
 ;     recalc_flags_from_base:                             1
 ;     release_nmi:                                        1
 ;     release_tube_after_floppy:                          1
@@ -12581,10 +12575,13 @@ save pydis_start, pydis_end
 ;     remove_exact_entry_loop:                            1
 ;     restore_attributes_loop:                            1
 ;     restore_csd_after_check_loop:                       1
+;     restore_csd_and_error:                              1
 ;     restore_csd_sector_loop:                            1
 ;     restore_csd_sector_loop2:                           1
 ;     restore_head_flag:                                  1
 ;     restore_shadow_screen:                              1
+;     restore_wksp_byte_loop:                             1
+;     restore_workspace_state:                            1
 ;     return_1:                                           1
 ;     return_12:                                          1
 ;     return_13:                                          1
@@ -12628,6 +12625,8 @@ save pydis_start, pydis_end
 ;     save_e_attribute_state:                             1
 ;     save_error_and_release_nmi:                         1
 ;     save_source_dir_sector_loop:                        1
+;     save_wksp_and_checksum:                             1
+;     save_wksp_byte_loop:                                1
 ;     save_workspace_and_return:                          1
 ;     scan_component_chars:                               1
 ;     scan_dest_for_parent_ref:                           1
@@ -12655,6 +12654,7 @@ save pydis_start, pydis_end
 ;     set_rwl_attribute_bit:                              1
 ;     setup_direct_nmi:                                   1
 ;     setup_direct_write_nmi:                             1
+;     setup_fsm_read:                                     1
 ;     setup_nmi_and_step_rate:                            1
 ;     setup_tube_nmi_transfer:                            1
 ;     setup_tube_read_nmi:                                1
@@ -12675,6 +12675,7 @@ save pydis_start, pydis_end
 ;     star_info:                                          1
 ;     star_remove:                                        1
 ;     step_rate_fast:                                     1
+;     store_converted_byte:                               1
 ;     store_csd_drive:                                    1
 ;     store_default_drive:                                1
 ;     store_digit:                                        1
@@ -12701,7 +12702,6 @@ save pydis_start, pydis_end
 ;     sub_c9642:                                          1
 ;     sub_c98ae:                                          1
 ;     sub_ca161:                                          1
-;     sub_ca7f5:                                          1
 ;     sub_ca998:                                          1
 ;     sub_caba5:                                          1
 ;     sub_cae5e:                                          1
@@ -12960,27 +12960,11 @@ save pydis_start, pydis_end
 ;     ca12f
 ;     ca179
 ;     ca189
-;     ca29b
-;     ca2ab
-;     ca2bf
-;     ca2df
-;     ca2ea
-;     ca2fd
-;     ca30c
-;     ca322
-;     ca334
-;     ca344
-;     ca386
-;     ca389
 ;     ca3bc
 ;     ca3e9
 ;     ca401
 ;     ca41e
 ;     ca434
-;     ca738
-;     ca767
-;     ca7ee
-;     ca80f
 ;     ca95f
 ;     ca976
 ;     ca97c
@@ -13416,16 +13400,8 @@ save pydis_start, pydis_end
 ;     loop_ca083
 ;     loop_ca0d3
 ;     loop_ca116
-;     loop_ca31f
 ;     loop_ca3cc
 ;     loop_ca42f
-;     loop_ca75a
-;     loop_ca77c
-;     loop_ca79b
-;     loop_ca7d6
-;     loop_ca7e1
-;     loop_ca7f7
-;     loop_ca802
 ;     loop_ca97e
 ;     loop_caaa8
 ;     loop_cac1f
@@ -13570,13 +13546,6 @@ save pydis_start, pydis_end
 ;     sub_c9fdd
 ;     sub_ca153
 ;     sub_ca161
-;     sub_ca35a
-;     sub_ca365
-;     sub_ca749
-;     sub_ca797
-;     sub_ca7a2
-;     sub_ca7c0
-;     sub_ca7f5
 ;     sub_ca998
 ;     sub_caaf3
 ;     sub_caba5
