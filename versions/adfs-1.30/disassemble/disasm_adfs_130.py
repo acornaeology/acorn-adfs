@@ -560,6 +560,12 @@ entry(0x9373)  # After "Option " in verify_dir_and_list
 entry(0x9399)  # After ")\rDir. " in catalogue header
 entry(0x93B3)  # After "     Lib. " in catalogue header
 
+# The inline string at &9392 is ")\rDir." + &A0 (space+bit7).
+# The stringhi_hook classifies this as one string; we can't
+# split it with byte()/string() without conflicting with the hook.
+# Instead, add a comment explaining the structure.
+comment(0x9392, '")" + CR + "Dir." + space: option close + dir label', inline=True)
+
 # *HELP command list printing code
 # The code from &9E16 onwards prints the command list for *HELP ADFS.
 # The print_inline_string at &9E12 has a 2-byte inline string " \xa0"

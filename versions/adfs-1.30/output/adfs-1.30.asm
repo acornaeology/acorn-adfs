@@ -4528,7 +4528,7 @@ lffff                                           = &ffff
     ldx #4                                                            ; 938a: a2 04       ..             ; X=4: print 4-char option name
     jsr print_padded_name                                             ; 938c: 20 87 92     ..            ; Print boot option name (Off/Load/Run/Exec)
     jsr print_inline_string                                           ; 938f: 20 a0 92     ..            ; Print bit-7-terminated inline string
-    equs ")", &0d, "Dir."                                             ; 9392: 29 0d 44... ).D
+    equs ")", &0d, "Dir."                                             ; 9392: 29 0d 44... ).D            ; ")" + CR + "Dir." + space: option close + dir label
     equb &a0                                                          ; 9398: a0          .              ; ' ' + bit 7: end of inline string
 
     lda #0                                                            ; 9399: a9 00       ..             ; Point to CSD name at &1100
