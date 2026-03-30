@@ -1877,7 +1877,7 @@ oscli                                           = &fff7
 ; &870f referenced 2 times by &884c, &8851
 .parse_and_setup_search
     jsr skip_spaces                                                   ; 870f: 20 cf a4     ..            ; Skip leading spaces in command argument
-    jsr sub_c8d6e                                                     ; 8712: 20 6e 8d     n.            ; Set up directory for search
+    jsr set_up_directory_search                                       ; 8712: 20 6e 8d     n.            ; Set up directory for search
     ldy #0                                                            ; 8715: a0 00       ..             ; Y=0: clear search flag
     sty l10c0                                                         ; 8717: 8c c0 10    ...            ; Store in workspace
 ; ***************************************************************************************
@@ -2337,7 +2337,7 @@ oscli                                           = &fff7
     bpl advance_text_past_component                                   ; 8979: 10 16       ..             ; Bit 7 clear: normal descent
     and #&7f                                                          ; 897b: 29 7f       ).             ; Bit 7 set: clear it (bad rename?)
     sta (zp_b6),y                                                     ; 897d: 91 b6       ..             ; Store cleaned name byte
-    jsr c8f86                                                         ; 897f: 20 86 8f     ..            ; Write directory back to disc
+    jsr write_dir_and_validate                                        ; 897f: 20 86 8f     ..            ; Write directory back to disc
 ; &8982 referenced 1 time by &a500
 .clean_dir_rename_bit
     jsr reload_fsm_and_dir_then_brk                                   ; 8982: 20 48 83     H.            ; Reload FSM and directory then raise error
@@ -2719,7 +2719,7 @@ oscli                                           = &fff7
 
 ; &8be5 referenced 3 times by &907f, &9101, &a50f
 .find_file_and_validate
-    jsr sub_c8fdf                                                     ; 8be5: 20 df 8f     ..            ; Search for file
+    jsr find_first_matching_entry                                     ; 8be5: 20 df 8f     ..            ; Search for file
     bne return_15                                                     ; 8be8: d0 dd       ..             ; Not found: return
     ldy #4                                                            ; 8bea: a0 04       ..             ; Y=4: check E attribute byte
     lda (zp_b6),y                                                     ; 8bec: b1 b6       ..             ; Get access/E byte
@@ -2847,7 +2847,7 @@ oscli                                           = &fff7
     iny                                                               ; 8cae: c8          .              ; Y=&01
     lda (zp_b8),y                                                     ; 8caf: b1 b8       ..             ; Get filename address high
     sta zp_b5                                                         ; 8cb1: 85 b5       ..             ; Store in (&B5)
-    jsr sub_c8fdf                                                     ; 8cb3: 20 df 8f     ..            ; Search for file in directory
+    jsr find_first_matching_entry                                     ; 8cb3: 20 df 8f     ..            ; Search for file in directory
     bne delete_existing_before_save                                   ; 8cb6: d0 0e       ..             ; Found? Copy catalogue info
     ldy #4                                                            ; 8cb8: a0 04       ..             ; Y=4: check E attribute
     lda (zp_b6),y                                                     ; 8cba: b1 b6       ..             ; Get E attribute byte
@@ -2870,8 +2870,8 @@ oscli                                           = &fff7
     iny                                                               ; 8ccf: c8          .              ; Y=&01
     lda (zp_b8),y                                                     ; 8cd0: b1 b8       ..             ; Get filename address high
     sta zp_b5                                                         ; 8cd2: 85 b5       ..             ; Store in (&B5)
-    jsr sub_c8dbd                                                     ; 8cd4: 20 bd 8d     ..            ; Parse path and set up directory
-    jsr sub_c8fdf                                                     ; 8cd7: 20 df 8f     ..            ; Search for file
+    jsr set_up_gsinit_path                                            ; 8cd4: 20 bd 8d     ..            ; Parse path and set up directory
+    jsr find_first_matching_entry                                     ; 8cd7: 20 df 8f     ..            ; Search for file
     beq return_16                                                     ; 8cda: f0 05       ..             ; Found: return Z set
     jsr check_special_dir_char                                        ; 8cdc: 20 4f 94     O.            ; Check for ^ (parent) or @ (current) directory
     beq mark_entry_dirty                                              ; 8cdf: f0 15       ..             ; Z clear: check for create
@@ -2919,7 +2919,7 @@ oscli                                           = &fff7
     ldy #3                                                            ; 8d07: a0 03       ..             ; Y=3: check if it's a directory
     lda (zp_b6),y                                                     ; 8d09: b1 b6       ..             ; Get access byte
     bpl check_file_not_open                                           ; 8d0b: 10 03       ..             ; Bit 7 clear: not dir, create file
-    jmp c95a4                                                         ; 8d0d: 4c a4 95    L..            ; Directory: Already exists error
+    jmp already_exists_error2                                         ; 8d0d: 4c a4 95    L..            ; Directory: Already exists error
 
 ; &8d10 referenced 5 times by &8ce5, &8d0b, &9128, &a589, &b306
 .check_file_not_open
@@ -2941,128 +2941,128 @@ oscli                                           = &fff7
 .check_open
     ldx #9                                                            ; 8d21: a2 09       ..             ; X=9: check all 10 channels
 ; &8d23 referenced 1 time by &8d6a
-.c8d23
+.check_open_channel_loop
     lda wksp_ch_flags,x                                               ; 8d23: bd ac 11    ...            ; Get channel flags
-    beq c8d69                                                         ; 8d26: f0 41       .A             ; Channel not open? Skip
+    beq no_open_files_on_drive                                        ; 8d26: f0 41       .A             ; Channel not open? Skip
     lda l11b6,x                                                       ; 8d28: bd b6 11    ...            ; Get channel's drive number
     and #&e0                                                          ; 8d2b: 29 e0       ).             ; Isolate drive bits (top 3)
     cmp wksp_current_drive                                            ; 8d2d: cd 17 11    ...            ; Compare with current drive
-    bne c8d69                                                         ; 8d30: d0 37       .7             ; Different drive? Skip
+    bne no_open_files_on_drive                                        ; 8d30: d0 37       .7             ; Different drive? Skip
     lda l11e8,x                                                       ; 8d32: bd e8 11    ...            ; Compare sector address byte
     cmp l1114                                                         ; 8d35: cd 14 11    ...            ; With target sector
-    bne c8d69                                                         ; 8d38: d0 2f       ./             ; No match? Skip
+    bne no_open_files_on_drive                                        ; 8d38: d0 2f       ./             ; No match? Skip
     lda l11de,x                                                       ; 8d3a: bd de 11    ...            ; Compare sector mid byte
     cmp l1115                                                         ; 8d3d: cd 15 11    ...            ; With target sector mid
-    bne c8d69                                                         ; 8d40: d0 27       .'             ; No match? Skip
+    bne no_open_files_on_drive                                        ; 8d40: d0 27       .'             ; No match? Skip
     lda l11d4,x                                                       ; 8d42: bd d4 11    ...            ; Compare sector high byte
     cmp l1116                                                         ; 8d45: cd 16 11    ...            ; With target sector high
-    bne c8d69                                                         ; 8d48: d0 1f       ..             ; No match? Skip
+    bne no_open_files_on_drive                                        ; 8d48: d0 1f       ..             ; No match? Skip
     ldy #&19                                                          ; 8d4a: a0 19       ..             ; Y=&19: compare sequence number
     lda (zp_b6),y                                                     ; 8d4c: b1 b6       ..             ; Get entry sequence from dir
     cmp l11f2,x                                                       ; 8d4e: dd f2 11    ...            ; Compare with channel's sequence
-    bne c8d69                                                         ; 8d51: d0 16       ..             ; Mismatch: not the same file
+    bne no_open_files_on_drive                                        ; 8d51: d0 16       ..             ; Mismatch: not the same file
 ; &8d53 referenced 1 time by &b24a
-.c8d53
+.channel_on_same_drive
     jsr reload_fsm_and_dir_then_brk                                   ; 8d53: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &c2                                                          ; 8d56: c2          .
     equs "Can't - File open", 0                                       ; 8d57: 43 61 6e... Can
 
 ; &8d69 referenced 6 times by &8d26, &8d30, &8d38, &8d40, &8d48, &8d51
-.c8d69
+.no_open_files_on_drive
     dex                                                               ; 8d69: ca          .              ; Next channel
-    bpl c8d23                                                         ; 8d6a: 10 b7       ..             ; Loop for all 10 channels
+    bpl check_open_channel_loop                                       ; 8d6a: 10 b7       ..             ; Loop for all 10 channels
     inx                                                               ; 8d6c: e8          .              ; X=1: no conflict found
     rts                                                               ; 8d6d: 60          `              ; Return (X=1 = no conflict)
 
 ; &8d6e referenced 2 times by &8712, &8dbd
-.sub_c8d6e
+.set_up_directory_search
     ldy #0                                                            ; 8d6e: a0 00       ..             ; Y=0: scan filename
     jsr check_char_is_terminator                                      ; 8d70: 20 1a 87     ..            ; Check if character is a filename terminator
-    bne c8d7a                                                         ; 8d73: d0 05       ..             ; Non-terminator: check for wildcards
+    bne begin_pathname_scan                                           ; 8d73: d0 05       ..             ; Non-terminator: check for wildcards
     cmp #&2e ; '.'                                                    ; 8d75: c9 2e       ..             ; Is it '.'?
-    beq c8ddb                                                         ; 8d77: f0 62       .b             ; Dot: wild cards error
+    beq bad_name_in_path                                              ; 8d77: f0 62       .b             ; Dot: wild cards error
     rts                                                               ; 8d79: 60          `              ; Return (no wildcards)
 
 ; &8d7a referenced 1 time by &8d73
-.c8d7a
+.begin_pathname_scan
     cmp #&3a ; ':'                                                    ; 8d7a: c9 3a       .:             ; Is it ':'?
-    bne c8d8d                                                         ; 8d7c: d0 0f       ..             ; No: check path components
+    bne skip_dot_in_path                                              ; 8d7c: d0 0f       ..             ; No: check path components
     iny                                                               ; 8d7e: c8          .              ; Skip past ':D' drive specifier
 ; &8d7f referenced 1 time by &8d91
-.loop_c8d7f
+.scan_name_bytes_loop
     iny                                                               ; 8d7f: c8          .              ; Skip past drive number
     jsr check_char_is_terminator                                      ; 8d80: 20 1a 87     ..            ; Check if character is a filename terminator
-    bne c8ddb                                                         ; 8d83: d0 56       .V             ; Non-zero: wild cards error
+    bne bad_name_in_path                                              ; 8d83: d0 56       .V             ; Non-zero: wild cards error
     cmp #&2e ; '.'                                                    ; 8d85: c9 2e       ..             ; Is it '.'?
     bne return_17                                                     ; 8d87: d0 4c       .L             ; No dot after drive: return
     iny                                                               ; 8d89: c8          .              ; Skip past dot
-    jsr sub_c8dd6                                                     ; 8d8a: 20 d6 8d     ..            ; Get next character
+    jsr parse_and_search_dir                                          ; 8d8a: 20 d6 8d     ..            ; Get next character
 ; &8d8d referenced 1 time by &8d7c
-.c8d8d
+.skip_dot_in_path
     and #&fd                                                          ; 8d8d: 29 fd       ).             ; Strip to check for '$'
     cmp #&24 ; '$'                                                    ; 8d8f: c9 24       .$             ; Is it '$' (root)?
-    beq loop_c8d7f                                                    ; 8d91: f0 ec       ..             ; Yes: continue past root specifier
+    beq scan_name_bytes_loop                                          ; 8d91: f0 ec       ..             ; Yes: continue past root specifier
 ; &8d93 referenced 1 time by &8da9
-.loop_c8d93
-    jsr sub_c8dd6                                                     ; 8d93: 20 d6 8d     ..            ; Get next path character
+.scan_name_alpha_loop
+    jsr parse_and_search_dir                                          ; 8d93: 20 d6 8d     ..            ; Get next path character
     cmp #&5e ; '^'                                                    ; 8d96: c9 5e       .^             ; Is it '^' (parent)?
-    beq c8d9e                                                         ; 8d98: f0 04       ..             ; Yes: skip past it
+    beq check_bad_name_char                                           ; 8d98: f0 04       ..             ; Yes: skip past it
     cmp #&40 ; '@'                                                    ; 8d9a: c9 40       .@             ; Is it '@' (current)?
     bne c8dab                                                         ; 8d9c: d0 0d       ..             ; No: check for wildcards in name
 ; &8d9e referenced 1 time by &8d98
-.c8d9e
+.check_bad_name_char
     iny                                                               ; 8d9e: c8          .              ; Skip past ^ or @ specifier
     jsr check_char_is_terminator                                      ; 8d9f: 20 1a 87     ..            ; Check if character is a filename terminator
-    bne c8ddb                                                         ; 8da2: d0 37       .7             ; Non-terminator: wild cards error
+    bne bad_name_in_path                                              ; 8da2: d0 37       .7             ; Non-terminator: wild cards error
 ; &8da4 referenced 1 time by &8dae
-.loop_c8da4
+.check_special_chars_loop
     cmp #&2e ; '.'                                                    ; 8da4: c9 2e       ..             ; Is it '.'?
     bne return_17                                                     ; 8da6: d0 2d       .-             ; No dot: return
     iny                                                               ; 8da8: c8          .              ; Skip past dot
-    bne loop_c8d93                                                    ; 8da9: d0 e8       ..             ; Continue scanning
+    bne scan_name_alpha_loop                                          ; 8da9: d0 e8       ..             ; Continue scanning
 ; &8dab referenced 2 times by &8d9c, &8dbb
 .c8dab
     jsr check_char_is_terminator                                      ; 8dab: 20 1a 87     ..            ; Check if character is a filename terminator
-    beq loop_c8da4                                                    ; 8dae: f0 f4       ..             ; Terminator: check for dot
+    beq check_special_chars_loop                                      ; 8dae: f0 f4       ..             ; Terminator: check for dot
     ldx #5                                                            ; 8db0: a2 05       ..             ; X=5: check against 6 special chars
 ; &8db2 referenced 1 time by &8db8
-.loop_c8db2
+.valid_name_continue_loop
     cmp l8ded,x                                                       ; 8db2: dd ed 8d    ...            ; Compare with special char table
-    beq c8ddb                                                         ; 8db5: f0 24       .$             ; Match: wild cards error
+    beq bad_name_in_path                                              ; 8db5: f0 24       .$             ; Match: wild cards error
     dex                                                               ; 8db7: ca          .              ; Next special char
-    bpl loop_c8db2                                                    ; 8db8: 10 f8       ..             ; Loop for 6 chars
+    bpl valid_name_continue_loop                                      ; 8db8: 10 f8       ..             ; Loop for 6 chars
     iny                                                               ; 8dba: c8          .              ; Next filename character
     bne c8dab                                                         ; 8dbb: d0 ee       ..             ; Continue scanning
 ; &8dbd referenced 3 times by &8cd4, &a50c, &b2fe
-.sub_c8dbd
-    jsr sub_c8d6e                                                     ; 8dbd: 20 6e 8d     n.            ; Save text pointer low; Push on stack
+.set_up_gsinit_path
+    jsr set_up_directory_search                                       ; 8dbd: 20 6e 8d     n.            ; Save text pointer low; Push on stack
 ; &8dc0 referenced 1 time by &8dd3
-.loop_c8dc0
+.gsinit_scan_loop
     lda (zp_b4),y                                                     ; 8dc0: b1 b4       ..             ; Save text pointer high
     and #&7f                                                          ; 8dc2: 29 7f       ).             ; Push on stack; Get text pointer low
     cmp #&2a ; '*'                                                    ; 8dc4: c9 2a       .*             ; Store for GSINIT
-    beq c8dde                                                         ; 8dc6: f0 16       ..             ; Get text pointer high
+    beq mark_saved_drive_unset                                        ; 8dc6: f0 16       ..             ; Get text pointer high
     cmp #&23 ; '#'                                                    ; 8dc8: c9 23       .#             ; Store for GSINIT high
-    beq c8dde                                                         ; 8dca: f0 12       ..             ; Call GSINIT to init string parsing
+    beq mark_saved_drive_unset                                        ; 8dca: f0 12       ..             ; Call GSINIT to init string parsing
     cmp #&2e ; '.'                                                    ; 8dcc: c9 2e       ..             ; Is it '.'?
     beq return_17                                                     ; 8dce: f0 05       ..             ; Restore text pointer high; Store back
     dey                                                               ; 8dd0: 88          .              ; Decrement index
     cpy #&ff                                                          ; 8dd1: c0 ff       ..             ; Restore text pointer low; Store back
-    bne loop_c8dc0                                                    ; 8dd3: d0 eb       ..             ; Return
+    bne gsinit_scan_loop                                              ; 8dd3: d0 eb       ..             ; Return
 ; &8dd5 referenced 4 times by &8d87, &8da6, &8dce, &8dd9
 .return_17
     rts                                                               ; 8dd5: 60          `              ; Return
 
 ; &8dd6 referenced 2 times by &8d8a, &8d93
-.sub_c8dd6
+.parse_and_search_dir
     jsr check_char_is_terminator                                      ; 8dd6: 20 1a 87     ..            ; Get character at (&B4),Y; Check if character is a filename terminator; Strip bit 7
     bne return_17                                                     ; 8dd9: d0 fa       ..             ; Return character in A
 ; &8ddb referenced 4 times by &8d77, &8d83, &8da2, &8db5
-.c8ddb
+.bad_name_in_path
     jmp bad_name_error                                                ; 8ddb: 4c 37 87    L7.            ; Wild cards found: Bad name error
 
 ; &8dde referenced 2 times by &8dc6, &8dca
-.c8dde
+.mark_saved_drive_unset
     jsr reload_fsm_and_dir_then_brk                                   ; 8dde: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &fd                                                          ; 8de1: fd          .
     equs "Wild cards", 0                                              ; 8de2: 57 69 6c... Wil
@@ -3072,44 +3072,44 @@ oscli                                           = &fff7
     equs "^@:$&"                                                      ; 8dee: 5e 40 3a... ^@:
 
 ; &8df3 referenced 4 times by &8f4c, &9594, &a649, &a8dc
-.sub_c8df3
+.check_file_not_open2
     jsr copy_osfile_addrs                                             ; 8df3: 20 e9 8c     ..            ; A=&FF: mark saved drive as unset; Store in saved drive
 ; &8df6 referenced 1 time by &a556
-.sub_c8df6
-    bne c8e19                                                         ; 8df6: d0 21       .!             ; Ensure directory integrity
+.search_dir_for_new_entry
+    bne no_empty_entry_found                                          ; 8df6: d0 21       .!             ; Ensure directory integrity
     ldx #2                                                            ; 8df8: a2 02       ..             ; Point (&B6) to first dir entry
     ldy #&12                                                          ; 8dfa: a0 12       ..             ; Y=&12: offset of first dir entry
     lda (zp_b6),y                                                     ; 8dfc: b1 b6       ..             ; Get first byte of entry
     cmp #1                                                            ; 8dfe: c9 01       ..             ; Zero: found empty slot
 ; &8e00 referenced 1 time by &8e09
-.loop_c8e00
+.scan_entry_bytes_loop
     iny                                                               ; 8e00: c8          .              ; Next entry byte
     lda #0                                                            ; 8e01: a9 00       ..             ; Get name and compare
     adc (zp_b6),y                                                     ; 8e03: 71 b6       q.             ; Match: file already exists
     sta wksp_1024,y                                                   ; 8e05: 99 24 10    .$.            ; Advance to next entry (+&1A)
     dex                                                               ; 8e08: ca          .              ; Clear carry for addition
-    bpl loop_c8e00                                                    ; 8e09: 10 f5       ..             ; Add 26 bytes
+    bpl scan_entry_bytes_loop                                         ; 8e09: 10 f5       ..             ; Add 26 bytes
     ldy #&18                                                          ; 8e0b: a0 18       ..             ; Store updated pointer low
     ldx #2                                                            ; 8e0d: a2 02       ..             ; No page crossing
 ; &8e0f referenced 1 time by &8e16
-.loop_c8e0f
+.find_empty_entry_loop
     lda (zp_b6),y                                                     ; 8e0f: b1 b6       ..             ; Increment page
     sta wksp_object_sector,x                                          ; 8e11: 9d 34 10    .4.            ; Continue searching; Check if directory full
     dey                                                               ; 8e14: 88          .              ; Back up one entry position
     dex                                                               ; 8e15: ca          .              ; Compare pointer with &16B1
-    bpl loop_c8e0f                                                    ; 8e16: 10 f7       ..             ; Compare high byte
+    bpl find_empty_entry_loop                                         ; 8e16: 10 f7       ..             ; Compare high byte
     rts                                                               ; 8e18: 60          `              ; Return (slot found)
 
 ; &8e19 referenced 1 time by &8df6
-.c8e19
+.no_empty_entry_found
     lda dir_last_entry_area                                           ; 8e19: ad b1 16    ...            ; Below limit: slot found; At limit: dir full
-    beq c8e2b                                                         ; 8e1c: f0 0d       ..             ; Exactly at limit: dir full
+    beq check_name_already_exists                                     ; 8e1c: f0 0d       ..             ; Exactly at limit: dir full
     jsr reload_fsm_and_dir_then_brk                                   ; 8e1e: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &b3                                                          ; 8e21: b3          .
     equs "Dir full", 0                                                ; 8e22: 44 69 72... Dir
 
 ; &8e2b referenced 1 time by &8e1c
-.c8e2b
+.check_name_already_exists
     lda zp_b4                                                         ; 8e2b: a5 b4       ..             ; Save text pointer low
     sta wksp_tube_transfer_addr_1                                     ; 8e2d: 8d 27 10    .'.            ; Store in workspace
     lda zp_b5                                                         ; 8e30: a5 b5       ..             ; Save text pointer high
@@ -3122,32 +3122,32 @@ oscli                                           = &fff7
     ldx #6                                                            ; 8e3f: a2 06       ..             ; X=6: clear 7 bytes of new entry
     lda #0                                                            ; 8e41: a9 00       ..             ; A=0: zero fill
 ; &8e43 referenced 1 time by &8e47
-.loop_c8e43
+.compare_names_loop
     sta wksp_last_access_drive,x                                      ; 8e43: 9d 33 10    .3.            ; Clear workspace byte
     dex                                                               ; 8e46: ca          .              ; Next byte
-    bne loop_c8e43                                                    ; 8e47: d0 fa       ..             ; Loop for 7 bytes
+    bne compare_names_loop                                            ; 8e47: d0 fa       ..             ; Loop for 7 bytes
 ; &8e49 referenced 1 time by &8e61
-.loop_c8e49
+.copy_entry_data_loop
     lda (zp_b4,x)                                                     ; 8e49: a1 b4       ..             ; Get source entry byte
     sta (zp_b4),y                                                     ; 8e4b: 91 b4       ..             ; Copy to destination (shift up)
     lda zp_b4                                                         ; 8e4d: a5 b4       ..             ; Check if at target position
     cmp zp_b6                                                         ; 8e4f: c5 b6       ..             ; Compare low byte
-    bne c8e59                                                         ; 8e51: d0 06       ..             ; Not there yet
+    bne write_entry_to_dir                                            ; 8e51: d0 06       ..             ; Not there yet
     lda zp_b5                                                         ; 8e53: a5 b5       ..             ; Compare high byte
     cmp zp_b7                                                         ; 8e55: c5 b7       ..             ; Match: target reached
-    beq c8e64                                                         ; 8e57: f0 0b       ..             ; Done shifting
+    beq mark_directory_modified                                       ; 8e57: f0 0b       ..             ; Done shifting
 ; &8e59 referenced 1 time by &8e51
-.c8e59
+.write_entry_to_dir
     lda zp_b4                                                         ; 8e59: a5 b4       ..             ; Decrement source pointer
-    bne c8e5f                                                         ; 8e5b: d0 02       ..             ; Low byte non-zero
+    bne mark_entry_created                                            ; 8e5b: d0 02       ..             ; Low byte non-zero
     dec zp_b5                                                         ; 8e5d: c6 b5       ..             ; Zero: decrement high byte
 ; &8e5f referenced 1 time by &8e5b
-.c8e5f
+.mark_entry_created
     dec zp_b4                                                         ; 8e5f: c6 b4       ..             ; Decrement low byte
-    jmp loop_c8e49                                                    ; 8e61: 4c 49 8e    LI.            ; Continue shifting loop
+    jmp copy_entry_data_loop                                          ; 8e61: 4c 49 8e    LI.            ; Continue shifting loop
 
 ; &8e64 referenced 1 time by &8e57
-.c8e64
+.mark_directory_modified
     lda wksp_tube_transfer_addr_1                                     ; 8e64: ad 27 10    .'.            ; Restore text pointer low
     sta zp_b4                                                         ; 8e67: 85 b4       ..             ; Store back in (&B4)
     lda wksp_1028                                                     ; 8e69: ad 28 10    .(.            ; Restore text pointer high
@@ -3155,88 +3155,88 @@ oscli                                           = &fff7
     rts                                                               ; 8e6e: 60          `              ; Return
 
 ; &8e6f referenced 3 times by &8f4f, &a64c, &a8df
-.sub_c8e6f
+.allocate_disc_space_for_file
     ldy #9                                                            ; 8e6f: a0 09       ..             ; Get OSFILE block pointer low
 ; &8e71 referenced 1 time by &8e88
-.loop_c8e71
+.copy_alloc_request_loop
     lda (zp_b4),y                                                     ; 8e71: b1 b4       ..             ; Store in (&B8)
     and #&7f                                                          ; 8e73: 29 7f       ).             ; Get OSFILE block pointer high
     cmp #&21 ; '!'                                                    ; 8e75: c9 21       .!             ; Store in (&B9)
-    bcc c8e7d                                                         ; 8e77: 90 04       ..             ; Y=2: copy 3-byte start sector
+    bcc store_allocated_sector                                        ; 8e77: 90 04       ..             ; Y=2: copy 3-byte start sector
     cmp #&22 ; '"'                                                    ; 8e79: c9 22       ."             ; Get start sector byte from entry
-    bne c8e7f                                                         ; 8e7b: d0 02       ..             ; Store in object sector workspace
+    bne check_exact_alloc                                             ; 8e7b: d0 02       ..             ; Store in object sector workspace
 ; &8e7d referenced 1 time by &8e77
-.c8e7d
+.store_allocated_sector
     lda #&0d                                                          ; 8e7d: a9 0d       ..             ; A=CR: pad entry name
 ; &8e7f referenced 1 time by &8e7b
-.c8e7f
+.check_exact_alloc
     cpy #2                                                            ; 8e7f: c0 02       ..             ; Next byte (decreasing Y); Loop for 3 bytes
-    bcs c8e85                                                         ; 8e81: b0 02       ..             ; Get file length byte 0
+    bcs reduce_alloc_to_available                                     ; 8e81: b0 02       ..             ; Get file length byte 0
     ora #&80                                                          ; 8e83: 09 80       ..             ; Set bit 7 for D attribute
 ; &8e85 referenced 1 time by &8e81
-.c8e85
+.reduce_alloc_to_available
     sta (zp_b6),y                                                     ; 8e85: 91 b6       ..             ; Compare with 1 (round up sectors)
     dey                                                               ; 8e87: 88          .              ; Next byte
-    bpl loop_c8e71                                                    ; 8e88: 10 e7       ..             ; Loop for all name bytes
+    bpl copy_alloc_request_loop                                       ; 8e88: 10 e7       ..             ; Loop for all name bytes
     rts                                                               ; 8e8a: 60          `              ; Return
 
 ; &8e8b referenced 2 times by &8f52, &a65d
-.sub_c8e8b
+.copy_entry_from_template
     ldy #&11                                                          ; 8e8b: a0 11       ..             ; Y=&11: copy filename and attributes
 ; &8e8d referenced 1 time by &8e93
-.loop_c8e8d
+.copy_name_to_entry_loop
     lda (zp_b8),y                                                     ; 8e8d: b1 b8       ..             ; Get name byte from workspace
     sta wksp_disc_op_result,y                                         ; 8e8f: 99 15 10    ...            ; Store in directory entry
     dey                                                               ; 8e92: 88          .              ; Next byte
-    bpl loop_c8e8d                                                    ; 8e93: 10 f8       ..             ; Loop for 10 bytes
+    bpl copy_name_to_entry_loop                                       ; 8e93: 10 f8       ..             ; Loop for 10 bytes
     ldy #&12                                                          ; 8e95: a0 12       ..             ; Increment dir sequence number
     sec                                                               ; 8e97: 38          8              ; Set carry for sector calculation
     ldx #3                                                            ; 8e98: a2 03       ..             ; Store updated sequence in header
 ; &8e9a referenced 1 time by &8ea4
-.loop_c8e9a
+.copy_access_byte_loop
     lda wksp_1011,y                                                   ; 8e9a: b9 11 10    ...            ; Also store in footer
     sbc wksp_100d,y                                                   ; 8e9d: f9 0d 10    ...            ; Y=&19: store in entry
     sta (zp_b6),y                                                     ; 8ea0: 91 b6       ..             ; Store sequence in entry
     iny                                                               ; 8ea2: c8          .              ; Next byte
     dex                                                               ; 8ea3: ca          .              ; Decrement counter
-    bpl loop_c8e9a                                                    ; 8ea4: 10 f4       ..             ; Loop for required bytes
+    bpl copy_access_byte_loop                                         ; 8ea4: 10 f4       ..             ; Loop for required bytes
     ldy #&0a                                                          ; 8ea6: a0 0a       ..             ; Y=&0A: copy access byte
 ; &8ea8 referenced 1 time by &8eb0
-.loop_c8ea8
+.store_entry_lengths_loop
     lda wksp_100d,y                                                   ; 8ea8: b9 0d 10    ...            ; Get OSFILE data byte
     sta (zp_b6),y                                                     ; 8eab: 91 b6       ..             ; Store in directory entry
     iny                                                               ; 8ead: c8          .              ; Next byte
     cpy #&12                                                          ; 8eae: c0 12       ..             ; Past length field (Y=&12)?
-    bne loop_c8ea8                                                    ; 8eb0: d0 f6       ..             ; No: continue copying
+    bne store_entry_lengths_loop                                      ; 8eb0: d0 f6       ..             ; No: continue copying
     lda zp_b6                                                         ; 8eb2: a5 b6       ..             ; Save (&B6) for entry shifting
     pha                                                               ; 8eb4: 48          H              ; Push on stack
     lda zp_b7                                                         ; 8eb5: a5 b7       ..             ; Save (&B7)
     pha                                                               ; 8eb7: 48          H              ; Push on stack
 ; &8eb8 referenced 1 time by &8eea
-.c8eb8
+.store_entry_3byte_sector
     lda #5                                                            ; 8eb8: a9 05       ..             ; Point to first dir entry (&1205)
     sta zp_b6                                                         ; 8eba: 85 b6       ..             ; Store pointer low
     lda #&12                                                          ; 8ebc: a9 12       ..             ; Page &12
     sta zp_b7                                                         ; 8ebe: 85 b7       ..             ; Store pointer high
 ; &8ec0 referenced 2 times by &8ed6, &8eda
-.c8ec0
+.store_entry_4byte_sector
     ldy #0                                                            ; 8ec0: a0 00       ..             ; Y=0: check entry
     lda (zp_b6),y                                                     ; 8ec2: b1 b6       ..             ; Get first byte
-    beq c8eed                                                         ; 8ec4: f0 27       .'             ; Zero: end of entries, done
+    beq copy_osfile_to_entry_loop                                     ; 8ec4: f0 27       .'             ; Zero: end of entries, done
     ldy #&19                                                          ; 8ec6: a0 19       ..             ; Y=&19: check sequence number
     lda (zp_b6),y                                                     ; 8ec8: b1 b6       ..             ; Get entry sequence
     cmp dir_master_sequence                                           ; 8eca: cd fa 16    ...            ; Compare with dir master sequence
-    beq c8edc                                                         ; 8ecd: f0 0d       ..             ; Match: needs incrementing
+    beq update_entry_access                                           ; 8ecd: f0 0d       ..             ; Match: needs incrementing
     clc                                                               ; 8ecf: 18          .              ; Clear carry for entry advance
     lda zp_b6                                                         ; 8ed0: a5 b6       ..             ; Get pointer low
     adc #&1a                                                          ; 8ed2: 69 1a       i.             ; Add 26 bytes per entry
     sta zp_b6                                                         ; 8ed4: 85 b6       ..             ; Store updated pointer
-    bcc c8ec0                                                         ; 8ed6: 90 e8       ..             ; No page crossing: continue
+    bcc store_entry_4byte_sector                                      ; 8ed6: 90 e8       ..             ; No page crossing: continue
     inc zp_b7                                                         ; 8ed8: e6 b7       ..             ; Increment page
-    bcs c8ec0                                                         ; 8eda: b0 e4       ..             ; ALWAYS branch
+    bcs store_entry_4byte_sector                                      ; 8eda: b0 e4       ..             ; ALWAYS branch
 
 ; &8edc referenced 1 time by &8ecd
-.c8edc
+.update_entry_access
     lda dir_master_sequence                                           ; 8edc: ad fa 16    ...            ; Get master sequence number
     clc                                                               ; 8edf: 18          .              ; Clear carry for BCD add
     sed                                                               ; 8ee0: f8          .              ; Switch to BCD mode
@@ -3244,10 +3244,10 @@ oscli                                           = &fff7
     cld                                                               ; 8ee3: d8          .              ; Back to binary mode
     sta dir_master_sequence                                           ; 8ee4: 8d fa 16    ...            ; Store updated sequence in footer
     sta dir_buffer                                                    ; 8ee7: 8d 00 12    ...            ; Also store in header
-    jmp c8eb8                                                         ; 8eea: 4c b8 8e    L..            ; Retry from beginning of entries
+    jmp store_entry_3byte_sector                                      ; 8eea: 4c b8 8e    L..            ; Retry from beginning of entries
 
 ; &8eed referenced 1 time by &8ec4
-.c8eed
+.copy_osfile_to_entry_loop
     pla                                                               ; 8eed: 68          h              ; Restore (&B7) from stack
     sta zp_b7                                                         ; 8eee: 85 b7       ..             ; Store back
     pla                                                               ; 8ef0: 68          h              ; Restore (&B6) from stack
@@ -3259,11 +3259,11 @@ oscli                                           = &fff7
     sta wksp_disc_op_result                                           ; 8efc: 8d 15 10    ...            ; Store result code
     ldx #4                                                            ; 8eff: a2 04       ..             ; X=4: copy 4 transfer length bytes
 ; &8f01 referenced 1 time by &8f08
-.loop_c8f01
+.copy_load_addr_loop
     lda wksp_disc_op_sector_count,x                                   ; 8f01: bd 1e 10    ...            ; Get transfer count byte
     sta wksp_disc_op_result,x                                         ; 8f04: 9d 15 10    ...            ; Copy to disc op result
     dex                                                               ; 8f07: ca          .              ; Next byte
-    bne loop_c8f01                                                    ; 8f08: d0 f7       ..             ; Loop for 4 bytes
+    bne copy_load_addr_loop                                           ; 8f08: d0 f7       ..             ; Loop for 4 bytes
     lda #&0a                                                          ; 8f0a: a9 0a       ..             ; SCSI write command = &0A
     sta wksp_disc_op_command                                          ; 8f0c: 8d 1a 10    ...            ; Store command
     lda #0                                                            ; 8f0f: a9 00       ..             ; Clear sector count (use transfer)
@@ -3272,29 +3272,29 @@ oscli                                           = &fff7
     sta wksp_disc_op_control                                          ; 8f16: 8d 1f 10    ...            ; Store zero control
     ldy #&12                                                          ; 8f19: a0 12       ..             ; Y=&12: copy 4 length bytes to entry
 ; &8f1b referenced 1 time by &8f23
-.loop_c8f1b
+.copy_exec_addr_to_entry_loop
     lda (zp_b6),y                                                     ; 8f1b: b1 b6       ..             ; Get length byte from entry
     sta wksp_100e,y                                                   ; 8f1d: 99 0e 10    ...            ; Copy to workspace
     iny                                                               ; 8f20: c8          .              ; Next byte
     cpy #&16                                                          ; 8f21: c0 16       ..             ; Past length field (Y=&16)?
-    bne loop_c8f1b                                                    ; 8f23: d0 f6       ..             ; No: continue
+    bne copy_exec_addr_to_entry_loop                                  ; 8f23: d0 f6       ..             ; No: continue
     ldy #&12                                                          ; 8f25: a0 12       ..             ; Y=&12: calculate sector count
     lda (zp_b6),y                                                     ; 8f27: b1 b6       ..             ; Get length low from entry
     cmp #1                                                            ; 8f29: c9 01       ..             ; Compare with 1 (round up)
     ldx #2                                                            ; 8f2b: a2 02       ..             ; X=2: process 3 sector bytes
 ; &8f2d referenced 1 time by &8f36
-.loop_c8f2d
+.check_if_updating_length
     lda #0                                                            ; 8f2d: a9 00       ..             ; A=0: zero for carry propagation
     iny                                                               ; 8f2f: c8          .              ; Next length byte
     adc (zp_b6),y                                                     ; 8f30: 71 b6       q.             ; Add with carry from comparison
     sta wksp_102a,y                                                   ; 8f32: 99 2a 10    .*.            ; Store in sector workspace
     dex                                                               ; 8f35: ca          .              ; Next byte
-    bpl loop_c8f2d                                                    ; 8f36: 10 f5       ..             ; Loop for 3 bytes
-    bcc c8f3d                                                         ; 8f38: 90 03       ..             ; No overflow: proceed
+    bpl check_if_updating_length                                      ; 8f36: 10 f5       ..             ; Loop for 3 bytes
+    bcc update_length_and_access                                      ; 8f38: 90 03       ..             ; No overflow: proceed
     jmp disc_full_error                                               ; 8f3a: 4c 56 86    LV.            ; Overflow: Disc full error
 
 ; &8f3d referenced 1 time by &8f38
-.c8f3d
+.update_length_and_access
     ldy #&16                                                          ; 8f3d: a0 16       ..             ; Y=&16: mark entry sector as &FF
     lda #&ff                                                          ; 8f3f: a9 ff       ..             ; A=&FF: temporary marker
     sta (zp_b6),y                                                     ; 8f41: 91 b6       ..             ; Store &FF in sector low
@@ -3305,58 +3305,58 @@ oscli                                           = &fff7
     jmp release_disc_space                                            ; 8f49: 4c b5 84    L..            ; Release disc space back to free space map
 
 ; &8f4c referenced 3 times by &8f74, &8f7d, &b35a
-.sub_c8f4c
-    jsr sub_c8df3                                                     ; 8f4c: 20 f3 8d     ..            ; Save (&B6) for restore; Push on stack
-    jsr sub_c8e6f                                                     ; 8f4f: 20 6f 8e     o.            ; Save (&B7); Push on stack
+.validate_not_locked
+    jsr check_file_not_open2                                          ; 8f4c: 20 f3 8d     ..            ; Save (&B6) for restore; Push on stack
+    jsr allocate_disc_space_for_file                                  ; 8f4f: 20 6f 8e     o.            ; Save (&B7); Push on stack
 ; &8f52 referenced 2 times by &95ca, &a8e2
-.sub_c8f52
-    jsr sub_c8e8b                                                     ; 8f52: 20 8b 8e     ..            ; Y=&0D: copy load/exec/length; X=&0B: 12 bytes
+.write_entry_sector_info
+    jsr copy_entry_from_template                                      ; 8f52: 20 8b 8e     ..            ; Y=&0D: copy load/exec/length; X=&0B: 12 bytes
     jsr allocate_disc_space                                           ; 8f55: 20 32 86     2.            ; Store in entry
 ; &8f58 referenced 1 time by &a660
-.sub_c8f58
+.copy_length_to_entry
     ldy #&18                                                          ; 8f58: a0 18       ..             ; Y=&18: get OSFILE data bytes
     ldx #2                                                            ; 8f5a: a2 02       ..             ; Get OSFILE block byte
 ; &8f5c referenced 1 time by &8f63
-.loop_c8f5c
+.copy_3byte_length_loop
     lda wksp_103a,x                                                   ; 8f5c: bd 3a 10    .:.            ; Store in disc op workspace
     sta (zp_b6),y                                                     ; 8f5f: 91 b6       ..             ; Store in directory entry
     dey                                                               ; 8f61: 88          .              ; Next entry byte (decreasing)
     dex                                                               ; 8f62: ca          .              ; Next workspace byte
-    bpl loop_c8f5c                                                    ; 8f63: 10 f7       ..             ; Next OSFILE byte (decreasing); Next workspace byte
+    bpl copy_3byte_length_loop                                        ; 8f63: 10 f7       ..             ; Next OSFILE byte (decreasing); Next workspace byte
     ldx #2                                                            ; 8f65: a2 02       ..             ; Loop for 12 bytes
     ldy #6                                                            ; 8f67: a0 06       ..             ; Restore (&B7) from stack; Store back
 ; &8f69 referenced 1 time by &8f71
-.loop_c8f69
+.copy_sector_to_entry_loop
     lda wksp_103a,x                                                   ; 8f69: bd 3a 10    .:.            ; Restore (&B6) from stack; Store back
     sta wksp_disc_op_result,y                                         ; 8f6c: 99 15 10    ...            ; Y=&16: get start sector
     iny                                                               ; 8f6f: c8          .              ; X=2: 3 sector bytes
     dex                                                               ; 8f70: ca          .              ; Decrement counter
-    bpl loop_c8f69                                                    ; 8f71: 10 f6       ..             ; Get new sector byte from workspace
+    bpl copy_sector_to_entry_loop                                     ; 8f71: 10 f6       ..             ; Get new sector byte from workspace
     rts                                                               ; 8f73: 60          `              ; Return
 
-.sub_c8f74
-    jsr sub_c8f4c                                                     ; 8f74: 20 4c 8f     L.            ; Store in directory entry; Also store in CSD info
+.osfile_load_handler
+    jsr validate_not_locked                                           ; 8f74: 20 4c 8f     L.            ; Store in directory entry; Also store in CSD info
     jsr multi_sector_disc_command                                     ; 8f77: 20 3d 8a     =.            ; Next entry byte (increasing Y)
-    jmp c8f80                                                         ; 8f7a: 4c 80 8f    L..            ; Next workspace byte (decreasing X); Loop for 3 bytes
+    jmp search_for_osfile_target                                      ; 8f7a: 4c 80 8f    L..            ; Next workspace byte (decreasing X); Loop for 3 bytes
 
-.sub_c8f7d
-    jsr sub_c8f4c                                                     ; 8f7d: 20 4c 8f     L.            ; Y=4: clear access byte 4; Store 0 (no E attribute)
+.osfile_read_cat_info
+    jsr validate_not_locked                                           ; 8f7d: 20 4c 8f     L.            ; Y=4: clear access byte 4; Store 0 (no E attribute)
 ; &8f80 referenced 2 times by &8f7a, &962f
-.c8f80
-    jsr c8f86                                                         ; 8f80: 20 86 8f     ..            ; Write directory and update
+.search_for_osfile_target
+    jsr write_dir_and_validate                                        ; 8f80: 20 86 8f     ..            ; Write directory and update
     jmp store_length_and_sector                                       ; 8f83: 4c 5c 8c    L\.            ; Check and write entry
 
 ; &8f86 referenced 17 times by &897f, &8f80, &90fb, &9238, &96ac, &97d4, &99c3, &a007, &a273, &a5df, &a5f8, &a663, &a6c4, &a933, &af4f, &b35d, &b462
-.c8f86
+.write_dir_and_validate
     jsr verify_dir_integrity                                          ; 8f86: 20 de a6     ..            ; Verify directory integrity; Verify directory buffer integrity
-    jsr sub_c9009                                                     ; 8f89: 20 09 90     ..            ; Get (&B6) pointer; Push on stack
+    jsr print_newline_and_entry                                       ; 8f89: 20 09 90     ..            ; Get (&B6) pointer; Push on stack
     ldx #&0a                                                          ; 8f8c: a2 0a       ..             ; Get (&B7) pointer
 ; &8f8e referenced 1 time by &8f95
-.loop_c8f8e
+.read_osfile_cat_fields_loop
     lda l8817,x                                                       ; 8f8e: bd 17 88    ...            ; Push on stack; X=&0A: copy 11-byte template
     sta wksp_disc_op_result,x                                         ; 8f91: 9d 15 10    ...            ; Get template byte from ROM
     dex                                                               ; 8f94: ca          .              ; Store in disc op workspace
-    bpl loop_c8f8e                                                    ; 8f95: 10 f7       ..             ; Loop for template bytes
+    bpl read_osfile_cat_fields_loop                                   ; 8f95: 10 f7       ..             ; Loop for template bytes
     lda #&0a                                                          ; 8f97: a9 0a       ..             ; Next byte; Loop for 11 bytes
     sta wksp_disc_op_command                                          ; 8f99: 8d 1a 10    ...            ; X=2: copy 3 sector bytes
     lda l1114                                                         ; 8f9c: ad 14 11    ...            ; Y=&16: sector offset in info area; Get sector byte from CSD info
@@ -3373,7 +3373,7 @@ oscli                                           = &fff7
     lda system_via_t1c_l                                              ; 8fbd: ad 44 fe    .D.            ; Clear FSM modification flag
     sta wksp_1121,x                                                   ; 8fc0: 9d 21 11    .!.            ; Y=&FF: calculate FSM checksums; Get FSM sector 0 byte
     sta fsm_s1_disc_id_lo                                             ; 8fc3: 8d fb 0f    ...            ; Add to checksum
-    jsr sub_c905c                                                     ; 8fc6: 20 5c 90     \.            ; Next byte; Loop for 256 bytes
+    jsr setup_print_hex_field                                         ; 8fc6: 20 5c 90     \.            ; Next byte; Loop for 256 bytes
     stx fsm_s0_checksum                                               ; 8fc9: 8e ff 0e    ...            ; Store sector 0 checksum
     sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1; Get FSM sector 1 byte
     ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; X=&71: validate FSM entry count
@@ -3386,11 +3386,11 @@ oscli                                           = &fff7
     rts                                                               ; 8fde: 60          `              ; Return
 
 ; &8fdf referenced 13 times by &8be5, &8cb3, &8cd7, &94e7, &993d, &9a2d, &9c43, &a586, &a672, &b20e, &b2e6, &b301, &b36d
-.sub_c8fdf
+.find_first_matching_entry
     jsr parse_filename_from_cmdline                                   ; 8fdf: 20 4c 88     L.            ; Set up search with wildcards
     php                                                               ; 8fe2: 08          .              ; Point to first dir entry
     pha                                                               ; 8fe3: 48          H              ; Save A on stack
-    jsr sub_c8fea                                                     ; 8fe4: 20 ea 8f     ..            ; Verify directory integrity
+    jsr mark_directory_dirty                                          ; 8fe4: 20 ea 8f     ..            ; Verify directory integrity
     pla                                                               ; 8fe7: 68          h              ; Restore A
     plp                                                               ; 8fe8: 28          (              ; Search for matching entry
 ; &8fe9 referenced 3 times by &8ff8, &900c, &9028
@@ -3398,180 +3398,180 @@ oscli                                           = &fff7
     rts                                                               ; 8fe9: 60          `              ; Return
 
 ; &8fea referenced 5 times by &8fe4, &9ffa, &a255, &a754, &a872
-.sub_c8fea
-    jsr sub_c9009                                                     ; 8fea: 20 09 90     ..            ; Return search result
-    jsr sub_c905c                                                     ; 8fed: 20 5c 90     \.            ; Mark directory as modified
+.mark_directory_dirty
+    jsr print_newline_and_entry                                       ; 8fea: 20 09 90     ..            ; Return search result
+    jsr setup_print_hex_field                                         ; 8fed: 20 5c 90     \.            ; Mark directory as modified
     cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Verify directory
-    bne c8ffa                                                         ; 8ff3: d0 05       ..             ; Point to first entry
+    bne check_first_char_wildcard                                     ; 8ff3: d0 05       ..             ; Point to first entry
     cpx fsm_s0_checksum                                               ; 8ff5: ec ff 0e    ...            ; Search for entry
     beq return_18                                                     ; 8ff8: f0 ef       ..             ; Found: return
 ; &8ffa referenced 7 times by &8ff3, &9017, &901a, &9021, &903a, &9045, &904a
-.c8ffa
+.check_first_char_wildcard
     jsr sub_c832b                                                     ; 8ffa: 20 2b 83     +.            ; Bad FS map error
     equb &a9                                                          ; 8ffd: a9          .
     equs "Bad FS map", 0                                              ; 8ffe: 42 61 64... Bad
 
 ; &9009 referenced 2 times by &8f89, &8fea
-.sub_c9009
+.print_newline_and_entry
     ldx fsm_s1_total_sectors_lo                                       ; 9009: ae fe 0f    ...            ; Get FSM end-of-list pointer
     beq return_18                                                     ; 900c: f0 db       ..             ; Empty: return OK
     lda #0                                                            ; 900e: a9 00       ..             ; A=0: init check accumulator
 ; &9010 referenced 1 time by &901d
-.loop_c9010
+.print_entry_name_loop
     ora nmi_0dff,x                                                    ; 9010: 1d ff 0d    ...            ; OR entry address high byte
     ora fsm_s0_checksum,x                                             ; 9013: 1d ff 0e    ...            ; OR entry length high byte
     dex                                                               ; 9016: ca          .              ; Back up one
-    beq c8ffa                                                         ; 9017: f0 e1       ..             ; At entry 0: bad FS map
+    beq check_first_char_wildcard                                     ; 9017: f0 e1       ..             ; At entry 0: bad FS map
     dex                                                               ; 9019: ca          .              ; Back up more
-    beq c8ffa                                                         ; 901a: f0 de       ..             ; At entry 0: bad FS map
+    beq check_first_char_wildcard                                     ; 901a: f0 de       ..             ; At entry 0: bad FS map
     dex                                                               ; 901c: ca          .              ; Back up more
-    bne loop_c9010                                                    ; 901d: d0 f1       ..             ; Loop for all entries
+    bne print_entry_name_loop                                         ; 901d: d0 f1       ..             ; Loop for all entries
     and #&e0                                                          ; 901f: 29 e0       ).             ; Check drive bits in accumulator
-    bne c8ffa                                                         ; 9021: d0 d7       ..             ; Non-zero: bad FS map
+    bne check_first_char_wildcard                                     ; 9021: d0 d7       ..             ; Non-zero: bad FS map
     ldx fsm_s1_total_sectors_lo                                       ; 9023: ae fe 0f    ...            ; Get end pointer again
     cpx #6                                                            ; 9026: e0 06       ..             ; Need at least 2 entries (>= 6)
     bcc return_18                                                     ; 9028: 90 bf       ..             ; Not enough: return OK (empty disc)
     ldx #3                                                            ; 902a: a2 03       ..             ; X=3: check entry ordering
 ; &902c referenced 1 time by &9059
-.c902c
+.print_space_after_name
     ldy #2                                                            ; 902c: a0 02       ..             ; Y=2: compare 3-byte addresses
     clc                                                               ; 902e: 18          .              ; Clear carry for addition
 ; &902f referenced 1 time by &9038
-.loop_c902f
+.print_padding_spaces_loop
     lda nmi_0dfd,x                                                    ; 902f: bd fd 0d    ...            ; Get prev entry address byte
     adc fsm_s0_boot_option,x                                          ; 9032: 7d fd 0e    }..            ; Add prev entry length byte
     pha                                                               ; 9035: 48          H              ; Push result on stack
     inx                                                               ; 9036: e8          .              ; Next byte
     dey                                                               ; 9037: 88          .              ; Next comparison byte
-    bpl loop_c902f                                                    ; 9038: 10 f5       ..             ; Loop for 3 bytes
-    bcs c8ffa                                                         ; 903a: b0 be       ..             ; Carry set: overlap, bad FS map
+    bpl print_padding_spaces_loop                                     ; 9038: 10 f5       ..             ; Loop for 3 bytes
+    bcs check_first_char_wildcard                                     ; 903a: b0 be       ..             ; Carry set: overlap, bad FS map
     ldy #2                                                            ; 903c: a0 02       ..             ; Y=2: compare prev+size with next
 ; &903e referenced 1 time by &9048
-.loop_c903e
+.print_access_flags_loop
     pla                                                               ; 903e: 68          h              ; Pop result byte
     dex                                                               ; 903f: ca          .              ; Back up X
     cmp fsm_sector_0,x                                                ; 9040: dd 00 0e    ...            ; Compare with next entry address
-    bcc c904c                                                         ; 9043: 90 07       ..             ; Below: entries are ordered OK
-    bne c8ffa                                                         ; 9045: d0 b3       ..             ; Above: bad ordering, bad FS map
+    bcc print_no_access_flag                                          ; 9043: 90 07       ..             ; Below: entries are ordered OK
+    bne check_first_char_wildcard                                     ; 9045: d0 b3       ..             ; Above: bad ordering, bad FS map
     dey                                                               ; 9047: 88          .              ; Next comparison byte
-    bpl loop_c903e                                                    ; 9048: 10 f4       ..             ; Loop for 3 bytes
-    bmi c8ffa                                                         ; 904a: 30 ae       0.             ; ALWAYS branch
+    bpl print_access_flags_loop                                       ; 9048: 10 f4       ..             ; Loop for 3 bytes
+    bmi check_first_char_wildcard                                     ; 904a: 30 ae       0.             ; ALWAYS branch
 
 ; &904c referenced 2 times by &9043, &904f
-.c904c
+.print_no_access_flag
     pla                                                               ; 904c: 68          h              ; Discard remaining stack bytes
     dex                                                               ; 904d: ca          .              ; Back up X
     dey                                                               ; 904e: 88          .              ; Decrement Y too
-    bpl c904c                                                         ; 904f: 10 fb       ..             ; More to discard
+    bpl print_no_access_flag                                          ; 904f: 10 fb       ..             ; More to discard
     pha                                                               ; 9051: 48          H              ; Push separator
     inx                                                               ; 9052: e8          .              ; Advance to next entry pair
     inx                                                               ; 9053: e8          .              ; Continue advancing
     inx                                                               ; 9054: e8          .              ; Continue advancing
     inx                                                               ; 9055: e8          .              ; Continue advancing
     cpx fsm_s1_total_sectors_lo                                       ; 9056: ec fe 0f    ...            ; Past end of list?
-    bcc c902c                                                         ; 9059: 90 d1       ..             ; No: check next pair
+    bcc print_space_after_name                                        ; 9059: 90 d1       ..             ; No: check next pair
     rts                                                               ; 905b: 60          `              ; All entries OK: return
 
 ; &905c referenced 2 times by &8fc6, &8fed
-.sub_c905c
+.setup_print_hex_field
     clc                                                               ; 905c: 18          .              ; Clear carry for checksum
     ldy #&ff                                                          ; 905d: a0 ff       ..             ; Y=&FF: sum 255 bytes
     tya                                                               ; 905f: 98          .              ; A=&ff
 ; &9060 referenced 1 time by &9064
-.loop_c9060
+.print_field_hex_loop
     adc nmi_0dff,y                                                    ; 9060: 79 ff 0d    y..            ; Add FSM sector 0 byte
     dey                                                               ; 9063: 88          .              ; Next byte
-    bne loop_c9060                                                    ; 9064: d0 fa       ..             ; Loop for 255 bytes
+    bne print_field_hex_loop                                          ; 9064: d0 fa       ..             ; Loop for 255 bytes
     tax                                                               ; 9066: aa          .              ; Save sector 0 checksum in X
     dey                                                               ; 9067: 88          .              ; Y=&FF for sector 1
     tya                                                               ; 9068: 98          .              ; Transfer to A
     clc                                                               ; 9069: 18          .              ; Clear carry
 ; &906a referenced 1 time by &906e
-.loop_c906a
+.print_hex_field_pair_loop
     adc fsm_s0_checksum,y                                             ; 906a: 79 ff 0e    y..            ; Add FSM sector 1 byte
     dey                                                               ; 906d: 88          .              ; Next byte
-    bne loop_c906a                                                    ; 906e: d0 fa       ..             ; Loop for 255 bytes
+    bne print_hex_field_pair_loop                                     ; 906e: d0 fa       ..             ; Loop for 255 bytes
     rts                                                               ; 9070: 60          `              ; Return (X=chk0, A=chk1)
 
     equb 1, 0, &0e, &ff, &ff, &0a, 0, 0, 0, 2, 0                      ; 9071: 01 00 0e... ...
 
-.sub_c907c
+.osfile_write_load_addr
     sta l1023                                                         ; 907c: 8d 23 10    .#.            ; Store function code
     jsr find_file_and_validate                                        ; 907f: 20 e5 8b     ..            ; Find file, check access
-    beq c9087                                                         ; 9082: f0 03       ..             ; Found?
+    beq osfile_write_load_search                                      ; 9082: f0 03       ..             ; Found?
     lda #0                                                            ; 9084: a9 00       ..             ; Not found: A=0 return
     rts                                                               ; 9086: 60          `              ; Return
 
 ; &9087 referenced 1 time by &9082
-.c9087
+.osfile_write_load_search
     lda l1023                                                         ; 9087: ad 23 10    .#.            ; Get function code
     cmp #3                                                            ; 908a: c9 03       ..             ; A=3 (write exec addr)?
-    beq c90af                                                         ; 908c: f0 21       .!             ; Yes: skip to exec addr
+    beq update_entry_after_write                                      ; 908c: f0 21       .!             ; Yes: skip to exec addr
     ldy #5                                                            ; 908e: a0 05       ..             ; Y=5: get load addr from OSFILE blk
     ldx #3                                                            ; 9090: a2 03       ..             ; X=3: copy 4 bytes
 ; &9092 referenced 1 time by &9099
-.loop_c9092
+.copy_load_to_entry_loop
     lda (zp_b8),y                                                     ; 9092: b1 b8       ..             ; Get OSFILE block byte
     sta wksp_disc_op_result,x                                         ; 9094: 9d 15 10    ...            ; Store in workspace
     dey                                                               ; 9097: 88          .              ; Next OSFILE byte
     dex                                                               ; 9098: ca          .              ; Next workspace byte
-    bpl loop_c9092                                                    ; 9099: 10 f7       ..             ; Loop for 4 bytes
+    bpl copy_load_to_entry_loop                                       ; 9099: 10 f7       ..             ; Loop for 4 bytes
     ldy #&0d                                                          ; 909b: a0 0d       ..             ; Y=&0D: store in dir entry load addr
     ldx #3                                                            ; 909d: a2 03       ..             ; X=3: copy 4 bytes
 ; &909f referenced 1 time by &90a6
-.loop_c909f
+.copy_exec_to_entry_loop
     lda wksp_disc_op_result,x                                         ; 909f: bd 15 10    ...            ; Get from workspace
     sta (zp_b6),y                                                     ; 90a2: 91 b6       ..             ; Store in directory entry
     dey                                                               ; 90a4: 88          .              ; Next entry byte
     dex                                                               ; 90a5: ca          .              ; Next workspace byte
-    bpl loop_c909f                                                    ; 90a6: 10 f7       ..             ; Loop for 4 bytes
+    bpl copy_exec_to_entry_loop                                       ; 90a6: 10 f7       ..             ; Loop for 4 bytes
     lda l1023                                                         ; 90a8: ad 23 10    .#.            ; Get function code
     cmp #2                                                            ; 90ab: c9 02       ..             ; A=2 (write load addr only)?
-    beq c90fb                                                         ; 90ad: f0 4c       .L             ; Yes: skip exec addr, write dir
+    beq check_dir_access_bit                                          ; 90ad: f0 4c       .L             ; Yes: skip exec addr, write dir
 ; &90af referenced 1 time by &908c
-.c90af
+.update_entry_after_write
     ldy #9                                                            ; 90af: a0 09       ..             ; Y=9: get exec addr from OSFILE blk
     ldx #3                                                            ; 90b1: a2 03       ..             ; X=3: copy 4 bytes
 ; &90b3 referenced 1 time by &90ba
-.loop_c90b3
+.update_cat_info_loop
     lda (zp_b8),y                                                     ; 90b3: b1 b8       ..             ; Get OSFILE block byte
     sta wksp_disc_op_result,x                                         ; 90b5: 9d 15 10    ...            ; Store in workspace
     dey                                                               ; 90b8: 88          .              ; Next OSFILE byte
     dex                                                               ; 90b9: ca          .              ; Next workspace byte
-    bpl loop_c90b3                                                    ; 90ba: 10 f7       ..             ; Loop for 4 bytes
+    bpl update_cat_info_loop                                          ; 90ba: 10 f7       ..             ; Loop for 4 bytes
     ldy #&11                                                          ; 90bc: a0 11       ..             ; Y=&11: store in dir entry exec addr
     ldx #3                                                            ; 90be: a2 03       ..             ; X=3: copy 4 bytes
 ; &90c0 referenced 1 time by &90c7
-.loop_c90c0
+.copy_cat_info_to_entry_loop
     lda wksp_disc_op_result,x                                         ; 90c0: bd 15 10    ...            ; Get from workspace
     sta (zp_b6),y                                                     ; 90c3: 91 b6       ..             ; Store in directory entry
     dey                                                               ; 90c5: 88          .              ; Next entry byte
     dex                                                               ; 90c6: ca          .              ; Next workspace byte
-    bpl loop_c90c0                                                    ; 90c7: 10 f7       ..             ; Loop for 4 bytes
+    bpl copy_cat_info_to_entry_loop                                   ; 90c7: 10 f7       ..             ; Loop for 4 bytes
     ldx l1023                                                         ; 90c9: ae 23 10    .#.            ; Get function code again
     dex                                                               ; 90cc: ca          .              ; X=function-1; X=0 means A=1
-    bne c90fb                                                         ; 90cd: d0 2c       .,             ; A=1 (write all): continue to access
+    bne check_dir_access_bit                                          ; 90cd: d0 2c       .,             ; A=1 (write all): continue to access
 ; &90cf referenced 1 time by &9104
-.c90cf
+.set_entry_access_from_osfile
     ldy #&0e                                                          ; 90cf: a0 0e       ..             ; Y=&0E: get access byte from OSFILE
     lda (zp_b8),y                                                     ; 90d1: b1 b8       ..             ; Get access byte from block
     sta wksp_102b                                                     ; 90d3: 8d 2b 10    .+.            ; Store in workspace
     ldy #3                                                            ; 90d6: a0 03       ..             ; Y=3: apply access to name bytes
     lda (zp_b6),y                                                     ; 90d8: b1 b6       ..             ; Get name byte from entry
-    bpl c90e9                                                         ; 90da: 10 0d       ..             ; Bit 7 set: directory, different fmt
+    bpl access_bit_clear                                              ; 90da: 10 0d       ..             ; Bit 7 set: directory, different fmt
     lsr wksp_102b                                                     ; 90dc: 4e 2b 10    N+.            ; Shift access right for R bit
     lsr wksp_102b                                                     ; 90df: 4e 2b 10    N+.            ; Shift right for W bit
 ; &90e2 referenced 1 time by &90f9
-.loop_c90e2
+.apply_access_bits_loop
     lsr wksp_102b                                                     ; 90e2: 4e 2b 10    N+.            ; Shift right for L bit
     ldy #2                                                            ; 90e5: a0 02       ..             ; Y=2: apply to first 3 name bytes
-    bpl c90eb                                                         ; 90e7: 10 02       ..             ; ALWAYS branch
+    bpl advance_access_bit                                            ; 90e7: 10 02       ..             ; ALWAYS branch
 
 ; &90e9 referenced 1 time by &90da
-.c90e9
+.access_bit_clear
     ldy #0                                                            ; 90e9: a0 00       ..             ; Y=0: start with byte 0
 ; &90eb referenced 2 times by &90e7, &90f7
-.c90eb
+.advance_access_bit
     lda (zp_b6),y                                                     ; 90eb: b1 b6       ..             ; Get name byte
     asl a                                                             ; 90ed: 0a          .              ; Shift out bit 7 (old attribute)
     lsr wksp_102b                                                     ; 90ee: 4e 2b 10    N+.            ; Shift access bit into carry
@@ -3579,16 +3579,16 @@ oscli                                           = &fff7
     sta (zp_b6),y                                                     ; 90f2: 91 b6       ..             ; Store updated name byte
     iny                                                               ; 90f4: c8          .              ; Next byte
     cpy #2                                                            ; 90f5: c0 02       ..             ; Past byte 2?
-    bcc c90eb                                                         ; 90f7: 90 f2       ..             ; Below 2: continue
-    beq loop_c90e2                                                    ; 90f9: f0 e7       ..             ; Exactly 2: handle L bit
+    bcc advance_access_bit                                            ; 90f7: 90 f2       ..             ; Below 2: continue
+    beq apply_access_bits_loop                                        ; 90f9: f0 e7       ..             ; Exactly 2: handle L bit
 ; &90fb referenced 2 times by &90ad, &90cd
-.c90fb
-    jsr c8f86                                                         ; 90fb: 20 86 8f     ..            ; Write directory to disc
+.check_dir_access_bit
+    jsr write_dir_and_validate                                        ; 90fb: 20 86 8f     ..            ; Write directory to disc
     jmp check_existing_for_save                                       ; 90fe: 4c c3 8c    L..            ; Return via catalogue info copy
 
-.sub_c9101
+.osfile_delete_handler
     jsr find_file_and_validate                                        ; 9101: 20 e5 8b     ..            ; OSFILE A=4: write attributes only
-    beq c90cf                                                         ; 9104: f0 c9       ..             ; Found: write access byte
+    beq set_entry_access_from_osfile                                  ; 9104: f0 c9       ..             ; Found: write access byte
     lda #0                                                            ; 9106: a9 00       ..             ; Not found: A=0
     rts                                                               ; 9108: 60          `              ; Return
 
@@ -3755,7 +3755,7 @@ oscli                                           = &fff7
     cmp #&16                                                          ; 9231: c9 16       ..             ; High byte should be &16
     bne check_lib_deleted                                             ; 9233: d0 ea       ..             ; Not past end: continue copying
     jsr release_disc_space                                            ; 9235: 20 b5 84     ..            ; Release the file's disc space; Release disc space back to free space map
-    jsr c8f86                                                         ; 9238: 20 86 8f     ..            ; Write modified directory to disc
+    jsr write_dir_and_validate                                        ; 9238: 20 86 8f     ..            ; Write modified directory to disc
     jmp get_object_type_result                                        ; 923b: 4c d0 89    L..            ; Save workspace and return
 
 ; ***************************************************************************************
@@ -3801,14 +3801,14 @@ oscli                                           = &fff7
 ; &926a referenced 1 time by &9252
 .osfile_dispatch_hi
     equb &8c                                                          ; 926a: 8c          .
-    equw sub_c8f74-1                                                  ; 926b: 73 8f       s.
-    equw sub_c907c-1                                                  ; 926d: 7b 90       {.
-    equw sub_c907c-1                                                  ; 926f: 7b 90       {.
-    equw sub_c907c-1                                                  ; 9271: 7b 90       {.
-    equw sub_c9101-1                                                  ; 9273: 00 91       ..
+    equw osfile_load_handler-1                                        ; 926b: 73 8f       s.
+    equw osfile_write_load_addr-1                                     ; 926d: 7b 90       {.
+    equw osfile_write_load_addr-1                                     ; 926f: 7b 90       {.
+    equw osfile_write_load_addr-1                                     ; 9271: 7b 90       {.
+    equw osfile_delete_handler-1                                      ; 9273: 00 91       ..
     equw osfile_save_handler-1                                        ; 9275: a7 8c       ..
     equw search_and_delete_entry-1                                    ; 9277: 1d 91       ..
-    equw sub_c8f7d-1                                                  ; 9279: 7c 8f       |.
+    equw osfile_read_cat_info-1                                       ; 9279: 7c 8f       |.
 
 ; &927b referenced 2 times by &9e35, &9e3b
 .setup_entry_name_ptr
@@ -4217,7 +4217,7 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 ; &94e7 referenced 1 time by &99f4
 .star_info
-    jsr sub_c8fdf                                                     ; 94e7: 20 df 8f     ..            ; Find first matching file
+    jsr find_first_matching_entry                                     ; 94e7: 20 df 8f     ..            ; Find first matching file
     beq print_info_loop                                               ; 94ea: f0 03       ..             ; Found? Print its info
     jmp not_found_error                                               ; 94ec: 4c c8 8b    L..            ; Not found: report error
 
@@ -4341,11 +4341,11 @@ oscli                                           = &fff7
     jsr my_osargs                                                     ; 9574: 20 55 a9     U.            ; OSARGS handler
     ldx #&0f                                                          ; 9577: a2 0f       ..             ; X=&0F: copy 16-byte template block
 ; &9579 referenced 1 time by &9580
-.loop_c9579
+.check_dir_exists_loop
     lda l9632,x                                                       ; 9579: bd 32 96    .2.            ; Copy OSFILE template to workspace
     sta l1042,x                                                       ; 957c: 9d 42 10    .B.            ; Copy template to workspace
     dex                                                               ; 957f: ca          .              ; Next byte
-    bpl loop_c9579                                                    ; 9580: 10 f7       ..             ; Loop for 16 bytes
+    bpl check_dir_exists_loop                                         ; 9580: 10 f7       ..             ; Loop for 16 bytes
     lda zp_b4                                                         ; 9582: a5 b4       ..             ; Store filename pointer in OSFILE blk
     sta wksp_osfile_block                                             ; 9584: 8d 40 10    .@.            ; Store filename in OSFILE block
     lda zp_b5                                                         ; 9587: a5 b5       ..             ; Get filename high byte
@@ -4354,44 +4354,44 @@ oscli                                           = &fff7
     sta zp_b8                                                         ; 958e: 85 b8       ..             ; Store block pointer low
     lda #&10                                                          ; 9590: a9 10       ..             ; Block page = &10
     sta zp_b9                                                         ; 9592: 85 b9       ..             ; Store block pointer high
-    jsr sub_c8df3                                                     ; 9594: 20 f3 8d     ..            ; Search for existing entry
+    jsr check_file_not_open2                                          ; 9594: 20 f3 8d     ..            ; Search for existing entry
     ldy #9                                                            ; 9597: a0 09       ..             ; Y=9: check if entry has size > 0
     lda l1037                                                         ; 9599: ad 37 10    .7.            ; Check size bytes for non-zero
     ora wksp_1038                                                     ; 959c: 0d 38 10    .8.            ; OR size mid byte
     ora l1039                                                         ; 959f: 0d 39 10    .9.            ; OR size high byte
-    beq c95b7                                                         ; 95a2: f0 13       ..             ; Size is 0: entry slot is free
+    beq cdir_name_validated                                           ; 95a2: f0 13       ..             ; Size is 0: entry slot is free
 ; &95a4 referenced 2 times by &8d0d, &a5e8
-.c95a4
+.already_exists_error2
     jsr reload_fsm_and_dir_then_brk                                   ; 95a4: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &c4                                                          ; 95a7: c4          .
     equs "Already exists", 0                                          ; 95a8: 41 6c 72... Alr
 
 ; &95b7 referenced 2 times by &95a2, &95c8
-.c95b7
+.cdir_name_validated
     lda (zp_b4),y                                                     ; 95b7: b1 b4       ..             ; Copy filename to dir entry, max 10
     and #&7f                                                          ; 95b9: 29 7f       ).             ; Strip bit 7
     cmp #&22 ; '"'                                                    ; 95bb: c9 22       ."             ; Quote terminates name
-    beq c95c3                                                         ; 95bd: f0 04       ..             ; Quote: pad with CR
+    beq check_root_or_special                                         ; 95bd: f0 04       ..             ; Quote: pad with CR
     cmp #&21 ; '!'                                                    ; 95bf: c9 21       .!             ; Control char terminates name
-    bcs c95c5                                                         ; 95c1: b0 02       ..             ; Printable: use as-is
+    bcs not_root_or_special                                           ; 95c1: b0 02       ..             ; Printable: use as-is
 ; &95c3 referenced 1 time by &95bd
-.c95c3
+.check_root_or_special
     lda #&0d                                                          ; 95c3: a9 0d       ..             ; Pad with CR
 ; &95c5 referenced 1 time by &95c1
-.c95c5
+.not_root_or_special
     sta (zp_b6),y                                                     ; 95c5: 91 b6       ..             ; Store character in entry
     dey                                                               ; 95c7: 88          .              ; Next name byte (decreasing)
-    bpl c95b7                                                         ; 95c8: 10 ed       ..             ; Loop for 10 bytes
-    jsr sub_c8f52                                                     ; 95ca: 20 52 8f     R.            ; Allocate disc space for new dir
+    bpl cdir_name_validated                                           ; 95c8: 10 ed       ..             ; Loop for 10 bytes
+    jsr write_entry_sector_info                                       ; 95ca: 20 52 8f     R.            ; Allocate disc space for new dir
     ldy #3                                                            ; 95cd: a0 03       ..             ; Y=3: set directory attribute
 ; &95cf referenced 1 time by &95d8
-.loop_c95cf
+.copy_cdir_sector_loop
     lda (zp_b6),y                                                     ; 95cf: b1 b6       ..             ; Get entry byte
     ora #&80                                                          ; 95d1: 09 80       ..             ; Set bit 7 (D attribute on all)
     sta (zp_b6),y                                                     ; 95d3: 91 b6       ..             ; Store back
     dey                                                               ; 95d5: 88          .              ; Next byte down
     cpy #1                                                            ; 95d6: c0 01       ..             ; Past byte 1? (byte 0 is special)
-    bne loop_c95cf                                                    ; 95d8: d0 f5       ..             ; No: continue setting attributes
+    bne copy_cdir_sector_loop                                         ; 95d8: d0 f5       ..             ; No: continue setting attributes
     dey                                                               ; 95da: 88          .              ; Y=0: set D attribute on byte 0
     lda (zp_b6),y                                                     ; 95db: b1 b6       ..             ; Get name byte 0
     ora #&80                                                          ; 95dd: 09 80       ..             ; Set bit 7 (D attribute)
@@ -4400,145 +4400,145 @@ oscli                                           = &fff7
     tax                                                               ; 95e3: aa          .              ; X=&00
     tay                                                               ; 95e4: a8          .              ; Y=&00
 ; &95e5 referenced 1 time by &95f5
-.loop_c95e5
+.copy_dir_template_loop
     sta ra_buffer_2,x                                                 ; 95e5: 9d 00 18    ...            ; Zero page 2 (&1800)
     sta ra_buffer_1,x                                                 ; 95e8: 9d 00 17    ...            ; Zero page 1 (&1700)
     sta ra_buffer_3,x                                                 ; 95eb: 9d 00 19    ...            ; Zero page 3 (&1900)
     sta ra_buffer_4,x                                                 ; 95ee: 9d 00 1a    ...            ; Zero page 4 (&1A00)
     sta ra_buffer_5,x                                                 ; 95f1: 9d 00 1b    ...            ; Zero page 5 (&1B00)
     inx                                                               ; 95f4: e8          .              ; Next byte
-    bne loop_c95e5                                                    ; 95f5: d0 ee       ..             ; Loop for 256 bytes per page
+    bne copy_dir_template_loop                                        ; 95f5: d0 ee       ..             ; Loop for 256 bytes per page
     ldx #4                                                            ; 95f7: a2 04       ..             ; X=4: copy 5 bytes (seq+Hugo)
 ; &95f9 referenced 1 time by &9609
-.loop_c95f9
+.init_dir_identity_loop
     lda str_hugo,x                                                    ; 95f9: bd b0 84    ...            ; Get Hugo identifier byte from ROM
     sta ra_buffer_1,x                                                 ; 95fc: 9d 00 17    ...            ; Store in dir header (&1700)
     sta dir2_master_sequence,x                                        ; 95ff: 9d fa 1b    ...            ; Store in dir footer (&1BFA)
     lda l1114,x                                                       ; 9602: bd 14 11    ...            ; Get parent dir sector byte
     sta dir2_parent_sector,x                                          ; 9605: 9d d6 1b    ...            ; Store in footer parent pointer
     dex                                                               ; 9608: ca          .              ; Next byte
-    bpl loop_c95f9                                                    ; 9609: 10 ee       ..             ; Loop for 5 bytes
+    bpl init_dir_identity_loop                                        ; 9609: 10 ee       ..             ; Loop for 5 bytes
     ldx #0                                                            ; 960b: a2 00       ..             ; X=0: copy name as title and name
 ; &960d referenced 1 time by &9625
-.loop_c960d
+.zero_dir_entries_loop
     lda (zp_b4),y                                                     ; 960d: b1 b4       ..             ; Get name character from argument
     and #&7f                                                          ; 960f: 29 7f       ).             ; Strip bit 7
     cmp #&22 ; '"'                                                    ; 9611: c9 22       ."             ; Is it double-quote?
-    beq c9619                                                         ; 9613: f0 04       ..             ; Yes: pad with CR
+    beq write_new_dir_to_disc                                         ; 9613: f0 04       ..             ; Yes: pad with CR
     cmp #&21 ; '!'                                                    ; 9615: c9 21       .!             ; Is it printable (> '!')?
-    bcs c961b                                                         ; 9617: b0 02       ..             ; Yes: use character as-is
+    bcs set_dir_parent_sector                                         ; 9617: b0 02       ..             ; Yes: use character as-is
 ; &9619 referenced 1 time by &9613
-.c9619
+.write_new_dir_to_disc
     lda #&0d                                                          ; 9619: a9 0d       ..             ; Non-printable: use CR padding
 ; &961b referenced 1 time by &9617
-.c961b
+.set_dir_parent_sector
     sta dir2_title,x                                                  ; 961b: 9d d9 1b    ...            ; Store in directory title
     sta dir2_name,x                                                   ; 961e: 9d cc 1b    ...            ; Store in directory name
     iny                                                               ; 9621: c8          .              ; Next argument character
     inx                                                               ; 9622: e8          .              ; Next position in title/name
     cpx #&0a                                                          ; 9623: e0 0a       ..             ; Copied all 10 characters?
-    bne loop_c960d                                                    ; 9625: d0 e6       ..             ; No: continue copying
+    bne zero_dir_entries_loop                                         ; 9625: d0 e6       ..             ; No: continue copying
     lda #&0d                                                          ; 9627: a9 0d       ..             ; A=CR: terminate title
     sta dir2_title,x                                                  ; 9629: 9d d9 1b    ...            ; Store CR after last title char
     jsr multi_sector_disc_command                                     ; 962c: 20 3d 8a     =.            ; Calculate sectors and write dir
-    jmp c8f80                                                         ; 962f: 4c 80 8f    L..            ; Write directory and update FSM
+    jmp search_for_osfile_target                                      ; 962f: 4c 80 8f    L..            ; Write directory and update FSM
 
 ; &9632 referenced 1 time by &9579
 .l9632
     equb 0, 0, 0, 0, 0, 0, 0, 0, 0, &17, &ff, &ff, 0, &1c, &ff, &ff   ; 9632: 00 00 00... ...
 
 ; &9642 referenced 1 time by &98a8
-.sub_c9642
+.copy_sectors_between_dirs
     lda wksp_saved_drive                                              ; 9642: ad 2f 10    ./.            ; Check if saved drive matches
     cmp wksp_current_drive                                            ; 9645: cd 17 11    ...            ; Compare with current drive
-    beq c964e                                                         ; 9648: f0 04       ..             ; Same: check CSD sector match
+    beq read_source_sector                                            ; 9648: f0 04       ..             ; Same: check CSD sector match
     cmp #&ff                                                          ; 964a: c9 ff       ..             ; Saved = &FF (not set)?
-    bne c9666                                                         ; 964c: d0 18       ..             ; Different drive: skip CSD check
+    bne advance_sector_ptrs                                           ; 964c: d0 18       ..             ; Different drive: skip CSD check
 ; &964e referenced 1 time by &9648
-.c964e
+.read_source_sector
     ldy #2                                                            ; 964e: a0 02       ..             ; Y=2: compare 3 sector bytes
 ; &9650 referenced 1 time by &9659
-.loop_c9650
+.copy_sector_data_loop
     lda l10a2,y                                                       ; 9650: b9 a2 10    ...            ; Get old sector address byte
     cmp wksp_csd_drive_sector,y                                       ; 9653: d9 2c 10    .,.            ; Compare with CSD sector
-    bne c9666                                                         ; 9656: d0 0e       ..             ; Mismatch: not CSD
+    bne advance_sector_ptrs                                           ; 9656: d0 0e       ..             ; Mismatch: not CSD
     dey                                                               ; 9658: 88          .              ; Next byte
-    bpl loop_c9650                                                    ; 9659: 10 f5       ..             ; Loop for 3 bytes
+    bpl copy_sector_data_loop                                         ; 9659: 10 f5       ..             ; Loop for 3 bytes
     ldy #2                                                            ; 965b: a0 02       ..             ; CSD matches: update to new sector
 ; &965d referenced 1 time by &9664
-.loop_c965d
+.write_dest_sector
     lda l10a8,y                                                       ; 965d: b9 a8 10    ...            ; Get new sector byte
     sta wksp_csd_drive_sector,y                                       ; 9660: 99 2c 10    .,.            ; Store as CSD sector
     dey                                                               ; 9663: 88          .              ; Next byte
-    bpl loop_c965d                                                    ; 9664: 10 f7       ..             ; Loop for 3 bytes
+    bpl write_dest_sector                                             ; 9664: 10 f7       ..             ; Loop for 3 bytes
 ; &9666 referenced 2 times by &964c, &9656
-.c9666
+.advance_sector_ptrs
     lda l111b                                                         ; 9666: ad 1b 11    ...            ; Check library directory
     cmp wksp_current_drive                                            ; 9669: cd 17 11    ...            ; Compare lib drive with current
-    bne c9686                                                         ; 966c: d0 18       ..             ; Different drive: skip lib
+    bne advance_source_sector                                         ; 966c: d0 18       ..             ; Different drive: skip lib
     ldy #2                                                            ; 966e: a0 02       ..             ; Y=2: compare 3 sector bytes
 ; &9670 referenced 1 time by &9679
-.loop_c9670
+.copy_remaining_loop
     lda l10a2,y                                                       ; 9670: b9 a2 10    ...            ; Get old sector address byte
     cmp wksp_lib_sector,y                                             ; 9673: d9 18 11    ...            ; Compare with lib sector
-    bne c9686                                                         ; 9676: d0 0e       ..             ; Mismatch: not library
+    bne advance_source_sector                                         ; 9676: d0 0e       ..             ; Mismatch: not library
     dey                                                               ; 9678: 88          .              ; Next byte
-    bpl loop_c9670                                                    ; 9679: 10 f5       ..             ; Loop for 3 bytes
+    bpl copy_remaining_loop                                           ; 9679: 10 f5       ..             ; Loop for 3 bytes
     ldy #2                                                            ; 967b: a0 02       ..             ; Lib matches: update to new sector
 ; &967d referenced 1 time by &9684
-.loop_c967d
+.advance_dest_sector
     lda l10a8,y                                                       ; 967d: b9 a8 10    ...            ; Get new sector byte
     sta wksp_lib_sector,y                                             ; 9680: 99 18 11    ...            ; Store as lib sector
     dey                                                               ; 9683: 88          .              ; Next byte
-    bpl loop_c967d                                                    ; 9684: 10 f7       ..             ; Loop for 3 bytes
+    bpl advance_dest_sector                                           ; 9684: 10 f7       ..             ; Loop for 3 bytes
 ; &9686 referenced 2 times by &966c, &9676
-.c9686
+.advance_source_sector
     lda l111f                                                         ; 9686: ad 1f 11    ...            ; Check previous directory
     cmp wksp_current_drive                                            ; 9689: cd 17 11    ...            ; Compare prev dir drive
-    bne c96a6                                                         ; 968c: d0 18       ..             ; Different drive: skip
+    bne execute_sector_copy                                           ; 968c: d0 18       ..             ; Different drive: skip
     ldy #2                                                            ; 968e: a0 02       ..             ; Y=2: compare 3 sector bytes
 ; &9690 referenced 1 time by &9699
-.loop_c9690
+.copy_dir_name_to_entry
     lda l10a2,y                                                       ; 9690: b9 a2 10    ...            ; Get old sector byte
     cmp wksp_prev_dir_sector,y                                        ; 9693: d9 1c 11    ...            ; Compare with prev dir sector
-    bne c96a6                                                         ; 9696: d0 0e       ..             ; Mismatch: not prev dir
+    bne execute_sector_copy                                           ; 9696: d0 0e       ..             ; Mismatch: not prev dir
     dey                                                               ; 9698: 88          .              ; Next byte
-    bpl loop_c9690                                                    ; 9699: 10 f5       ..             ; Loop for 3 bytes
+    bpl copy_dir_name_to_entry                                        ; 9699: 10 f5       ..             ; Loop for 3 bytes
     ldy #2                                                            ; 969b: a0 02       ..             ; Prev dir matches: update
 ; &969d referenced 1 time by &96a4
-.loop_c969d
+.set_entry_dir_attribute
     lda l10a8,y                                                       ; 969d: b9 a8 10    ...            ; Get new sector byte
     sta wksp_prev_dir_sector,y                                        ; 96a0: 99 1c 11    ...            ; Store as prev dir sector
     dey                                                               ; 96a3: 88          .              ; Next byte
-    bpl loop_c969d                                                    ; 96a4: 10 f7       ..             ; Loop for 3 bytes
+    bpl set_entry_dir_attribute                                       ; 96a4: 10 f7       ..             ; Loop for 3 bytes
 ; &96a6 referenced 4 times by &968c, &9696, &a92c, &af84
-.c96a6
+.execute_sector_copy
     lda zp_flags                                                      ; 96a6: a5 cd       ..             ; Check bit 3 (copy in progress?)
     and #8                                                            ; 96a8: 29 08       ).             ; Bit 3: copy operation flag
-    bne c96b2                                                         ; 96aa: d0 06       ..             ; Set: skip directory write
-    jsr c8f86                                                         ; 96ac: 20 86 8f     ..            ; Write directory to disc
+    bne check_tube_for_copy                                           ; 96aa: d0 06       ..             ; Set: skip directory write
+    jsr write_dir_and_validate                                        ; 96ac: 20 86 8f     ..            ; Write directory to disc
     jsr flush_all_channels                                            ; 96af: 20 7c a9     |.            ; Flush OSARGS workspace
 ; &96b2 referenced 1 time by &96aa
-.c96b2
+.check_tube_for_copy
     lda l10a7                                                         ; 96b2: ad a7 10    ...            ; Check if sectors remain to copy
     ora l10a6                                                         ; 96b5: 0d a6 10    ...            ; OR with mid byte
     ora l10a5                                                         ; 96b8: 0d a5 10    ...            ; OR with high byte
-    bne c96be                                                         ; 96bb: d0 01       ..             ; Non-zero: more to copy
+    bne read_source_to_buffer                                         ; 96bb: d0 01       ..             ; Non-zero: more to copy
     rts                                                               ; 96bd: 60          `              ; All done: return
 
 ; &96be referenced 1 time by &96bb
-.c96be
+.read_source_to_buffer
     lda l10a7                                                         ; 96be: ad a7 10    ...            ; Get sector count high
     ora l10a6                                                         ; 96c1: 0d a6 10    ...            ; OR with mid byte
-    bne c96ce                                                         ; 96c4: d0 08       ..             ; Non-zero: more than buffer fits
+    bne write_buffer_to_dest                                          ; 96c4: d0 08       ..             ; Non-zero: more than buffer fits
     lda l10a5                                                         ; 96c6: ad a5 10    ...            ; Get sector count low
     cmp l1061                                                         ; 96c9: cd 61 10    .a.            ; Compare with buffer size
-    bcc c96d1                                                         ; 96cc: 90 03       ..             ; Fits in buffer: use exact count
+    bcc advance_copy_sector                                           ; 96cc: 90 03       ..             ; Fits in buffer: use exact count
 ; &96ce referenced 1 time by &96c4
-.c96ce
+.write_buffer_to_dest
     lda l1061                                                         ; 96ce: ad 61 10    .a.            ; Too many: use buffer size
 ; &96d1 referenced 1 time by &96cc
-.c96d1
+.advance_copy_sector
     sta wksp_disc_op_sector_count                                     ; 96d1: 8d 1e 10    ...            ; Store sector count for this chunk
     lda wksp_1060                                                     ; 96d4: ad 60 10    .`.            ; Set transfer addr to buffer start
     sta l1017                                                         ; 96d7: 8d 17 10    ...            ; Store transfer addr mid
@@ -4548,7 +4548,7 @@ oscli                                           = &fff7
     stx l1018                                                         ; 96e0: 8e 18 10    ...            ; Clear high bytes
     stx l1019                                                         ; 96e3: 8e 19 10    ...            ; Clear highest byte
 ; &96e6 referenced 1 time by &977a
-.c96e6
+.copy_sectors_remaining
     sec                                                               ; 96e6: 38          8              ; Set carry for subtraction
     lda l10a5                                                         ; 96e7: ad a5 10    ...            ; Subtract copied amount from total
     sbc l1061                                                         ; 96ea: ed 61 10    .a.            ; Subtract buffer size
@@ -4559,12 +4559,12 @@ oscli                                           = &fff7
     lda l10a7                                                         ; 96f8: ad a7 10    ...            ; Get count high
     sbc #0                                                            ; 96fb: e9 00       ..             ; Subtract borrow
     sta l10a7                                                         ; 96fd: 8d a7 10    ...            ; Store reduced high
-    bcs c970b                                                         ; 9700: b0 09       ..             ; No underflow: proceed
+    bcs set_transfer_address                                          ; 9700: b0 09       ..             ; No underflow: proceed
     lda l10a5                                                         ; 9702: ad a5 10    ...            ; Underflow: adjust sector count
     adc l1061                                                         ; 9705: 6d 61 10    ma.            ; Add buffer size back
     sta wksp_disc_op_sector_count                                     ; 9708: 8d 1e 10    ...            ; Store as final chunk size
 ; &970b referenced 1 time by &9700
-.c970b
+.set_transfer_address
     lda #8                                                            ; 970b: a9 08       ..             ; Read command = 8
     sta wksp_disc_op_command                                          ; 970d: 8d 1a 10    ...            ; Store in disc op
     lda l10a2                                                         ; 9710: ad a2 10    ...            ; Get source sector low
@@ -4586,41 +4586,41 @@ oscli                                           = &fff7
     lda l10a5                                                         ; 973f: ad a5 10    ...            ; Check if more sectors to copy
     ora l10a6                                                         ; 9742: 0d a6 10    ...            ; OR with mid byte
     ora l10a7                                                         ; 9745: 0d a7 10    ...            ; OR with high byte
-    beq c977d                                                         ; 9748: f0 33       .3             ; Zero: all copied
+    beq validate_disc_size                                            ; 9748: f0 33       .3             ; Zero: all copied
     lda wksp_disc_op_sector_count                                     ; 974a: ad 1e 10    ...            ; Check if full buffer was used
     cmp l1061                                                         ; 974d: cd 61 10    .a.            ; Compare with buffer size
-    bne c977d                                                         ; 9750: d0 2b       .+             ; Partial: done
+    bne validate_disc_size                                            ; 9750: d0 2b       .+             ; Partial: done
     clc                                                               ; 9752: 18          .              ; Advance source sector
     lda l10a2                                                         ; 9753: ad a2 10    ...            ; Get source low
     adc l1061                                                         ; 9756: 6d 61 10    ma.            ; Add buffer pages copied
     sta l10a2                                                         ; 9759: 8d a2 10    ...            ; Store updated source low
-    bcc c9766                                                         ; 975c: 90 08       ..             ; No carry
+    bcc check_format_parameters                                       ; 975c: 90 08       ..             ; No carry
     inc l10a3                                                         ; 975e: ee a3 10    ...            ; Carry: inc source mid
-    bne c9766                                                         ; 9761: d0 03       ..             ; No wrap
+    bne check_format_parameters                                       ; 9761: d0 03       ..             ; No wrap
     inc l10a4                                                         ; 9763: ee a4 10    ...            ; Wrap: inc source high
 ; &9766 referenced 2 times by &975c, &9761
-.c9766
+.check_format_parameters
     clc                                                               ; 9766: 18          .              ; Advance dest sector
     lda l10a8                                                         ; 9767: ad a8 10    ...            ; Get dest low
     adc l1061                                                         ; 976a: 6d 61 10    ma.            ; Add buffer pages
     sta l10a8                                                         ; 976d: 8d a8 10    ...            ; Store updated dest low
-    bcc c977a                                                         ; 9770: 90 08       ..             ; No carry
+    bcc validate_sector_count                                         ; 9770: 90 08       ..             ; No carry
     inc l10a9                                                         ; 9772: ee a9 10    ...            ; Carry: inc dest mid
-    bne c977a                                                         ; 9775: d0 03       ..             ; No wrap
+    bne validate_sector_count                                         ; 9775: d0 03       ..             ; No wrap
     inc l10aa                                                         ; 9777: ee aa 10    ...            ; Wrap: inc dest high
 ; &977a referenced 2 times by &9770, &9775
-.c977a
-    jmp c96e6                                                         ; 977a: 4c e6 96    L..            ; Loop for more chunks
+.validate_sector_count
+    jmp copy_sectors_remaining                                        ; 977a: 4c e6 96    L..            ; Loop for more chunks
 
 ; &977d referenced 2 times by &9748, &9750
-.c977d
+.validate_disc_size
     lda zp_flags                                                      ; 977d: a5 cd       ..             ; Check copy operation flag
     and #8                                                            ; 977f: 29 08       ).             ; Bit 3: copy in progress?
-    beq c9784                                                         ; 9781: f0 01       ..             ; Not set: reload directory
+    beq begin_format_operation                                        ; 9781: f0 01       ..             ; Not set: reload directory
     rts                                                               ; 9783: 60          `              ; Set: return directly
 
 ; &9784 referenced 1 time by &9781
-.c9784
+.begin_format_operation
     lda #&12                                                          ; 9784: a9 12       ..             ; Set transfer addr to &12 page
     sta l1017                                                         ; 9786: 8d 17 10    ...            ; Store addr mid
     lda #8                                                            ; 9789: a9 08       ..             ; Read command = 8
@@ -4636,152 +4636,152 @@ oscli                                           = &fff7
     jmp exec_disc_command                                             ; 97a5: 4c 8b 82    L..            ; Execute disc read
 
 ; &97a8 referenced 2 times by &98ab, &98d7
-.c97a8
+.format_init_dir
     lda #0                                                            ; 97a8: a9 00       ..             ; A=0: clear search state
     sta l10ab                                                         ; 97aa: 8d ab 10    ...            ; Clear dest sector low
     sta l10ac                                                         ; 97ad: 8d ac 10    ...            ; Clear dest sector mid
     sta l10ad                                                         ; 97b0: 8d ad 10    ...            ; Clear dest sector high
 ; &97b3 referenced 2 times by &9835, &9869
-.c97b3
+.format_init_fsm
     lda #&ff                                                          ; 97b3: a9 ff       ..             ; A=&FF: init source sector to &FFFFFF
     sta l10a2                                                         ; 97b5: 8d a2 10    ...            ; Set source sector low
     sta l10a3                                                         ; 97b8: 8d a3 10    ...            ; Set source sector mid
     sta l10a4                                                         ; 97bb: 8d a4 10    ...            ; Set source sector high
     jsr print_catalogue_header                                        ; 97be: 20 c5 93     ..            ; Point to first directory entry
 ; &97c1 referenced 2 times by &9813, &9817
-.c97c1
+.init_fsm_zeros_loop
     ldy #0                                                            ; 97c1: a0 00       ..             ; Y=0: check entry first byte
     lda (zp_b6),y                                                     ; 97c3: b1 b6       ..             ; Get first byte
-    bne c97d7                                                         ; 97c5: d0 10       ..             ; Non-zero: valid entry
+    bne init_fsm_total_sectors                                        ; 97c5: d0 10       ..             ; Non-zero: valid entry
     lda l10a2                                                         ; 97c7: ad a2 10    ...            ; End of entries: check if any found
     and l10a3                                                         ; 97ca: 2d a3 10    -..            ; AND all source sector bytes
     and l10a4                                                         ; 97cd: 2d a4 10    -..            ; All &FF?
     cmp #&ff                                                          ; 97d0: c9 ff       ..             ; Compare with &FF
-    bne c9819                                                         ; 97d2: d0 45       .E             ; Not &FF: found an entry
-    jmp c8f86                                                         ; 97d4: 4c 86 8f    L..            ; All &FF: no entries, write dir
+    bne init_root_dir_name                                            ; 97d2: d0 45       .E             ; Not &FF: found an entry
+    jmp write_dir_and_validate                                        ; 97d4: 4c 86 8f    L..            ; All &FF: no entries, write dir
 
 ; &97d7 referenced 1 time by &97c5
-.c97d7
+.init_fsm_total_sectors
     ldy #&16                                                          ; 97d7: a0 16       ..             ; Y=&16: get entry start sector
     ldx #2                                                            ; 97d9: a2 02       ..             ; X=2: compare 3 sector bytes
     sec                                                               ; 97db: 38          8              ; Set carry for subtraction
 ; &97dc referenced 1 time by &97e3
-.loop_c97dc
+.init_fsm_sector_loop
     lda l1095,y                                                       ; 97dc: b9 95 10    ...            ; Get workspace sector byte
     sbc (zp_b6),y                                                     ; 97df: f1 b6       ..             ; Subtract entry sector byte
     iny                                                               ; 97e1: c8          .              ; Next byte
     dex                                                               ; 97e2: ca          .              ; Next workspace byte
-    bpl loop_c97dc                                                    ; 97e3: 10 f7       ..             ; Loop for 3 bytes
-    bcs c980c                                                         ; 97e5: b0 25       .%             ; Workspace >= entry: skip
+    bpl init_fsm_sector_loop                                          ; 97e3: 10 f7       ..             ; Loop for 3 bytes
+    bcs init_root_dir_entries                                         ; 97e5: b0 25       .%             ; Workspace >= entry: skip
     ldy #&16                                                          ; 97e7: a0 16       ..             ; Y=&16: compare with other workspace
     ldx #2                                                            ; 97e9: a2 02       ..             ; X=2: 3 bytes
     sec                                                               ; 97eb: 38          8              ; Set carry
 ; &97ec referenced 1 time by &97f3
-.loop_c97ec
+.write_fsm_to_disc_loop
     lda l108c,y                                                       ; 97ec: b9 8c 10    ...            ; Get other workspace byte
     sbc (zp_b6),y                                                     ; 97ef: f1 b6       ..             ; Subtract entry sector byte
     iny                                                               ; 97f1: c8          .              ; Next byte
     dex                                                               ; 97f2: ca          .              ; Next workspace byte
-    bpl loop_c97ec                                                    ; 97f3: 10 f7       ..             ; Loop for 3 bytes
-    bcc c980c                                                         ; 97f5: 90 15       ..             ; Other < entry: update best entry
+    bpl write_fsm_to_disc_loop                                        ; 97f3: 10 f7       ..             ; Loop for 3 bytes
+    bcc init_root_dir_entries                                         ; 97f5: 90 15       ..             ; Other < entry: update best entry
     ldy #&16                                                          ; 97f7: a0 16       ..             ; Y=&16: copy entry sector to best
     ldx #2                                                            ; 97f9: a2 02       ..             ; X=2: 3 bytes
 ; &97fb referenced 1 time by &9802
-.loop_c97fb
+.create_root_dir
     lda (zp_b6),y                                                     ; 97fb: b1 b6       ..             ; Get entry sector byte
     sta l108c,y                                                       ; 97fd: 99 8c 10    ...            ; Store as best entry sector
     iny                                                               ; 9800: c8          .              ; Next byte
     dex                                                               ; 9801: ca          .              ; Next workspace byte
-    bpl loop_c97fb                                                    ; 9802: 10 f7       ..             ; Loop for 3 bytes
+    bpl create_root_dir                                               ; 9802: 10 f7       ..             ; Loop for 3 bytes
     lda zp_b6                                                         ; 9804: a5 b6       ..             ; Save entry pointer
     sta zp_b4                                                         ; 9806: 85 b4       ..             ; Store as best entry pointer low
     lda zp_b7                                                         ; 9808: a5 b7       ..             ; Get pointer high
     sta zp_b5                                                         ; 980a: 85 b5       ..             ; Store as best entry pointer high
 ; &980c referenced 2 times by &97e5, &97f5
-.c980c
+.init_root_dir_entries
     lda zp_b6                                                         ; 980c: a5 b6       ..             ; Advance to next dir entry
     clc                                                               ; 980e: 18          .              ; Clear carry for addition
     adc #&1a                                                          ; 980f: 69 1a       i.             ; Add 26 bytes per entry
     sta zp_b6                                                         ; 9811: 85 b6       ..             ; Store updated pointer
-    bcc c97c1                                                         ; 9813: 90 ac       ..             ; No page crossing: continue search
+    bcc init_fsm_zeros_loop                                           ; 9813: 90 ac       ..             ; No page crossing: continue search
     inc zp_b7                                                         ; 9815: e6 b7       ..             ; Increment page
-    bcs c97c1                                                         ; 9817: b0 a8       ..             ; ALWAYS branch
+    bcs init_fsm_zeros_loop                                           ; 9817: b0 a8       ..             ; ALWAYS branch
 
 ; &9819 referenced 1 time by &97d2
-.c9819
+.init_root_dir_name
     lda zp_b4                                                         ; 9819: a5 b4       ..             ; Restore best entry pointer
     sta zp_b6                                                         ; 981b: 85 b6       ..             ; Store in (&B6)
     lda zp_b5                                                         ; 981d: a5 b5       ..             ; Get high byte
     sta zp_b7                                                         ; 981f: 85 b7       ..             ; Store in (&B7)
     ldy #2                                                            ; 9821: a0 02       ..             ; Y=2: copy 3 source sector bytes
 ; &9823 referenced 1 time by &982a
-.loop_c9823
+.fill_root_name_loop
     lda l10a2,y                                                       ; 9823: b9 a2 10    ...            ; Get source sector byte
     sta l10ab,y                                                       ; 9826: 99 ab 10    ...            ; Store as dest for allocation
     dey                                                               ; 9829: 88          .              ; Next byte
-    bpl loop_c9823                                                    ; 982a: 10 f7       ..             ; Loop for 3 bytes
+    bpl fill_root_name_loop                                           ; 982a: 10 f7       ..             ; Loop for 3 bytes
     ldx #0                                                            ; 982c: a2 00       ..             ; X=0: start scanning FSM
     stx zp_b2                                                         ; 982e: 86 b2       ..             ; Store scan position
 ; &9830 referenced 1 time by &984a
-.loop_c9830
+.set_root_identity_loop
     cpx fsm_s1_total_sectors_lo                                       ; 9830: ec fe 0f    ...            ; Past end of FSM?
-    bcc c9838                                                         ; 9833: 90 03       ..             ; No: check this entry
-    jmp c97b3                                                         ; 9835: 4c b3 97    L..            ; Past end: reinit search
+    bcc write_root_dir_to_disc                                        ; 9833: 90 03       ..             ; No: check this entry
+    jmp format_init_fsm                                               ; 9835: 4c b3 97    L..            ; Past end: reinit search
 
 ; &9838 referenced 1 time by &9833
-.c9838
+.write_root_dir_to_disc
     inx                                                               ; 9838: e8          .              ; Advance X by 3
     inx                                                               ; 9839: e8          .              ; Continue advancing
     inx                                                               ; 983a: e8          .              ; 3rd byte
     stx zp_b2                                                         ; 983b: 86 b2       ..             ; Save position
     ldy #2                                                            ; 983d: a0 02       ..             ; Y=2: compare sector bytes
 ; &983f referenced 1 time by &984f
-.loop_c983f
+.write_root_sectors_loop
     dex                                                               ; 983f: ca          .              ; Back up one
     lda fsm_sector_0,x                                                ; 9840: bd 00 0e    ...            ; Get FSM address byte
     cmp l10a2,y                                                       ; 9843: d9 a2 10    ...            ; Compare with source sector
-    bcs c984c                                                         ; 9846: b0 04       ..             ; FSM >= source: possible match
+    bcs set_root_as_csd                                               ; 9846: b0 04       ..             ; FSM >= source: possible match
     ldx zp_b2                                                         ; 9848: a6 b2       ..             ; Restore X, try next
-    bne loop_c9830                                                    ; 984a: d0 e4       ..             ; Loop (X != 0)
+    bne set_root_identity_loop                                        ; 984a: d0 e4       ..             ; Loop (X != 0)
 ; &984c referenced 1 time by &9846
-.c984c
-    bne c9851                                                         ; 984c: d0 03       ..             ; Exact match? Check all bytes
+.set_root_as_csd
+    bne copy_root_sector_loop                                         ; 984c: d0 03       ..             ; Exact match? Check all bytes
     dey                                                               ; 984e: 88          .              ; Next byte (decreasing)
-    bpl loop_c983f                                                    ; 984f: 10 ee       ..             ; Loop for 3 bytes
+    bpl write_root_sectors_loop                                       ; 984f: 10 ee       ..             ; Loop for 3 bytes
 ; &9851 referenced 1 time by &984c
-.c9851
+.copy_root_sector_loop
     ldx zp_b2                                                         ; 9851: a6 b2       ..             ; Restore entry position
     cpx #6                                                            ; 9853: e0 06       ..             ; Need at least 2 entries (>= 6)
-    bcc c9869                                                         ; 9855: 90 12       ..             ; Not enough entries: reinit
+    bcc set_format_drive                                              ; 9855: 90 12       ..             ; Not enough entries: reinit
     ldy #0                                                            ; 9857: a0 00       ..             ; Check if entry is adjacent
     clc                                                               ; 9859: 18          .              ; Clear carry for addition
     php                                                               ; 985a: 08          .              ; Save carry
 ; &985b referenced 1 time by &9870
-.loop_c985b
+.init_workspace_for_root
     plp                                                               ; 985b: 28          (              ; Restore carry
     lda nmi_0dfa,x                                                    ; 985c: bd fa 0d    ...            ; Get previous entry end address
     adc fsm_s0_reserved,x                                             ; 985f: 7d fa 0e    }..            ; Add previous entry length
     php                                                               ; 9862: 08          .              ; Save carry
     cmp l10a2,y                                                       ; 9863: d9 a2 10    ...            ; Compare with source sector
-    beq c986c                                                         ; 9866: f0 04       ..             ; Match: entries are adjacent
+    beq format_next_track_loop                                        ; 9866: f0 04       ..             ; Match: entries are adjacent
     plp                                                               ; 9868: 28          (              ; Restore carry, not adjacent
 ; &9869 referenced 1 time by &9855
-.c9869
-    jmp c97b3                                                         ; 9869: 4c b3 97    L..            ; Not adjacent: reinit search
+.set_format_drive
+    jmp format_init_fsm                                               ; 9869: 4c b3 97    L..            ; Not adjacent: reinit search
 
 ; &986c referenced 1 time by &9866
-.c986c
+.format_next_track_loop
     inx                                                               ; 986c: e8          .              ; Next byte
     iny                                                               ; 986d: c8          .              ; Next source byte
     cpy #3                                                            ; 986e: c0 03       ..             ; All 3 bytes?
-    bne loop_c985b                                                    ; 9870: d0 e9       ..             ; No: continue comparing
+    bne init_workspace_for_root                                       ; 9870: d0 e9       ..             ; No: continue comparing
     plp                                                               ; 9872: 28          (              ; Restore carry
     ldx #2                                                            ; 9873: a2 02       ..             ; X=2: copy sector address
     ldy #&12                                                          ; 9875: a0 12       ..             ; Y=&12: entry length offset
     lda (zp_b6),y                                                     ; 9877: b1 b6       ..             ; Get entry length byte
     cmp #1                                                            ; 9879: c9 01       ..             ; Compare with 1 (min sector)
 ; &987b referenced 1 time by &9890
-.loop_c987b
+.format_write_sectors_loop
     iny                                                               ; 987b: c8          .              ; Next length byte
     lda (zp_b6),y                                                     ; 987c: b1 b6       ..             ; Get next byte
     adc #0                                                            ; 987e: 69 00       i.             ; Add carry from compare
@@ -4791,24 +4791,24 @@ oscli                                           = &fff7
     lda l10a2,x                                                       ; 9889: bd a2 10    ...            ; Get source sector byte
     sta wksp_object_sector,x                                          ; 988c: 9d 34 10    .4.            ; Store in object sector
     dex                                                               ; 988f: ca          .              ; Next byte
-    bpl loop_c987b                                                    ; 9890: 10 e9       ..             ; Loop for 3 bytes
+    bpl format_write_sectors_loop                                     ; 9890: 10 e9       ..             ; Loop for 3 bytes
     jsr release_disc_space                                            ; 9892: 20 b5 84     ..            ; Release disc space back to free space map
     jsr allocate_disc_space                                           ; 9895: 20 32 86     2.            ; Allocate space from FSM
     ldx #2                                                            ; 9898: a2 02       ..             ; X=2: copy new sector address
     ldy #&18                                                          ; 989a: a0 18       ..             ; Y=&18: start sector in entry
 ; &989c referenced 1 time by &98a6
-.loop_c989c
+.verify_formatted_sectors
     lda wksp_103a,x                                                   ; 989c: bd 3a 10    .:.            ; Get new sector byte
     sta (zp_b6),y                                                     ; 989f: 91 b6       ..             ; Store in directory entry
     sta l10a8,x                                                       ; 98a1: 9d a8 10    ...            ; Store as dest sector
     dey                                                               ; 98a4: 88          .              ; Next entry byte (decreasing)
     dex                                                               ; 98a5: ca          .              ; Next workspace byte
-    bpl loop_c989c                                                    ; 98a6: 10 f4       ..             ; Loop for 3 bytes
-    jsr sub_c9642                                                     ; 98a8: 20 42 96     B.            ; Update CSD/lib/prev dir pointers
-    jmp c97a8                                                         ; 98ab: 4c a8 97    L..            ; Continue compaction search
+    bpl verify_formatted_sectors                                      ; 98a6: 10 f4       ..             ; Loop for 3 bytes
+    jsr copy_sectors_between_dirs                                     ; 98a8: 20 42 96     B.            ; Update CSD/lib/prev dir pointers
+    jmp format_init_dir                                               ; 98ab: 4c a8 97    L..            ; Continue compaction search
 
 ; &98ae referenced 1 time by &a350
-.sub_c98ae
+.calculate_total_sectors
     lda #0                                                            ; 98ae: a9 00       ..             ; A=0: init recursion stack pointer
     sta zp_c0                                                         ; 98b0: 85 c0       ..             ; Store in workspace
     sta l1053                                                         ; 98b2: 8d 53 10    .S.            ; Clear root sector low
@@ -4822,28 +4822,28 @@ oscli                                           = &fff7
     lda #&99                                                          ; 98c5: a9 99       ..             ; Path string page &99
     sta zp_b5                                                         ; 98c7: 85 b5       ..             ; Store in (&B5)
 ; &98c9 referenced 1 time by &990c
-.c98c9
+.prepare_cdir_directory
     jsr parse_path_and_load                                           ; 98c9: 20 7f 94     ..            ; Load root directory
     ldy #2                                                            ; 98cc: a0 02       ..             ; Y=2: copy parent sector
 ; &98ce referenced 1 time by &98d5
-.loop_c98ce
+.init_cdir_entries_loop
     lda l1052,y                                                       ; 98ce: b9 52 10    .R.            ; Get sector byte from workspace
     sta dir_parent_sector,y                                           ; 98d1: 99 d6 16    ...            ; Store as dir parent pointer
     dey                                                               ; 98d4: 88          .              ; Next byte
-    bpl loop_c98ce                                                    ; 98d5: 10 f7       ..             ; Loop for 3 bytes
-    jsr c97a8                                                         ; 98d7: 20 a8 97     ..            ; Init search state for this dir
+    bpl init_cdir_entries_loop                                        ; 98d5: 10 f7       ..             ; Loop for 3 bytes
+    jsr format_init_dir                                               ; 98d7: 20 a8 97     ..            ; Init search state for this dir
     jsr print_catalogue_header                                        ; 98da: 20 c5 93     ..            ; Point to first entry
 ; &98dd referenced 2 times by &9932, &9936
-.c98dd
+.setup_cdir_dir_entry
     ldy #0                                                            ; 98dd: a0 00       ..             ; Y=0: check entry
     lda (zp_b6),y                                                     ; 98df: b1 b6       ..             ; Get first byte
-    beq c990e                                                         ; 98e1: f0 2b       .+             ; Zero: end of entries in this dir
+    beq set_cdir_parent_sector                                        ; 98e1: f0 2b       .+             ; Zero: end of entries in this dir
     ldy #3                                                            ; 98e3: a0 03       ..             ; Y=3: check access byte
     lda (zp_b6),y                                                     ; 98e5: b1 b6       ..             ; Get access byte
-    bpl c992b                                                         ; 98e7: 10 42       .B             ; Bit 7 clear: regular file
+    bpl write_cdir_directory                                          ; 98e7: 10 42       .B             ; Bit 7 clear: regular file
     lda zp_c0                                                         ; 98e9: a5 c0       ..             ; Directory: check stack depth
     cmp #&fe                                                          ; 98eb: c9 fe       ..             ; Compare with &FE (max depth)
-    beq c990e                                                         ; 98ed: f0 1f       ..             ; At max depth: skip this subdir
+    beq set_cdir_parent_sector                                        ; 98ed: f0 1f       ..             ; At max depth: skip this subdir
     ldy #0                                                            ; 98ef: a0 00       ..             ; Push subdir entry address on stack
     lda zp_b6                                                         ; 98f1: a5 b6       ..             ; Get entry pointer low
     sta zp_b4                                                         ; 98f3: 85 b4       ..             ; Store in (&B4)
@@ -4855,17 +4855,17 @@ oscli                                           = &fff7
     inc zp_c0                                                         ; 98ff: e6 c0       ..             ; Advance stack pointer
     ldx #2                                                            ; 9901: a2 02       ..             ; X=2: save parent dir sector
 ; &9903 referenced 1 time by &990a
-.loop_c9903
+.copy_name_to_cdir_loop
     lda l1114,x                                                       ; 9903: bd 14 11    ...            ; Get parent sector byte
     sta l1052,x                                                       ; 9906: 9d 52 10    .R.            ; Store in workspace
     dex                                                               ; 9909: ca          .              ; Next byte
-    bpl loop_c9903                                                    ; 990a: 10 f7       ..             ; Loop for 3 bytes
-    bmi c98c9                                                         ; 990c: 30 bb       0.             ; ALWAYS branch
+    bpl copy_name_to_cdir_loop                                        ; 990a: 10 f7       ..             ; Loop for 3 bytes
+    bmi prepare_cdir_directory                                        ; 990c: 30 bb       0.             ; ALWAYS branch
 
 ; &990e referenced 2 times by &98e1, &98ed
-.c990e
+.set_cdir_parent_sector
     lda zp_c0                                                         ; 990e: a5 c0       ..             ; Check recursion stack
-    beq c9938                                                         ; 9910: f0 26       .&             ; Stack empty: compaction done
+    beq finalise_cdir                                                 ; 9910: f0 26       .&             ; Stack empty: compaction done
     lda #&3b ; ';'                                                    ; 9912: a9 3b       .;             ; Set up path for parent return
     sta zp_b4                                                         ; 9914: 85 b4       ..             ; Store path address low
     lda #&99                                                          ; 9916: a9 99       ..             ; Path page &99
@@ -4879,17 +4879,17 @@ oscli                                           = &fff7
     lda (zp_c0),y                                                     ; 9927: b1 c0       ..             ; Get entry pointer low
     sta zp_b6                                                         ; 9929: 85 b6       ..             ; Restore (&B6)
 ; &992b referenced 1 time by &98e7
-.c992b
+.write_cdir_directory
     clc                                                               ; 992b: 18          .              ; Advance to next entry
     lda zp_b6                                                         ; 992c: a5 b6       ..             ; Get entry pointer low
     adc #&1a                                                          ; 992e: 69 1a       i.             ; Add 26 bytes per entry
     sta zp_b6                                                         ; 9930: 85 b6       ..             ; Store updated pointer
-    bcc c98dd                                                         ; 9932: 90 a9       ..             ; No page crossing: continue scan
+    bcc setup_cdir_dir_entry                                          ; 9932: 90 a9       ..             ; No page crossing: continue scan
     inc zp_b7                                                         ; 9934: e6 b7       ..             ; Increment page
-    bcs c98dd                                                         ; 9936: b0 a5       ..             ; ALWAYS branch
+    bcs setup_cdir_dir_entry                                          ; 9936: b0 a5       ..             ; ALWAYS branch
 
 ; &9938 referenced 1 time by &9910
-.c9938
+.finalise_cdir
     jmp save_wksp_and_return                                          ; 9938: 4c d3 89    L..            ; Save workspace and return
 
     equb &5e, &0d                                                     ; 993b: 5e 0d       ^.
@@ -4903,7 +4903,7 @@ oscli                                           = &fff7
 ; 
 ; ***************************************************************************************
 .star_access
-    jsr sub_c8fdf                                                     ; 993d: 20 df 8f     ..            ; Find first matching file
+    jsr find_first_matching_entry                                     ; 993d: 20 df 8f     ..            ; Find first matching file
     beq set_file_attributes                                           ; 9940: f0 0f       ..             ; Found? Set attributes
     jmp not_found_error                                               ; 9942: 4c c8 8b    L..            ; Not found: report error
 
@@ -4997,7 +4997,7 @@ oscli                                           = &fff7
     jsr conditional_info_display                                      ; 99bb: 20 fa 94     ..            ; Display info if *OPT1 verbose
     jsr advance_dir_entry_ptr                                         ; 99be: 20 5e 89     ^.            ; Find next matching file
     beq set_file_attributes                                           ; 99c1: f0 8e       ..             ; More matches? Continue
-    jsr c8f86                                                         ; 99c3: 20 86 8f     ..            ; Write directory back to disc
+    jsr write_dir_and_validate                                        ; 99c3: 20 86 8f     ..            ; Write directory back to disc
     jmp save_wksp_and_return                                          ; 99c6: 4c d3 89    L..            ; Save workspace and return
 
 ; &99c9 referenced 1 time by &99aa
@@ -5067,7 +5067,7 @@ oscli                                           = &fff7
     pha                                                               ; 9a29: 48          H              ; Push low byte
     lda zp_b5                                                         ; 9a2a: a5 b5       ..             ; Save filename pointer high
     pha                                                               ; 9a2c: 48          H              ; Push high byte
-    jsr sub_c8fdf                                                     ; 9a2d: 20 df 8f     ..            ; Find next matching file
+    jsr find_first_matching_entry                                     ; 9a2d: 20 df 8f     ..            ; Find next matching file
     bne all_files_deleted                                             ; 9a30: d0 0c       ..             ; Not found: all deleted, finish
     jsr check_and_delete_found                                        ; 9a32: 20 28 91     (.            ; Delete this file
     pla                                                               ; 9a35: 68          h              ; Restore filename pointer high
@@ -5454,7 +5454,7 @@ oscli                                           = &fff7
     sta zp_b4                                                         ; 9c3d: 85 b4       ..             ; Store path address low
     lda #&9c                                                          ; 9c3f: a9 9c       ..             ; Path in this ROM page
     sta zp_b5                                                         ; 9c41: 85 b5       ..             ; Store path address high
-    jsr sub_c8fdf                                                     ; 9c43: 20 df 8f     ..            ; Search for LIB directory
+    jsr find_first_matching_entry                                     ; 9c43: 20 df 8f     ..            ; Search for LIB directory
     bne init_channel_complete                                         ; 9c46: d0 2c       .,             ; Not found: leave lib as default
 ; &9c48 referenced 1 time by &9c53
 .copy_drive_info_loop
@@ -6064,12 +6064,12 @@ l9dd3 = check_help_adfs_keyword+1
 .c9ff6
     cpx #3                                                            ; 9ff6: e0 03       ..             ; Check for *OPT 4 (boot option)
     bne ca00a                                                         ; 9ff8: d0 10       ..             ; Not *OPT 4: bad opt error
-    jsr sub_c8fea                                                     ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified
+    jsr mark_directory_dirty                                          ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified
     jsr check_drive_and_reload_fsm                                    ; 9ffd: 20 f5 b4     ..            ; Ensure dir loaded and writable
     lda zp_b5                                                         ; a000: a5 b5       ..             ; Get boot option value (second param)
     and #3                                                            ; a002: 29 03       ).             ; Mask to 2 bits (options 0-3)
     sta fsm_s1_boot_option                                            ; a004: 8d fd 0f    ...            ; Store in FSM boot option byte
-    jmp c8f86                                                         ; a007: 4c 86 8f    L..            ; Write FSM back to disc
+    jmp write_dir_and_validate                                        ; a007: 4c 86 8f    L..            ; Write FSM back to disc
 
 ; &a00a referenced 1 time by &9ff8
 .ca00a
@@ -6439,7 +6439,7 @@ la154 = sub_ca153+1
 ; ***************************************************************************************
 .star_title
     jsr check_drive_and_reload_fsm                                    ; a252: 20 f5 b4     ..            ; Ensure dir is loaded and writable
-    jsr sub_c8fea                                                     ; a255: 20 ea 8f     ..            ; Mark directory as modified
+    jsr mark_directory_dirty                                          ; a255: 20 ea 8f     ..            ; Mark directory as modified
     jsr skip_spaces                                                   ; a258: 20 cf a4     ..            ; Skip leading spaces in argument; Skip leading spaces in command argument
     ldy #0                                                            ; a25b: a0 00       ..             ; Y=0: index into title string
 ; &a25d referenced 1 time by &a271
@@ -6459,7 +6459,7 @@ la154 = sub_ca153+1
     iny                                                               ; a26e: c8          .              ; Next character
     cpy #&13                                                          ; a26f: c0 13       ..             ; Title is 19 characters max
     bne copy_title_loop                                               ; a271: d0 ea       ..             ; Loop for all 19 characters
-    jmp c8f86                                                         ; a273: 4c 86 8f    L..            ; Write directory back to disc
+    jmp write_dir_and_validate                                        ; a273: 4c 86 8f    L..            ; Write directory back to disc
 
 ; ***************************************************************************************
 ; *COMPACT command handler
@@ -6593,7 +6593,7 @@ la154 = sub_ca153+1
     lda zp_flags                                                      ; a34a: a5 cd       ..             ; Set bit 3 of ADFS flags
     ora #8                                                            ; a34c: 09 08       ..             ; Indicate compaction in progress
     sta zp_flags                                                      ; a34e: 85 cd       ..             ; Store updated flags
-    jsr sub_c98ae                                                     ; a350: 20 ae 98     ..            ; Execute compaction algorithm
+    jsr calculate_total_sectors                                       ; a350: 20 ae 98     ..            ; Execute compaction algorithm
     lda zp_flags                                                      ; a353: a5 cd       ..             ; Clear bit 3 when done
     and #&f7                                                          ; a355: 29 f7       ).             ; Mask off bit 3
     sta zp_flags                                                      ; a357: 85 cd       ..             ; Store cleared flags
@@ -6970,7 +6970,7 @@ la154 = sub_ca153+1
     lda zp_b5                                                         ; a506: a5 b5       ..             ; Get first arg pointer high
     pha                                                               ; a508: 48          H              ; Save on stack
     jsr check_drive_colon                                             ; a509: 20 f6 a4     ..            ; Check for drive specifier; Check for drive specifier colon
-    jsr sub_c8dbd                                                     ; a50c: 20 bd 8d     ..            ; Parse and validate destination path
+    jsr set_up_gsinit_path                                            ; a50c: 20 bd 8d     ..            ; Parse and validate destination path
     jsr find_file_and_validate                                        ; a50f: 20 e5 8b     ..            ; Search for source file
     beq source_is_found                                               ; a512: f0 03       ..             ; Found?
     jmp not_found_error                                               ; a514: 4c c8 8b    L..            ; Not found: report error
@@ -7018,7 +7018,7 @@ la154 = sub_ca153+1
     sta zp_b9                                                         ; a550: 85 b9       ..             ; Store high byte
     jsr build_osfile_control_block                                    ; a552: 20 e2 8c     ..            ; Search for dest filename
     php                                                               ; a555: 08          .              ; Save search result flags
-    jsr sub_c8df6                                                     ; a556: 20 f6 8d     ..            ; Check directory state
+    jsr search_dir_for_new_entry                                      ; a556: 20 f6 8d     ..            ; Check directory state
     plp                                                               ; a559: 28          (              ; Restore flags
     bne check_alt_workspace                                           ; a55a: d0 0d       ..             ; Dest not found: good for rename
     lda zp_b6                                                         ; a55c: a5 b6       ..             ; Dest exists: save entry pointer
@@ -7051,7 +7051,7 @@ la154 = sub_ca153+1
     pha                                                               ; a583: 48          H              ; Re-save for later
     txa                                                               ; a584: 8a          .              ; Get high byte from X
     pha                                                               ; a585: 48          H              ; Re-save
-    jsr sub_c8fdf                                                     ; a586: 20 df 8f     ..            ; Search source in original dir
+    jsr find_first_matching_entry                                     ; a586: 20 df 8f     ..            ; Search source in original dir
     jsr check_file_not_open                                           ; a589: 20 10 8d     ..            ; Check if file is open
     ldy #3                                                            ; a58c: a0 03       ..             ; Y=3: compare directories
     lda zp_b6                                                         ; a58e: a5 b6       ..             ; Get source entry pointer
@@ -7111,13 +7111,13 @@ la154 = sub_ca153+1
     sta (zp_b6),y                                                     ; a5da: 91 b6       ..             ; Store renamed byte in entry
     dey                                                               ; a5dc: 88          .              ; Next byte
     bpl merge_name_attributes_loop                                    ; a5dd: 10 e3       ..             ; Loop for 10 bytes
-    jsr c8f86                                                         ; a5df: 20 86 8f     ..            ; Write directory back to disc
+    jsr write_dir_and_validate                                        ; a5df: 20 86 8f     ..            ; Write directory back to disc
     jsr update_moved_dir_parent                                       ; a5e2: 20 85 a6     ..            ; Update directory checksums
     jmp save_wksp_and_return                                          ; a5e5: 4c d3 89    L..            ; Save workspace and return
 
 ; &a5e8 referenced 1 time by &a5ee
 .already_exists_error
-    jmp c95a4                                                         ; a5e8: 4c a4 95    L..            ; Already exists: error
+    jmp already_exists_error2                                         ; a5e8: 4c a4 95    L..            ; Already exists: error
 
 ; &a5eb referenced 1 time by &a593
 .cross_dir_rename
@@ -7127,7 +7127,7 @@ la154 = sub_ca153+1
     lda (zp_b6),y                                                     ; a5f2: b1 b6       ..             ; Get last name byte
     ora #&80                                                          ; a5f4: 09 80       ..             ; Set bit 7 (mark as directory?)
     sta (zp_b6),y                                                     ; a5f6: 91 b6       ..             ; Store back
-    jsr c8f86                                                         ; a5f8: 20 86 8f     ..            ; Write source directory
+    jsr write_dir_and_validate                                        ; a5f8: 20 86 8f     ..            ; Write source directory
     ldy #&0a                                                          ; a5fb: a0 0a       ..             ; Y=&0A: copy entry data to workspace
     ldx #7                                                            ; a5fd: a2 07       ..             ; X=7: 8 bytes of entry metadata
 ; &a5ff referenced 1 time by &a606
@@ -7174,8 +7174,8 @@ la154 = sub_ca153+1
     sta zp_b8                                                         ; a643: 85 b8       ..             ; Store block pointer low
     lda #&10                                                          ; a645: a9 10       ..             ; Block page = &10
     sta zp_b9                                                         ; a647: 85 b9       ..             ; Store block pointer high
-    jsr sub_c8df3                                                     ; a649: 20 f3 8d     ..            ; Create entry in dest directory
-    jsr sub_c8e6f                                                     ; a64c: 20 6f 8e     o.            ; Allocate disc space
+    jsr check_file_not_open2                                          ; a649: 20 f3 8d     ..            ; Create entry in dest directory
+    jsr allocate_disc_space_for_file                                  ; a64c: 20 6f 8e     o.            ; Allocate disc space
     ldy #3                                                            ; a64f: a0 03       ..             ; Y=3: copy attributes back to entry
 ; &a651 referenced 1 time by &a65b
 .restore_attributes_loop
@@ -7186,16 +7186,16 @@ la154 = sub_ca153+1
     sta (zp_b6),y                                                     ; a658: 91 b6       ..             ; Store in entry name byte
     dey                                                               ; a65a: 88          .              ; Next byte
     bpl restore_attributes_loop                                       ; a65b: 10 f4       ..             ; Loop for 4 bytes
-    jsr sub_c8e8b                                                     ; a65d: 20 8b 8e     ..            ; Write entry metadata
-    jsr sub_c8f58                                                     ; a660: 20 58 8f     X.            ; Update entry size
-    jsr c8f86                                                         ; a663: 20 86 8f     ..            ; Write dest directory to disc
+    jsr copy_entry_from_template                                      ; a65d: 20 8b 8e     ..            ; Write entry metadata
+    jsr copy_length_to_entry                                          ; a660: 20 58 8f     X.            ; Update entry size
+    jsr write_dir_and_validate                                        ; a663: 20 86 8f     ..            ; Write dest directory to disc
     jsr update_moved_dir_parent                                       ; a666: 20 85 a6     ..            ; Update moved dir's parent pointer
     jsr save_wksp_and_return                                          ; a669: 20 d3 89     ..            ; Save workspace state
     pla                                                               ; a66c: 68          h              ; Restore source name pointer
     sta zp_b5                                                         ; a66d: 85 b5       ..             ; Store high byte
     pla                                                               ; a66f: 68          h              ; Restore low byte
     sta zp_b4                                                         ; a670: 85 b4       ..             ; Store low byte
-    jsr sub_c8fdf                                                     ; a672: 20 df 8f     ..            ; Find source entry again
+    jsr find_first_matching_entry                                     ; a672: 20 df 8f     ..            ; Find source entry again
     ldx #5                                                            ; a675: a2 05       ..             ; X=5: clear 6 bytes of sector info
     lda #0                                                            ; a677: a9 00       ..             ; A=0: zero fill
 ; &a679 referenced 1 time by &a67d
@@ -7249,7 +7249,7 @@ la154 = sub_ca153+1
     sta dir_parent_sector,y                                           ; a6be: 99 d6 16    ...            ; Store in directory parent field
     dey                                                               ; a6c1: 88          .              ; Next byte
     bpl write_parent_sector_loop                                      ; a6c2: 10 f7       ..             ; Loop for 3 bytes
-    jmp c8f86                                                         ; a6c4: 4c 86 8f    L..            ; Write updated directory to disc
+    jmp write_dir_and_validate                                        ; a6c4: 4c 86 8f    L..            ; Write updated directory to disc
 
 ; ***************************************************************************************
 ; Ensure current directory is loaded
@@ -7376,7 +7376,7 @@ la154 = sub_ca153+1
     pha                                                               ; a74e: 48          H              ; Save X
     lda l10ce                                                         ; a74f: ad ce 10    ...            ; Check error flag
     bne bad_checksum_error                                            ; a752: d0 e4       ..             ; Non-zero: workspace corrupt, error
-    jsr sub_c8fea                                                     ; a754: 20 ea 8f     ..            ; Mark directory as modified
+    jsr mark_directory_dirty                                          ; a754: 20 ea 8f     ..            ; Mark directory as modified
     clc                                                               ; a757: 18          .              ; Clear carry for scan
     ldx #&10                                                          ; a758: a2 10       ..             ; X=&10: scan open channel table
 ; &a75a referenced 1 time by &a76b
@@ -7578,7 +7578,7 @@ la868 = check_dest_terminator+1
 ; &a86f referenced 1 time by &a86a
 .load_dest_directory
     jsr parse_path_and_load                                           ; a86f: 20 7f 94     ..            ; Load destination directory
-    jsr sub_c8fea                                                     ; a872: 20 ea 8f     ..            ; Mark destination dir as modified
+    jsr mark_directory_dirty                                          ; a872: 20 ea 8f     ..            ; Mark destination dir as modified
     ldy #3                                                            ; a875: a0 03       ..             ; Y=3: save dest dir sector
 ; &a877 referenced 1 time by &a87e
 .save_dest_dir_sector_loop
@@ -7638,9 +7638,9 @@ la868 = check_dest_terminator+1
     lda #&0d                                                          ; a8d4: a9 0d       ..             ; A=CR: terminate filename
     sta l107e                                                         ; a8d6: 8d 7e 10    .~.            ; Store terminator
     jsr setup_fsm_read                                                ; a8d9: 20 f5 a7     ..            ; Set up disc read for source file
-    jsr sub_c8df3                                                     ; a8dc: 20 f3 8d     ..            ; Check if file is open
-    jsr sub_c8e6f                                                     ; a8df: 20 6f 8e     o.            ; Allocate space for dest file
-    jsr sub_c8f52                                                     ; a8e2: 20 52 8f     R.            ; Write dest directory entry
+    jsr check_file_not_open2                                          ; a8dc: 20 f3 8d     ..            ; Check if file is open
+    jsr allocate_disc_space_for_file                                  ; a8df: 20 6f 8e     o.            ; Allocate space for dest file
+    jsr write_entry_sector_info                                       ; a8e2: 20 52 8f     R.            ; Write dest directory entry
     ldy #2                                                            ; a8e5: a0 02       ..             ; Y=2: copy sector addresses
 ; &a8e7 referenced 1 time by &a8f4
 .copy_sector_addresses_loop
@@ -7672,10 +7672,10 @@ la868 = check_dest_terminator+1
     pha                                                               ; a926: 48          H              ; Push on stack
     lda #0                                                            ; a927: a9 00       ..             ; Set drive to 0 temporarily
     sta wksp_current_drive                                            ; a929: 8d 17 11    ...            ; Store temporary drive
-    jsr c96a6                                                         ; a92c: 20 a6 96     ..            ; Execute sector-by-sector copy
+    jsr execute_sector_copy                                           ; a92c: 20 a6 96     ..            ; Execute sector-by-sector copy
     pla                                                               ; a92f: 68          h              ; Restore original drive
     sta wksp_current_drive                                            ; a930: 8d 17 11    ...            ; Set as current drive
-    jsr c8f86                                                         ; a933: 20 86 8f     ..            ; Write modified directory
+    jsr write_dir_and_validate                                        ; a933: 20 86 8f     ..            ; Write modified directory
     jsr setup_disc_read_for_dir                                       ; a936: 20 c0 a7     ..            ; Set up for next source file
     jmp skip_dir_entry_or_done                                        ; a939: 4c 8c a8    L..            ; Loop to copy next file
 
@@ -8596,7 +8596,7 @@ la868 = check_dest_terminator+1
     sta (zp_b8),y                                                     ; af47: 91 b8       ..             ; Store in dir entry
     ora wksp_current_drive                                            ; af49: 0d 17 11    ...            ; OR with drive number for channel
     sta l11b6,x                                                       ; af4c: 9d b6 11    ...            ; Update channel start sector+drive
-    jsr c8f86                                                         ; af4f: 20 86 8f     ..            ; Write directory back to disc
+    jsr write_dir_and_validate                                        ; af4f: 20 86 8f     ..            ; Write directory back to disc
     lda zp_flags                                                      ; af52: a5 cd       ..             ; Clear bit 3 of ADFS flags
     and #&f7                                                          ; af54: 29 f7       ).             ; Mask off bit 3
     sta zp_flags                                                      ; af56: 85 cd       ..             ; Store cleared flags
@@ -8623,7 +8623,7 @@ la868 = check_dest_terminator+1
     bpl copy_old_sector_info_loop                                     ; af7f: 10 e5       ..             ; Loop for 3 bytes
     txa                                                               ; af81: 8a          .              ; X non-zero: relocation occurred
     beq skip_zero_fill                                                ; af82: f0 03       ..             ; Zero: no relocation, skip copy
-    jsr c96a6                                                         ; af84: 20 a6 96     ..            ; Copy data from old to new location
+    jsr execute_sector_copy                                           ; af84: 20 a6 96     ..            ; Copy data from old to new location
 ; &af87 referenced 2 times by &aebe, &af82
 .skip_zero_fill
     lda l10b5                                                         ; af87: ad b5 10    ...            ; Check extension flag
@@ -8980,7 +8980,7 @@ la868 = check_dest_terminator+1
 
 ; &b20e referenced 1 time by &b209
 .search_for_input_file
-    jsr sub_c8fdf                                                     ; b20e: 20 df 8f     ..            ; Open for input: search for file
+    jsr find_first_matching_entry                                     ; b20e: 20 df 8f     ..            ; Open for input: search for file
     beq check_read_conflicts                                          ; b211: f0 05       ..             ; Found?
     lda #0                                                            ; b213: a9 00       ..             ; Not found: A=0 (no handle)
     jmp save_and_return_handle                                        ; b215: 4c d9 b2    L..            ; Return with A=0
@@ -9009,7 +9009,7 @@ la868 = check_dest_terminator+1
     lda (zp_b6),y                                                     ; b243: b1 b6       ..             ; Get entry's sequence number
     cmp l11f2,x                                                       ; b245: dd f2 11    ...            ; Compare with channel's sequence
     bne next_conflict_check                                           ; b248: d0 03       ..             ; Mismatch: not the same file
-    jmp c8d53                                                         ; b24a: 4c 53 8d    LS.            ; Match: Already open error
+    jmp channel_on_same_drive                                         ; b24a: 4c 53 8d    LS.            ; Match: Already open error
 
 ; &b24d referenced 6 times by &b21d, &b227, &b22f, &b237, &b23f, &b248
 .next_conflict_check
@@ -9093,7 +9093,7 @@ la868 = check_dest_terminator+1
 .check_random_access_mode
     bit l10a0                                                         ; b2e1: 2c a0 10    ,..            ; Check open mode for random access
     bvc open_for_output_new                                           ; b2e4: 50 18       P.             ; Bit 6 clear: open for output only
-    jsr sub_c8fdf                                                     ; b2e6: 20 df 8f     ..            ; Random: search for existing file
+    jsr find_first_matching_entry                                     ; b2e6: 20 df 8f     ..            ; Random: search for existing file
     php                                                               ; b2e9: 08          .              ; Save search result flags
     lda #0                                                            ; b2ea: a9 00       ..             ; A=0: default no-file result
     plp                                                               ; b2ec: 28          (              ; Restore flags from search
@@ -9112,8 +9112,8 @@ la868 = check_dest_terminator+1
 
 ; &b2fe referenced 1 time by &b2e4
 .open_for_output_new
-    jsr sub_c8dbd                                                     ; b2fe: 20 bd 8d     ..            ; Parse destination path
-    jsr sub_c8fdf                                                     ; b301: 20 df 8f     ..            ; Search for existing file
+    jsr set_up_gsinit_path                                            ; b2fe: 20 bd 8d     ..            ; Parse destination path
+    jsr find_first_matching_entry                                     ; b301: 20 df 8f     ..            ; Search for existing file
     bne clear_new_file_osfile                                         ; b304: d0 0c       ..             ; Not found: create new
     jsr check_file_not_open                                           ; b306: 20 10 8d     ..            ; Found: check it's not open
     ldy #1                                                            ; b309: a0 01       ..             ; Y=1: check access byte
@@ -9163,14 +9163,14 @@ la868 = check_dest_terminator+1
     ldy #&10                                                          ; b353: a0 10       ..             ; Y=&10: OSFILE block page
     sty zp_b9                                                         ; b355: 84 b9       ..             ; Store block pointer high
     jsr save_wksp_and_return                                          ; b357: 20 d3 89     ..            ; Save workspace
-    jsr sub_c8f4c                                                     ; b35a: 20 4c 8f     L.            ; Create directory entry for new file
-    jsr c8f86                                                         ; b35d: 20 86 8f     ..            ; Write directory to disc
+    jsr validate_not_locked                                           ; b35a: 20 4c 8f     L.            ; Create directory entry for new file
+    jsr write_dir_and_validate                                        ; b35d: 20 86 8f     ..            ; Write directory to disc
     jsr get_object_type_result                                        ; b360: 20 d0 89     ..            ; Save workspace after dir write
     lda wksp_osfile_block                                             ; b363: ad 40 10    .@.            ; Restore original filename pointer
     sta zp_b4                                                         ; b366: 85 b4       ..             ; Store in (&B4)
     lda l1041                                                         ; b368: ad 41 10    .A.            ; Get filename high byte
     sta zp_b5                                                         ; b36b: 85 b5       ..             ; Store in (&B5)
-    jsr sub_c8fdf                                                     ; b36d: 20 df 8f     ..            ; Search for newly created entry
+    jsr find_first_matching_entry                                     ; b36d: 20 df 8f     ..            ; Search for newly created entry
 ; &b370 referenced 1 time by &b30f
 .set_ext_zero_for_new
     lda #0                                                            ; b370: a9 00       ..             ; A=0: new file has zero length
@@ -9295,7 +9295,7 @@ la868 = check_dest_terminator+1
     iny                                                               ; b45c: c8          .              ; Y=&15
     sta (zp_b8),y                                                     ; b45d: 91 b8       ..             ; Store in entry
     jsr release_disc_space                                            ; b45f: 20 b5 84     ..            ; Release disc space back to free space map
-    jsr c8f86                                                         ; b462: 20 86 8f     ..            ; Write updated directory to disc
+    jsr write_dir_and_validate                                        ; b462: 20 86 8f     ..            ; Write updated directory to disc
     jmp close_read_only                                               ; b465: 4c e4 b3    L..            ; Jump to release space and return
 
 ; &b468 referenced 1 time by &88b5
@@ -11304,12 +11304,12 @@ la868 = check_dest_terminator+1
     assert >(sub_c9fdd-1) == &9f
     assert >(svc5_irq-1) == &ab
     assert copyright - rom_header == &18
+    assert osfile_delete_handler-1 == &9100
+    assert osfile_load_handler-1 == &8f73
+    assert osfile_read_cat_info-1 == &8f7c
     assert osfile_save_handler-1 == &8ca7
+    assert osfile_write_load_addr-1 == &907b
     assert search_and_delete_entry-1 == &911d
-    assert sub_c8f74-1 == &8f73
-    assert sub_c8f7d-1 == &8f7c
-    assert sub_c907c-1 == &907b
-    assert sub_c9101-1 == &9100
 
 save pydis_start, pydis_end
 
@@ -11345,9 +11345,9 @@ save pydis_start, pydis_end
 ;     wksp_ch_ext_mh:                                    18
 ;     wksp_ch_ext_ml:                                    18
 ;     zp_a3:                                             18
-;     c8f86:                                             17
 ;     osbyte:                                            17
 ;     wksp_ch_ext_l:                                     17
+;     write_dir_and_validate:                            17
 ;     zp_a2:                                             17
 ;     zp_save_x:                                         17
 ;     l11b6:                                             16
@@ -11359,8 +11359,8 @@ save pydis_start, pydis_end
 ;     romsel_copy:                                       14
 ;     wksp_disc_op_command:                              14
 ;     zp_a1:                                             14
+;     find_first_matching_entry:                         13
 ;     fsm_sector_0:                                      13
-;     sub_c8fdf:                                         13
 ;     wksp_ch_ptr_h:                                     13
 ;     wksp_ch_ptr_l:                                     13
 ;     wksp_ch_ptr_mh:                                    13
@@ -11426,7 +11426,7 @@ save pydis_start, pydis_end
 ;     save_workspace_state:                               8
 ;     wksp_disc_op_mem_addr:                              8
 ;     bad_checksum_error:                                 7
-;     c8ffa:                                              7
+;     check_first_char_wildcard:                          7
 ;     command_done:                                       7
 ;     fdc_8271_data_or_1770_command_or_status:            7
 ;     floppy_error:                                       7
@@ -11457,7 +11457,6 @@ save pydis_start, pydis_end
 ;     zp_a6:                                              7
 ;     zp_c1:                                              7
 ;     bad_name_error:                                     6
-;     c8d69:                                              6
 ;     check_set_channel_y:                                6
 ;     clear_transfer_complete:                            6
 ;     command_exec_xy:                                    6
@@ -11472,6 +11471,7 @@ save pydis_start, pydis_end
 ;     l11a2:                                              6
 ;     next_conflict_check:                                6
 ;     nmi_0d59:                                           6
+;     no_open_files_on_drive:                             6
 ;     release_tube_and_return:                            6
 ;     scsi_send_cmd_byte:                                 6
 ;     sub_c832b:                                          6
@@ -11498,13 +11498,13 @@ save pydis_start, pydis_end
 ;     l10b9:                                              5
 ;     l10c2:                                              5
 ;     l111f:                                              5
+;     mark_directory_dirty:                               5
 ;     nmi_0d57:                                           5
 ;     nmi_0d5c:                                           5
 ;     not_found_error:                                    5
 ;     release_disc_space:                                 5
 ;     release_tube:                                       5
 ;     scsi_get_status:                                    5
-;     sub_c8fea:                                          5
 ;     sync_ext_to_ptr:                                    5
 ;     tbl_commands:                                       5
 ;     update_channel_flags_for_ptr:                       5
@@ -11515,10 +11515,10 @@ save pydis_start, pydis_end
 ;     zp_c8:                                              5
 ;     adjust_for_partial_xfer:                            4
 ;     bad_drive_name:                                     4
+;     bad_name_in_path:                                   4
 ;     boot_shift_pressed:                                 4
-;     c8ddb:                                              4
-;     c96a6:                                              4
 ;     check_drive_and_reload_fsm:                         4
+;     check_file_not_open2:                               4
 ;     claim_tube_retry:                                   4
 ;     command_exec_start_exec:                            4
 ;     command_set_retries:                                4
@@ -11526,6 +11526,7 @@ save pydis_start, pydis_end
 ;     copy_default_dir_name:                              4
 ;     dir_name:                                           4
 ;     exec_disc_and_check_error:                          4
+;     execute_sector_copy:                                4
 ;     floppy_set_side_1:                                  4
 ;     get_object_type_result:                             4
 ;     get_wksp_addr_ba:                                   4
@@ -11556,7 +11557,6 @@ save pydis_start, pydis_end
 ;     set_result_error_code:                              4
 ;     setup_osgbpb_output_buffer:                         4
 ;     star_match_succeeded:                               4
-;     sub_c8df3:                                          4
 ;     update_dir_entry_on_close:                          4
 ;     update_ext_to_ptr:                                  4
 ;     wksp_1014:                                          4
@@ -11573,6 +11573,7 @@ save pydis_start, pydis_end
 ;     advance_byte_position:                              3
 ;     advance_text_ptr:                                   3
 ;     allocate_disc_space:                                3
+;     allocate_disc_space_for_file:                       3
 ;     bad_address_error:                                  3
 ;     bad_parms_error:                                    3
 ;     begin_compaction:                                   3
@@ -11642,12 +11643,10 @@ save pydis_start, pydis_end
 ;     return_after_flag_update:                           3
 ;     scsi_start_command:                                 3
 ;     set_drive_from_channel:                             3
+;     set_up_gsinit_path:                                 3
 ;     setup_disc_write:                                   3
 ;     skip_spaces_before_attrs:                           3
 ;     step_ensure_offset_loop:                            3
-;     sub_c8dbd:                                          3
-;     sub_c8e6f:                                          3
-;     sub_c8f4c:                                          3
 ;     switch_to_library:                                  3
 ;     transfer_sector_bytes:                              3
 ;     tube_delay2:                                        3
@@ -11656,6 +11655,7 @@ save pydis_start, pydis_end
 ;     update_ext_from_new_ptr:                            3
 ;     validate_and_set_ptr:                               3
 ;     validate_found_entry:                               3
+;     validate_not_locked:                                3
 ;     verify_dir_integrity:                               3
 ;     wksp_1024:                                          3
 ;     wksp_1028:                                          3
@@ -11674,36 +11674,21 @@ save pydis_start, pydis_end
 ;     zp_scsi_status:                                     3
 ;     add_size_to_existing_entry:                         2
 ;     adfs_hardware_found:                                2
+;     advance_access_bit:                                 2
 ;     advance_channel_sector:                             2
 ;     advance_fill_sector:                                2
 ;     advance_past_command:                               2
+;     advance_sector_ptrs:                                2
+;     advance_source_sector:                              2
 ;     advance_text_past_component:                        2
 ;     advance_to_next_dir_entry:                          2
+;     already_exists_error2:                              2
 ;     apply_head_load_flag:                               2
 ;     apply_writable_mask:                                2
 ;     begin_dir_entry_search:                             2
 ;     boot_run_option:                                    2
 ;     broken_directory_error:                             2
 ;     c8dab:                                              2
-;     c8dde:                                              2
-;     c8ec0:                                              2
-;     c8f80:                                              2
-;     c904c:                                              2
-;     c90eb:                                              2
-;     c90fb:                                              2
-;     c95a4:                                              2
-;     c95b7:                                              2
-;     c9666:                                              2
-;     c9686:                                              2
-;     c9766:                                              2
-;     c977a:                                              2
-;     c977d:                                              2
-;     c97a8:                                              2
-;     c97b3:                                              2
-;     c97c1:                                              2
-;     c980c:                                              2
-;     c98dd:                                              2
-;     c990e:                                              2
 ;     c9fed:                                              2
 ;     calc_bget_sector_addr:                              2
 ;     calc_buffer_address:                                2
@@ -11713,10 +11698,12 @@ save pydis_start, pydis_end
 ;     calc_partial_end_sector:                            2
 ;     calc_partial_start_sector:                          2
 ;     calc_wksp_checksum:                                 2
+;     cdir_name_validated:                                2
 ;     check_256_byte_transfer:                            2
 ;     check_and_delete_found:                             2
 ;     check_both_exhausted:                               2
 ;     check_csd_on_drive:                                 2
+;     check_dir_access_bit:                               2
 ;     check_dir_loaded:                                   2
 ;     check_disc_command_type:                            2
 ;     check_disc_id_changed:                              2
@@ -11724,6 +11711,7 @@ save pydis_start, pydis_end
 ;     check_existing_for_save:                            2
 ;     check_filename_length:                              2
 ;     check_floppy_error_code:                            2
+;     check_format_parameters:                            2
 ;     check_lib_deleted:                                  2
 ;     check_name_ended:                                   2
 ;     check_open:                                         2
@@ -11739,6 +11727,7 @@ save pydis_start, pydis_end
 ;     compare_filename:                                   2
 ;     conditional_info_display:                           2
 ;     continue_scanning:                                  2
+;     copy_entry_from_template:                           2
 ;     copy_sector_to_transfer:                            2
 ;     dec_number_error_100_y:                             2
 ;     dir2_title:                                         2
@@ -11756,6 +11745,8 @@ save pydis_start, pydis_end
 ;     floppy_init_transfer:                               2
 ;     floppy_restore_track_0:                             2
 ;     flush_all_channels:                                 2
+;     format_init_dir:                                    2
+;     format_init_fsm:                                    2
 ;     fred_hard_drive_1:                                  2
 ;     fsm_s1_checksum:                                    2
 ;     generate_error_no_suffix:                           2
@@ -11767,6 +11758,8 @@ save pydis_start, pydis_end
 ;     hex_number_error_100_y:                             2
 ;     increment_ptr_after_write:                          2
 ;     increment_tube_xfer_addr:                           2
+;     init_fsm_zeros_loop:                                2
+;     init_root_dir_entries:                              2
 ;     insert_new_entry:                                   2
 ;     issue_fdc_command:                                  2
 ;     l00ff:                                              2
@@ -11796,6 +11789,7 @@ save pydis_start, pydis_end
 ;     last_break_type:                                    2
 ;     load_dir_for_drive:                                 2
 ;     load_tube_workspace_ptr:                            2
+;     mark_saved_drive_unset:                             2
 ;     mask_error_code:                                    2
 ;     match_command_char:                                 2
 ;     mount_read_root_dir:                                2
@@ -11809,6 +11803,7 @@ save pydis_start, pydis_end
 ;     not_open_for_update_error:                          2
 ;     output_printable_char:                              2
 ;     pad_with_spaces:                                    2
+;     parse_and_search_dir:                               2
 ;     parse_and_setup_search:                             2
 ;     parse_attr_char:                                    2
 ;     parse_dir_argument:                                 2
@@ -11823,7 +11818,9 @@ save pydis_start, pydis_end
 ;     print_entry_name_and_access:                        2
 ;     print_help_command_list:                            2
 ;     print_info_loop:                                    2
+;     print_newline_and_entry:                            2
 ;     print_next_entry_loop:                              2
+;     print_no_access_flag:                               2
 ;     print_space_value:                                  2
 ;     proceed_with_delete:                                2
 ;     ra_buffer_1:                                        2
@@ -11853,18 +11850,23 @@ save pydis_start, pydis_end
 ;     search_dir_for_channel:                             2
 ;     search_dir_for_file:                                2
 ;     search_dir_with_wildcards:                          2
+;     search_for_osfile_target:                           2
 ;     select_fdc_rw_command:                              2
 ;     service4_claim_and_dispatch:                        2
 ;     service4_not_matched:                               2
+;     set_cdir_parent_sector:                             2
 ;     set_default_dir_for_boot:                           2
 ;     set_file_attributes:                                2
 ;     set_read_transfer_mode:                             2
 ;     set_terminator_flag:                                2
+;     set_up_directory_search:                            2
 ;     setup_buffer_pointers:                              2
+;     setup_cdir_dir_entry:                               2
 ;     setup_disc_read_for_dir:                            2
 ;     setup_entry_name_ptr:                               2
 ;     setup_nmi_for_transfer:                             2
 ;     setup_output_pointer:                               2
+;     setup_print_hex_field:                              2
 ;     single_sector_read:                                 2
 ;     skip_filename:                                      2
 ;     skip_separator_spaces:                              2
@@ -11875,16 +11877,11 @@ save pydis_start, pydis_end
 ;     step_track_counter:                                 2
 ;     steps_remaining_check:                              2
 ;     store_channel_flags:                                2
+;     store_entry_4byte_sector:                           2
 ;     store_result_byte:                                  2
 ;     store_wksp_checksum_ba_y:                           2
 ;     str_filing_system_name:                             2
 ;     str_hugo:                                           2
-;     sub_c8d6e:                                          2
-;     sub_c8dd6:                                          2
-;     sub_c8e8b:                                          2
-;     sub_c8f52:                                          2
-;     sub_c9009:                                          2
-;     sub_c905c:                                          2
 ;     sum_free_space:                                     2
 ;     switch_to_channel_drive:                            2
 ;     tube_start_xfer_sei:                                2
@@ -11892,6 +11889,8 @@ save pydis_start, pydis_end
 ;     update_entry_from_osfile:                           2
 ;     update_moved_dir_parent:                            2
 ;     validate_disc_command:                              2
+;     validate_disc_size:                                 2
+;     validate_sector_count:                              2
 ;     verify_dir_and_list:                                2
 ;     wait_format_nmi_complete:                           2
 ;     wait_req_and_transfer:                              2
@@ -11903,9 +11902,11 @@ save pydis_start, pydis_end
 ;     wksp_flags_save:                                    2
 ;     wksp_lib_name:                                      2
 ;     write_dirty_sector_to_disc:                         2
+;     write_entry_sector_info:                            2
 ;     zp_bb:                                              2
 ;     zp_bf:                                              2
 ;     zp_c7:                                              2
+;     access_bit_clear:                                   1
 ;     add_sector_count_loop:                              1
 ;     add_size_to_prev_loop:                              1
 ;     adjacent_next_byte:                                 1
@@ -11914,7 +11915,9 @@ save pydis_start, pydis_end
 ;     adjust_partial_transfer:                            1
 ;     advance_and_continue:                               1
 ;     advance_cat_entry:                                  1
+;     advance_copy_sector:                                1
 ;     advance_dest_scan:                                  1
+;     advance_dest_sector:                                1
 ;     advance_entry_addr_loop:                            1
 ;     advance_entry_index:                                1
 ;     advance_memory_page:                                1
@@ -11933,7 +11936,10 @@ save pydis_start, pydis_end
 ;     append_hex_suffix:                                  1
 ;     append_sector_bytes_loop:                           1
 ;     append_sector_hex:                                  1
+;     apply_access_bits_loop:                             1
 ;     bad_command_error:                                  1
+;     begin_format_operation:                             1
+;     begin_pathname_scan:                                1
 ;     begin_step_sequence:                                1
 ;     boot_load_from_disc:                                1
 ;     boot_set_page:                                      1
@@ -11942,50 +11948,6 @@ save pydis_start, pydis_end
 ;     build_access_byte_loop:                             1
 ;     build_filename_loop:                                1
 ;     build_osfile_control_block:                         1
-;     c8d23:                                              1
-;     c8d53:                                              1
-;     c8d7a:                                              1
-;     c8d8d:                                              1
-;     c8d9e:                                              1
-;     c8e19:                                              1
-;     c8e2b:                                              1
-;     c8e59:                                              1
-;     c8e5f:                                              1
-;     c8e64:                                              1
-;     c8e7d:                                              1
-;     c8e7f:                                              1
-;     c8e85:                                              1
-;     c8eb8:                                              1
-;     c8edc:                                              1
-;     c8eed:                                              1
-;     c8f3d:                                              1
-;     c902c:                                              1
-;     c9087:                                              1
-;     c90af:                                              1
-;     c90cf:                                              1
-;     c90e9:                                              1
-;     c95c3:                                              1
-;     c95c5:                                              1
-;     c9619:                                              1
-;     c961b:                                              1
-;     c964e:                                              1
-;     c96b2:                                              1
-;     c96be:                                              1
-;     c96ce:                                              1
-;     c96d1:                                              1
-;     c96e6:                                              1
-;     c970b:                                              1
-;     c9784:                                              1
-;     c97d7:                                              1
-;     c9819:                                              1
-;     c9838:                                              1
-;     c984c:                                              1
-;     c9851:                                              1
-;     c9869:                                              1
-;     c986c:                                              1
-;     c98c9:                                              1
-;     c992b:                                              1
-;     c9938:                                              1
 ;     c9ff1:                                              1
 ;     c9ff6:                                              1
 ;     ca00a:                                              1
@@ -11994,6 +11956,8 @@ save pydis_start, pydis_end
 ;     calc_end_position_loop:                             1
 ;     calc_remaining_sector:                              1
 ;     calc_zero_fill_start:                               1
+;     calculate_total_sectors:                            1
+;     channel_on_same_drive:                              1
 ;     check_4byte_addrs:                                  1
 ;     check_access_is_dir_loop:                           1
 ;     check_adfs_prefix:                                  1
@@ -12004,6 +11968,7 @@ save pydis_start, pydis_end
 ;     check_alt_workspace_set:                            1
 ;     check_at_sign:                                      1
 ;     check_attr_terminator:                              1
+;     check_bad_name_char:                                1
 ;     check_boot_key:                                     1
 ;     check_boot_option:                                  1
 ;     check_buffer_state:                                 1
@@ -12011,12 +11976,14 @@ save pydis_start, pydis_end
 ;     check_colon_suffix:                                 1
 ;     check_confirm_response:                             1
 ;     check_csd_deleted:                                  1
+;     check_dir_exists_loop:                              1
 ;     check_disc_changed:                                 1
 ;     check_dot_in_dest:                                  1
 ;     check_dot_separator:                                1
 ;     check_drive_initialised:                            1
 ;     check_drive_number:                                 1
 ;     check_escape_condition:                             1
+;     check_exact_alloc:                                  1
 ;     check_exact_match:                                  1
 ;     check_ext_vs_allocation:                            1
 ;     check_field_boundary:                               1
@@ -12028,12 +11995,15 @@ save pydis_start, pydis_end
 ;     check_host_memory:                                  1
 ;     check_if_dir_entry:                                 1
 ;     check_if_first_fit:                                 1
+;     check_if_updating_length:                           1
 ;     check_locked_attr_loop:                             1
 ;     check_locked_loop:                                  1
 ;     check_merge_with_prev:                              1
 ;     check_more_commands:                                1
 ;     check_multi_sector_range:                           1
+;     check_name_already_exists:                          1
 ;     check_name_char_loop:                               1
+;     check_open_channel_loop:                            1
 ;     check_open_conflict_loop:                           1
 ;     check_partial_sector_needed:                        1
 ;     check_partial_sectors_done:                         1
@@ -12045,6 +12015,7 @@ save pydis_start, pydis_end
 ;     check_read_error:                                   1
 ;     check_relocation_needed:                            1
 ;     check_remaining_buffered:                           1
+;     check_root_or_special:                              1
 ;     check_root_specifier:                               1
 ;     check_scsi_error_bit:                               1
 ;     check_sector_low:                                   1
@@ -12052,11 +12023,13 @@ save pydis_start, pydis_end
 ;     check_sectors_remaining:                            1
 ;     check_seek_error:                                   1
 ;     check_shadow_save:                                  1
+;     check_special_chars_loop:                           1
 ;     check_special_dir:                                  1
 ;     check_special_dir_in_path:                          1
 ;     check_step_direction:                               1
 ;     check_transfer_complete:                            1
 ;     check_triple_merge_loop:                            1
+;     check_tube_for_copy:                                1
 ;     check_tube_for_nmi:                                 1
 ;     check_tube_present:                                 1
 ;     check_workspace_claimed:                            1
@@ -12100,6 +12073,7 @@ save pydis_start, pydis_end
 ;     compare_ext_with_ptr:                               1
 ;     compare_fsm_addr_loop:                              1
 ;     compare_hugo_loop:                                  1
+;     compare_names_loop:                                 1
 ;     compare_next_dir_entry:                             1
 ;     compare_prev_plus_size_loop:                        1
 ;     compare_size_bytes_loop:                            1
@@ -12111,8 +12085,11 @@ save pydis_start, pydis_end
 ;     convert_hex_digits_loop:                            1
 ;     convert_two_digits:                                 1
 ;     copy_3byte_addrs_loop:                              1
+;     copy_3byte_length_loop:                             1
 ;     copy_4byte_addrs_loop:                              1
+;     copy_access_byte_loop:                              1
 ;     copy_adjusted_bytes_loop:                           1
+;     copy_alloc_request_loop:                            1
 ;     copy_alloc_sector_loop:                             1
 ;     copy_allocated_sector_loop:                         1
 ;     copy_allocation_from_entry:                         1
@@ -12121,6 +12098,8 @@ save pydis_start, pydis_end
 ;     copy_boot_command_loop:                             1
 ;     copy_brk_block_loop:                                1
 ;     copy_byte_loop:                                     1
+;     copy_cat_info_to_entry_loop:                        1
+;     copy_cdir_sector_loop:                              1
 ;     copy_code_to_nmi_space:                             1
 ;     copy_csd_for_dest_loop:                             1
 ;     copy_csd_name_loop:                                 1
@@ -12134,12 +12113,15 @@ save pydis_start, pydis_end
 ;     copy_default_workspace_loop:                        1
 ;     copy_dir_name_from_entry:                           1
 ;     copy_dir_name_loop:                                 1
+;     copy_dir_name_to_entry:                             1
 ;     copy_dir_sector_loop:                               1
+;     copy_dir_template_loop:                             1
 ;     copy_disc_op_for_subdir:                            1
 ;     copy_disc_op_params_loop:                           1
 ;     copy_disc_op_template:                              1
 ;     copy_disc_op_template_loop:                         1
 ;     copy_drive_info_loop:                               1
+;     copy_entry_data_loop:                               1
 ;     copy_entry_metadata_loop:                           1
 ;     copy_entry_name_loop:                               1
 ;     copy_entry_name_to_wksp_loop:                       1
@@ -12150,14 +12132,21 @@ save pydis_start, pydis_end
 ;     copy_error_string_loop:                             1
 ;     copy_exact_match_addr_loop:                         1
 ;     copy_exec_addr_loop:                                1
+;     copy_exec_addr_to_entry_loop:                       1
+;     copy_exec_to_entry_loop:                            1
 ;     copy_ext_from_entry:                                1
 ;     copy_file_entry:                                    1
 ;     copy_fsm_sector_loop:                               1
 ;     copy_fsm_template_loop:                             1
+;     copy_length_to_entry:                               1
 ;     copy_lib_name_loop:                                 1
 ;     copy_lib_sector_loop:                               1
+;     copy_load_addr_loop:                                1
+;     copy_load_to_entry_loop:                            1
 ;     copy_locked_name_loop:                              1
 ;     copy_name_byte_loop:                                1
+;     copy_name_to_cdir_loop:                             1
+;     copy_name_to_entry_loop:                            1
 ;     copy_new_name_to_entry:                             1
 ;     copy_new_ptr_from_user:                             1
 ;     copy_new_ptr_loop:                                  1
@@ -12165,16 +12154,23 @@ save pydis_start, pydis_end
 ;     copy_old_sector_info_loop:                          1
 ;     copy_osfile_addrs:                                  1
 ;     copy_osfile_params_loop:                            1
+;     copy_osfile_to_entry_loop:                          1
 ;     copy_parent_sector_loop:                            1
 ;     copy_partial_read_loop:                             1
 ;     copy_partial_sector_loop:                           1
 ;     copy_prev_dir_name_loop:                            1
 ;     copy_ptr_to_channel_loop:                           1
+;     copy_remaining_loop:                                1
 ;     copy_result_loop:                                   1
 ;     copy_result_sector_loop:                            1
+;     copy_root_sector_loop:                              1
 ;     copy_run_params_loop:                               1
 ;     copy_sector_addresses_loop:                         1
 ;     copy_sector_count_loop:                             1
+;     copy_sector_data_loop:                              1
+;     copy_sector_to_entry_loop:                          1
+;     copy_sectors_between_dirs:                          1
+;     copy_sectors_remaining:                             1
 ;     copy_source_name_loop:                              1
 ;     copy_start_sector_loop:                             1
 ;     copy_subdir_sector_loop:                            1
@@ -12189,6 +12185,7 @@ save pydis_start, pydis_end
 ;     copy_write_data_loop:                               1
 ;     copy_write_nmi_loop:                                1
 ;     create_new_dir_entry:                               1
+;     create_root_dir:                                    1
 ;     cross_dir_rename:                                   1
 ;     decrement_fill_sector:                              1
 ;     default_workspace_data:                             1
@@ -12235,8 +12232,11 @@ save pydis_start, pydis_end
 ;     file_is_locked:                                     1
 ;     file_is_locked_error:                               1
 ;     filev:                                              1
+;     fill_root_name_loop:                                1
+;     finalise_cdir:                                      1
 ;     find_best_free_space_loop:                          1
 ;     find_empty_channel_slot:                            1
+;     find_empty_entry_loop:                              1
 ;     find_free_slot_loop:                                1
 ;     find_fsm_position:                                  1
 ;     floppy_calc_track_sector_from_block_check_range:    1
@@ -12246,9 +12246,11 @@ save pydis_start, pydis_end
 ;     flush_channels_loop:                                1
 ;     format_double_sided:                                1
 ;     format_next_track:                                  1
+;     format_next_track_loop:                             1
 ;     format_track_data_ready:                            1
 ;     format_track_loop:                                  1
 ;     format_verify_pass:                                 1
+;     format_write_sectors_loop:                          1
 ;     found_insertion_point:                              1
 ;     fred_hard_drive_2:                                  1
 ;     fsc6_new_filing_system:                             1
@@ -12265,6 +12267,7 @@ save pydis_start, pydis_end
 ;     get_first_path_char:                                1
 ;     get_sector_count:                                   1
 ;     get_sector_from_block:                              1
+;     gsinit_scan_loop:                                   1
 ;     handle_buffer_mismatch:                             1
 ;     handle_eof_write:                                   1
 ;     handle_sector_error:                                1
@@ -12273,8 +12276,14 @@ save pydis_start, pydis_end
 ;     hd_command_partial_sector:                          1
 ;     hd_data_transfer_256:                               1
 ;     increment_ptr_mid_bytes:                            1
+;     init_cdir_entries_loop:                             1
 ;     init_channel_flags_loop:                            1
+;     init_dir_identity_loop:                             1
+;     init_fsm_sector_loop:                               1
+;     init_fsm_total_sectors:                             1
 ;     init_per_channel_loop:                              1
+;     init_root_dir_name:                                 1
+;     init_workspace_for_root:                            1
 ;     insert_new_fsm_entry:                               1
 ;     invalidate_sectors_loop:                            1
 ;     issue_fdc_track_command:                            1
@@ -12330,57 +12339,8 @@ save pydis_start, pydis_end
 ;     load_fsm_for_boot:                                  1
 ;     load_root_directory:                                1
 ;     load_sector_check_result:                           1
-;     loop_c8d7f:                                         1
-;     loop_c8d93:                                         1
-;     loop_c8da4:                                         1
-;     loop_c8db2:                                         1
-;     loop_c8dc0:                                         1
-;     loop_c8e00:                                         1
-;     loop_c8e0f:                                         1
-;     loop_c8e43:                                         1
-;     loop_c8e49:                                         1
-;     loop_c8e71:                                         1
-;     loop_c8e8d:                                         1
-;     loop_c8e9a:                                         1
-;     loop_c8ea8:                                         1
-;     loop_c8f01:                                         1
-;     loop_c8f1b:                                         1
-;     loop_c8f2d:                                         1
-;     loop_c8f5c:                                         1
-;     loop_c8f69:                                         1
-;     loop_c8f8e:                                         1
-;     loop_c9010:                                         1
-;     loop_c902f:                                         1
-;     loop_c903e:                                         1
-;     loop_c9060:                                         1
-;     loop_c906a:                                         1
-;     loop_c9092:                                         1
-;     loop_c909f:                                         1
-;     loop_c90b3:                                         1
-;     loop_c90c0:                                         1
-;     loop_c90e2:                                         1
-;     loop_c9579:                                         1
-;     loop_c95cf:                                         1
-;     loop_c95e5:                                         1
-;     loop_c95f9:                                         1
-;     loop_c960d:                                         1
-;     loop_c9650:                                         1
-;     loop_c965d:                                         1
-;     loop_c9670:                                         1
-;     loop_c967d:                                         1
-;     loop_c9690:                                         1
-;     loop_c969d:                                         1
-;     loop_c97dc:                                         1
-;     loop_c97ec:                                         1
-;     loop_c97fb:                                         1
-;     loop_c9823:                                         1
-;     loop_c9830:                                         1
-;     loop_c983f:                                         1
-;     loop_c985b:                                         1
-;     loop_c987b:                                         1
-;     loop_c989c:                                         1
-;     loop_c98ce:                                         1
-;     loop_c9903:                                         1
+;     mark_directory_modified:                            1
+;     mark_entry_created:                                 1
 ;     mark_entry_dirty:                                   1
 ;     mark_partial_transfer:                              1
 ;     match_command_loop:                                 1
@@ -12406,8 +12366,10 @@ save pydis_start, pydis_end
 ;     nmi_workspace:                                      1
 ;     nmi_write_code:                                     1
 ;     no_channels_on_drive:                               1
+;     no_empty_entry_found:                               1
 ;     no_match_cleanup_loop:                              1
 ;     not_open_for_update:                                1
+;     not_root_or_special:                                1
 ;     open_for_output_new:                                1
 ;     open_for_random_access:                             1
 ;     open_for_read_channel:                              1
@@ -12416,6 +12378,7 @@ save pydis_start, pydis_end
 ;     osargs_general_query:                               1
 ;     osfile_dispatch_hi:                                 1
 ;     osfile_dispatch_lo:                                 1
+;     osfile_write_load_search:                           1
 ;     osrdch:                                             1
 ;     osword:                                             1
 ;     output_boot_and_drive:                              1
@@ -12437,11 +12400,13 @@ save pydis_start, pydis_end
 ;     path_not_found:                                     1
 ;     poll_nmi_complete:                                  1
 ;     poll_req_loop:                                      1
+;     prepare_cdir_directory:                             1
 ;     prepare_dir_read:                                   1
 ;     prepare_osgbpb_return:                              1
 ;     print_aborted_error:                                1
 ;     print_access_chars_loop:                            1
 ;     print_access_done:                                  1
+;     print_access_flags_loop:                            1
 ;     print_access_space:                                 1
 ;     print_cat_header_and_entries:                       1
 ;     print_cat_newline:                                  1
@@ -12451,12 +12416,17 @@ save pydis_start, pydis_end
 ;     print_data_cmd_name_loop:                           1
 ;     print_entry_char_loop:                              1
 ;     print_entry_hex_loop:                               1
+;     print_entry_name_loop:                              1
+;     print_field_hex_loop:                               1
 ;     print_fsm_entries_loop:                             1
 ;     print_help_data_commands:                           1
+;     print_hex_field_pair_loop:                          1
 ;     print_hex_nibble:                                   1
 ;     print_map_header:                                   1
 ;     print_name_char_loop:                               1
 ;     print_newline_return:                               1
+;     print_padding_spaces_loop:                          1
+;     print_space_after_name:                             1
 ;     print_used_space:                                   1
 ;     propagate_borrow_loop:                              1
 ;     push_valid_drive:                                   1
@@ -12477,11 +12447,15 @@ save pydis_start, pydis_end
 ;     read_fsm_from_disc:                                 1
 ;     read_hd_256_complete:                               1
 ;     read_lib_name_handler:                              1
+;     read_osfile_cat_fields_loop:                        1
 ;     read_scsi_to_buffer_loop:                           1
 ;     read_scsi_to_memory:                                1
 ;     read_scsi_via_tube:                                 1
+;     read_source_sector:                                 1
+;     read_source_to_buffer:                              1
 ;     recalc_flags_from_base:                             1
 ;     receive_sense_data_loop:                            1
+;     reduce_alloc_to_available:                          1
 ;     reduce_count_to_available_loop:                     1
 ;     release_nmi:                                        1
 ;     release_tube_after_floppy:                          1
@@ -12569,10 +12543,13 @@ save pydis_start, pydis_end
 ;     scan_dest_for_parent_ref:                           1
 ;     scan_dir_entries_loop:                              1
 ;     scan_drive_channels_loop:                           1
+;     scan_entry_bytes_loop:                              1
 ;     scan_filename_loop:                                 1
 ;     scan_for_best_fit:                                  1
 ;     scan_for_component_end:                             1
 ;     scan_fsm_entries_loop:                              1
+;     scan_name_alpha_loop:                               1
+;     scan_name_bytes_loop:                               1
 ;     scan_source_entries_loop:                           1
 ;     scan_spaces_loop:                                   1
 ;     scan_title_length_loop:                             1
@@ -12582,6 +12559,7 @@ save pydis_start, pydis_end
 ;     scsi_start_command2:                                1
 ;     scsi_write_read_test:                               1
 ;     search_current_dir:                                 1
+;     search_dir_for_new_entry:                           1
 ;     search_for_dir_entry:                               1
 ;     search_for_input_file:                              1
 ;     search_lib_for_command:                             1
@@ -12604,11 +12582,15 @@ save pydis_start, pydis_end
 ;     set_buffer_flush_flag:                              1
 ;     set_channel_and_dispatch:                           1
 ;     set_default_csd:                                    1
+;     set_dir_parent_sector:                              1
 ;     set_drive_1_select:                                 1
+;     set_entry_access_from_osfile:                       1
+;     set_entry_dir_attribute:                            1
 ;     set_entry_pointer:                                  1
 ;     set_ext_zero_for_new:                               1
 ;     set_fdc_control_byte:                               1
 ;     set_ffffffff_load_addr:                             1
+;     set_format_drive:                                   1
 ;     set_format_sector_id:                               1
 ;     set_fsm_load_flag:                                  1
 ;     set_fsm_loading_flag:                               1
@@ -12617,9 +12599,12 @@ save pydis_start, pydis_end
 ;     set_ptr_from_temp:                                  1
 ;     set_read_command:                                   1
 ;     set_read_write_command:                             1
+;     set_root_as_csd:                                    1
 ;     set_root_dir_entry:                                 1
+;     set_root_identity_loop:                             1
 ;     set_rwl_attribute_bit:                              1
 ;     set_track_and_sector:                               1
+;     set_transfer_address:                               1
 ;     set_transfer_length:                                1
 ;     set_tube_read_direction:                            1
 ;     set_tube_transfer_flag:                             1
@@ -12643,6 +12628,7 @@ save pydis_start, pydis_end
 ;     shrink_fsm_list:                                    1
 ;     shrink_list_after_exact:                            1
 ;     skip_dir_entry_or_done:                             1
+;     skip_dot_in_path:                                   1
 ;     skip_filename_loop:                                 1
 ;     skip_leading_zero:                                  1
 ;     skip_space_or_quote:                                1
@@ -12661,12 +12647,15 @@ save pydis_start, pydis_end
 ;     step_outward:                                       1
 ;     step_rate_fast:                                     1
 ;     store_adjusted_count:                               1
+;     store_allocated_sector:                             1
 ;     store_converted_byte:                               1
 ;     store_csd_drive:                                    1
 ;     store_default_allocation:                           1
 ;     store_default_drive:                                1
 ;     store_digit:                                        1
 ;     store_direction_flag:                               1
+;     store_entry_3byte_sector:                           1
+;     store_entry_lengths_loop:                           1
 ;     store_error_sector:                                 1
 ;     store_exec_handle:                                  1
 ;     store_hex_nibble:                                   1
@@ -12684,10 +12673,6 @@ save pydis_start, pydis_end
 ;     str_at:                                             1
 ;     str_on_channel:                                     1
 ;     str_yes:                                            1
-;     sub_c8df6:                                          1
-;     sub_c8f58:                                          1
-;     sub_c9642:                                          1
-;     sub_c98ae:                                          1
 ;     subtract_from_length_loop:                          1
 ;     sum_entry_bytes_loop:                               1
 ;     sum_fsm_entries_loop:                               1
@@ -12705,10 +12690,16 @@ save pydis_start, pydis_end
 ;     tube_read_byte_loop:                                1
 ;     tube_start_xfer:                                    1
 ;     tube_write_byte_loop:                               1
+;     update_cat_info_loop:                               1
 ;     update_control_block_addr_loop:                     1
+;     update_entry_access:                                1
+;     update_entry_after_write:                           1
+;     update_length_and_access:                           1
 ;     update_parent_sector:                               1
 ;     use_best_fit_entry:                                 1
 ;     use_free_slot:                                      1
+;     valid_name_continue_loop:                           1
+;     verify_formatted_sectors:                           1
 ;     verify_workspace_checksum:                          1
 ;     volume_error:                                       1
 ;     wait_bus_free_loop:                                 1
@@ -12725,91 +12716,32 @@ save pydis_start, pydis_end
 ;     wksp_105e:                                          1
 ;     wksp_osword_block:                                  1
 ;     wksp_tube_transfer_addr:                            1
+;     write_buffer_to_dest:                               1
 ;     write_buffer_to_scsi_loop:                          1
 ;     write_byte_from_memory:                             1
+;     write_cdir_directory:                               1
 ;     write_complete:                                     1
+;     write_dest_sector:                                  1
 ;     write_dir_entry:                                    1
 ;     write_dir_name_loop:                                1
 ;     write_entry_metadata:                               1
+;     write_entry_to_dir:                                 1
+;     write_fsm_to_disc_loop:                             1
+;     write_new_dir_to_disc:                              1
 ;     write_new_ext:                                      1
 ;     write_parent_sector_loop:                           1
+;     write_root_dir_to_disc:                             1
+;     write_root_sectors_loop:                            1
 ;     write_scsi_data_byte:                               1
 ;     write_sector_byte_loop:                             1
 ;     write_tube_to_scsi:                                 1
 ;     zero_buffers_loop:                                  1
+;     zero_dir_entries_loop:                              1
 ;     zero_entire_sector_loop:                            1
 ;     zero_fill_sector_loop:                              1
 
 ; Automatically generated labels:
-;     c8d23
-;     c8d53
-;     c8d69
-;     c8d7a
-;     c8d8d
-;     c8d9e
 ;     c8dab
-;     c8ddb
-;     c8dde
-;     c8e19
-;     c8e2b
-;     c8e59
-;     c8e5f
-;     c8e64
-;     c8e7d
-;     c8e7f
-;     c8e85
-;     c8eb8
-;     c8ec0
-;     c8edc
-;     c8eed
-;     c8f3d
-;     c8f80
-;     c8f86
-;     c8ffa
-;     c902c
-;     c904c
-;     c9087
-;     c90af
-;     c90cf
-;     c90e9
-;     c90eb
-;     c90fb
-;     c95a4
-;     c95b7
-;     c95c3
-;     c95c5
-;     c9619
-;     c961b
-;     c964e
-;     c9666
-;     c9686
-;     c96a6
-;     c96b2
-;     c96be
-;     c96ce
-;     c96d1
-;     c96e6
-;     c970b
-;     c9766
-;     c977a
-;     c977d
-;     c9784
-;     c97a8
-;     c97b3
-;     c97c1
-;     c97d7
-;     c980c
-;     c9819
-;     c9838
-;     c984c
-;     c9851
-;     c9869
-;     c986c
-;     c98c9
-;     c98dd
-;     c990e
-;     c992b
-;     c9938
 ;     c9fed
 ;     c9ff1
 ;     c9ff6
@@ -12975,57 +12907,6 @@ save pydis_start, pydis_end
 ;     l9ee5
 ;     la154
 ;     la868
-;     loop_c8d7f
-;     loop_c8d93
-;     loop_c8da4
-;     loop_c8db2
-;     loop_c8dc0
-;     loop_c8e00
-;     loop_c8e0f
-;     loop_c8e43
-;     loop_c8e49
-;     loop_c8e71
-;     loop_c8e8d
-;     loop_c8e9a
-;     loop_c8ea8
-;     loop_c8f01
-;     loop_c8f1b
-;     loop_c8f2d
-;     loop_c8f5c
-;     loop_c8f69
-;     loop_c8f8e
-;     loop_c9010
-;     loop_c902f
-;     loop_c903e
-;     loop_c9060
-;     loop_c906a
-;     loop_c9092
-;     loop_c909f
-;     loop_c90b3
-;     loop_c90c0
-;     loop_c90e2
-;     loop_c9579
-;     loop_c95cf
-;     loop_c95e5
-;     loop_c95f9
-;     loop_c960d
-;     loop_c9650
-;     loop_c965d
-;     loop_c9670
-;     loop_c967d
-;     loop_c9690
-;     loop_c969d
-;     loop_c97dc
-;     loop_c97ec
-;     loop_c97fb
-;     loop_c9823
-;     loop_c9830
-;     loop_c983f
-;     loop_c985b
-;     loop_c987b
-;     loop_c989c
-;     loop_c98ce
-;     loop_c9903
 ;     return_1
 ;     return_10
 ;     return_11
@@ -13075,26 +12956,6 @@ save pydis_start, pydis_end
 ;     return_7
 ;     return_8
 ;     return_9
-;     sub_c8d6e
-;     sub_c8dbd
-;     sub_c8dd6
-;     sub_c8df3
-;     sub_c8df6
-;     sub_c8e6f
-;     sub_c8e8b
-;     sub_c8f4c
-;     sub_c8f52
-;     sub_c8f58
-;     sub_c8f74
-;     sub_c8f7d
-;     sub_c8fdf
-;     sub_c8fea
-;     sub_c9009
-;     sub_c905c
-;     sub_c907c
-;     sub_c9101
-;     sub_c9642
-;     sub_c98ae
 ;     sub_c9fd8
 ;     sub_c9fdd
 ;     sub_ca153
