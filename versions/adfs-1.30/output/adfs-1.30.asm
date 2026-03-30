@@ -2250,13 +2250,32 @@ lffff                                           = &ffff
 ; 
 ; ***************************************************************************************
 .disc_op_tpl_read_fsm
-    equb 1, 0, &0e, &ff, &ff, 8, 0, 0, 0, 2                           ; 880c: 01 00 0e... ...            ; FSM read: 2 sectors from sector 0 to &0E00
+    equb 1                                                            ; 880c: 01          .              ; Result: &01 (default)
+    equb 0                                                            ; 880d: 00          .              ; Memory address low: &00
+    equb &0e                                                          ; 880e: 0e          .              ; Memory address high: &0E (-> &0E00 FSM buffer)
+    equb &ff                                                          ; 880f: ff          .              ; Memory address byte 3: &FF (host memory)
+    equb &ff                                                          ; 8810: ff          .              ; Memory address byte 4: &FF (host memory)
+    equb 8                                                            ; 8811: 08          .              ; Command: &08 (read sectors)
+    equb 0                                                            ; 8812: 00          .              ; Sector high: &00
+    equb 0                                                            ; 8813: 00          .              ; Sector mid: &00
+    equb 0                                                            ; 8814: 00          .              ; Sector low: &00 (sector 0)
+    equb 2                                                            ; 8815: 02          .              ; Sector count: &02 (2 sectors for FSM)
 ; &8816 referenced 2 times by &a7d6, &a7f7
 .disc_op_tpl_padding
-    equb 0                                                            ; 8816: 00          .              ; Padding byte for 12-byte copy from &1014
+    equb 0                                                            ; 8816: 00          .              ; Padding: &00 (for 12-byte copy from &1014)
 ; &8817 referenced 4 times by &89b1, &89f4, &8f8e, &94aa
 .disc_op_tpl_read_dir
-    equb 1, 0, &12, &ff, &ff, 8, 0, 0, 2, 5, 0                        ; 8817: 01 00 12... ...            ; Dir read: 5 sectors from sector 2 to &1200
+    equb 1                                                            ; 8817: 01          .              ; Result: &01 (default)
+    equb 0                                                            ; 8818: 00          .              ; Memory address low: &00
+    equb &12                                                          ; 8819: 12          .              ; Memory address high: &12 (-> &1200 dir buffer)
+    equb &ff                                                          ; 881a: ff          .              ; Memory address byte 3: &FF (host memory)
+    equb &ff                                                          ; 881b: ff          .              ; Memory address byte 4: &FF (host memory)
+    equb 8                                                            ; 881c: 08          .              ; Command: &08 (read sectors)
+    equb 0                                                            ; 881d: 00          .              ; Sector high: &00
+    equb 0                                                            ; 881e: 00          .              ; Sector mid: &00
+    equb 2                                                            ; 881f: 02          .              ; Sector low: &02 (sector 2 = root dir)
+    equb 5                                                            ; 8820: 05          .              ; Sector count: &05 (5 sectors per directory)
+    equb 0                                                            ; 8821: 00          .              ; Control: &00
 
 ; ***************************************************************************************
 ; Parse drive number from ASCII character
