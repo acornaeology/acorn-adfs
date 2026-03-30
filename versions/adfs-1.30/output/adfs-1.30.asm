@@ -6233,20 +6233,13 @@ boot_run_option = sub_c9b86+1
 ; ***************************************************************************************
 ; &9cb3 referenced 1 time by &9b9c
 .tbl_fs_vectors
-    equb &1b                                                          ; 9cb3: 1b          .              ; FILEV low:  &1B -> &FF1B (OSFILE)
-    equb &ff                                                          ; 9cb4: ff          .              ; FILEV high: &FF (extended vector)
-    equb &1e                                                          ; 9cb5: 1e          .              ; ARGSV low:  &1E -> &FF1E (OSARGS)
-    equb &ff                                                          ; 9cb6: ff          .              ; ARGSV high: &FF
-    equb &21                                                          ; 9cb7: 21          !              ; BGETV low:  &21 -> &FF21 (OSBGET)
-    equb &ff                                                          ; 9cb8: ff          .              ; BGETV high: &FF
-    equb &24                                                          ; 9cb9: 24          $              ; BPUTV low:  &24 -> &FF24 (OSBPUT)
-    equb &ff                                                          ; 9cba: ff          .              ; BPUTV high: &FF
-    equb &27                                                          ; 9cbb: 27          '              ; GBPBV low:  &27 -> &FF27 (OSGBPB)
-    equb &ff                                                          ; 9cbc: ff          .              ; GBPBV high: &FF
-    equb &2a                                                          ; 9cbd: 2a          *              ; FINDV low:  &2A -> &FF2A (OSFIND)
-    equb &ff                                                          ; 9cbe: ff          .              ; FINDV high: &FF
-    equb &2d                                                          ; 9cbf: 2d          -              ; FSCV low:   &2D -> &FF2D (FSC)
-    equb &ff                                                          ; 9cc0: ff          .              ; FSCV high:  &FF
+    equw &ff1b                                                        ; 9cb3: 1b ff       ..             ; FILEV: &FF1B (OSFILE)
+    equw &ff1e                                                        ; 9cb5: 1e ff       ..             ; ARGSV: &FF1E (OSARGS)
+    equw &ff21                                                        ; 9cb7: 21 ff       !.             ; BGETV: &FF21 (OSBGET)
+    equw &ff24                                                        ; 9cb9: 24 ff       $.             ; BPUTV: &FF24 (OSBPUT)
+    equw &ff27                                                        ; 9cbb: 27 ff       '.             ; GBPBV: &FF27 (OSGBPB)
+    equw &ff2a                                                        ; 9cbd: 2a ff       *.             ; FINDV: &FF2A (OSFIND)
+    equw &ff2d                                                        ; 9cbf: 2d ff       -.             ; FSCV:  &FF2D (FSC)
 
 ; ***************************************************************************************
 ; Extended vector table
@@ -14098,7 +14091,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1392 bytes (8%)
 ;
 ;     Number of instructions   = 6980
-;     Number of data bytes     = 450 bytes
-;     Number of data words     = 16 bytes
+;     Number of data bytes     = 436 bytes
+;     Number of data words     = 30 bytes
 ;     Number of string bytes   = 926 bytes
 ;     Number of strings        = 106
