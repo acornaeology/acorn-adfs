@@ -2588,7 +2588,7 @@ oscli                                           = &fff7
     sta l10d1                                                         ; 8b2a: 8d d1 10    ...            ; Store in error sector workspace
     lda l101d                                                         ; 8b2d: ad 1d 10    ...            ; Get sector address low byte
     sta wksp_err_sector                                               ; 8b30: 8d d0 10    ...            ; Store in error sector workspace
-    jsr sub_cacd7                                                     ; 8b33: 20 d7 ac     ..            ; Calculate buffer offset
+    jsr calc_buffer_page_from_offset                                  ; 8b33: 20 d7 ac     ..            ; Calculate buffer offset
     sta wksp_1004,x                                                   ; 8b36: 9d 04 10    ...            ; Store partial transfer count
     txa                                                               ; 8b39: 8a          .              ; Channel offset to A for buffer calc
     lsr a                                                             ; 8b3a: 4a          J              ; Divide by 4 for buffer page index
@@ -7744,7 +7744,7 @@ la868 = check_dest_terminator+1
     ldx #&10                                                          ; a97c: a2 10       ..             ; X=&10: scan open channels
 ; &a97e referenced 1 time by &a98a
 .flush_channels_loop
-    jsr sub_caaf3                                                     ; a97e: 20 f3 aa     ..            ; Flush channel buffer if dirty
+    jsr flush_dirty_channel_buffer                                    ; a97e: 20 f3 aa     ..            ; Flush channel buffer if dirty
     lda #0                                                            ; a981: a9 00       ..             ; Clear workspace entry
     sta wksp_1004,x                                                   ; a983: 9d 04 10    ...            ; Clear channel dirty flag
     dex                                                               ; a986: ca          .              ; Step back 4 bytes (entry size)
@@ -7907,7 +7907,7 @@ la868 = check_dest_terminator+1
     and #&0f                                                          ; aaac: 29 0f       ).             ; Mask to 4-bit channel number
     cmp zp_channel_offset                                             ; aaae: c5 cf       ..             ; This channel's entry?
     bne set_ptr_complete                                              ; aab0: d0 0b       ..             ; No, skip to next entry
-    jsr sub_caaf3                                                     ; aab2: 20 f3 aa     ..            ; Flush this entry's buffer
+    jsr flush_dirty_channel_buffer                                    ; aab2: 20 f3 aa     ..            ; Flush this entry's buffer
     lda wksp_1004,x                                                   ; aab5: bd 04 10    ...            ; Get ensure table entry again
     and #1                                                            ; aab8: 29 01       ).             ; Keep only bit 0 (dirty flag)
     sta wksp_1004,x                                                   ; aaba: 9d 04 10    ...            ; Clear other bits
@@ -7947,11 +7947,11 @@ la868 = check_dest_terminator+1
     jmp scsi_send_cmd_byte                                            ; aaed: 4c fb 82    L..            ; Send last command byte and return; Send one byte during SCSI command phase
 
 ; &aaf0 referenced 1 time by &ac5f
-.caaf0
-    jsr sub_cacd7                                                     ; aaf0: 20 d7 ac     ..            ; Calculate buffer page from channel
+.calc_channel_buffer_page
+    jsr calc_buffer_page_from_offset                                  ; aaf0: 20 d7 ac     ..            ; Calculate buffer page from channel
 ; &aaf3 referenced 3 times by &a97e, &aab2, &b035
-.sub_caaf3
-    jsr sub_caba5                                                     ; aaf3: 20 a5 ab     ..            ; Ensure channel buffer is allocated
+.flush_dirty_channel_buffer
+    jsr ensure_channel_buffer                                         ; aaf3: 20 a5 ab     ..            ; Ensure channel buffer is allocated
     lda wksp_1004,x                                                   ; aaf6: bd 04 10    ...            ; Get channel state byte
     cmp #&c0                                                          ; aaf9: c9 c0       ..             ; State >= &C0 (dirty write)?
     bcc return_34                                                     ; aafb: 90 7a       .z             ; No: buffer clean, return
@@ -7980,16 +7980,16 @@ la868 = check_dest_terminator+1
     stx zp_c1                                                         ; ab30: 86 c1       ..             ; Save channel index
     lda zp_flags                                                      ; ab32: a5 cd       ..             ; Check for hard drive
     and #&20 ; ' '                                                    ; ab34: 29 20       )              ; Bit 5: hard drive present?
-    beq cab3d                                                         ; ab36: f0 05       ..             ; No HD: use floppy
+    beq write_dirty_sector_to_disc                                    ; ab36: f0 05       ..             ; No HD: use floppy
     lda wksp_1003,x                                                   ; ab38: bd 03 10    ...            ; Get drive number from channel
     bpl hd_bput_write_sector                                          ; ab3b: 10 0e       ..             ; Bit 7 clear: use SCSI hard drive
 ; &ab3d referenced 2 times by &ab36, &ab46
-.cab3d
+.write_dirty_sector_to_disc
     ldx zp_c1                                                         ; ab3d: a6 c1       ..             ; Restore channel index for floppy
     jsr exec_floppy_write_bput_sector_ind                             ; ab3f: 20 06 ba     ..            ; Execute floppy write sector
-    beq cab75                                                         ; ab42: f0 31       .1             ; Success? Done
+    beq write_buffer_to_scsi_loop                                     ; ab42: f0 31       .1             ; Success? Done
     dec zp_retry_count                                                ; ab44: c6 ce       ..             ; Decrement retry counter
-    bpl cab3d                                                         ; ab46: 10 f5       ..             ; More retries: try again
+    bpl write_dirty_sector_to_disc                                    ; ab46: 10 f5       ..             ; More retries: try again
     jmp generate_error                                                ; ab48: 4c 9a 82    L..            ; Generate a BRK error
 
 ; &ab4b referenced 2 times by &ab3b, &ab5e
@@ -7999,25 +7999,25 @@ la868 = check_dest_terminator+1
     jsr hd_command_bget_bput_sector                                   ; ab4f: 20 c6 aa     ..            ; Hard drive single sector for BGET/BPUT
     ldy #0                                                            ; ab52: a0 00       ..             ; Y=0: data transfer index
     jsr scsi_wait_for_req                                             ; ab54: 20 0f 83     ..            ; Wait for SCSI REQ signal
-    bpl cab63                                                         ; ab57: 10 0a       ..             ; Status OK: continue
+    bpl wait_write_data_phase                                         ; ab57: 10 0a       ..             ; Status OK: continue
     jsr command_done                                                  ; ab59: 20 8a 81     ..            ; Complete SCSI command and read status
     dec zp_retry_count                                                ; ab5c: c6 ce       ..             ; Decrement retry counter
     bpl hd_bput_write_sector                                          ; ab5e: 10 eb       ..             ; More retries: try write again
     jmp generate_error                                                ; ab60: 4c 9a 82    L..            ; Generate a BRK error
 
 ; &ab63 referenced 2 times by &ab57, &ab69
-.cab63
+.wait_write_data_phase
     lda (zp_bc),y                                                     ; ab63: b1 bc       ..             ; Get byte from buffer
     sta fred_hard_drive_0                                             ; ab65: 8d 40 fc    .@.            ; Write to SCSI data bus
     iny                                                               ; ab68: c8          .              ; Next byte
-    bne cab63                                                         ; ab69: d0 f8       ..             ; Loop for 256 bytes
+    bne wait_write_data_phase                                         ; ab69: d0 f8       ..             ; Loop for 256 bytes
     lda #1                                                            ; ab6b: a9 01       ..             ; Set ensuring flag
     ora zp_flags                                                      ; ab6d: 05 cd       ..             ; OR into ADFS flags
     sta zp_flags                                                      ; ab6f: 85 cd       ..             ; Store updated flags
     dey                                                               ; ab71: 88          .              ; Y=&FF: disable SCSI IRQ
     sty fred_hard_drive_3                                             ; ab72: 8c 43 fc    .C.            ; Write to SCSI IRQ enable register
 ; &ab75 referenced 1 time by &ab42
-.cab75
+.write_buffer_to_scsi_loop
     ldx zp_c1                                                         ; ab75: a6 c1       ..             ; Restore channel index
 ; &ab77 referenced 1 time by &aafb
 .return_34
@@ -8027,17 +8027,17 @@ la868 = check_dest_terminator+1
     lda zp_flags                                                      ; ab78: a5 cd       ..             ; Get ADFS flags
     and #&21 ; '!'                                                    ; ab7a: 29 21       )!             ; Check ensuring + HD bits
     cmp #&21 ; '!'                                                    ; ab7c: c9 21       .!             ; Both set?
-    bne cab87                                                         ; ab7e: d0 07       ..             ; No: not our interrupt
+    bne advance_write_page                                            ; ab7e: d0 07       ..             ; No: not our interrupt
     jsr scsi_get_status                                               ; ab80: 20 56 80     V.            ; Read SCSI status; Read SCSI status with settling
     cmp #&f2                                                          ; ab83: c9 f2       ..             ; Status = &F2 (completion)?
-    beq cab8a                                                         ; ab85: f0 03       ..             ; Yes: handle SCSI completion
+    beq write_complete                                                ; ab85: f0 03       ..             ; Yes: handle SCSI completion
 ; &ab87 referenced 1 time by &ab7e
-.cab87
+.advance_write_page
     lda #5                                                            ; ab87: a9 05       ..             ; Not ours: A=5 (not claimed)
     rts                                                               ; ab89: 60          `              ; Return
 
 ; &ab8a referenced 1 time by &ab85
-.cab8a
+.write_complete
     tya                                                               ; ab8a: 98          .              ; Save Y
     pha                                                               ; ab8b: 48          H              ; Push on stack
     lda #0                                                            ; ab8c: a9 00       ..             ; A=0: clear SCSI IRQ
@@ -8052,7 +8052,7 @@ la868 = check_dest_terminator+1
     jmp set_result_error_code                                         ; aba2: 4c 63 9d    Lc.            ; Return to service dispatcher
 
 ; &aba5 referenced 1 time by &aaf3
-.sub_caba5
+.ensure_channel_buffer
     lda wksp_1131                                                     ; aba5: ad 31 11    .1.            ; Check for pending data lost error
     beq return_35                                                     ; aba8: f0 2d       .-             ; Zero: no error, return
     lda #0                                                            ; abaa: a9 00       ..             ; Clear pending error
@@ -8063,7 +8063,7 @@ la868 = check_dest_terminator+1
     equs "Data lost, channel", 0                                      ; abb6: 44 61 74... Dat
 
 ; &abc9 referenced 2 times by &ac05, &ac89
-.sub_cabc9
+.calc_buffer_address
     txa                                                               ; abc9: 8a          .              ; Save X (channel index)
     stx l10a1                                                         ; abca: 8e a1 10    ...            ; Store in workspace
     lsr a                                                             ; abcd: 4a          J              ; Divide by 4 for channel number
@@ -8077,32 +8077,32 @@ la868 = check_dest_terminator+1
     rts                                                               ; abd7: 60          `              ; Return
 
 ; &abd8 referenced 6 times by &adad, &afaf, &b01f, &b10e, &b6ee, &b811
-.sub_cabd8
+.find_buffer_for_sector
     ldx #&10                                                          ; abd8: a2 10       ..             ; X=&10: start of channel table
     stx l1095                                                         ; abda: 8e 95 10    ...            ; Store as initial best match
     tay                                                               ; abdd: a8          .              ; Transfer A to Y (mode flag)
 ; &abde referenced 1 time by &ac68
-.cabde
+.scan_channel_buffers
     lda wksp_1004,x                                                   ; abde: bd 04 10    ...            ; Get channel state entry
     and #1                                                            ; abe1: 29 01       ).             ; Check bit 0 (dirty flag)
-    beq cabe8                                                         ; abe3: f0 03       ..             ; Not dirty: skip
+    beq buffer_sector_match                                           ; abe3: f0 03       ..             ; Not dirty: skip
     stx l1095                                                         ; abe5: 8e 95 10    ...            ; Update best dirty channel index
 ; &abe8 referenced 1 time by &abe3
-.cabe8
+.buffer_sector_match
     lda wksp_1004,x                                                   ; abe8: bd 04 10    ...            ; Get channel state
-    bpl cac62                                                         ; abeb: 10 75       .u             ; Bit 7 clear: channel not active
+    bpl read_single_hd_sector                                         ; abeb: 10 75       .u             ; Bit 7 clear: channel not active
     lda wksp_1001,x                                                   ; abed: bd 01 10    ...            ; Get channel sector low
     cmp l1096                                                         ; abf0: cd 96 10    ...            ; Compare with target sector low
-    bne cac62                                                         ; abf3: d0 6d       .m             ; No match: try next channel
+    bne read_single_hd_sector                                         ; abf3: d0 6d       .m             ; No match: try next channel
     lda wksp_1002,x                                                   ; abf5: bd 02 10    ...            ; Get channel sector mid
     cmp l1097                                                         ; abf8: cd 97 10    ...            ; Compare with target sector mid
-    bne cac62                                                         ; abfb: d0 65       .e             ; No match: try next channel
+    bne read_single_hd_sector                                         ; abfb: d0 65       .e             ; No match: try next channel
     lda wksp_1003,x                                                   ; abfd: bd 03 10    ...            ; Get channel drive+sector high
     cmp l1098                                                         ; ac00: cd 98 10    ...            ; Compare with target high
-    bne cac62                                                         ; ac03: d0 5d       .]             ; No match: try next channel
-    jsr sub_cabc9                                                     ; ac05: 20 c9 ab     ..            ; Match: set up buffer address
+    bne read_single_hd_sector                                         ; ac03: d0 5d       .]             ; No match: try next channel
+    jsr calc_buffer_address                                           ; ac05: 20 c9 ab     ..            ; Match: set up buffer address
 ; &ac08 referenced 1 time by &acd4
-.cac08
+.allocate_new_buffer_slot
     tya                                                               ; ac08: 98          .              ; Transfer mode flag to A
     lsr a                                                             ; ac09: 4a          J              ; Shift right for direction bit
     and #&40 ; '@'                                                    ; ac0a: 29 40       )@             ; Isolate bit 6 (read/write)
@@ -8115,65 +8115,65 @@ la868 = check_dest_terminator+1
     rol a                                                             ; ac16: 2a          *              ; Shift left to final position
     sta wksp_1004,x                                                   ; ac17: 9d 04 10    ...            ; Store updated channel state
     plp                                                               ; ac1a: 28          (              ; Restore flags
-    bcc cac3b                                                         ; ac1b: 90 1e       ..             ; C=0: read operation, skip write
+    bcc evict_oldest_buffer                                           ; ac1b: 90 1e       ..             ; C=0: read operation, skip write
     ldy #&10                                                          ; ac1d: a0 10       ..             ; Y=&10: scan for empty ensure slot
 ; &ac1f referenced 1 time by &ac2f
-.loop_cac1f
+.find_free_slot_loop
     lda wksp_1004,y                                                   ; ac1f: b9 04 10    ...            ; Get ensure table entry
-    bne cac2b                                                         ; ac22: d0 07       ..             ; Non-zero: slot in use
+    bne use_free_slot                                                 ; ac22: d0 07       ..             ; Non-zero: slot in use
     lda #1                                                            ; ac24: a9 01       ..             ; A=1: mark slot as dirty
     sta wksp_1004,y                                                   ; ac26: 99 04 10    ...            ; Store in ensure table
-    bne cac5f                                                         ; ac29: d0 34       .4             ; ALWAYS branch
+    bne load_sector_to_buffer                                         ; ac29: d0 34       .4             ; ALWAYS branch
 
 ; &ac2b referenced 1 time by &ac22
-.cac2b
+.use_free_slot
     dey                                                               ; ac2b: 88          .              ; Step back 4 bytes
     dey                                                               ; ac2c: 88          .              ; Continue stepping
     dey                                                               ; ac2d: 88          .              ; Continue stepping
     dey                                                               ; ac2e: 88          .              ; Continue stepping
-    bpl loop_cac1f                                                    ; ac2f: 10 ee       ..             ; Loop for all ensure entries
-    jsr sub_cacf5                                                     ; ac31: 20 f5 ac     ..            ; Flush oldest dirty buffer
+    bpl find_free_slot_loop                                           ; ac2f: 10 ee       ..             ; Loop for all ensure entries
+    jsr convert_handle_to_offset                                      ; ac31: 20 f5 ac     ..            ; Flush oldest dirty buffer
     ror wksp_1004,x                                                   ; ac34: 7e 04 10    ~..            ; Clear bit 0 of channel state
     sec                                                               ; ac37: 38          8              ; Set carry
     rol wksp_1004,x                                                   ; ac38: 3e 04 10    >..            ; Set bit 0 (mark as dirty)
 ; &ac3b referenced 1 time by &ac1b
-.cac3b
+.evict_oldest_buffer
     inx                                                               ; ac3b: e8          .              ; Advance X past current entry
     inx                                                               ; ac3c: e8          .              ; Continue advancing
     inx                                                               ; ac3d: e8          .              ; Continue advancing
     inx                                                               ; ac3e: e8          .              ; Continue advancing
     cpx #&11                                                          ; ac3f: e0 11       ..             ; Past end of table (&11)?
-    bcc cac45                                                         ; ac41: 90 02       ..             ; No: continue
+    bcc evict_check_dirty                                             ; ac41: 90 02       ..             ; No: continue
     ldx #0                                                            ; ac43: a2 00       ..             ; Wrap to start: X=0
 ; &ac45 referenced 1 time by &ac41
-.cac45
+.evict_check_dirty
     lda wksp_1004,x                                                   ; ac45: bd 04 10    ...            ; Get channel state at new position
     lsr a                                                             ; ac48: 4a          J              ; Shift right to check state
-    beq cac5f                                                         ; ac49: f0 14       ..             ; Empty slot: use it
-    bcc cac5f                                                         ; ac4b: 90 12       ..             ; C=0: clean buffer, reuse it
+    beq load_sector_to_buffer                                         ; ac49: f0 14       ..             ; Empty slot: use it
+    bcc load_sector_to_buffer                                         ; ac4b: 90 12       ..             ; C=0: clean buffer, reuse it
     clc                                                               ; ac4d: 18          .              ; Clear carry for rotate back
     rol a                                                             ; ac4e: 2a          *              ; Restore state bits
     sta wksp_1004,x                                                   ; ac4f: 9d 04 10    ...            ; Store updated state
-    jsr sub_cacf5                                                     ; ac52: 20 f5 ac     ..            ; Flush this buffer to disc
-    jsr sub_cacf5                                                     ; ac55: 20 f5 ac     ..            ; Flush again (ensure completion)
+    jsr convert_handle_to_offset                                      ; ac52: 20 f5 ac     ..            ; Flush this buffer to disc
+    jsr convert_handle_to_offset                                      ; ac55: 20 f5 ac     ..            ; Flush again (ensure completion)
     ror wksp_1004,x                                                   ; ac58: 7e 04 10    ~..            ; Clear dirty bit
     sec                                                               ; ac5b: 38          8              ; Set carry
     rol wksp_1004,x                                                   ; ac5c: 3e 04 10    >..            ; Set dirty bit (will be written)
 ; &ac5f referenced 3 times by &ac29, &ac49, &ac4b
-.cac5f
-    jmp caaf0                                                         ; ac5f: 4c f0 aa    L..            ; Jump to buffer fill
+.load_sector_to_buffer
+    jmp calc_channel_buffer_page                                      ; ac5f: 4c f0 aa    L..            ; Jump to buffer fill
 
 ; &ac62 referenced 4 times by &abeb, &abf3, &abfb, &ac03
-.cac62
+.read_single_hd_sector
     dex                                                               ; ac62: ca          .              ; Step back 4 bytes to prev entry
     dex                                                               ; ac63: ca          .              ; Continue stepping
     dex                                                               ; ac64: ca          .              ; Continue stepping
     dex                                                               ; ac65: ca          .              ; Continue stepping
-    bmi cac6b                                                         ; ac66: 30 03       0.             ; Past start: no match found
-    jmp cabde                                                         ; ac68: 4c de ab    L..            ; Continue scanning from top
+    bmi wait_read_data_phase                                          ; ac66: 30 03       0.             ; Past start: no match found
+    jmp scan_channel_buffers                                          ; ac68: 4c de ab    L..            ; Continue scanning from top
 
 ; &ac6b referenced 1 time by &ac66
-.cac6b
+.wait_read_data_phase
     ldx l1095                                                         ; ac6b: ae 95 10    ...            ; Get best dirty channel index
     lda l1096                                                         ; ac6e: ad 96 10    ...            ; Get target sector low
     sta wksp_1001,x                                                   ; ac71: 9d 01 10    ...            ; Store as channel sector low
@@ -8184,28 +8184,28 @@ la868 = check_dest_terminator+1
     lda l1098                                                         ; ac80: ad 98 10    ...            ; Get target drive+sector high
     sta wksp_1003,x                                                   ; ac83: 9d 03 10    ...            ; Store as channel drive+sector
     sta l10d2                                                         ; ac86: 8d d2 10    ...            ; Store in error workspace
-    jsr sub_cabc9                                                     ; ac89: 20 c9 ab     ..            ; Calculate buffer page for channel
+    jsr calc_buffer_address                                           ; ac89: 20 c9 ab     ..            ; Calculate buffer page for channel
     lda l1098                                                         ; ac8c: ad 98 10    ...            ; Get drive+sector high for read
     jsr sub_cb51c                                                     ; ac8f: 20 1c b5     ..            ; Set up disc read control block
     sty zp_b1                                                         ; ac92: 84 b1       ..             ; Save Y (buffer high)
     stx zp_b0                                                         ; ac94: 86 b0       ..             ; Save X (buffer low)
     jsr command_set_retries                                           ; ac96: 20 80 80     ..            ; Set retry count for disc operation
 ; &ac99 referenced 1 time by &acad
-.loop_cac99
+.read_scsi_to_buffer_loop
     ldx zp_b0                                                         ; ac99: a6 b0       ..             ; Restore buffer pointer
     lda zp_flags                                                      ; ac9b: a5 cd       ..             ; Check for hard drive
     and #&20 ; ' '                                                    ; ac9d: 29 20       )              ; Bit 5: hard drive present?
-    beq caca6                                                         ; ac9f: f0 05       ..             ; No: use floppy
+    beq advance_read_page                                             ; ac9f: f0 05       ..             ; No: use floppy
     lda wksp_1003,x                                                   ; aca1: bd 03 10    ...            ; Get drive from channel
     bpl hd_bget_read_sector                                           ; aca4: 10 0c       ..             ; Bit 7 clear: use SCSI
 ; &aca6 referenced 1 time by &ac9f
-.caca6
+.advance_read_page
     jsr exec_floppy_read_bput_sector_ind                              ; aca6: 20 09 ba     ..            ; Floppy: read sector to buffer
-    beq caccb                                                         ; aca9: f0 20       .              ; Success? Done
+    beq check_read_error                                              ; aca9: f0 20       .              ; Success? Done
 ; &acab referenced 1 time by &acc9
-.loop_cacab
+.read_hd_256_complete
     dec zp_retry_count                                                ; acab: c6 ce       ..             ; Decrement retry counter
-    bpl loop_cac99                                                    ; acad: 10 ea       ..             ; More retries: try again
+    bpl read_scsi_to_buffer_loop                                      ; acad: 10 ea       ..             ; More retries: try again
     jmp generate_error                                                ; acaf: 4c 9a 82    L..            ; Generate a BRK error
 
 ; &acb2 referenced 1 time by &aca4
@@ -8213,31 +8213,31 @@ la868 = check_dest_terminator+1
     lda #8                                                            ; acb2: a9 08       ..             ; SCSI: read command = 8
     jsr hd_command_bget_bput_sector                                   ; acb4: 20 c6 aa     ..            ; Hard drive single sector for BGET/BPUT
     jsr scsi_wait_for_req                                             ; acb7: 20 0f 83     ..            ; Wait for SCSI REQ signal
-    bmi cacc6                                                         ; acba: 30 0a       0.             ; Status phase: read complete
+    bmi store_read_result                                             ; acba: 30 0a       0.             ; Status phase: read complete
     ldy #0                                                            ; acbc: a0 00       ..             ; Y=0: read data byte index
 ; &acbe referenced 1 time by &acc4
-.loop_cacbe
+.read_complete_check
     lda fred_hard_drive_0                                             ; acbe: ad 40 fc    .@.            ; Read byte from SCSI data bus
     sta (zp_be),y                                                     ; acc1: 91 be       ..             ; Store in buffer
     iny                                                               ; acc3: c8          .              ; Next byte
-    bne loop_cacbe                                                    ; acc4: d0 f8       ..             ; Loop for 256 bytes
+    bne read_complete_check                                           ; acc4: d0 f8       ..             ; Loop for 256 bytes
 ; &acc6 referenced 1 time by &acba
-.cacc6
+.store_read_result
     jsr command_done                                                  ; acc6: 20 8a 81     ..            ; Complete SCSI command and read status
-    bne loop_cacab                                                    ; acc9: d0 e0       ..             ; Error: retry
+    bne read_hd_256_complete                                          ; acc9: d0 e0       ..             ; Error: retry
 ; &accb referenced 1 time by &aca9
-.caccb
+.check_read_error
     ldx zp_b0                                                         ; accb: a6 b0       ..             ; Restore buffer pointer X
     ldy zp_b1                                                         ; accd: a4 b1       ..             ; Restore buffer pointer Y
     lda #&81                                                          ; accf: a9 81       ..             ; A=&81: buffer valid + dirty
     sta wksp_1004,x                                                   ; acd1: 9d 04 10    ...            ; Store as channel state
-    jmp cac08                                                         ; acd4: 4c 08 ac    L..            ; Jump to set up buffer access
+    jmp allocate_new_buffer_slot                                      ; acd4: 4c 08 ac    L..            ; Jump to set up buffer access
 
 ; &acd7 referenced 2 times by &8b33, &aaf0
-.sub_cacd7
+.calc_buffer_page_from_offset
     ldx #&10                                                          ; acd7: a2 10       ..             ; X=&10: start of channel table
 ; &acd9 referenced 1 time by &ace4
-.loop_cacd9
+.step_channel_offset_loop
     lda wksp_1004,x                                                   ; acd9: bd 04 10    ...            ; Get channel state
     and #1                                                            ; acdc: 29 01       ).             ; Bit 0: dirty flag
     bne return_36                                                     ; acde: d0 35       .5             ; Not dirty: done scanning
@@ -8245,17 +8245,17 @@ la868 = check_dest_terminator+1
     dex                                                               ; ace1: ca          .              ; Continue stepping
     dex                                                               ; ace2: ca          .              ; Continue stepping
     dex                                                               ; ace3: ca          .              ; Continue stepping
-    bpl loop_cacd9                                                    ; ace4: 10 f3       ..             ; Loop for all entries
+    bpl step_channel_offset_loop                                      ; ace4: 10 f3       ..             ; Loop for all entries
     jmp bad_checksum_error                                            ; ace6: 4c 38 a7    L8.            ; No dirty buffers: workspace error
 
 ; &ace9 referenced 3 times by &ad05, &ad0b, &ad13
-.cace9
+.step_ensure_offset_loop
     jsr reload_fsm_and_dir_then_brk                                   ; ace9: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &de                                                          ; acec: de          .
     equs "Channel", 0                                                 ; aced: 43 68 61... Cha
 
 ; &acf5 referenced 3 times by &ac31, &ac52, &ac55
-.sub_cacf5
+.convert_handle_to_offset
     dex                                                               ; acf5: ca          .              ; Step back 4 bytes
     dex                                                               ; acf6: ca          .              ; Continue stepping
     dex                                                               ; acf7: ca          .              ; Continue stepping
@@ -8278,15 +8278,15 @@ la868 = check_dest_terminator+1
     sty zp_save_y                                                     ; acfe: 84 c2       ..             ; Save file handle
     sty wksp_cur_channel                                              ; ad00: 8c d5 10    ...            ; Store as current channel for errors
     cpy #&3a ; ':'                                                    ; ad03: c0 3a       .:             ; Handle >= &3A?
-    bcs cace9                                                         ; ad05: b0 e2       ..             ; Yes, invalid handle
+    bcs step_ensure_offset_loop                                       ; ad05: b0 e2       ..             ; Yes, invalid handle
     tya                                                               ; ad07: 98          .              ; Transfer handle to A
     sec                                                               ; ad08: 38          8              ; Set carry for subtraction
     sbc #&30 ; '0'                                                    ; ad09: e9 30       .0             ; Subtract &30 to get channel index
-    bcc cace9                                                         ; ad0b: 90 dc       ..             ; Handle < &30? Invalid
+    bcc step_ensure_offset_loop                                       ; ad0b: 90 dc       ..             ; Handle < &30? Invalid
     sta zp_channel_offset                                             ; ad0d: 85 cf       ..             ; Store channel index offset
     tax                                                               ; ad0f: aa          .              ; Transfer to X for table lookup
     lda wksp_ch_flags,x                                               ; ad10: bd ac 11    ...            ; Read channel flags
-    beq cace9                                                         ; ad13: f0 d4       ..             ; Zero = channel not open
+    beq step_ensure_offset_loop                                       ; ad13: f0 d4       ..             ; Zero = channel not open
 ; &ad15 referenced 1 time by &acde
 .return_36
     rts                                                               ; ad15: 60          `              ; Return
@@ -8387,7 +8387,7 @@ la868 = check_dest_terminator+1
     adc wksp_ch_ptr_h,x                                               ; ada5: 7d 5c 11    }\.            ; Add PTR high
     sta l1098                                                         ; ada8: 8d 98 10    ...            ; Store sector address high
     lda #&40 ; '@'                                                    ; adab: a9 40       .@             ; A=&40: read buffer mode
-    jsr sub_cabd8                                                     ; adad: 20 d8 ab     ..            ; Load sector into channel buffer
+    jsr find_buffer_for_sector                                        ; adad: 20 d8 ab     ..            ; Load sector into channel buffer
     ldx zp_channel_offset                                             ; adb0: a6 cf       ..             ; Get channel index
     ldy wksp_ch_ptr_l,x                                               ; adb2: bc 7a 11    .z.            ; Get PTR low byte as buffer offset
     lda #0                                                            ; adb5: a9 00       ..             ; A=0: clear modification flag
@@ -8644,7 +8644,7 @@ la868 = check_dest_terminator+1
     adc l11b6,x                                                       ; afa7: 7d b6 11    }..            ; Add channel base + drive
     sta l1098                                                         ; afaa: 8d 98 10    ...            ; Store zero-fill start high
     lda #&c0                                                          ; afad: a9 c0       ..             ; A=&C0: write buffer mode
-    jsr sub_cabd8                                                     ; afaf: 20 d8 ab     ..            ; Set up buffer for writing zeros
+    jsr find_buffer_for_sector                                        ; afaf: 20 d8 ab     ..            ; Set up buffer for writing zeros
     ldx zp_channel_offset                                             ; afb2: a6 cf       ..             ; Get channel index
     ldy wksp_ch_ext_l,x                                               ; afb4: bc 52 11    .R.            ; Get EXT low as buffer start
     lda #0                                                            ; afb7: a9 00       ..             ; A=0: zero fill
@@ -8700,7 +8700,7 @@ la868 = check_dest_terminator+1
 ; &b01d referenced 2 times by &b013, &b018
 .advance_fill_sector
     lda #&40 ; '@'                                                    ; b01d: a9 40       .@             ; A=&40: read buffer mode
-    jsr sub_cabd8                                                     ; b01f: 20 d8 ab     ..            ; Load next sector into buffer
+    jsr find_buffer_for_sector                                        ; b01f: 20 d8 ab     ..            ; Load next sector into buffer
     ldy #0                                                            ; b022: a0 00       ..             ; Y=0: zero fill entire sector
     tya                                                               ; b024: 98          .              ; A=&00
 ; &b025 referenced 1 time by &b028
@@ -8714,7 +8714,7 @@ la868 = check_dest_terminator+1
     lda #&c0                                                          ; b02d: a9 c0       ..             ; A=&C0: mark buffer as dirty
     ora wksp_1004,x                                                   ; b02f: 1d 04 10    ...            ; OR with channel state
     sta wksp_1004,x                                                   ; b032: 9d 04 10    ...            ; Store dirty state
-    jsr sub_caaf3                                                     ; b035: 20 f3 aa     ..            ; Flush dirty buffer to disc
+    jsr flush_dirty_channel_buffer                                    ; b035: 20 f3 aa     ..            ; Flush dirty buffer to disc
     lda wksp_object_sector                                            ; b038: ad 34 10    .4.            ; Compare current sector with target
     cmp wksp_1001,x                                                   ; b03b: dd 01 10    ...            ; Compare low bytes
     bne advance_channel_sector                                        ; b03e: d0 10       ..             ; No match: advance sector
@@ -8818,7 +8818,7 @@ la868 = check_dest_terminator+1
     adc wksp_ch_ptr_h,x                                               ; b106: 7d 5c 11    }\.            ; Add PTR high with carry
     sta l1098                                                         ; b109: 8d 98 10    ...            ; Store disc sector address high
     lda #&c0                                                          ; b10c: a9 c0       ..             ; A=&C0: buffer write mode
-    jsr sub_cabd8                                                     ; b10e: 20 d8 ab     ..            ; Load sector into buffer
+    jsr find_buffer_for_sector                                        ; b10e: 20 d8 ab     ..            ; Load sector into buffer
     ldx zp_channel_offset                                             ; b111: a6 cf       ..             ; Get channel index
     ldy wksp_ch_ptr_l,x                                               ; b113: bc 7a 11    .z.            ; Get PTR low as buffer offset
     pla                                                               ; b116: 68          h              ; Restore byte to write
@@ -9673,7 +9673,7 @@ la868 = check_dest_terminator+1
     cmp l10b4                                                         ; b6e8: cd b4 10    ...            ; C set if A=1/2 (write), clear if 3/4
     lda #&80                                                          ; b6eb: a9 80       ..             ; A=&80: base for disc command
     ror a                                                             ; b6ed: 6a          j              ; Rotate C into bit 0: &40=read, &80=write
-    jsr sub_cabd8                                                     ; b6ee: 20 d8 ab     ..            ; Find/load buffer for current sector
+    jsr find_buffer_for_sector                                        ; b6ee: 20 d8 ab     ..            ; Find/load buffer for current sector
     lda zp_c8                                                         ; b6f1: a5 c8       ..             ; Get current byte offset in sector
     sta l10b6                                                         ; b6f3: 8d b6 10    ...            ; Store as transfer start position
     lda #0                                                            ; b6f6: a9 00       ..             ; A=0: default end position
@@ -9822,7 +9822,7 @@ la868 = check_dest_terminator+1
     cmp l10b4                                                         ; b80b: cd b4 10    ...            ; C set if write, clear if read
     lda #&80                                                          ; b80e: a9 80       ..             ; A=&80: base disc command
     ror a                                                             ; b810: 6a          j              ; Rotate C to form read/write command
-    jsr sub_cabd8                                                     ; b811: 20 d8 ab     ..            ; Find/load buffer for remaining sector
+    jsr find_buffer_for_sector                                        ; b811: 20 d8 ab     ..            ; Find/load buffer for remaining sector
     lda #0                                                            ; b814: a9 00       ..             ; A=0: clear start position
     sta l10b6                                                         ; b816: 8d b6 10    ...            ; Store start at beginning of sector
     lda l109a                                                         ; b819: ad 9a 10    ...            ; Get bytes remaining in buffer
@@ -10374,7 +10374,7 @@ la868 = check_dest_terminator+1
     lda #&10                                                          ; bb18: a9 10       ..             ; Set transfer mode flags
     sta l10e0                                                         ; bb1a: 8d e0 10    ...            ; Store transfer mode
     jsr floppy_init_transfer                                          ; bb1d: 20 42 bb     B.            ; Set up NMI handler and drive select; Initialise floppy disc transfer
-    jsr sub_cbda6                                                     ; bb20: 20 a6 bd     ..            ; Execute the read/write operation
+    jsr issue_fdc_track_command                                       ; bb20: 20 a6 bd     ..            ; Execute the read/write operation
     beq check_floppy_error_code                                       ; bb23: f0 cc       ..             ; Error: jump to floppy error handler
 ; &bb25 referenced 1 time by &ba03
 .exec_floppy_partial_sector_buf
@@ -10451,7 +10451,7 @@ la868 = check_dest_terminator+1
 .setup_nmi_and_step_rate
     jsr floppy_get_step_rate                                          ; bb89: 20 b4 bb     ..            ; Get floppy step rate
     jsr claim_nmi_and_init                                            ; bb8c: 20 92 bb     ..            ; Set up drive select and NMI
-    jmp cbeff                                                         ; bb8f: 4c ff be    L..            ; Jump to floppy track setup
+    jmp setup_track_for_rw                                            ; bb8f: 4c ff be    L..            ; Jump to floppy track setup
 
 ; &bb92 referenced 2 times by &ba38, &bb8c
 .claim_nmi_and_init
@@ -10824,40 +10824,40 @@ la868 = check_dest_terminator+1
     lda l10e2                                                         ; bd7a: ad e2 10    ...            ; Get format buffer page
     sta zp_a4                                                         ; bd7d: 85 a4       ..             ; Store source high (format data page)
     bit zp_flags                                                      ; bd7f: 24 cd       $.             ; Is Tube active?
-    bvc cbd97                                                         ; bd81: 50 14       P.             ; No Tube: use direct memory copy
+    bvc direct_format_copy                                            ; bd81: 50 14       P.             ; No Tube: use direct memory copy
     ldy #0                                                            ; bd83: a0 00       ..             ; Y=0: Tube transfer byte index
 ; &bd85 referenced 1 time by &bd93
-.loop_cbd85
+.tube_format_xfer_loop
     lda (zp_a3),y                                                     ; bd85: b1 a3       ..             ; Get format data byte from source
     ldx #7                                                            ; bd87: a2 07       ..             ; X=7: timing delay loop
 ; &bd89 referenced 1 time by &bd8a
-.loop_cbd89
+.tube_format_delay_loop
     dex                                                               ; bd89: ca          .              ; Delay
-    bne loop_cbd89                                                    ; bd8a: d0 fd       ..             ; Loop for delay
+    bne tube_format_delay_loop                                        ; bd8a: d0 fd       ..             ; Loop for delay
     sta tube_data_register_3                                          ; bd8c: 8d e5 fe    ...            ; Send byte to Tube R3
     iny                                                               ; bd8f: c8          .              ; Next byte
     cpy wksp_disc_op_sector_count                                     ; bd90: cc 1e 10    ...            ; Transferred all bytes?
-    bne loop_cbd85                                                    ; bd93: d0 f0       ..             ; No, continue transfer
-    beq cbda2                                                         ; bd95: f0 0b       ..             ; ALWAYS branch
+    bne tube_format_xfer_loop                                         ; bd93: d0 f0       ..             ; No, continue transfer
+    beq format_track_data_ready                                       ; bd95: f0 0b       ..             ; ALWAYS branch
 
 ; &bd97 referenced 1 time by &bd81
-.cbd97
+.direct_format_copy
     ldy wksp_disc_op_sector_count                                     ; bd97: ac 1e 10    ...            ; Direct copy: get byte count
 ; &bd9a referenced 1 time by &bda0
-.loop_cbd9a
+.direct_format_copy_loop
     dey                                                               ; bd9a: 88          .              ; Adjust for 0-based index
     lda (zp_a3),y                                                     ; bd9b: b1 a3       ..             ; Get last byte from source
     sta (zp_a5),y                                                     ; bd9d: 91 a5       ..             ; Store at dest
     tya                                                               ; bd9f: 98          .              ; Transfer Y to A
-    bne loop_cbd9a                                                    ; bda0: d0 f8       ..             ; Loop until all bytes copied
+    bne direct_format_copy_loop                                       ; bda0: d0 f8       ..             ; Loop until all bytes copied
 ; &bda2 referenced 1 time by &bd95
-.cbda2
+.format_track_data_ready
     pla                                                               ; bda2: 68          h              ; Restore saved track
     sta zp_a3                                                         ; bda3: 85 a3       ..             ; Store back as current track
     rts                                                               ; bda5: 60          `              ; Return
 
 ; &bda6 referenced 1 time by &bb20
-.sub_cbda6
+.issue_fdc_track_command
     jsr process_floppy_result                                         ; bda6: 20 c6 ba     ..            ; Set up FDC registers
     lda zp_a2                                                         ; bda9: a5 a2       ..             ; Get transfer state flags
     ora #&40 ; '@'                                                    ; bdab: 09 40       .@             ; Set bit 6 (multi-sector flag)
@@ -10871,24 +10871,24 @@ la868 = check_dest_terminator+1
     clc                                                               ; bdba: 18          .              ; Clear carry for addition
     adc (zp_b0),y                                                     ; bdbb: 71 b0       q.             ; Add sector count to start sector
     sta nmi_0d59                                                      ; bdbd: 8d 59 0d    .Y.            ; Store end sector in NMI workspace
-    bcc cbdc5                                                         ; bdc0: 90 03       ..             ; No carry: no wrap
+    bcc wait_format_track_complete                                    ; bdc0: 90 03       ..             ; No carry: no wrap
     inc nmi_0d58                                                      ; bdc2: ee 58 0d    .X.            ; Increment mid byte on carry
 ; &bdc5 referenced 1 time by &bdc0
-.cbdc5
+.wait_format_track_complete
     lda nmi_0d58                                                      ; bdc5: ad 58 0d    .X.            ; Get end sector mid byte
     tax                                                               ; bdc8: aa          .              ; Transfer to X
     lda nmi_0d59                                                      ; bdc9: ad 59 0d    .Y.            ; Get end sector low byte
     ldy #&ff                                                          ; bdcc: a0 ff       ..             ; Y=&FF: init for divide
     jsr xa_div_16_to_ya                                               ; bdce: 20 a2 bf     ..            ; Divide end sector by 16; Divide X:A by 16, result in Y:A
     cmp #0                                                            ; bdd1: c9 00       ..             ; Remainder = 0?
-    bne cbdd7                                                         ; bdd3: d0 02       ..             ; No: adjust sectors per track
+    bne format_next_track                                             ; bdd3: d0 02       ..             ; No: adjust sectors per track
     lda #&10                                                          ; bdd5: a9 10       ..             ; Yes: use full 16 sectors/track
 ; &bdd7 referenced 1 time by &bdd3
-.cbdd7
+.format_next_track
     ldy #9                                                            ; bdd7: a0 09       ..             ; Y=9: get sector count from block
     sec                                                               ; bdd9: 38          8              ; Set carry for subtraction
     sbc (zp_b0),y                                                     ; bdda: f1 b0       ..             ; Subtract sector count
-    bcs cbdfb                                                         ; bddc: b0 1d       ..             ; Result >= 0: fits in remaining
+    bcs format_double_sided                                           ; bddc: b0 1d       ..             ; Result >= 0: fits in remaining
     lda #&10                                                          ; bdde: a9 10       ..             ; Need to cross track boundary
     sec                                                               ; bde0: 38          8              ; Set carry for subtraction
     sbc zp_a4                                                         ; bde1: e5 a4       ..             ; Subtract start sector position
@@ -10901,9 +10901,9 @@ la868 = check_dest_terminator+1
     jsr xa_div_16_to_ya                                               ; bdf0: 20 a2 bf     ..            ; Divide remaining by 16; Divide X:A by 16, result in Y:A
     sty nmi_0d57                                                      ; bdf3: 8c 57 0d    .W.            ; Store full tracks to process
     sta nmi_0d59                                                      ; bdf6: 8d 59 0d    .Y.            ; Store partial sectors on last track
-    bpl cbe0c                                                         ; bdf9: 10 11       ..             ; Branch always (positive)
+    bpl set_format_sector_id                                          ; bdf9: 10 11       ..             ; Branch always (positive)
 ; &bdfb referenced 1 time by &bddc
-.cbdfb
+.format_double_sided
     ldy #9                                                            ; bdfb: a0 09       ..             ; Y=9: get sector count
     lda (zp_b0),y                                                     ; bdfd: b1 b0       ..             ; Get sector count from block
     sta nmi_0d58                                                      ; bdff: 8d 58 0d    .X.            ; Store in NMI workspace
@@ -10912,7 +10912,7 @@ la868 = check_dest_terminator+1
     lda #0                                                            ; be07: a9 00       ..             ; A=0: no partial sectors
     sta nmi_0d59                                                      ; be09: 8d 59 0d    .Y.            ; Store partial count
 ; &be0c referenced 1 time by &bdf9
-.cbe0c
+.set_format_sector_id
     lda #0                                                            ; be0c: a9 00       ..             ; Clear sector position counter
     sta nmi_0d5a                                                      ; be0e: 8d 5a 0d    .Z.            ; Store in NMI workspace
     inc nmi_0d57                                                      ; be11: ee 57 0d    .W.            ; Increment full track count
@@ -10920,34 +10920,34 @@ la868 = check_dest_terminator+1
     ldx #1                                                            ; be17: a2 01       ..             ; X=1: write sector register
     jsr fdc_write_register_verify                                     ; be19: 20 09 bb     ..            ; Write sector to FDC with verify; Write to WD1770 register with readback verify
     bit zp_a1                                                         ; be1c: 24 a1       $.             ; Check read/write direction
-    bmi cbe27                                                         ; be1e: 30 07       0.             ; Reading: use read command
+    bmi check_format_complete                                         ; be1e: 30 07       0.             ; Reading: use read command
     lda #&a0                                                          ; be20: a9 a0       ..             ; A=&A0: write command base
     ora nmi_0d56                                                      ; be22: 0d 56 0d    .V.            ; OR in step rate
-    bne cbe29                                                         ; be25: d0 02       ..             ; Branch (always non-zero)
+    bne format_track_loop                                             ; be25: d0 02       ..             ; Branch (always non-zero)
 ; &be27 referenced 1 time by &be1e
-.cbe27
+.check_format_complete
     lda #&80                                                          ; be27: a9 80       ..             ; A=&80: read command base
 ; &be29 referenced 1 time by &be25
-.cbe29
+.format_track_loop
     sta zp_a6                                                         ; be29: 85 a6       ..             ; Store FDC command in workspace
     jsr clear_transfer_complete                                       ; be2b: 20 2b bd     +.            ; Clear seek flag
     lda zp_a6                                                         ; be2e: a5 a6       ..             ; Get FDC command
     sta fdc_8271_data_or_1770_command_or_status                       ; be30: 8d 84 fe    ...            ; Issue command to FDC
 ; &be33 referenced 2 times by &be4c, &be67
-.cbe33
+.wait_format_nmi_complete
     jsr floppy_wait_nmi_finish                                        ; be33: 20 c2 bc     ..            ; Wait for NMI completion; Wait for floppy NMI transfer to complete
     lda zp_a2                                                         ; be36: a5 a2       ..             ; Get transfer state
     and #2                                                            ; be38: 29 02       ).             ; Bit 1 set: need track step
-    beq cbe4e                                                         ; be3a: f0 12       ..             ; No step needed: check side switch
+    beq format_verify_pass                                            ; be3a: f0 12       ..             ; No step needed: check side switch
     jsr clear_transfer_complete                                       ; be3c: 20 2b bd     +.            ; Clear seek flag
     jsr clear_seek_flag                                               ; be3f: 20 38 bd     8.            ; Clear track-step flag
     lda #&54 ; 'T'                                                    ; be42: a9 54       .T             ; FDC step-in command (&54)
     ora nmi_0d5c                                                      ; be44: 0d 5c 0d    .\.            ; OR in drive select bits
     sta fdc_8271_data_or_1770_command_or_status                       ; be47: 8d 84 fe    ...            ; Issue step-in command
     inc zp_a3                                                         ; be4a: e6 a3       ..             ; Increment current track
-    bne cbe33                                                         ; be4c: d0 e5       ..             ; Continue multi-sector loop
+    bne wait_format_nmi_complete                                      ; be4c: d0 e5       ..             ; Continue multi-sector loop
 ; &be4e referenced 1 time by &be3a
-.cbe4e
+.format_verify_pass
     lda zp_a2                                                         ; be4e: a5 a2       ..             ; Check bit 3: side switch needed?
     and #8                                                            ; be50: 29 08       ).             ; Check if set
     beq return_46                                                     ; be52: f0 2f       ./             ; Not set: operation complete
@@ -10958,18 +10958,18 @@ la868 = check_dest_terminator+1
     lda #0                                                            ; be5f: a9 00       ..             ; FDC restore command (seek to trk 0)
     ora nmi_0d5c                                                      ; be61: 0d 5c 0d    .\.            ; OR in drive select
     sta fdc_8271_data_or_1770_command_or_status                       ; be64: 8d 84 fe    ...            ; Issue restore command
-    bpl cbe33                                                         ; be67: 10 ca       ..             ; Continue loop (always branches)
+    bpl wait_format_nmi_complete                                      ; be67: 10 ca       ..             ; Continue loop (always branches)
     jsr clear_transfer_complete                                       ; be69: 20 2b bd     +.            ; Clear seek flag
-    jsr sub_cbe84                                                     ; be6c: 20 84 be     ..            ; Check for next track boundary
+    jsr execute_fdc_seek                                              ; be6c: 20 84 be     ..            ; Check for next track boundary
     txa                                                               ; be6f: 8a          .              ; Transfer result to A
-    bne cbe78                                                         ; be70: d0 06       ..             ; Non-zero: more sectors to transfer
+    bne clear_verify_seek_flag                                        ; be70: d0 06       ..             ; Non-zero: more sectors to transfer
     ror zp_a2                                                         ; be72: 66 a2       f.             ; Set completion flag bit 0
     sec                                                               ; be74: 38          8              ; Set carry
     rol zp_a2                                                         ; be75: 26 a2       &.             ; Store completion flag
     rts                                                               ; be77: 60          `              ; Return (operation complete)
 
 ; &be78 referenced 1 time by &be70
-.cbe78
+.clear_verify_seek_flag
     jsr clear_seek_flag                                               ; be78: 20 38 bd     8.            ; Clear track-step flag
     lda zp_a6                                                         ; be7b: a5 a6       ..             ; Get FDC command
     jsr apply_head_load_flag                                          ; be7d: 20 4c bd     L.            ; Apply head load delay; Apply head load delay to FDC command
@@ -10979,39 +10979,39 @@ la868 = check_dest_terminator+1
     rts                                                               ; be83: 60          `              ; Return
 
 ; &be84 referenced 1 time by &be6c
-.sub_cbe84
+.execute_fdc_seek
     lda nmi_0d58                                                      ; be84: ad 58 0d    .X.            ; Get sectors remaining this track
-    bne cbeed                                                         ; be87: d0 64       .d             ; Non-zero: not at boundary
+    bne issue_step_command                                            ; be87: d0 64       .d             ; Non-zero: not at boundary
     lda nmi_0d57                                                      ; be89: ad 57 0d    .W.            ; Get full tracks remaining
-    bne cbe9d                                                         ; be8c: d0 0f       ..             ; Non-zero: need track step
+    bne check_seek_error                                              ; be8c: d0 0f       ..             ; Non-zero: need track step
     lda nmi_0d59                                                      ; be8e: ad 59 0d    .Y.            ; Get partial sectors on last track
-    bne cbe97                                                         ; be91: d0 04       ..             ; Non-zero: still have partial track
+    bne wait_seek_complete                                            ; be91: d0 04       ..             ; Non-zero: still have partial track
     ldx #0                                                            ; be93: a2 00       ..             ; X=0: all done
     beq return_47                                                     ; be95: f0 67       .g             ; Branch to return; ALWAYS branch
 
 ; &be97 referenced 1 time by &be91
-.cbe97
+.wait_seek_complete
     dec nmi_0d59                                                      ; be97: ce 59 0d    .Y.            ; Decrement partial sector count
-    jmp cbef0                                                         ; be9a: 4c f0 be    L..            ; Jump to update sector position
+    jmp step_track_counter                                            ; be9a: 4c f0 be    L..            ; Jump to update sector position
 
 ; &be9d referenced 1 time by &be8c
-.cbe9d
+.check_seek_error
     lda nmi_0d5a                                                      ; be9d: ad 5a 0d    .Z.            ; Get sector position counter
-    bne cbee7                                                         ; bea0: d0 45       .E             ; Non-zero: continue processing
+    bne step_inward                                                   ; bea0: d0 45       .E             ; Non-zero: continue processing
     ror l10e4                                                         ; bea2: 6e e4 10    n..            ; Set head-loaded flag
     sec                                                               ; bea5: 38          8              ; Set carry
     rol l10e4                                                         ; bea6: 2e e4 10    ...            ; Restore head-loaded flag
     lda fdc_1770_track                                                ; bea9: ad 85 fe    ...            ; Read current track from FDC
     cmp #&4f ; 'O'                                                    ; beac: c9 4f       .O             ; Track >= 79 (&4F)?
-    bcc cbecf                                                         ; beae: 90 1f       ..             ; No: normal track step
+    bcc begin_step_sequence                                           ; beae: 90 1f       ..             ; No: normal track step
     lda nmi_0d5e                                                      ; beb0: ad 5e 0d    .^.            ; Get NMI control byte
     and #4                                                            ; beb3: 29 04       ).             ; Bit 2 set (double-sided)?
-    beq cbebc                                                         ; beb5: f0 05       ..             ; Not set: single-sided disc
+    beq seek_with_stepping                                            ; beb5: f0 05       ..             ; Not set: single-sided disc
     ldx #0                                                            ; beb7: a2 00       ..             ; X=0: operation ending
-    jmp cbef2                                                         ; beb9: 4c f2 be    L..            ; Jump to track position update
+    jmp steps_remaining_check                                         ; beb9: 4c f2 be    L..            ; Jump to track position update
 
 ; &bebc referenced 1 time by &beb5
-.cbebc
+.seek_with_stepping
     lda #&ff                                                          ; bebc: a9 ff       ..             ; Track &4F: switch to side 1
     sta zp_a3                                                         ; bebe: 85 a3       ..             ; Set track to &FF (will be 0 after inc)
     jsr floppy_set_side_1                                             ; bec0: 20 22 bd     ".            ; Select side 1; Select floppy disc side 1
@@ -11019,81 +11019,81 @@ la868 = check_dest_terminator+1
     sta fdc_8271_command_or_status_or_1770_drive_control              ; bec6: 8d 80 fe    ...            ; Write to FDC control register
     lda zp_a2                                                         ; bec9: a5 a2       ..             ; Get transfer state
     ora #8                                                            ; becb: 09 08       ..             ; Set bit 3 (side switch flag)
-    bne cbed3                                                         ; becd: d0 04       ..             ; Branch (always non-zero); ALWAYS branch
+    bne check_step_direction                                          ; becd: d0 04       ..             ; Branch (always non-zero); ALWAYS branch
 
 ; &becf referenced 1 time by &beae
-.cbecf
+.begin_step_sequence
     lda zp_a2                                                         ; becf: a5 a2       ..             ; Get transfer state
     ora #2                                                            ; bed1: 09 02       ..             ; Set bit 1 (track step flag)
 ; &bed3 referenced 1 time by &becd
-.cbed3
+.check_step_direction
     sta zp_a2                                                         ; bed3: 85 a2       ..             ; Store updated state
     dec nmi_0d57                                                      ; bed5: ce 57 0d    .W.            ; Decrement full track count
-    beq cbedf                                                         ; bed8: f0 05       ..             ; Zero: check for partial track
+    beq step_outward                                                  ; bed8: f0 05       ..             ; Zero: check for partial track
     lda #&10                                                          ; beda: a9 10       ..             ; Sectors per track = &10 (16)
     sta nmi_0d5a                                                      ; bedc: 8d 5a 0d    .Z.            ; Store in sector counter
 ; &bedf referenced 1 time by &bed8
-.cbedf
+.step_outward
     lda #&fe                                                          ; bedf: a9 fe       ..             ; A=&FE: sector position reset
     sta zp_a4                                                         ; bee1: 85 a4       ..             ; Store sector position
     ldx #0                                                            ; bee3: a2 00       ..             ; X=0: continue processing
-    beq cbef2                                                         ; bee5: f0 0b       ..             ; Branch to update (always); ALWAYS branch
+    beq steps_remaining_check                                         ; bee5: f0 0b       ..             ; Branch to update (always); ALWAYS branch
 
 ; &bee7 referenced 1 time by &bea0
-.cbee7
+.step_inward
     dec nmi_0d5a                                                      ; bee7: ce 5a 0d    .Z.            ; Decrement sector position counter
-    jmp cbef0                                                         ; beea: 4c f0 be    L..            ; Jump to update sector position
+    jmp step_track_counter                                            ; beea: 4c f0 be    L..            ; Jump to update sector position
 
 ; &beed referenced 1 time by &be87
-.cbeed
+.issue_step_command
     dec nmi_0d58                                                      ; beed: ce 58 0d    .X.            ; Decrement sectors this track
 ; &bef0 referenced 2 times by &be9a, &beea
-.cbef0
+.step_track_counter
     ldx #&ff                                                          ; bef0: a2 ff       ..             ; X=&FF: more sectors to do
 ; &bef2 referenced 2 times by &beb9, &bee5
-.cbef2
+.steps_remaining_check
     inc zp_a4                                                         ; bef2: e6 a4       ..             ; Increment sector position
 ; &bef4 referenced 1 time by &befc
-.loop_cbef4
+.step_loop
     lda zp_a4                                                         ; bef4: a5 a4       ..             ; Get current sector position
     sta fdc_1770_sector                                               ; bef6: 8d 86 fe    ...            ; Write to FDC sector register
     cmp fdc_1770_sector                                               ; bef9: cd 86 fe    ...            ; Read back to verify
-    bne loop_cbef4                                                    ; befc: d0 f6       ..             ; Loop until value sticks
+    bne step_loop                                                     ; befc: d0 f6       ..             ; Loop until value sticks
 ; &befe referenced 1 time by &be95
 .return_47
     rts                                                               ; befe: 60          `              ; Return
 
 ; &beff referenced 1 time by &bb8f
-.cbeff
+.setup_track_for_rw
     ldy #6                                                            ; beff: a0 06       ..             ; Y=6: get drive+sector from block
     lda (zp_b0),y                                                     ; bf01: b1 b0       ..             ; Get drive+sector byte
     ora wksp_current_drive                                            ; bf03: 0d 17 11    ...            ; OR with current drive
     sta zp_a6                                                         ; bf06: 85 a6       ..             ; Store as drive control byte
     and #&1f                                                          ; bf08: 29 1f       ).             ; Isolate drive number bits
-    beq cbf0f                                                         ; bf0a: f0 03       ..             ; Drive 0? OK
+    beq get_sector_from_block                                         ; bf0a: f0 03       ..             ; Drive 0? OK
     jmp bad_address_error                                             ; bf0c: 4c 66 bf    Lf.            ; Non-zero: bad drive error
 
 ; &bf0f referenced 1 time by &bf0a
-.cbf0f
+.get_sector_from_block
     bit zp_a6                                                         ; bf0f: 24 a6       $.             ; Check drive select bits
-    bvc cbf19                                                         ; bf11: 50 06       P.             ; Bit 6: invalid drive?
+    bvc adjust_for_partial_sector                                     ; bf11: 50 06       P.             ; Bit 6: invalid drive?
     lda #&65 ; 'e'                                                    ; bf13: a9 65       .e             ; Error &65: volume error (bad drive)
     sta zp_a0                                                         ; bf15: 85 a0       ..             ; Store error code
     bne branch_to_floppy_error                                        ; bf17: d0 51       .Q             ; Branch to floppy error; ALWAYS branch
 
 ; &bf19 referenced 1 time by &bf11
-.cbf19
+.adjust_for_partial_sector
     lda zp_a6                                                         ; bf19: a5 a6       ..             ; Get drive control byte
     and #&20 ; ' '                                                    ; bf1b: 29 20       )              ; Check bit 5 (drive 1 select)
-    bne cbf23                                                         ; bf1d: d0 04       ..             ; Not set: drive 0, use &21
+    bne check_sectors_remaining                                       ; bf1d: d0 04       ..             ; Not set: drive 0, use &21
     lda #&21 ; '!'                                                    ; bf1f: a9 21       .!             ; Drive 1: control byte &21
-    bne cbf25                                                         ; bf21: d0 02       ..             ; Branch (always); ALWAYS branch
+    bne issue_multi_sector_rw                                         ; bf21: d0 02       ..             ; Branch (always); ALWAYS branch
 
 ; &bf23 referenced 1 time by &bf1d
-.cbf23
+.check_sectors_remaining
     lda #&22 ; '"'                                                    ; bf23: a9 22       ."             ; Drive 0: control byte &22
 ; &bf25 referenced 1 time by &bf21
-.cbf25
+.issue_multi_sector_rw
     sta nmi_0d5e                                                      ; bf25: 8d 5e 0d    .^.            ; Store in NMI drive control
     ror l10e4                                                         ; bf28: 6e e4 10    n..            ; Set head-loaded flag
     sec                                                               ; bf2b: 38          8              ; Set carry
@@ -11102,21 +11102,21 @@ la868 = check_dest_terminator+1
     lda nmi_0d5e                                                      ; bf32: ad 5e 0d    .^.            ; Get NMI drive control byte
     sta fdc_8271_command_or_status_or_1770_drive_control              ; bf35: 8d 80 fe    ...            ; Write to FDC control register
     ror a                                                             ; bf38: 6a          j              ; Rotate bit 0 to carry
-    bcc cbf47                                                         ; bf39: 90 0c       ..             ; C=0: last access was other drive
+    bcc handle_sector_error                                           ; bf39: 90 0c       ..             ; C=0: last access was other drive
     lda l10e5                                                         ; bf3b: ad e5 10    ...            ; Get saved track for this drive
     sta zp_a3                                                         ; bf3e: 85 a3       ..             ; Store as current track
     bit l10e4                                                         ; bf40: 2c e4 10    ,..            ; Check head-loaded state
     bpl return_48                                                     ; bf43: 10 0f       ..             ; Head loaded: no seek needed
-    bmi cbf51                                                         ; bf45: 30 0a       0.             ; Branch (always); ALWAYS branch
+    bmi restore_track_zero                                            ; bf45: 30 0a       0.             ; Branch (always); ALWAYS branch
 
 ; &bf47 referenced 1 time by &bf39
-.cbf47
+.handle_sector_error
     lda l10e6                                                         ; bf47: ad e6 10    ...            ; Get saved track for other drive
     sta zp_a3                                                         ; bf4a: 85 a3       ..             ; Store as current track
     bit l10e4                                                         ; bf4c: 2c e4 10    ,..            ; Check head-loaded state
     bvc return_48                                                     ; bf4f: 50 03       P.             ; Not loaded: need seek
 ; &bf51 referenced 1 time by &bf45
-.cbf51
+.restore_track_zero
     jsr floppy_restore_track_0                                        ; bf51: 20 3f bd     ?.            ; Seek to track 0 and re-seek; Seek floppy head to track 0
 ; &bf54 referenced 2 times by &bf43, &bf4f
 .return_48
@@ -11462,6 +11462,7 @@ save pydis_start, pydis_end
 ;     check_set_channel_y:                                6
 ;     clear_transfer_complete:                            6
 ;     command_exec_xy:                                    6
+;     find_buffer_for_sector:                             6
 ;     floppy_wait_nmi_finish:                             6
 ;     generate_disc_error:                                6
 ;     generate_error:                                     6
@@ -11474,7 +11475,6 @@ save pydis_start, pydis_end
 ;     release_tube_and_return:                            6
 ;     scsi_send_cmd_byte:                                 6
 ;     sub_c832b:                                          6
-;     sub_cabd8:                                          6
 ;     wksp_1030:                                          6
 ;     wksp_1038:                                          6
 ;     wksp_current_drive_hi:                              6
@@ -11520,7 +11520,6 @@ save pydis_start, pydis_end
 ;     c8a63:                                              4
 ;     c8ddb:                                              4
 ;     c96a6:                                              4
-;     cac62:                                              4
 ;     cb3f1:                                              4
 ;     claim_tube_retry:                                   4
 ;     command_exec_start_exec:                            4
@@ -11549,6 +11548,7 @@ save pydis_start, pydis_end
 ;     nmi_0d56:                                           4
 ;     nmi_0d5a:                                           4
 ;     parse_second_filename:                              4
+;     read_single_hd_sector:                              4
 ;     restore_csd:                                        4
 ;     return_17:                                          4
 ;     return_27:                                          4
@@ -11578,8 +11578,6 @@ save pydis_start, pydis_end
 ;     begin_compaction:                                   3
 ;     c8787:                                              3
 ;     c87a8:                                              3
-;     cac5f:                                              3
-;     cace9:                                              3
 ;     calc_total_free_space:                              3
 ;     cb446:                                              3
 ;     check_alloc_vs_ptr:                                 3
@@ -11588,11 +11586,13 @@ save pydis_start, pydis_end
 ;     check_ptr_within_allocation:                        3
 ;     check_special_dir_char:                             3
 ;     claim_tube:                                         3
+;     convert_handle_to_offset:                           3
 ;     dir_buffer:                                         3
 ;     dir_title:                                          3
 ;     display_and_find_next:                              3
 ;     find_file_and_validate:                             3
 ;     floppy_calc_track_sector_from_b0_block:             3
+;     flush_dirty_channel_buffer:                         3
 ;     fred_hard_drive_3:                                  3
 ;     fsm_s1_boot_option:                                 3
 ;     fsm_s1_disc_id_hi:                                  3
@@ -11618,6 +11618,7 @@ save pydis_start, pydis_end
 ;     l10e2:                                              3
 ;     l10e5:                                              3
 ;     l10e6:                                              3
+;     load_sector_to_buffer:                              3
 ;     mark_buffer_dirty:                                  3
 ;     nmi_0d0a:                                           3
 ;     nmi_0d0e:                                           3
@@ -11641,11 +11642,10 @@ save pydis_start, pydis_end
 ;     scsi_start_command:                                 3
 ;     setup_disc_write:                                   3
 ;     skip_spaces_before_attrs:                           3
+;     step_ensure_offset_loop:                            3
 ;     sub_c8dbd:                                          3
 ;     sub_c8e6f:                                          3
 ;     sub_c8f4c:                                          3
-;     sub_caaf3:                                          3
-;     sub_cacf5:                                          3
 ;     sub_cb4bf:                                          3
 ;     sub_cb510:                                          3
 ;     sub_cb51c:                                          3
@@ -11714,9 +11714,9 @@ save pydis_start, pydis_end
 ;     c98dd:                                              2
 ;     c990e:                                              2
 ;     c9fed:                                              2
-;     cab3d:                                              2
-;     cab63:                                              2
 ;     calc_bget_sector_addr:                              2
+;     calc_buffer_address:                                2
+;     calc_buffer_page_from_offset:                       2
 ;     calc_buffer_sector_addr:                            2
 ;     calc_wksp_checksum:                                 2
 ;     cb218:                                              2
@@ -11725,9 +11725,6 @@ save pydis_start, pydis_end
 ;     cb48e:                                              2
 ;     cb4ae:                                              2
 ;     cb574:                                              2
-;     cbe33:                                              2
-;     cbef0:                                              2
-;     cbef2:                                              2
 ;     check_256_byte_transfer:                            2
 ;     check_and_delete_found:                             2
 ;     check_csd_on_drive:                                 2
@@ -11872,6 +11869,8 @@ save pydis_start, pydis_end
 ;     skip_trailing_spaces:                               2
 ;     skip_zero_fill:                                     2
 ;     star_close:                                         2
+;     step_track_counter:                                 2
+;     steps_remaining_check:                              2
 ;     store_channel_flags:                                2
 ;     store_result_byte:                                  2
 ;     store_wksp_checksum_ba_y:                           2
@@ -11886,8 +11885,6 @@ save pydis_start, pydis_end
 ;     sub_c8f52:                                          2
 ;     sub_c9009:                                          2
 ;     sub_c905c:                                          2
-;     sub_cabc9:                                          2
-;     sub_cacd7:                                          2
 ;     sum_free_space:                                     2
 ;     switch_to_channel_drive:                            2
 ;     tube_start_xfer_sei:                                2
@@ -11896,13 +11893,16 @@ save pydis_start, pydis_end
 ;     update_moved_dir_parent:                            2
 ;     validate_disc_command:                              2
 ;     verify_dir_and_list:                                2
+;     wait_format_nmi_complete:                           2
 ;     wait_req_and_transfer:                              2
 ;     wait_tube_data_phase:                               2
+;     wait_write_data_phase:                              2
 ;     wksp:                                               2
 ;     wksp_100d:                                          2
 ;     wksp_err_code:                                      2
 ;     wksp_flags_save:                                    2
 ;     wksp_lib_name:                                      2
+;     write_dirty_sector_to_disc:                         2
 ;     zp_bb:                                              2
 ;     zp_bf:                                              2
 ;     zp_c7:                                              2
@@ -11910,6 +11910,7 @@ save pydis_start, pydis_end
 ;     add_size_to_prev_loop:                              1
 ;     adjacent_next_byte:                                 1
 ;     adjacent_prev_byte:                                 1
+;     adjust_for_partial_sector:                          1
 ;     adjust_partial_transfer:                            1
 ;     advance_and_continue:                               1
 ;     advance_cat_entry:                                  1
@@ -11919,7 +11920,10 @@ save pydis_start, pydis_end
 ;     advance_memory_page:                                1
 ;     advance_past_char:                                  1
 ;     advance_past_component:                             1
+;     advance_read_page:                                  1
+;     advance_write_page:                                 1
 ;     all_files_deleted:                                  1
+;     allocate_new_buffer_slot:                           1
 ;     allocate_space_for_file:                            1
 ;     already_exists_error:                               1
 ;     append_channel_suffix_loop:                         1
@@ -11928,9 +11932,11 @@ save pydis_start, pydis_end
 ;     append_sector_bytes_loop:                           1
 ;     append_sector_hex:                                  1
 ;     bad_command_error:                                  1
+;     begin_step_sequence:                                1
 ;     boot_load_from_disc:                                1
 ;     boot_set_page:                                      1
 ;     branch_to_floppy_error:                             1
+;     buffer_sector_match:                                1
 ;     build_access_byte_loop:                             1
 ;     build_filename_loop:                                1
 ;     build_osfile_control_block:                         1
@@ -12010,20 +12016,7 @@ save pydis_start, pydis_end
 ;     c9ff1:                                              1
 ;     c9ff6:                                              1
 ;     ca00a:                                              1
-;     caaf0:                                              1
-;     cab75:                                              1
-;     cab87:                                              1
-;     cab8a:                                              1
-;     cabde:                                              1
-;     cabe8:                                              1
-;     cac08:                                              1
-;     cac2b:                                              1
-;     cac3b:                                              1
-;     cac45:                                              1
-;     cac6b:                                              1
-;     caca6:                                              1
-;     cacc6:                                              1
-;     caccb:                                              1
+;     calc_channel_buffer_page:                           1
 ;     calc_disc_sector_for_channel:                       1
 ;     calc_end_position_loop:                             1
 ;     calc_remaining_sector:                              1
@@ -12050,31 +12043,6 @@ save pydis_start, pydis_end
 ;     cb4f1:                                              1
 ;     cb54e:                                              1
 ;     cb567:                                              1
-;     cbd97:                                              1
-;     cbda2:                                              1
-;     cbdc5:                                              1
-;     cbdd7:                                              1
-;     cbdfb:                                              1
-;     cbe0c:                                              1
-;     cbe27:                                              1
-;     cbe29:                                              1
-;     cbe4e:                                              1
-;     cbe78:                                              1
-;     cbe97:                                              1
-;     cbe9d:                                              1
-;     cbebc:                                              1
-;     cbecf:                                              1
-;     cbed3:                                              1
-;     cbedf:                                              1
-;     cbee7:                                              1
-;     cbeed:                                              1
-;     cbeff:                                              1
-;     cbf0f:                                              1
-;     cbf19:                                              1
-;     cbf23:                                              1
-;     cbf25:                                              1
-;     cbf47:                                              1
-;     cbf51:                                              1
 ;     check_4byte_addrs:                                  1
 ;     check_adfs_prefix:                                  1
 ;     check_adjacent_to_next_loop:                        1
@@ -12097,6 +12065,7 @@ save pydis_start, pydis_end
 ;     check_field_boundary:                               1
 ;     check_for_on_channel:                               1
 ;     check_format_command:                               1
+;     check_format_complete:                              1
 ;     check_hex_af:                                       1
 ;     check_hex_digit_valid:                              1
 ;     check_host_memory:                                  1
@@ -12111,13 +12080,17 @@ save pydis_start, pydis_end
 ;     check_partial_sectors_done:                         1
 ;     check_prev_dir_deleted:                             1
 ;     check_read_allocation:                              1
+;     check_read_error:                                   1
 ;     check_relocation_needed:                            1
 ;     check_remaining_buffered:                           1
 ;     check_scsi_error_bit:                               1
 ;     check_sector_low:                                   1
 ;     check_sector_mid:                                   1
+;     check_sectors_remaining:                            1
+;     check_seek_error:                                   1
 ;     check_shadow_save:                                  1
 ;     check_special_dir:                                  1
+;     check_step_direction:                               1
 ;     check_transfer_complete:                            1
 ;     check_triple_merge_loop:                            1
 ;     check_tube_for_nmi:                                 1
@@ -12137,6 +12110,7 @@ save pydis_start, pydis_end
 ;     clear_osfile_block_loop:                            1
 ;     clear_sector_workspace_loop:                        1
 ;     clear_side_flag:                                    1
+;     clear_verify_seek_flag:                             1
 ;     close_all_drives_start:                             1
 ;     close_drive_channels_loop:                          1
 ;     close_each_drive_loop:                              1
@@ -12241,6 +12215,8 @@ save pydis_start, pydis_end
 ;     dir2_parent_sector:                                 1
 ;     dir_first_entry:                                    1
 ;     dir_last_entry_area:                                1
+;     direct_format_copy:                                 1
+;     direct_format_copy_loop:                            1
 ;     dispatch_command:                                   1
 ;     dispatch_dir_info_handler:                          1
 ;     dispatch_dir_operations:                            1
@@ -12249,15 +12225,19 @@ save pydis_start, pydis_end
 ;     do_floppy_scsi_command_ind:                         1
 ;     end_of_command_name:                                1
 ;     end_of_table_name:                                  1
+;     ensure_channel_buffer:                              1
 ;     enter_quoted_string:                                1
 ;     error_escape_ack_invalidate_reload_fsm:             1
 ;     escape_during_retry:                                1
+;     evict_check_dirty:                                  1
+;     evict_oldest_buffer:                                1
 ;     exec_floppy_partial_sector_buf:                     1
 ;     exec_floppy_partial_sector_buf_ind:                 1
 ;     exec_floppy_read_bput_sector:                       1
 ;     exec_floppy_read_bput_sector_ind:                   1
 ;     exec_floppy_write_bput_sector:                      1
 ;     exec_floppy_write_bput_sector_ind:                  1
+;     execute_fdc_seek:                                   1
 ;     execute_loaded_file:                                1
 ;     execute_osword_disc_op:                             1
 ;     execute_partial_disc_op:                            1
@@ -12266,12 +12246,18 @@ save pydis_start, pydis_end
 ;     file_is_locked:                                     1
 ;     file_is_locked_error:                               1
 ;     filev:                                              1
+;     find_free_slot_loop:                                1
 ;     find_fsm_position:                                  1
 ;     floppy_calc_track_sector_from_block_check_range:    1
 ;     floppy_check_present:                               1
 ;     floppy_format_track:                                1
 ;     floppy_partial_sector:                              1
 ;     flush_channels_loop:                                1
+;     format_double_sided:                                1
+;     format_next_track:                                  1
+;     format_track_data_ready:                            1
+;     format_track_loop:                                  1
+;     format_verify_pass:                                 1
 ;     found_insertion_point:                              1
 ;     fred_hard_drive_2:                                  1
 ;     fsc6_new_filing_system:                             1
@@ -12284,8 +12270,10 @@ save pydis_start, pydis_end
 ;     fsm_s1_first_length:                                1
 ;     generate_error_skip_no_suffix:                      1
 ;     get_sector_count:                                   1
+;     get_sector_from_block:                              1
 ;     handle_buffer_mismatch:                             1
 ;     handle_eof_write:                                   1
+;     handle_sector_error:                                1
 ;     hd_bget_read_sector:                                1
 ;     hd_command:                                         1
 ;     hd_command_partial_sector:                          1
@@ -12295,6 +12283,9 @@ save pydis_start, pydis_end
 ;     init_per_channel_loop:                              1
 ;     insert_new_fsm_entry:                               1
 ;     invalidate_sectors_loop:                            1
+;     issue_fdc_track_command:                            1
+;     issue_multi_sector_rw:                              1
+;     issue_step_command:                                 1
 ;     jmp_indirect_fscv:                                  1
 ;     l00ef:                                              1
 ;     l00f1:                                              1
@@ -12406,11 +12397,6 @@ save pydis_start, pydis_end
 ;     loop_c989c:                                         1
 ;     loop_c98ce:                                         1
 ;     loop_c9903:                                         1
-;     loop_cac1f:                                         1
-;     loop_cac99:                                         1
-;     loop_cacab:                                         1
-;     loop_cacbe:                                         1
-;     loop_cacd9:                                         1
 ;     loop_cb1e3:                                         1
 ;     loop_cb2f8:                                         1
 ;     loop_cb316:                                         1
@@ -12420,10 +12406,6 @@ save pydis_start, pydis_end
 ;     loop_cb46a:                                         1
 ;     loop_cb4cd:                                         1
 ;     loop_cb513:                                         1
-;     loop_cbd85:                                         1
-;     loop_cbd89:                                         1
-;     loop_cbd9a:                                         1
-;     loop_cbef4:                                         1
 ;     mark_entry_dirty:                                   1
 ;     mark_partial_transfer:                              1
 ;     match_command_loop:                                 1
@@ -12501,13 +12483,16 @@ save pydis_start, pydis_end
 ;     raise_brk_error:                                    1
 ;     read_allocation_size:                               1
 ;     read_byte_from_tube:                                1
+;     read_complete_check:                                1
 ;     read_csd_name_handler:                              1
 ;     read_dir_from_disc:                                 1
 ;     read_dir_title_handler:                             1
 ;     read_ext_value:                                     1
 ;     read_filenames_handler:                             1
 ;     read_fsm_from_disc:                                 1
+;     read_hd_256_complete:                               1
 ;     read_lib_name_handler:                              1
+;     read_scsi_to_buffer_loop:                           1
 ;     read_scsi_to_memory:                                1
 ;     read_scsi_via_tube:                                 1
 ;     recalc_flags_from_base:                             1
@@ -12530,6 +12515,7 @@ save pydis_start, pydis_end
 ;     restore_drive_after_extend:                         1
 ;     restore_head_flag:                                  1
 ;     restore_shadow_screen:                              1
+;     restore_track_zero:                                 1
 ;     restore_wksp_byte_loop:                             1
 ;     restore_workspace_state:                            1
 ;     return_1:                                           1
@@ -12585,6 +12571,7 @@ save pydis_start, pydis_end
 ;     save_wksp_and_checksum:                             1
 ;     save_wksp_byte_loop:                                1
 ;     save_workspace_and_return:                          1
+;     scan_channel_buffers:                               1
 ;     scan_component_chars:                               1
 ;     scan_dest_for_parent_ref:                           1
 ;     scan_dir_entries_loop:                              1
@@ -12602,6 +12589,7 @@ save pydis_start, pydis_end
 ;     search_for_dir_entry:                               1
 ;     search_lib_for_command:                             1
 ;     seek_to_track_0:                                    1
+;     seek_with_stepping:                                 1
 ;     select_adfs_filing_system:                          1
 ;     send_cmd_byte_loop:                                 1
 ;     send_next_cmd_byte:                                 1
@@ -12622,6 +12610,7 @@ save pydis_start, pydis_end
 ;     set_drive_1_select:                                 1
 ;     set_entry_pointer:                                  1
 ;     set_fdc_control_byte:                               1
+;     set_format_sector_id:                               1
 ;     set_fsm_load_flag:                                  1
 ;     set_matched_flag:                                   1
 ;     set_ptr_complete:                                   1
@@ -12641,6 +12630,7 @@ save pydis_start, pydis_end
 ;     setup_fsm_read:                                     1
 ;     setup_nmi_and_step_rate:                            1
 ;     setup_partial_sector_buffer:                        1
+;     setup_track_for_rw:                                 1
 ;     setup_tube_nmi_transfer:                            1
 ;     setup_tube_read_nmi:                                1
 ;     setup_tube_write_256:                               1
@@ -12662,6 +12652,10 @@ save pydis_start, pydis_end
 ;     star_info:                                          1
 ;     star_remove:                                        1
 ;     start_byte_transfer:                                1
+;     step_channel_offset_loop:                           1
+;     step_inward:                                        1
+;     step_loop:                                          1
+;     step_outward:                                       1
 ;     step_rate_fast:                                     1
 ;     store_adjusted_count:                               1
 ;     store_converted_byte:                               1
@@ -12678,6 +12672,7 @@ save pydis_start, pydis_end
 ;     store_new_ptr_in_channel:                           1
 ;     store_nmi_completion:                               1
 ;     store_osword_result:                                1
+;     store_read_result:                                  1
 ;     store_remaining_count:                              1
 ;     store_second_partial:                               1
 ;     store_title_char:                                   1
@@ -12691,12 +12686,9 @@ save pydis_start, pydis_end
 ;     sub_c8f58:                                          1
 ;     sub_c9642:                                          1
 ;     sub_c98ae:                                          1
-;     sub_caba5:                                          1
 ;     sub_cb3b6:                                          1
 ;     sub_cb468:                                          1
 ;     sub_cb47c:                                          1
-;     sub_cbda6:                                          1
-;     sub_cbe84:                                          1
 ;     subtract_from_length_loop:                          1
 ;     sum_entry_bytes_loop:                               1
 ;     sum_fsm_entries_loop:                               1
@@ -12708,15 +12700,21 @@ save pydis_start, pydis_end
 ;     tbl_extended_vectors:                               1
 ;     translate_scsi_error:                               1
 ;     tube_byte_transfer:                                 1
+;     tube_format_delay_loop:                             1
+;     tube_format_xfer_loop:                              1
 ;     tube_read_byte_loop:                                1
 ;     tube_start_xfer:                                    1
 ;     tube_write_byte_loop:                               1
 ;     update_control_block_addr_loop:                     1
 ;     update_parent_sector:                               1
 ;     use_best_fit_entry:                                 1
+;     use_free_slot:                                      1
 ;     verify_workspace_checksum:                          1
 ;     volume_error:                                       1
 ;     wait_bus_free_loop:                                 1
+;     wait_format_track_complete:                         1
+;     wait_read_data_phase:                               1
+;     wait_seek_complete:                                 1
 ;     wait_status_phase:                                  1
 ;     wait_target_bsy_loop:                               1
 ;     wksp_1008:                                          1
@@ -12727,7 +12725,9 @@ save pydis_start, pydis_end
 ;     wksp_105e:                                          1
 ;     wksp_osword_block:                                  1
 ;     wksp_tube_transfer_addr:                            1
+;     write_buffer_to_scsi_loop:                          1
 ;     write_byte_from_memory:                             1
+;     write_complete:                                     1
 ;     write_dir_entry:                                    1
 ;     write_dir_name_loop:                                1
 ;     write_entry_metadata:                               1
@@ -12863,25 +12863,6 @@ save pydis_start, pydis_end
 ;     c9ff6
 ;     ca00a
 ;     ca016
-;     caaf0
-;     cab3d
-;     cab63
-;     cab75
-;     cab87
-;     cab8a
-;     cabde
-;     cabe8
-;     cac08
-;     cac2b
-;     cac3b
-;     cac45
-;     cac5f
-;     cac62
-;     cac6b
-;     caca6
-;     cacc6
-;     caccb
-;     cace9
 ;     cb1d4
 ;     cb1e1
 ;     cb203
@@ -12913,34 +12894,6 @@ save pydis_start, pydis_end
 ;     cb54e
 ;     cb567
 ;     cb574
-;     cbd97
-;     cbda2
-;     cbdc5
-;     cbdd7
-;     cbdfb
-;     cbe0c
-;     cbe27
-;     cbe29
-;     cbe33
-;     cbe4e
-;     cbe78
-;     cbe97
-;     cbe9d
-;     cbebc
-;     cbecf
-;     cbed3
-;     cbedf
-;     cbee7
-;     cbeed
-;     cbef0
-;     cbef2
-;     cbeff
-;     cbf0f
-;     cbf19
-;     cbf23
-;     cbf25
-;     cbf47
-;     cbf51
 ;     l0000
 ;     l0001
 ;     l0002
@@ -13164,11 +13117,6 @@ save pydis_start, pydis_end
 ;     loop_c989c
 ;     loop_c98ce
 ;     loop_c9903
-;     loop_cac1f
-;     loop_cac99
-;     loop_cacab
-;     loop_cacbe
-;     loop_cacd9
 ;     loop_cb1e3
 ;     loop_cb2f8
 ;     loop_cb316
@@ -13178,10 +13126,6 @@ save pydis_start, pydis_end
 ;     loop_cb46a
 ;     loop_cb4cd
 ;     loop_cb513
-;     loop_cbd85
-;     loop_cbd89
-;     loop_cbd9a
-;     loop_cbef4
 ;     return_1
 ;     return_10
 ;     return_11
@@ -13261,12 +13205,6 @@ save pydis_start, pydis_end
 ;     sub_c9fd8
 ;     sub_c9fdd
 ;     sub_ca153
-;     sub_caaf3
-;     sub_caba5
-;     sub_cabc9
-;     sub_cabd8
-;     sub_cacd7
-;     sub_cacf5
 ;     sub_cb3b6
 ;     sub_cb468
 ;     sub_cb47c
@@ -13275,8 +13213,6 @@ save pydis_start, pydis_end
 ;     sub_cb510
 ;     sub_cb51c
 ;     sub_cb579
-;     sub_cbda6
-;     sub_cbe84
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
