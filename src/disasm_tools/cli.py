@@ -236,6 +236,17 @@ def cmd_backfill(args):
                       dry_run=args.dry_run))
 
 
+def cmd_promote(args):
+    """Find labels that should be promoted to entry points."""
+    from disasm_tools.promote import promote
+
+    version_dirpath = get_version_dirpath(args.version)
+    sys.exit(promote(version_dirpath, args.version,
+                     threshold=args.threshold,
+                     show_all=args.all,
+                     not_entry_only=args.new))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="acorn-adfs-disasm-tool",
@@ -373,6 +384,18 @@ def main():
     backfill_parser.add_argument("--dry-run", action="store_true",
                                  help="Show what would be changed")
     backfill_parser.set_defaults(func=cmd_backfill)
+
+    promote_parser = subparsers.add_parser(
+        "promote", help="Find labels to promote to entry points"
+    )
+    promote_parser.add_argument("version", help="Version (e.g. 1.30)")
+    promote_parser.add_argument("--threshold", type=int, default=25,
+                                help="Minimum score to show (default: 25)")
+    promote_parser.add_argument("--all", action="store_true",
+                                help="Show all labels regardless of score")
+    promote_parser.add_argument("--new", action="store_true",
+                                help="Only show labels not yet entry/sub")
+    promote_parser.set_defaults(func=cmd_promote)
 
     args = parser.parse_args()
     args.func(args)
