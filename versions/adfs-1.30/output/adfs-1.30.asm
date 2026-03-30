@@ -3936,7 +3936,28 @@ lffff                                           = &ffff
     bne print_hex_field_pair_loop                                     ; 906e: d0 fa       ..             ; Loop for 255 bytes
     rts                                                               ; 9070: 60          `              ; Return (X=chk0, A=chk1)
 
-    equb 1, 0, &0e, &ff, &ff, &0a, 0, 0, 0, 2, 0                      ; 9071: 01 00 0e... ...
+; ***************************************************************************************
+; Unused write-FSM disc operation template
+; 
+; An unreferenced disc operation template for writing the FSM
+; back to disc. The actual write-FSM code at write_dir_and_validate
+; instead copies the read template (disc_op_tpl_read_dir) and
+; patches the command byte from &08 (read) to &0A (write).
+; This template may be a remnant from an earlier code revision.
+; 
+; ***************************************************************************************
+.disc_op_tpl_write_fsm_unused
+    equb 1                                                            ; 9071: 01          .              ; Result: &01 (default)
+    equb 0                                                            ; 9072: 00          .              ; Memory address low: &00
+    equb &0e                                                          ; 9073: 0e          .              ; Memory address high: &0E (-> &0E00 FSM buffer)
+    equb &ff                                                          ; 9074: ff          .              ; Memory address byte 3: &FF (host memory)
+    equb &ff                                                          ; 9075: ff          .              ; Memory address byte 4: &FF (host memory)
+    equb &0a                                                          ; 9076: 0a          .              ; Command: &0A (write sectors)
+    equb 0                                                            ; 9077: 00          .              ; Sector high: &00
+    equb 0                                                            ; 9078: 00          .              ; Sector mid: &00
+    equb 0                                                            ; 9079: 00          .              ; Sector low: &00 (sector 0)
+    equb 2                                                            ; 907a: 02          .              ; Sector count: &02 (2 sectors for FSM)
+    equb 0                                                            ; 907b: 00          .              ; Control: &00
 
 .osfile_write_load_addr
     sta l1023                                                         ; 907c: 8d 23 10    .#.            ; Store function code

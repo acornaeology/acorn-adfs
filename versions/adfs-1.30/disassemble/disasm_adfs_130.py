@@ -988,6 +988,30 @@ byte(0x8DF1)
 comment(0x8DF1, "'$': root directory specifier", inline=True)
 byte(0x8DF2)
 comment(0x8DF2, "'&': hex number prefix", inline=True)
+label(0x9071, "disc_op_tpl_write_fsm_unused")
+entry(0x9071)
+byte(0x9071)
+comment(0x9071, "Result: &01 (default)", inline=True)
+byte(0x9072)
+comment(0x9072, "Memory address low: &00", inline=True)
+byte(0x9073)
+comment(0x9073, "Memory address high: &0E (-> &0E00 FSM buffer)", inline=True)
+byte(0x9074)
+comment(0x9074, "Memory address byte 3: &FF (host memory)", inline=True)
+byte(0x9075)
+comment(0x9075, "Memory address byte 4: &FF (host memory)", inline=True)
+byte(0x9076)
+comment(0x9076, "Command: &0A (write sectors)", inline=True)
+byte(0x9077)
+comment(0x9077, "Sector high: &00", inline=True)
+byte(0x9078)
+comment(0x9078, "Sector mid: &00", inline=True)
+byte(0x9079)
+comment(0x9079, "Sector low: &00 (sector 0)", inline=True)
+byte(0x907A)
+comment(0x907A, "Sector count: &02 (2 sectors for FSM)", inline=True)
+byte(0x907B)
+comment(0x907B, "Control: &00", inline=True)
 entry(0x9269)
 entry(0x9316)
 entry(0x9A46)
@@ -10949,6 +10973,16 @@ subroutine(0x905C, "setup_print_hex_field",
     description="""\
 Compute 8-bit checksums of FSM sectors 0 and 1 by
 summing all 255 bytes of each sector.
+""")
+
+subroutine(0x9071, "disc_op_tpl_write_fsm_unused",
+    title="Unused write-FSM disc operation template",
+    description="""\
+An unreferenced disc operation template for writing the FSM
+back to disc. The actual write-FSM code at write_dir_and_validate
+instead copies the read template (disc_op_tpl_read_dir) and
+patches the command byte from &08 (read) to &0A (write).
+This template may be a remnant from an earlier code revision.
 """)
 
 subroutine(0x9945, "clear_rwl_attributes",
