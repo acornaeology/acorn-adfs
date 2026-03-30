@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 63 / 115
-- Auto-labels renamed: 121 / 940
+- Reviewed: 64 / 115
+- Auto-labels renamed: 134 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -92,7 +92,7 @@ before their callers.
 | &A81D | star_copy | 120 | 17 | |
 | &A93C | fsc6_new_filing_system | 12 | 1 | REVIEWED |
 | &AD16 | compare_ext_to_ptr | 31 | 5 | REVIEWED |
-| &B08F | my_osbput | 117 | 16 | |
+| &B08F | my_osbput | 117 | 16 | REVIEWED |
 | &BF86 | floppy_calc_track_sector_from_b0_block | 15 | 2 | REVIEWED |
 | &BFAE | floppy_error | 31 | 5 | REVIEWED |
 

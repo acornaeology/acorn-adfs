@@ -7763,7 +7763,7 @@ la868 = sub_ca867+1
     stx zp_save_x                                                     ; a998: 86 c3       ..             ; Save X (ZP pointer)
     pha                                                               ; a99a: 48          H              ; Save function code on stack
     jsr check_set_channel_y                                           ; a99b: 20 fe ac     ..            ; Validate and set channel number from Y
-    jsr sub_cb18c                                                     ; a99e: 20 8c b1     ..            ; Flush channel buffer
+    jsr sync_ext_to_ptr                                               ; a99e: 20 8c b1     ..            ; Flush channel buffer
     pla                                                               ; a9a1: 68          h              ; Restore function code
     ldy zp_channel_offset                                             ; a9a2: a4 cf       ..             ; Get channel index
     tax                                                               ; a9a4: aa          .              ; A still non-zero?
@@ -7779,7 +7779,7 @@ la868 = sub_ca867+1
     sta l0003,x                                                       ; a9bb: 95 03       ..             ; Store PTR high at X+3
 ; &a9bd referenced 3 times by &aa00, &aa32, &aa5f
 .ca9bd
-    jsr cb13f                                                         ; a9bd: 20 3f b1     ?.            ; Ensure channel state is consistent
+    jsr update_channel_flags_for_ptr                                  ; a9bd: 20 3f b1     ?.            ; Ensure channel state is consistent
     lda #0                                                            ; a9c0: a9 00       ..             ; A=0: success return
     ldx zp_save_x                                                     ; a9c2: a6 c3       ..             ; Restore X
     ldy zp_save_y                                                     ; a9c4: a4 c2       ..             ; Restore Y
@@ -7869,7 +7869,7 @@ la868 = sub_ca867+1
     ldx zp_save_x                                                     ; aa65: a6 c3       ..             ; A=5: check file is open for write
     lda wksp_ch_flags,y                                               ; aa67: b9 ac 11    ...            ; Get channel flags
     bmi caa6f                                                         ; aa6a: 30 03       0.             ; Bit 7 set: writable, proceed
-    jmp cb09d                                                         ; aa6c: 4c 9d b0    L..            ; Not writable: error
+    jmp not_open_for_update_error                                     ; aa6c: 4c 9d b0    L..            ; Not writable: error
 
 ; &aa6f referenced 1 time by &aa6a
 .caa6f
@@ -8323,7 +8323,7 @@ la868 = sub_ca867+1
     ror a                                                             ; ad3f: 6a          j              ; Rotate flags bit 0 into carry
     bcs return_eof_status                                             ; ad40: b0 09       ..             ; Carry set: skip flush
     jsr sub_ca749                                                     ; ad42: 20 49 a7     I.            ; Ensure workspace is valid
-    jsr sub_cb18c                                                     ; ad45: 20 8c b1     ..            ; Flush channel buffer if dirty
+    jsr sync_ext_to_ptr                                               ; ad45: 20 8c b1     ..            ; Flush channel buffer if dirty
     jsr compare_ext_to_ptr                                            ; ad48: 20 16 ad     ..            ; Compare file EXT to PTR
 ; &ad4b referenced 1 time by &ad40
 .return_eof_status
@@ -8391,7 +8391,7 @@ la868 = sub_ca867+1
     ldy wksp_ch_ptr_l,x                                               ; adb2: bc 7a 11    .z.            ; Get PTR low byte as buffer offset
     lda #0                                                            ; adb5: a9 00       ..             ; A=0: clear modification flag
     sta l10cf                                                         ; adb7: 8d cf 10    ...            ; Store zero mod flag
-    jsr sub_cb123                                                     ; adba: 20 23 b1     #.            ; Advance PTR and update flags
+    jsr increment_ptr_after_write                                     ; adba: 20 23 b1     #.            ; Advance PTR and update flags
     lda (zp_be),y                                                     ; adbd: b1 be       ..             ; Read byte from buffer at PTR offset
     ldy zp_save_y                                                     ; adbf: a4 c2       ..             ; Restore Y
     ldx zp_save_x                                                     ; adc1: a6 c3       ..             ; Restore X
@@ -8770,22 +8770,22 @@ la868 = sub_ca867+1
     ldy #0                                                            ; b095: a0 00       ..             ; Clear modification flag
     sty l10cf                                                         ; b097: 8c cf 10    ...            ; Clear modification flag
     tay                                                               ; b09a: a8          .              ; Transfer channel flags to Y
-    bmi cb0b5                                                         ; b09b: 30 18       0.             ; Bit 7 set: file is writable
+    bmi check_buffer_state                                            ; b09b: 30 18       0.             ; Bit 7 set: file is writable
 ; &b09d referenced 2 times by &aa6c, &b5c5
-.cb09d
+.not_open_for_update_error
     jsr reload_fsm_and_dir_then_brk                                   ; b09d: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &c1                                                          ; b0a0: c1          .
     equs "Not open for update", 0                                     ; b0a1: 4e 6f 74... Not
 
 ; &b0b5 referenced 1 time by &b09b
-.cb0b5
+.check_buffer_state
     lda wksp_ch_flags,x                                               ; b0b5: bd ac 11    ...            ; Get channel flags
     and #7                                                            ; b0b8: 29 07       ).             ; Isolate buffer state bits (0-2)
     cmp #6                                                            ; b0ba: c9 06       ..             ; State >= 6: buffer dirty, ready
-    bcs cb0f0                                                         ; b0bc: b0 32       .2             ; Buffer state >= 6: ready
+    bcs calc_buffer_sector_addr                                       ; b0bc: b0 32       .2             ; Buffer state >= 6: ready
     cmp #3                                                            ; b0be: c9 03       ..             ; State = 3: buffer clean, skip load
-    beq cb0f0                                                         ; b0c0: f0 2e       ..             ; Buffer state = 3: skip load
-    lda wksp_ch_ptr_l,x                                               ; b0c2: bd 7a 11    .z.            ; Calculate next PTR position
+    beq calc_buffer_sector_addr                                       ; b0c0: f0 2e       ..             ; Buffer state = 3: skip load
+    lda wksp_ch_ptr_l,x                                               ; b0c2: bd 7a 11    .z.            ; Compute PTR+1 to check if extending
     sec                                                               ; b0c5: 38          8              ; Set carry for PTR+1 calculation
     adc #0                                                            ; b0c6: 69 00       i.             ; Add 1 (carry) to PTR low
     sta l109a                                                         ; b0c8: 8d 9a 10    ...            ; Store next PTR low in workspace
@@ -8805,17 +8805,17 @@ la868 = sub_ca867+1
     jsr sub_cae59                                                     ; b0eb: 20 59 ae     Y.            ; Validate PTR and load sector
     ldx zp_channel_offset                                             ; b0ee: a6 cf       ..             ; Get channel index
 ; &b0f0 referenced 2 times by &b0bc, &b0c0
-.cb0f0
+.calc_buffer_sector_addr
     clc                                                               ; b0f0: 18          .              ; Clear carry for address calc
-    lda l11ca,x                                                       ; b0f1: bd ca 11    ...            ; Get buffer offset low
-    adc wksp_ch_ptr_ml,x                                              ; b0f4: 7d 70 11    }p.            ; Add PTR mid-low to get buffer addr
-    sta l1096                                                         ; b0f7: 8d 96 10    ...            ; Store buffer address low
-    lda l11c0,x                                                       ; b0fa: bd c0 11    ...            ; Get buffer offset mid
-    adc wksp_ch_ptr_mh,x                                              ; b0fd: 7d 66 11    }f.            ; Add PTR mid-high
-    sta l1097                                                         ; b100: 8d 97 10    ...            ; Store buffer address mid
-    lda l11b6,x                                                       ; b103: bd b6 11    ...            ; Get buffer base page
-    adc wksp_ch_ptr_h,x                                               ; b106: 7d 5c 11    }\.            ; Add PTR high
-    sta l1098                                                         ; b109: 8d 98 10    ...            ; Store buffer address high
+    lda l11ca,x                                                       ; b0f1: bd ca 11    ...            ; Get channel start sector low
+    adc wksp_ch_ptr_ml,x                                              ; b0f4: 7d 70 11    }p.            ; Add PTR to get current disc sector
+    sta l1096                                                         ; b0f7: 8d 96 10    ...            ; Store disc sector address low
+    lda l11c0,x                                                       ; b0fa: bd c0 11    ...            ; Get channel start sector mid
+    adc wksp_ch_ptr_mh,x                                              ; b0fd: 7d 66 11    }f.            ; Add PTR mid-high with carry
+    sta l1097                                                         ; b100: 8d 97 10    ...            ; Store disc sector address mid
+    lda l11b6,x                                                       ; b103: bd b6 11    ...            ; Get channel start sector+drive
+    adc wksp_ch_ptr_h,x                                               ; b106: 7d 5c 11    }\.            ; Add PTR high with carry
+    sta l1098                                                         ; b109: 8d 98 10    ...            ; Store disc sector address high
     lda #&c0                                                          ; b10c: a9 c0       ..             ; A=&C0: buffer write mode
     jsr sub_cabd8                                                     ; b10e: 20 d8 ab     ..            ; Load sector into buffer
     ldx zp_channel_offset                                             ; b111: a6 cf       ..             ; Get channel index
@@ -8823,7 +8823,7 @@ la868 = sub_ca867+1
     pla                                                               ; b116: 68          h              ; Restore byte to write
     sta (zp_be),y                                                     ; b117: 91 be       ..             ; Write byte into buffer at PTR
     pha                                                               ; b119: 48          H              ; Save byte again
-    jsr sub_cb123                                                     ; b11a: 20 23 b1     #.            ; Advance PTR and update flags
+    jsr increment_ptr_after_write                                     ; b11a: 20 23 b1     #.            ; Advance PTR and update flags
     pla                                                               ; b11d: 68          h              ; Restore written byte
     ldy zp_save_y                                                     ; b11e: a4 c2       ..             ; Restore Y
     ldx zp_save_x                                                     ; b120: a6 c3       ..             ; Restore X
@@ -8832,23 +8832,23 @@ la868 = sub_ca867+1
     rts                                                               ; b122: 60          `              ; Return
 
 ; &b123 referenced 2 times by &adba, &b11a
-.sub_cb123
+.increment_ptr_after_write
     ldx zp_channel_offset                                             ; b123: a6 cf       ..             ; Get channel index
     inc wksp_ch_ptr_l,x                                               ; b125: fe 7a 11    .z.            ; Increment PTR low byte
     bne return_39                                                     ; b128: d0 f8       ..             ; No wrap: done
     bit l10cf                                                         ; b12a: 2c cf 10    ,..            ; Check modification flag
-    bmi cb132                                                         ; b12d: 30 03       0.             ; Not modified: skip workspace save
+    bmi increment_ptr_mid_bytes                                       ; b12d: 30 03       0.             ; Not modified: skip workspace save
     jsr sub_ca749                                                     ; b12f: 20 49 a7     I.            ; Save workspace state
 ; &b132 referenced 1 time by &b12d
-.cb132
+.increment_ptr_mid_bytes
     inc wksp_ch_ptr_ml,x                                              ; b132: fe 70 11    .p.            ; Increment PTR mid-low
-    bne cb13f                                                         ; b135: d0 08       ..             ; No wrap: update flags
+    bne update_channel_flags_for_ptr                                  ; b135: d0 08       ..             ; No wrap: update flags
     inc wksp_ch_ptr_mh,x                                              ; b137: fe 66 11    .f.            ; Increment PTR mid-high
-    bne cb13f                                                         ; b13a: d0 03       ..             ; No wrap: update flags
+    bne update_channel_flags_for_ptr                                  ; b13a: d0 03       ..             ; No wrap: update flags
     inc wksp_ch_ptr_h,x                                               ; b13c: fe 5c 11    .\.            ; Increment PTR high
 ; &b13f referenced 5 times by &a9bd, &b135, &b13a, &b2d5, &b713
-.cb13f
-    jsr sub_cb18c                                                     ; b13f: 20 8c b1     ..            ; Update channel flags for new PTR
+.update_channel_flags_for_ptr
+    jsr sync_ext_to_ptr                                               ; b13f: 20 8c b1     ..            ; Update channel flags for new PTR
     pha                                                               ; b142: 48          H              ; Save current flags on stack
     sec                                                               ; b143: 38          8              ; Set carry for subtraction
     lda wksp_ch_ptr_ml,x                                              ; b144: bd 70 11    .p.            ; Compare PTR with EXT: mid-low
@@ -8857,15 +8857,15 @@ la868 = sub_ca867+1
     sbc wksp_ch_ext_mh,x                                              ; b14d: fd 3e 11    .>.            ; Subtract EXT mid-high
     lda wksp_ch_ptr_h,x                                               ; b150: bd 5c 11    .\.            ; PTR high
     sbc wksp_ch_ext_h,x                                               ; b153: fd 34 11    .4.            ; Subtract EXT high
-    bcc cb181                                                         ; b156: 90 29       .)             ; PTR < EXT: not at EOF
+    bcc set_buffer_dirty_and_flush                                    ; b156: 90 29       .)             ; PTR < EXT: not at EOF
     lda wksp_ch_ptr_l,x                                               ; b158: bd 7a 11    .z.            ; PTR >= EXT: compare low bytes
     cmp wksp_ch_ext_l,x                                               ; b15b: dd 52 11    .R.            ; Compare PTR low with EXT low
-    bne cb164                                                         ; b15e: d0 04       ..             ; Not equal: PTR past EXT
+    bne check_ext_vs_allocation                                       ; b15e: d0 04       ..             ; Not equal: PTR past EXT
     pla                                                               ; b160: 68          h              ; Equal: set EOF flag (bit 2)
     ora #4                                                            ; b161: 09 04       ..             ; Set bit 2 in flags
     pha                                                               ; b163: 48          H              ; Re-push updated flags
 ; &b164 referenced 1 time by &b15e
-.cb164
+.check_ext_vs_allocation
     sec                                                               ; b164: 38          8              ; Check if buffer needs flushing
     lda wksp_ch_ext_ml,x                                              ; b165: bd 48 11    .H.            ; Compare EXT mid-low with allocation
     sbc l1198,x                                                       ; b168: fd 98 11    ...            ; Subtract allocation mid-low
@@ -8873,35 +8873,35 @@ la868 = sub_ca867+1
     sbc l118e,x                                                       ; b16e: fd 8e 11    ...            ; Subtract allocation mid-high
     lda wksp_ch_ext_h,x                                               ; b171: bd 34 11    .4.            ; EXT high
     sbc l1184,x                                                       ; b174: fd 84 11    ...            ; Subtract allocation high
-    bcc cb17c                                                         ; b177: 90 03       ..             ; EXT < allocation: buffer has room
+    bcc set_buffer_flush_flag                                         ; b177: 90 03       ..             ; EXT < allocation: buffer has room
     pla                                                               ; b179: 68          h              ; Restore flags
-    bne cb184                                                         ; b17a: d0 08       ..             ; Non-zero flags: keep them
+    bne apply_writable_mask                                           ; b17a: d0 08       ..             ; Non-zero flags: keep them
 ; &b17c referenced 1 time by &b177
-.cb17c
+.set_buffer_flush_flag
     pla                                                               ; b17c: 68          h              ; Restore flags
     ora #2                                                            ; b17d: 09 02       ..             ; Set bit 1 (buffer needs flushing)
-    bne cb184                                                         ; b17f: d0 03       ..             ; ALWAYS branch
+    bne apply_writable_mask                                           ; b17f: d0 03       ..             ; ALWAYS branch
 
 ; &b181 referenced 1 time by &b156
-.cb181
+.set_buffer_dirty_and_flush
     pla                                                               ; b181: 68          h              ; Restore flags
     ora #3                                                            ; b182: 09 03       ..             ; Set bits 0+1 (dirty + flush)
 ; &b184 referenced 2 times by &b17a, &b17f
-.cb184
-    bmi cb188                                                         ; b184: 30 02       0.             ; Bit 7 set: writable channel
+.apply_writable_mask
+    bmi store_channel_flags                                           ; b184: 30 02       0.             ; Bit 7 set: writable channel
     and #&f9                                                          ; b186: 29 f9       ).             ; Clear bits 0-2 (read-only mode)
 ; &b188 referenced 2 times by &b184, &b1b1
-.cb188
+.store_channel_flags
     sta wksp_ch_flags,x                                               ; b188: 9d ac 11    ...            ; Store updated channel flags
     rts                                                               ; b18b: 60          `              ; Return
 
 ; &b18c referenced 5 times by &a99e, &ad45, &b13f, &b3b6, &b5b0
-.sub_cb18c
+.sync_ext_to_ptr
     ldx zp_channel_offset                                             ; b18c: a6 cf       ..             ; Get channel index
     lda wksp_ch_flags,x                                               ; b18e: bd ac 11    ...            ; Get current channel flags
     pha                                                               ; b191: 48          H              ; Save on stack
     and #4                                                            ; b192: 29 04       ).             ; Check EOF flag (bit 2)
-    beq cb1ae                                                         ; b194: f0 18       ..             ; Not at EOF: skip EXT update
+    beq recalc_flags_from_base                                        ; b194: f0 18       ..             ; Not at EOF: skip EXT update
     lda wksp_ch_ptr_l,x                                               ; b196: bd 7a 11    .z.            ; At EOF: set EXT = PTR
     sta wksp_ch_ext_l,x                                               ; b199: 9d 52 11    .R.            ; Copy PTR low to EXT low
     lda wksp_ch_ptr_ml,x                                              ; b19c: bd 70 11    .p.            ; Copy PTR mid-low to EXT mid-low
@@ -8911,10 +8911,10 @@ la868 = sub_ca867+1
     lda wksp_ch_ptr_h,x                                               ; b1a8: bd 5c 11    .\.            ; Copy PTR high to EXT high
     sta wksp_ch_ext_h,x                                               ; b1ab: 9d 34 11    .4.            ; Store in EXT
 ; &b1ae referenced 1 time by &b194
-.cb1ae
+.recalc_flags_from_base
     pla                                                               ; b1ae: 68          h              ; Restore flags from stack
     and #&c0                                                          ; b1af: 29 c0       ).             ; Keep only writable+open bits
-    bne cb188                                                         ; b1b1: d0 d5       ..             ; Non-zero: store flags
+    bne store_channel_flags                                           ; b1b1: d0 d5       ..             ; Non-zero: store flags
 ; ***************************************************************************************
 ; *CLOSE command handler
 ; 
@@ -9079,7 +9079,7 @@ la868 = sub_ca867+1
     clc                                                               ; b2d1: 18          .              ; Clear carry for addition
     adc #&30 ; '0'                                                    ; b2d2: 69 30       i0             ; Add &30 to get file handle
     pha                                                               ; b2d4: 48          H              ; Push file handle on stack
-    jsr cb13f                                                         ; b2d5: 20 3f b1     ?.            ; Ensure buffer state is consistent
+    jsr update_channel_flags_for_ptr                                  ; b2d5: 20 3f b1     ?.            ; Ensure buffer state is consistent
     pla                                                               ; b2d8: 68          h              ; Restore file handle
 ; &b2d9 referenced 2 times by &b215, &b2ed
 .cb2d9
@@ -9220,7 +9220,7 @@ la868 = sub_ca867+1
     jsr check_set_channel_y                                           ; b3b3: 20 fe ac     ..            ; Validate and set channel number from Y
 ; &b3b6 referenced 1 time by &b3ac
 .sub_cb3b6
-    jsr sub_cb18c                                                     ; b3b6: 20 8c b1     ..            ; Flush buffer if dirty
+    jsr sync_ext_to_ptr                                               ; b3b6: 20 8c b1     ..            ; Flush buffer if dirty
     ldy wksp_ch_flags,x                                               ; b3b9: bc ac 11    ...            ; Get channel flags
     lda #0                                                            ; b3bc: a9 00       ..             ; A=0: clear channel flags (closed)
     sta wksp_ch_flags,x                                               ; b3be: 9d ac 11    ...            ; Mark channel as closed
@@ -9502,7 +9502,7 @@ la868 = sub_ca867+1
     tay                                                               ; b5ab: a8          .              ; Transfer function to Y
     jsr check_set_channel_y                                           ; b5ac: 20 fe ac     ..            ; Validate file handle; Validate and set channel number from Y
     php                                                               ; b5af: 08          .              ; Save flags for write check
-    jsr sub_cb18c                                                     ; b5b0: 20 8c b1     ..            ; Flush buffer if dirty
+    jsr sync_ext_to_ptr                                               ; b5b0: 20 8c b1     ..            ; Flush buffer if dirty
     ldx zp_channel_offset                                             ; b5b3: a6 cf       ..             ; Get channel index
     lda l11b6,x                                                       ; b5b5: bd b6 11    ...            ; Get channel drive+sector
     jsr sub_cb51c                                                     ; b5b8: 20 1c b5     ..            ; Check disc change for drive
@@ -9511,7 +9511,7 @@ la868 = sub_ca867+1
     lda l10b4                                                         ; b5be: ad b4 10    ...            ; Get function code
     cmp #3                                                            ; b5c1: c9 03       ..             ; A >= 3 (read operation)?
     bcs cb5c8                                                         ; b5c3: b0 03       ..             ; Yes: skip write check
-    jmp cb09d                                                         ; b5c5: 4c 9d b0    L..            ; Write to read-only: error
+    jmp not_open_for_update_error                                     ; b5c5: 4c 9d b0    L..            ; Write to read-only: error
 
 ; &b5c8 referenced 2 times by &b5bc, &b5c3
 .cb5c8
@@ -9691,7 +9691,7 @@ la868 = sub_ca867+1
 ; &b710 referenced 2 times by &b7e8, &b822
 .cb710
     jsr c89d3                                                         ; b710: 20 d3 89     ..            ; Save workspace state
-    jsr cb13f                                                         ; b713: 20 3f b1     ?.            ; Flush buffer if modified
+    jsr update_channel_flags_for_ptr                                  ; b713: 20 3f b1     ?.            ; Flush buffer if modified
 ; &b716 referenced 1 time by &b8de
 .cb716
     lda #0                                                            ; b716: a9 00       ..             ; A=0: prepare return status
@@ -11483,7 +11483,6 @@ save pydis_start, pydis_end
 ;     c8159:                                              5
 ;     c8bc8:                                              5
 ;     c8d10:                                              5
-;     cb13f:                                              5
 ;     fdc_1770_track:                                     5
 ;     fdc_8271_command_or_status_or_1770_drive_control:   5
 ;     fdc_write_register_verify:                          5
@@ -11504,9 +11503,10 @@ save pydis_start, pydis_end
 ;     release_tube:                                       5
 ;     scsi_get_status:                                    5
 ;     sub_c8fea:                                          5
-;     sub_cb18c:                                          5
 ;     sub_cb579:                                          5
+;     sync_ext_to_ptr:                                    5
 ;     tbl_commands:                                       5
+;     update_channel_flags_for_ptr:                       5
 ;     zp_bc:                                              5
 ;     zp_bd:                                              5
 ;     zp_c5:                                              5
@@ -11672,6 +11672,7 @@ save pydis_start, pydis_end
 ;     zp_scsi_status:                                     3
 ;     advance_past_command:                               2
 ;     apply_head_load_flag:                               2
+;     apply_writable_mask:                                2
 ;     c80be:                                              2
 ;     c8136:                                              2
 ;     c81b1:                                              2
@@ -11746,13 +11747,10 @@ save pydis_start, pydis_end
 ;     cae29:                                              2
 ;     cae4c:                                              2
 ;     caf87:                                              2
+;     calc_buffer_sector_addr:                            2
 ;     calc_wksp_checksum:                                 2
 ;     cb01d:                                              2
 ;     cb050:                                              2
-;     cb09d:                                              2
-;     cb0f0:                                              2
-;     cb184:                                              2
-;     cb188:                                              2
 ;     cb218:                                              2
 ;     cb2d9:                                              2
 ;     cb3e4:                                              2
@@ -11804,6 +11802,7 @@ save pydis_start, pydis_end
 ;     hd_command_bget_bput_sector:                        2
 ;     help_print_header:                                  2
 ;     hex_number_error_100_y:                             2
+;     increment_ptr_after_write:                          2
 ;     l00ff:                                              2
 ;     l102d:                                              2
 ;     l103c:                                              2
@@ -11837,6 +11836,7 @@ save pydis_start, pydis_end
 ;     nmi_0d0c:                                           2
 ;     nmi_0d5d:                                           2
 ;     nmi_0dff:                                           2
+;     not_open_for_update_error:                          2
 ;     pad_with_spaces:                                    2
 ;     parse_attr_char:                                    2
 ;     parse_dir_argument:                                 2
@@ -11863,6 +11863,7 @@ save pydis_start, pydis_end
 ;     setup_entry_name_ptr:                               2
 ;     skip_filename:                                      2
 ;     star_close:                                         2
+;     store_channel_flags:                                2
 ;     store_wksp_checksum_ba_y:                           2
 ;     str_filing_system_name:                             2
 ;     str_hugo:                                           2
@@ -11891,7 +11892,6 @@ save pydis_start, pydis_end
 ;     sub_cabc9:                                          2
 ;     sub_cacd7:                                          2
 ;     sub_cadc5:                                          2
-;     sub_cb123:                                          2
 ;     sub_cb8fc:                                          2
 ;     sub_cbb92:                                          2
 ;     sub_cbcfd:                                          2
@@ -12145,12 +12145,6 @@ save pydis_start, pydis_end
 ;     cafef:                                              1
 ;     caff2:                                              1
 ;     cb07d:                                              1
-;     cb0b5:                                              1
-;     cb132:                                              1
-;     cb164:                                              1
-;     cb17c:                                              1
-;     cb181:                                              1
-;     cb1ae:                                              1
 ;     cb1d4:                                              1
 ;     cb1e1:                                              1
 ;     cb203:                                              1
@@ -12245,7 +12239,9 @@ save pydis_start, pydis_end
 ;     check_adfs_prefix:                                  1
 ;     check_at_sign:                                      1
 ;     check_attr_terminator:                              1
+;     check_buffer_state:                                 1
 ;     check_dot_separator:                                1
+;     check_ext_vs_allocation:                            1
 ;     check_field_boundary:                               1
 ;     check_multi_sector_range:                           1
 ;     check_name_char_loop:                               1
@@ -12316,6 +12312,7 @@ save pydis_start, pydis_end
 ;     hd_command:                                         1
 ;     hd_command_partial_sector:                          1
 ;     hd_data_transfer_256:                               1
+;     increment_ptr_mid_bytes:                            1
 ;     invalidate_sectors_loop:                            1
 ;     jmp_indirect_fscv:                                  1
 ;     l00ef:                                              1
@@ -12613,6 +12610,7 @@ save pydis_start, pydis_end
 ;     ra_buffer_3:                                        1
 ;     ra_buffer_4:                                        1
 ;     ra_buffer_5:                                        1
+;     recalc_flags_from_base:                             1
 ;     release_nmi:                                        1
 ;     release_tube_after_floppy:                          1
 ;     restore_csd_sector_loop:                            1
@@ -12670,6 +12668,8 @@ save pydis_start, pydis_end
 ;     service_handler:                                    1
 ;     service_handler_0:                                  1
 ;     service_handler_1:                                  1
+;     set_buffer_dirty_and_flush:                         1
+;     set_buffer_flush_flag:                              1
 ;     set_matched_flag:                                   1
 ;     set_rwl_attribute_bit:                              1
 ;     setup_direct_nmi:                                   1
@@ -13094,17 +13094,6 @@ save pydis_start, pydis_end
 ;     cb050
 ;     cb060
 ;     cb07d
-;     cb09d
-;     cb0b5
-;     cb0f0
-;     cb132
-;     cb13f
-;     cb164
-;     cb17c
-;     cb181
-;     cb184
-;     cb188
-;     cb1ae
 ;     cb1d4
 ;     cb1e1
 ;     cb203
@@ -13734,8 +13723,6 @@ save pydis_start, pydis_end
 ;     sub_cadc5
 ;     sub_cae59
 ;     sub_cae5e
-;     sub_cb123
-;     sub_cb18c
 ;     sub_cb3b6
 ;     sub_cb468
 ;     sub_cb47c
