@@ -9645,502 +9645,502 @@ la868 = sub_ca867+1
     clc                                                               ; b6b8: 18          .              ; Clear carry for addition
 ; &b6b9 referenced 1 time by &b6c2
 .loop_cb6b9
-    lda l103f,y                                                       ; b6b9: b9 3f 10    .?.            ; Get memory address from block; Add to transfer base address
-    adc (zp_c6),y                                                     ; b6bc: 71 c6       q.             ; Add byte count to base address
-    sta (zp_c6),y                                                     ; b6be: 91 c6       ..             ; Store updated address
-    iny                                                               ; b6c0: c8          .              ; Next byte
-    dex                                                               ; b6c1: ca          .              ; Next address byte
-    bpl loop_cb6b9                                                    ; b6c2: 10 f5       ..             ; Loop for 4 bytes
-    lda zp_c8                                                         ; b6c4: a5 c8       ..             ; Get memory addr byte 3 (high)
-    bne cb6cb                                                         ; b6c6: d0 03       ..             ; OR with byte 4
-    jmp cb75d                                                         ; b6c8: 4c 5d b7    L].            ; Non-zero: Tube address
+    lda l103f,y                                                       ; b6b9: b9 3f 10    .?.            ; Get transferred bytes count; Add to control block memory address
+    adc (zp_c6),y                                                     ; b6bc: 71 c6       q.
+    sta (zp_c6),y                                                     ; b6be: 91 c6       ..             ; Store updated memory address
+    iny                                                               ; b6c0: c8          .              ; Next address byte
+    dex                                                               ; b6c1: ca          .              ; Next count byte
+    bpl loop_cb6b9                                                    ; b6c2: 10 f5       ..             ; Loop for 4 address bytes
+    lda zp_c8                                                         ; b6c4: a5 c8       ..             ; Get PTR high byte
+    bne cb6cb                                                         ; b6c6: d0 03       ..             ; Non-zero: multi-sector possible
+    jmp cb75d                                                         ; b6c8: 4c 5d b7    L].            ; PTR high=0: no full sectors remain
 
 ; &b6cb referenced 1 time by &b6c6
 .cb6cb
-    ldx zp_channel_offset                                             ; b6cb: a6 cf       ..             ; Get byte 3 again
-    clc                                                               ; b6cd: 18          .              ; Clear carry for address calc
-    lda l11ca,x                                                       ; b6ce: bd ca 11    ...            ; Compare with &FE (I/O space)
-    adc zp_c9                                                         ; b6d1: 65 c9       e.             ; Below &FE: Tube transfer
-    sta l1096                                                         ; b6d3: 8d 96 10    ...            ; Get byte 4
-    lda l11c0,x                                                       ; b6d6: bd c0 11    ...            ; Is it &FF (host memory)?; Yes: direct memory transfer
-    adc zp_ca                                                         ; b6d9: 65 ca       e.             ; Tube: set up Tube transfer path
-    sta l1097                                                         ; b6db: 8d 97 10    ...            ; Get function code
-    lda l11b6,x                                                       ; b6de: bd b6 11    ...            ; Bit 1 set: read (odd function)
-    adc zp_cb                                                         ; b6e1: 65 cb       e.             ; A=0: Tube write direction
-    sta l1098                                                         ; b6e3: 8d 98 10    ...            ; Set Tube transfer mode
-    lda #2                                                            ; b6e6: a9 02       ..             ; Tube read: A=1
-    cmp l10b4                                                         ; b6e8: cd b4 10    ...            ; Set Tube direction flag; X=&B7: Tube workspace ptr
-    lda #&80                                                          ; b6eb: a9 80       ..             ; Y=&10: Tube workspace page
-    ror a                                                             ; b6ed: 6a          j              ; Rotate direction flag
-    jsr sub_cabd8                                                     ; b6ee: 20 d8 ab     ..            ; jsr sub_cabd8
-    lda zp_c8                                                         ; b6f1: a5 c8       ..             ; ldx zp_channel_offset
-    sta l10b6                                                         ; b6f3: 8d b6 10    ...            ; lda l10b4
-    lda #0                                                            ; b6f6: a9 00       ..             ; and #2
-    sta l10b7                                                         ; b6f8: 8d b7 10    ...            ; beq cb704; lda wksp_ch_flags,x
-    ldx #2                                                            ; b6fb: a2 02       ..             ; X=2: scan channel ensure table
+    ldx zp_channel_offset                                             ; b6cb: a6 cf       ..             ; Get channel index for sector calc
+    clc                                                               ; b6cd: 18          .              ; Clear carry for sector addition
+    lda l11ca,x                                                       ; b6ce: bd ca 11    ...            ; Get channel start sector low
+    adc zp_c9                                                         ; b6d1: 65 c9       e.             ; Add PTR mid-low for disc sector
+    sta l1096                                                         ; b6d3: 8d 96 10    ...            ; Store disc operation sector low
+    lda l11c0,x                                                       ; b6d6: bd c0 11    ...            ; Get channel start sector mid
+    adc zp_ca                                                         ; b6d9: 65 ca       e.             ; Add PTR mid-high
+    sta l1097                                                         ; b6db: 8d 97 10    ...            ; Store disc operation sector mid
+    lda l11b6,x                                                       ; b6de: bd b6 11    ...            ; Get channel start sector+drive
+    adc zp_cb                                                         ; b6e1: 65 cb       e.             ; Add PTR high byte
+    sta l1098                                                         ; b6e3: 8d 98 10    ...            ; Store disc operation sector high
+    lda #2                                                            ; b6e6: a9 02       ..             ; A=2: compare against function code
+    cmp l10b4                                                         ; b6e8: cd b4 10    ...            ; C set if A=1/2 (write), clear if 3/4
+    lda #&80                                                          ; b6eb: a9 80       ..             ; A=&80: base for disc command
+    ror a                                                             ; b6ed: 6a          j              ; Rotate C into bit 0: &40=read, &80=write
+    jsr sub_cabd8                                                     ; b6ee: 20 d8 ab     ..            ; Find/load buffer for current sector
+    lda zp_c8                                                         ; b6f1: a5 c8       ..             ; Get current byte offset in sector
+    sta l10b6                                                         ; b6f3: 8d b6 10    ...            ; Store as transfer start position
+    lda #0                                                            ; b6f6: a9 00       ..             ; A=0: default end position
+    sta l10b7                                                         ; b6f8: 8d b7 10    ...            ; Clear transfer end position
+    ldx #2                                                            ; b6fb: a2 02       ..             ; X=2: compare 3-byte buffer sector
 ; &b6fd referenced 1 time by &b705
 .loop_cb6fd
-    lda l109b,x                                                       ; b6fd: bd 9b 10    ...            ; and #4; bne cb722
-    cmp zp_c9,x                                                       ; b700: d5 c9       ..             ; jmp loop_cb70f
-    bne cb720                                                         ; b702: d0 1c       ..             ; Non-zero: not this channel
-    dex                                                               ; b704: ca          .              ; lda wksp_ch_flags,x
-    bpl loop_cb6fd                                                    ; b705: 10 f6       ..             ; Loop for channels
-    lda l109a                                                         ; b707: ad 9a 10    ...            ; bpl loop_cb70f; lda l103c
-    sta l10b7                                                         ; b70a: 8d b7 10    ...            ; jmp cb712
-    jsr sub_cb980                                                     ; b70d: 20 80 b9     ..            ; ldx zp_channel_offset
+    lda l109b,x                                                       ; b6fd: bd 9b 10    ...            ; Get buffered sector address byte
+    cmp zp_c9,x                                                       ; b700: d5 c9       ..             ; Compare with requested sector byte
+    bne cb720                                                         ; b702: d0 1c       ..             ; Mismatch: different sector in buffer
+    dex                                                               ; b704: ca          .              ; Next sector address byte
+    bpl loop_cb6fd                                                    ; b705: 10 f6       ..             ; Loop for 3-byte sector comparison
+    lda l109a                                                         ; b707: ad 9a 10    ...            ; Sector match: get bytes remaining
+    sta l10b7                                                         ; b70a: 8d b7 10    ...            ; Store as transfer end position
+    jsr sub_cb980                                                     ; b70d: 20 80 b9     ..            ; Transfer bytes within this sector
 ; &b710 referenced 2 times by &b7e8, &b822
 .cb710
-    jsr c89d3                                                         ; b710: 20 d3 89     ..            ; pla ; ldy zp_save_y
-    jsr cb13f                                                         ; b713: 20 3f b1     ?.            ; jsr my_osbput
+    jsr c89d3                                                         ; b710: 20 d3 89     ..            ; Save workspace state
+    jsr cb13f                                                         ; b713: 20 3f b1     ?.            ; Flush buffer if modified
 ; &b716 referenced 1 time by &b8de
 .cb716
-    lda #0                                                            ; b716: a9 00       ..             ; lda l103f
-    cmp l10b5                                                         ; b718: cd b5 10    ...            ; ora l103e
-    ldx zp_c6                                                         ; b71b: a6 c6       ..             ; Restore control block pointer
-    ldy zp_c7                                                         ; b71d: a4 c7       ..             ; ora l103d
-    rts                                                               ; b71f: 60          `              ; Return
+    lda #0                                                            ; b716: a9 00       ..             ; A=0: prepare return status
+    cmp l10b5                                                         ; b718: cd b5 10    ...            ; Compare against mode flag for C
+    ldx zp_c6                                                         ; b71b: a6 c6       ..             ; Restore control block pointer low
+    ldy zp_c7                                                         ; b71d: a4 c7       ..             ; Restore control block pointer high
+    rts                                                               ; b71f: 60          `              ; Return to OSGBPB caller
 
 ; &b720 referenced 1 time by &b702
 .cb720
-    jsr sub_cb980                                                     ; b720: 20 80 b9     ..            ; bne cb726; lda l103c
-    lda #0                                                            ; b723: a9 00       ..             ; A=0: clear EOF flag
-    sec                                                               ; b725: 38          8              ; beq cb74e
-    sbc l10b6                                                         ; b726: ed b6 10    ...            ; lda l10b4
-    sta l10b6                                                         ; b729: 8d b6 10    ...            ; and #2; beq cb73e
-    clc                                                               ; b72c: 18          .              ; Clear carry
-    adc l10b8                                                         ; b72d: 6d b8 10    m..            ; ldy zp_save_y; jsr my_osbget
-    sta l10b8                                                         ; b730: 8d b8 10    ...            ; bcc cb73a
-    bcc cb742                                                         ; b733: 90 0d       ..             ; lda #0
-    inc l10b9                                                         ; b735: ee b9 10    ...            ; sta l10b5
-    bne cb742                                                         ; b738: d0 08       ..             ; bcc cb74e
-    inc l10ba                                                         ; b73a: ee ba 10    ...            ; bit zp_flags; bvs cb744
-    bne cb742                                                         ; b73d: d0 03       ..             ; ldy #0
-    inc l10bb                                                         ; b73f: ee bb 10    ...            ; sta (l10b7),y
+    jsr sub_cb980                                                     ; b720: 20 80 b9     ..            ; Buffer mismatch: handle partial xfer
+    lda #0                                                            ; b723: a9 00       ..             ; A=0: compute bytes already done
+    sec                                                               ; b725: 38          8              ; Set carry for subtraction
+    sbc l10b6                                                         ; b726: ed b6 10    ...            ; Subtract start position
+    sta l10b6                                                         ; b729: 8d b6 10    ...            ; Store bytes transferred this pass
+    clc                                                               ; b72c: 18          .              ; Clear carry for addition
+    adc l10b8                                                         ; b72d: 6d b8 10    m..            ; Add to cumulative data address low
+    sta l10b8                                                         ; b730: 8d b8 10    ...            ; Store updated address low
+    bcc cb742                                                         ; b733: 90 0d       ..             ; No carry: skip higher bytes
+    inc l10b9                                                         ; b735: ee b9 10    ...            ; Propagate carry to address byte 2
+    bne cb742                                                         ; b738: d0 08       ..             ; No carry: skip
+    inc l10ba                                                         ; b73a: ee ba 10    ...            ; Propagate carry to address byte 3
+    bne cb742                                                         ; b73d: d0 03       ..             ; No carry: skip
+    inc l10bb                                                         ; b73f: ee bb 10    ...            ; Propagate carry to address byte 4
 ; &b742 referenced 3 times by &b733, &b738, &b73d
 .cb742
-    sec                                                               ; b742: 38          8              ; bvc cb746
-    lda wksp_osfile_block                                             ; b743: ad 40 10    .@.            ; sta tube_data_register_3
-    sbc l10b6                                                         ; b746: ed b6 10    ...            ; inc l10b7
-    sta wksp_osfile_block                                             ; b749: 8d 40 10    .@.            ; bne cb726
-    bcs cb75d                                                         ; b74c: b0 0f       ..             ; inc l10b8
-    ldy #1                                                            ; b74e: a0 01       ..             ; lda l10b4
+    sec                                                               ; b742: 38          8              ; Subtract from remaining byte count
+    lda wksp_osfile_block                                             ; b743: ad 40 10    .@.            ; Get remaining count low
+    sbc l10b6                                                         ; b746: ed b6 10    ...            ; Subtract bytes transferred
+    sta wksp_osfile_block                                             ; b749: 8d 40 10    .@.            ; Store updated remaining count
+    bcs cb75d                                                         ; b74c: b0 0f       ..             ; No borrow: count still positive
+    ldy #1                                                            ; b74e: a0 01       ..             ; Y=1: propagate borrow to higher bytes
 ; &b750 referenced 1 time by &b75b
 .loop_cb750
-    lda wksp_osfile_block,y                                           ; b750: b9 40 10    .@.            ; and #2
-    sbc #0                                                            ; b753: e9 00       ..             ; bne cb769
-    sta wksp_osfile_block,y                                           ; b755: 99 40 10    .@.            ; bit zp_flags; bvs cb762
-    bcs cb75d                                                         ; b758: b0 03       ..             ; ldy #0
-    iny                                                               ; b75a: c8          .              ; Next byte position
-    bne loop_cb750                                                    ; b75b: d0 f3       ..             ; lda (l10b7),y
+    lda wksp_osfile_block,y                                           ; b750: b9 40 10    .@.            ; Get remaining count byte
+    sbc #0                                                            ; b753: e9 00       ..             ; Subtract borrow
+    sta wksp_osfile_block,y                                           ; b755: 99 40 10    .@.            ; Store updated count byte
+    bcs cb75d                                                         ; b758: b0 03       ..             ; No borrow: done adjusting
+    iny                                                               ; b75a: c8          .              ; Next count byte
+    bne loop_cb750                                                    ; b75b: d0 f3       ..             ; Loop for remaining bytes
 ; &b75d referenced 3 times by &b6c8, &b74c, &b758
 .cb75d
-    lda l1041                                                         ; b75d: ad 41 10    .A.            ; pha ; inc l10b7
-    ora l1042                                                         ; b760: 0d 42 10    .B.            ; bne cb709; lda tube_data_register_3
-    ora l1043                                                         ; b763: 0d 43 10    .C.            ; pha
-    bne cb76b                                                         ; b766: d0 03       ..             ; inc l10b7
-    jmp cb7e3                                                         ; b768: 4c e3 b7    L..            ; sec ; lda l103c
+    lda l1041                                                         ; b75d: ad 41 10    .A.            ; Check if any full sectors to transfer
+    ora l1042                                                         ; b760: 0d 42 10    .B.            ; OR mid-low count byte
+    ora l1043                                                         ; b763: 0d 43 10    .C.            ; OR mid-high count byte
+    bne cb76b                                                         ; b766: d0 03       ..             ; Non-zero: full sectors remain
+    jmp cb7e3                                                         ; b768: 4c e3 b7    L..            ; No full sectors: finish transfer
 
 ; &b76b referenced 1 time by &b766
 .cb76b
-    lda #1                                                            ; b76b: a9 01       ..             ; A=1: decrement count by 1
-    sta wksp_disc_op_result                                           ; b76d: 8d 15 10    ...            ; sbc #1; sta l103c
-    ldy #3                                                            ; b770: a0 03       ..             ; Y=3: 4-byte count decrement
+    lda #1                                                            ; b76b: a9 01       ..             ; A=1: flag multi-sector disc operation
+    sta wksp_disc_op_result                                           ; b76d: 8d 15 10    ...            ; Store in disc op result field
+    ldy #3                                                            ; b770: a0 03       ..             ; Y=3: copy 4-byte data address
 ; &b772 referenced 1 time by &b779
 .loop_cb772
-    lda l10b8,y                                                       ; b772: b9 b8 10    ...            ; bcs loop_cb726; lda l103d
-    sta wksp_disc_op_mem_addr,y                                       ; b775: 99 16 10    ...            ; bne cb77c
-    dey                                                               ; b778: 88          .              ; Decrement Y
-    bpl loop_cb772                                                    ; b779: 10 f7       ..             ; dec l103e
-    lda #2                                                            ; b77b: a9 02       ..             ; dec l103d
-    cmp l10b4                                                         ; b77d: cd b4 10    ...            ; lda l103f
-    lda #2                                                            ; b780: a9 02       ..             ; A=2: Tube transfer direction
-    rol a                                                             ; b782: 2a          *              ; sbc #0
-    rol a                                                             ; b783: 2a          *              ; Rotate into position
-    sta wksp_disc_op_command                                          ; b784: 8d 1a 10    ...            ; sta l103f
-    ldx zp_channel_offset                                             ; b787: a6 cf       ..             ; jmp loop_cb726
-    lda zp_c8                                                         ; b789: a5 c8       ..             ; jsr release_tube
-    cmp #1                                                            ; b78b: c9 01       ..             ; Compare with 1
-    lda l11ca,x                                                       ; b78d: bd ca 11    ...            ; ldy #5; ldx #3
-    adc zp_c9                                                         ; b790: 65 c9       e.             ; clc
-    sta l101d                                                         ; b792: 8d 1d 10    ...            ; lda (zp_c6),y; adc l103b,y
-    lda l11c0,x                                                       ; b795: bd c0 11    ...            ; sta (zp_c6),y
-    adc zp_ca                                                         ; b798: 65 ca       e.             ; iny
-    sta l101c                                                         ; b79a: 8d 1c 10    ...            ; dex ; bpl loop_cb792
-    lda l11b6,x                                                       ; b79d: bd b6 11    ...            ; ldy #1; ldx #3
-    adc zp_cb                                                         ; b7a0: 65 cb       e.             ; sec
-    sta wksp_disc_op_sector                                           ; b7a2: 8d 1b 10    ...            ; lda l10b7,y
-    ldy #4                                                            ; b7a5: a0 04       ..             ; sbc zp_save_x,y
+    lda l10b8,y                                                       ; b772: b9 b8 10    ...            ; Get data address byte
+    sta wksp_disc_op_mem_addr,y                                       ; b775: 99 16 10    ...            ; Store in disc op memory address
+    dey                                                               ; b778: 88          .              ; Next byte (decreasing)
+    bpl loop_cb772                                                    ; b779: 10 f7       ..             ; Loop for 4 bytes
+    lda #2                                                            ; b77b: a9 02       ..             ; A=2: compare against function code
+    cmp l10b4                                                         ; b77d: cd b4 10    ...            ; C set if write (A<=2), clear if read
+    lda #2                                                            ; b780: a9 02       ..             ; A=2: base for disc command
+    rol a                                                             ; b782: 2a          *              ; Rotate C into bit 0
+    rol a                                                             ; b783: 2a          *              ; Shift to command position
+    sta wksp_disc_op_command                                          ; b784: 8d 1a 10    ...            ; Store read/write disc command
+    ldx zp_channel_offset                                             ; b787: a6 cf       ..             ; Get channel index
+    lda zp_c8                                                         ; b789: a5 c8       ..             ; Get PTR low (byte offset in sector)
+    cmp #1                                                            ; b78b: c9 01       ..             ; Compare with 1 to set carry
+    lda l11ca,x                                                       ; b78d: bd ca 11    ...            ; Get channel start sector low
+    adc zp_c9                                                         ; b790: 65 c9       e.             ; Add PTR mid-low for disc sector
+    sta l101d                                                         ; b792: 8d 1d 10    ...            ; Store disc op sector low byte
+    lda l11c0,x                                                       ; b795: bd c0 11    ...            ; Get channel start sector mid
+    adc zp_ca                                                         ; b798: 65 ca       e.             ; Add PTR mid-high
+    sta l101c                                                         ; b79a: 8d 1c 10    ...            ; Store disc op sector mid byte
+    lda l11b6,x                                                       ; b79d: bd b6 11    ...            ; Get channel start sector+drive
+    adc zp_cb                                                         ; b7a0: 65 cb       e.             ; Add PTR high
+    sta wksp_disc_op_sector                                           ; b7a2: 8d 1b 10    ...            ; Store disc op sector high byte
+    ldy #4                                                            ; b7a5: a0 04       ..             ; Y=4: save 5 bytes of CSD state
 ; &b7a7 referenced 1 time by &b7ae
 .loop_cb7a7
-    lda wksp_csd_sector,y                                             ; b7a7: b9 13 11    ...            ; sta (zp_c6),y
-    sta wksp_102b,y                                                   ; b7aa: 99 2b 10    .+.            ; iny ; dex ; bpl loop_cb7a2
-    dey                                                               ; b7ad: 88          .              ; Next byte (decreasing Y)
-    bne loop_cb7a7                                                    ; b7ae: d0 f7       ..             ; lda l10b5
-    sty wksp_current_drive                                            ; b7b0: 8c 17 11    ...            ; beq cb7b8
-    sty wksp_disc_op_sector_count                                     ; b7b3: 8c 1e 10    ...            ; lda zp_flags; and #&fb
-    sty wksp_disc_op_control                                          ; b7b6: 8c 1f 10    ...            ; sta zp_flags; jsr c89d3
-    sty wksp_disc_op_transfer_len                                     ; b7b9: 8c 20 10    . .            ; ldx zp_c6
-    clc                                                               ; b7bc: 18          .              ; Clear carry for address calc
-    ldx #2                                                            ; b7bd: a2 02       ..             ; ldy zp_c7
+    lda wksp_csd_sector,y                                             ; b7a7: b9 13 11    ...            ; Get CSD sector/drive byte
+    sta wksp_102b,y                                                   ; b7aa: 99 2b 10    .+.            ; Save in temp workspace
+    dey                                                               ; b7ad: 88          .              ; Next byte (decreasing)
+    bne loop_cb7a7                                                    ; b7ae: d0 f7       ..             ; Loop for 5 bytes
+    sty wksp_current_drive                                            ; b7b0: 8c 17 11    ...            ; Clear current drive (Y=0)
+    sty wksp_disc_op_sector_count                                     ; b7b3: 8c 1e 10    ...            ; Clear disc op sector count
+    sty wksp_disc_op_control                                          ; b7b6: 8c 1f 10    ...            ; Clear disc op control byte
+    sty wksp_disc_op_transfer_len                                     ; b7b9: 8c 20 10    . .            ; Clear disc op transfer length
+    clc                                                               ; b7bc: 18          .              ; Clear carry for sector calculation
+    ldx #2                                                            ; b7bd: a2 02       ..             ; X=2: add 3-byte sector count
 ; &b7bf referenced 1 time by &b7cd
 .loop_cb7bf
-    lda l1041,y                                                       ; b7bf: b9 41 10    .A.            ; lda #0; rts
-    sta l1021,y                                                       ; b7c2: 99 21 10    .!.            ; ldy #1; ldx #3
-    adc l10b9,y                                                       ; b7c5: 79 b9 10    y..            ; lda (zp_c6),y
-    sta l10b9,y                                                       ; b7c8: 99 b9 10    ...            ; sta zp_b2,x; iny
-    iny                                                               ; b7cb: c8          .              ; dex
-    dex                                                               ; b7cc: ca          .              ; bpl loop_cb7c6
-    bpl loop_cb7bf                                                    ; b7cd: 10 f0       ..             ; bit zp_flags
-    jsr caaa6                                                         ; b7cf: 20 a6 aa     ..            ; bvc cb802
-    jsr sub_c8a3d                                                     ; b7d2: 20 3d 8a     =.            ; lda l10b4
-    lda wksp_saved_drive                                              ; b7d5: ad 2f 10    ./.            ; and #2; beq cb7f3
-    sta wksp_current_drive                                            ; b7d8: 8d 17 11    ...            ; ldx zp_channel_offset
-    lda #&ff                                                          ; b7db: a9 ff       ..             ; lda wksp_ch_flags,x
-    sta wksp_saved_drive                                              ; b7dd: 8d 2f 10    ./.            ; and #4
-    sta l102e                                                         ; b7e0: 8d 2e 10    ...            ; bne cb7ea; ldy zp_save_y
+    lda l1041,y                                                       ; b7bf: b9 41 10    .A.            ; Get remaining count byte
+    sta l1021,y                                                       ; b7c2: 99 21 10    .!.            ; Copy to disc op transfer length
+    adc l10b9,y                                                       ; b7c5: 79 b9 10    y..            ; Add to cumulative address
+    sta l10b9,y                                                       ; b7c8: 99 b9 10    ...            ; Store updated address
+    iny                                                               ; b7cb: c8          .              ; Next byte
+    dex                                                               ; b7cc: ca          .              ; Next sector byte
+    bpl loop_cb7bf                                                    ; b7cd: 10 f0       ..             ; Loop for 3 bytes
+    jsr caaa6                                                         ; b7cf: 20 a6 aa     ..            ; Flush channel ensure buffers
+    jsr sub_c8a3d                                                     ; b7d2: 20 3d 8a     =.            ; Execute multi-sector disc command
+    lda wksp_saved_drive                                              ; b7d5: ad 2f 10    ./.            ; Restore saved drive number
+    sta wksp_current_drive                                            ; b7d8: 8d 17 11    ...            ; Set as current drive
+    lda #&ff                                                          ; b7db: a9 ff       ..             ; A=&FF: mark saved drive as unused
+    sta wksp_saved_drive                                              ; b7dd: 8d 2f 10    ./.            ; Store in saved drive slot
+    sta l102e                                                         ; b7e0: 8d 2e 10    ...            ; Mark alt workspace as unused
 ; &b7e3 referenced 1 time by &b768
 .cb7e3
-    lda l109a                                                         ; b7e3: ad 9a 10    ...            ; jsr my_osbget
-    bne cb7eb                                                         ; b7e6: d0 03       ..             ; bcc cb7ed
-    jmp cb710                                                         ; b7e8: 4c 10 b7    L..            ; jmp cb78a
+    lda l109a                                                         ; b7e3: ad 9a 10    ...            ; Check for remaining buffered bytes
+    bne cb7eb                                                         ; b7e6: d0 03       ..             ; Non-zero: more bytes in buffer
+    jmp cb710                                                         ; b7e8: 4c 10 b7    L..            ; Zero: finish via save and return
 
 ; &b7eb referenced 1 time by &b7e6
 .cb7eb
     ldx zp_channel_offset                                             ; b7eb: a6 cf       ..             ; Get channel index
-    clc                                                               ; b7ed: 18          .              ; sta tube_data_register_3
-    lda l11ca,x                                                       ; b7ee: bd ca 11    ...            ; jmp loop_cb822
-    adc l109b                                                         ; b7f1: 6d 9b 10    m..            ; lda tube_data_register_3
-    sta l1096                                                         ; b7f4: 8d 96 10    ...            ; ldy zp_save_y
-    lda l11c0,x                                                       ; b7f7: bd c0 11    ...            ; ldx zp_channel_offset
-    adc l109c                                                         ; b7fa: 6d 9c 10    m..            ; jsr my_osbput
-    sta l1097                                                         ; b7fd: 8d 97 10    ...            ; ldx zp_channel_offset; jmp loop_cb822
-    lda l11b6,x                                                       ; b800: bd b6 11    ...            ; lda l10b4
-    adc l109d                                                         ; b803: 6d 9d 10    m..            ; and #2
-    sta l1098                                                         ; b806: 8d 98 10    ...            ; beq cb81e
-    lda #2                                                            ; b809: a9 02       ..             ; ldx zp_channel_offset
-    cmp l10b4                                                         ; b80b: cd b4 10    ...            ; lda wksp_ch_flags,x
-    lda #&80                                                          ; b80e: a9 80       ..             ; and #4
-    ror a                                                             ; b810: 6a          j              ; bne cb7ea
-    jsr sub_cabd8                                                     ; b811: 20 d8 ab     ..            ; ldy zp_save_y
-    lda #0                                                            ; b814: a9 00       ..             ; jsr my_osbget
-    sta l10b6                                                         ; b816: 8d b6 10    ...            ; bcc cb81a
-    lda l109a                                                         ; b819: ad 9a 10    ...            ; beq cb7ea; ldy #0
-    sta l10b7                                                         ; b81c: 8d b7 10    ...            ; sta (zp_b2),y; ldy #0
-    jsr sub_cb980                                                     ; b81f: 20 80 b9     ..            ; lda (zp_b2),y
-    jmp cb710                                                         ; b822: 4c 10 b7    L..            ; ldy zp_save_y; ldx zp_channel_offset
+    clc                                                               ; b7ed: 18          .              ; Clear carry for sector addition
+    lda l11ca,x                                                       ; b7ee: bd ca 11    ...            ; Get channel start sector low
+    adc l109b                                                         ; b7f1: 6d 9b 10    m..            ; Add remaining PTR low
+    sta l1096                                                         ; b7f4: 8d 96 10    ...            ; Store result sector low
+    lda l11c0,x                                                       ; b7f7: bd c0 11    ...            ; Get channel start sector mid
+    adc l109c                                                         ; b7fa: 6d 9c 10    m..            ; Add remaining PTR mid
+    sta l1097                                                         ; b7fd: 8d 97 10    ...            ; Store result sector mid
+    lda l11b6,x                                                       ; b800: bd b6 11    ...            ; Get channel start sector+drive
+    adc l109d                                                         ; b803: 6d 9d 10    m..            ; Add remaining PTR high
+    sta l1098                                                         ; b806: 8d 98 10    ...            ; Store result sector high
+    lda #2                                                            ; b809: a9 02       ..             ; A=2: compare against function code
+    cmp l10b4                                                         ; b80b: cd b4 10    ...            ; C set if write, clear if read
+    lda #&80                                                          ; b80e: a9 80       ..             ; A=&80: base disc command
+    ror a                                                             ; b810: 6a          j              ; Rotate C to form read/write command
+    jsr sub_cabd8                                                     ; b811: 20 d8 ab     ..            ; Find/load buffer for remaining sector
+    lda #0                                                            ; b814: a9 00       ..             ; A=0: clear start position
+    sta l10b6                                                         ; b816: 8d b6 10    ...            ; Store start at beginning of sector
+    lda l109a                                                         ; b819: ad 9a 10    ...            ; Get bytes remaining in buffer
+    sta l10b7                                                         ; b81c: 8d b7 10    ...            ; Store as transfer end position
+    jsr sub_cb980                                                     ; b81f: 20 80 b9     ..            ; Transfer remaining bytes in sector
+    jmp cb710                                                         ; b822: 4c 10 b7    L..            ; Finish via save and return
 
 ; &b825 referenced 4 times by &b8a1, &b8e1, &b905, &b920
 .sub_cb825
-    bit zp_flags                                                      ; b825: 24 cd       $.             ; jsr my_osbput
-    bpl cb84c                                                         ; b827: 10 23       .#             ; inc zp_b2
-    lda l10ba                                                         ; b829: ad ba 10    ...            ; bne cb832
-    cmp #&fe                                                          ; b82c: c9 fe       ..             ; inc zp_b3
-    bcc cb837                                                         ; b82e: 90 07       ..             ; bne cb832
-    lda l10bb                                                         ; b830: ad bb 10    ...            ; inc zp_b4; sec
-    cmp #&ff                                                          ; b833: c9 ff       ..             ; lda l103c
-    beq cb84c                                                         ; b835: f0 15       ..             ; sbc #1
+    bit zp_flags                                                      ; b825: 24 cd       $.             ; Tube in use (bit 7 of flags)?
+    bpl cb84c                                                         ; b827: 10 23       .#             ; No Tube: skip to buffer setup
+    lda l10ba                                                         ; b829: ad ba 10    ...            ; Get output address byte 3
+    cmp #&fe                                                          ; b82c: c9 fe       ..             ; Address < &FE00?
+    bcc cb837                                                         ; b82e: 90 07       ..             ; Yes: second processor, claim Tube
+    lda l10bb                                                         ; b830: ad bb 10    ...            ; Get output address byte 4
+    cmp #&ff                                                          ; b833: c9 ff       ..             ; Address = &FFxx (host memory)?
+    beq cb84c                                                         ; b835: f0 15       ..             ; Yes: skip Tube claim
 ; &b837 referenced 1 time by &b82e
 .cb837
-    php                                                               ; b837: 08          .              ; Save flags before count check
-    sei                                                               ; b838: 78          x              ; sta l103c
-    jsr c803b                                                         ; b839: 20 3b 80     ;.            ; bcs loop_cb802
-    lda zp_flags                                                      ; b83c: a5 cd       ..             ; lda l103d
+    php                                                               ; b837: 08          .              ; Save flags for restore after Tube
+    sei                                                               ; b838: 78          x              ; Disable interrupts for Tube claim
+    jsr c803b                                                         ; b839: 20 3b 80     ;.            ; Claim Tube for transfer
+    lda zp_flags                                                      ; b83c: a5 cd       ..             ; Set bit 6: Tube data transfer active
     ora #&40 ; '@'                                                    ; b83e: 09 40       .@             ; OR with &40 flag
-    sta zp_flags                                                      ; b840: 85 cd       ..             ; bne cb845
-    lda #1                                                            ; b842: a9 01       ..             ; dec l103e
-    ldx #&b8                                                          ; b844: a2 b8       ..             ; dec l103d
-    ldy #&10                                                          ; b846: a0 10       ..             ; Y=&10: workspace page
-    jsr l0406                                                         ; b848: 20 06 04     ..            ; lda l103f
-    plp                                                               ; b84b: 28          (              ; sbc #0
+    sta zp_flags                                                      ; b840: 85 cd       ..             ; Store updated flags
+    lda #1                                                            ; b842: a9 01       ..             ; A=1: Tube read transfer type
+    ldx #&b8                                                          ; b844: a2 b8       ..             ; X=&B8: Tube address workspace low
+    ldy #&10                                                          ; b846: a0 10       ..             ; Y=&10: Tube address workspace high
+    jsr l0406                                                         ; b848: 20 06 04     ..            ; Start Tube transfer
+    plp                                                               ; b84b: 28          (              ; Restore flags (re-enable interrupts)
 ; &b84c referenced 2 times by &b827, &b835
 .cb84c
-    lda #0                                                            ; b84c: a9 00       ..             ; sta l103f
-    sta zp_bd                                                         ; b84e: 85 bd       ..             ; Store buffer pointer high
-    lda l10b8                                                         ; b850: ad b8 10    ...            ; ora l103e
-    sta zp_b2                                                         ; b853: 85 b2       ..             ; ora l103d
-    lda l10b9                                                         ; b855: ad b9 10    ...            ; ora l103c
-    sta zp_b3                                                         ; b858: 85 b3       ..             ; bne loop_cb802
-    rts                                                               ; b85a: 60          `              ; Return
+    lda #0                                                            ; b84c: a9 00       ..             ; A=0: clear output byte counter
+    sta zp_bd                                                         ; b84e: 85 bd       ..             ; Store zero in output byte counter
+    lda l10b8                                                         ; b850: ad b8 10    ...            ; Get output address low byte
+    sta zp_b2                                                         ; b853: 85 b2       ..             ; Store in output pointer low
+    lda l10b9                                                         ; b855: ad b9 10    ...            ; Get output address high byte
+    sta zp_b3                                                         ; b858: 85 b3       ..             ; Store in output pointer high
+    rts                                                               ; b85a: 60          `              ; Return (buffer ready)
 
 ; &b85b referenced 9 times by &b874, &b889, &b8b5, &b8c4, &b8ce, &b8d8, &b8e6, &b902, &b90a
 .cb85b
-    bit zp_flags                                                      ; b85b: 24 cd       $.             ; jmp cb78a
-    bvc cb863                                                         ; b85d: 50 04       P.             ; ldy #1
-    sta tube_data_register_3                                          ; b85f: 8d e5 fe    ...            ; ldx #3
-    rts                                                               ; b862: 60          `              ; lda (zp_c6),y
+    bit zp_flags                                                      ; b85b: 24 cd       $.             ; Tube active (V flag)?
+    bvc cb863                                                         ; b85d: 50 04       P.             ; No: write to host memory
+    sta tube_data_register_3                                          ; b85f: 8d e5 fe    ...            ; Write byte to Tube R4 data register
+    rts                                                               ; b862: 60          `              ; Return
 
 ; &b863 referenced 1 time by &b85d
 .cb863
-    sty zp_bc                                                         ; b863: 84 bc       ..             ; sta l10b7,y
-    ldy zp_bd                                                         ; b865: a4 bd       ..             ; Restore Y from buffer pointer
-    sta (zp_b2),y                                                     ; b867: 91 b2       ..             ; iny ; dex
-    inc zp_bd                                                         ; b869: e6 bd       ..             ; bpl loop_cb862
-    bne cb86f                                                         ; b86b: d0 02       ..             ; ldy zp_c6
-    inc zp_b3                                                         ; b86d: e6 b3       ..             ; ldx zp_c7
+    sty zp_bc                                                         ; b863: 84 bc       ..             ; Save Y (caller's index)
+    ldy zp_bd                                                         ; b865: a4 bd       ..             ; Get output byte counter as offset
+    sta (zp_b2),y                                                     ; b867: 91 b2       ..             ; Store byte at (zp_b2)+offset
+    inc zp_bd                                                         ; b869: e6 bd       ..             ; Increment output byte counter
+    bne cb86f                                                         ; b86b: d0 02       ..             ; No page crossing: restore Y
+    inc zp_b3                                                         ; b86d: e6 b3       ..             ; Page crossed: increment pointer high
 ; &b86f referenced 1 time by &b86b
 .cb86f
-    ldy zp_bc                                                         ; b86f: a4 bc       ..             ; lda #0
-    rts                                                               ; b871: 60          `              ; rts
+    ldy zp_bc                                                         ; b86f: a4 bc       ..             ; Restore Y (caller's index)
+    rts                                                               ; b871: 60          `              ; Return
 
 ; &b872 referenced 3 times by &b8f7, &b91b, &b95d
 .sub_cb872
-    lda #&0a                                                          ; b872: a9 0a       ..             ; lda zp_flags
-    jsr cb85b                                                         ; b874: 20 5b b8     [.            ; and #&40; lsr
-    sec                                                               ; b877: 38          8              ; lsr
-    ldx #9                                                            ; b878: a2 09       ..             ; lsr ; lsr
-    ldy #&ff                                                          ; b87a: a0 ff       ..             ; lsr ; eor #1
+    lda #&0a                                                          ; b872: a9 0a       ..             ; A=&0A: name is 10 bytes long
+    jsr cb85b                                                         ; b874: 20 5b b8     [.            ; Output name length byte
+    sec                                                               ; b877: 38          8              ; Set carry for first iteration
+    ldx #9                                                            ; b878: a2 09       ..             ; X=9: countdown for 10 name bytes
+    ldy #&ff                                                          ; b87a: a0 ff       ..             ; Y=&FF: will increment to 0 first
 ; &b87c referenced 1 time by &b88d
 .loop_cb87c
-    iny                                                               ; b87c: c8          .              ; Next byte
-    bcc cb889                                                         ; b87d: 90 0a       ..             ; sta l10bd
-    lda (zp_b4),y                                                     ; b87f: b1 b4       ..             ; ldy #0
-    and #&7f                                                          ; b881: 29 7f       ).             ; ldx l10b7
-    cmp #&21 ; '!'                                                    ; b883: c9 21       .!             ; Compare with &21 (printable)
-    bcs cb889                                                         ; b885: b0 02       ..             ; lda l10b8
-    lda #&20 ; ' '                                                    ; b887: a9 20       .              ; stx zp_b2
+    iny                                                               ; b87c: c8          .              ; Next name byte position
+    bcc cb889                                                         ; b87d: 90 0a       ..             ; C clear from prev: skip fetch
+    lda (zp_b4),y                                                     ; b87f: b1 b4       ..             ; Get name byte from entry
+    and #&7f                                                          ; b881: 29 7f       ).             ; Strip bit 7 (attribute flags)
+    cmp #&21 ; '!'                                                    ; b883: c9 21       .!             ; Printable character (>= '!')?
+    bcs cb889                                                         ; b885: b0 02       ..             ; Yes: output as-is
+    lda #&20 ; ' '                                                    ; b887: a9 20       .              ; Control char: replace with space
 ; &b889 referenced 2 times by &b87d, &b885
 .cb889
-    jsr cb85b                                                         ; b889: 20 5b b8     [.            ; sta zp_b3
-    dex                                                               ; b88c: ca          .              ; bit zp_flags
-    bpl loop_cb87c                                                    ; b88d: 10 ed       ..             ; bvs cb8a1
+    jsr cb85b                                                         ; b889: 20 5b b8     [.            ; Output character to buffer/Tube
+    dex                                                               ; b88c: ca          .              ; Next character
+    bpl loop_cb87c                                                    ; b88d: 10 ed       ..             ; Loop for 10 characters
     rts                                                               ; b88f: 60          `              ; Return
 
 ; &b890 referenced 1 time by &b5a0
 .cb890
-    sbc #5                                                            ; b890: e9 05       ..             ; lda l10b4
-    tay                                                               ; b892: a8          .              ; Transfer to Y
-    beq cb8a1                                                         ; b893: f0 0c       ..             ; cmp #8
-    dey                                                               ; b895: 88          .              ; beq cb950
-    beq cb8e1                                                         ; b896: f0 49       .I             ; cmp #7
-    dey                                                               ; b898: 88          .              ; Decrement Y
-    beq cb905                                                         ; b899: f0 6a       .j             ; beq cb8d6
-    dey                                                               ; b89b: 88          .              ; cmp #6
-    bne cb8db                                                         ; b89c: d0 3d       .=             ; beq cb8cc
-    jmp cb920                                                         ; b89e: 4c 20 b9    L .            ; bne cb8a3
+    sbc #5                                                            ; b890: e9 05       ..             ; Subtract 5 to get sub-function 0-3
+    tay                                                               ; b892: a8          .              ; Transfer to Y for dispatch
+    beq cb8a1                                                         ; b893: f0 0c       ..             ; Y=0 (A=5): read title/boot/drive
+    dey                                                               ; b895: 88          .              ; Decrement for next check
+    beq cb8e1                                                         ; b896: f0 49       .I             ; Y=0 (A=6): read CSD name
+    dey                                                               ; b898: 88          .              ; Decrement for next check
+    beq cb905                                                         ; b899: f0 6a       .j             ; Y=0 (A=7): read library name
+    dey                                                               ; b89b: 88          .              ; Decrement for next check
+    bne cb8db                                                         ; b89c: d0 3d       .=             ; Y!=0: invalid sub-function, exit
+    jmp cb920                                                         ; b89e: 4c 20 b9    L .            ; A=8: read filenames from CSD
 
 ; &b8a1 referenced 1 time by &b893
 .cb8a1
-    jsr sub_cb825                                                     ; b8a1: 20 25 b8     %.            ; jmp cb85e; lda #&13
-    ldy #&ff                                                          ; b8a4: a0 ff       ..             ; jsr sub_cb8fc
+    jsr sub_cb825                                                     ; b8a1: 20 25 b8     %.            ; Set up output buffer/Tube
+    ldy #&ff                                                          ; b8a4: a0 ff       ..             ; Y=&FF: will increment to 0 first
 ; &b8a6 referenced 1 time by &b8b2
 .loop_cb8a6
-    iny                                                               ; b8a6: c8          .              ; Next byte in title
-    lda dir_title,y                                                   ; b8a7: b9 d9 16    ...            ; ldx #0
-    and #&7f                                                          ; b8aa: 29 7f       ).             ; ldy #&d9
-    cmp #&20 ; ' '                                                    ; b8ac: c9 20       .              ; lda #&16
-    bcc cb8b4                                                         ; b8ae: 90 04       ..             ; jsr sub_cb925
-    cpy #&13                                                          ; b8b0: c0 13       ..             ; lda fsm_s1_boot_option
-    bne loop_cb8a6                                                    ; b8b2: d0 f2       ..             ; Loop for title bytes
+    iny                                                               ; b8a6: c8          .              ; Next title byte
+    lda dir_title,y                                                   ; b8a7: b9 d9 16    ...            ; Get directory title character
+    and #&7f                                                          ; b8aa: 29 7f       ).             ; Strip bit 7
+    cmp #&20 ; ' '                                                    ; b8ac: c9 20       .              ; Printable (>= space)?
+    bcc cb8b4                                                         ; b8ae: 90 04       ..             ; Control char: end of title
+    cpy #&13                                                          ; b8b0: c0 13       ..             ; Reached max 19 chars?
+    bne loop_cb8a6                                                    ; b8b2: d0 f2       ..             ; No: continue scanning title
 ; &b8b4 referenced 1 time by &b8ae
 .cb8b4
-    tya                                                               ; b8b4: 98          .              ; jsr sub_cb8fc
-    jsr cb85b                                                         ; b8b5: 20 5b b8     [.            ; lda wksp_current_drive
-    ldy #&ff                                                          ; b8b8: a0 ff       ..             ; Y=&FF: init for loop
+    tya                                                               ; b8b4: 98          .              ; Output title length byte
+    jsr cb85b                                                         ; b8b5: 20 5b b8     [.            ; Write length to buffer/Tube
+    ldy #&ff                                                          ; b8b8: a0 ff       ..             ; Y=&FF: will increment to 0 first
 ; &b8ba referenced 1 time by &b8c9
 .loop_cb8ba
-    iny                                                               ; b8ba: c8          .              ; asl
-    lda dir_title,y                                                   ; b8bb: b9 d9 16    ...            ; rol ; rol ; rol
-    and #&7f                                                          ; b8be: 29 7f       ).             ; ora #&30
-    cmp #&20 ; ' '                                                    ; b8c0: c9 20       .              ; jsr sub_cb8fc
-    bcc cb8cb                                                         ; b8c2: 90 07       ..             ; ldx #0
-    jsr cb85b                                                         ; b8c4: 20 5b b8     [.            ; jmp cb85e
-    cpy #&13                                                          ; b8c7: c0 13       ..             ; Compared all 19 title bytes?
-    bne loop_cb8ba                                                    ; b8c9: d0 ef       ..             ; No: continue
+    iny                                                               ; b8ba: c8          .              ; Next title byte
+    lda dir_title,y                                                   ; b8bb: b9 d9 16    ...            ; Get directory title character
+    and #&7f                                                          ; b8be: 29 7f       ).             ; Strip bit 7
+    cmp #&20 ; ' '                                                    ; b8c0: c9 20       .              ; Printable (>= space)?
+    bcc cb8cb                                                         ; b8c2: 90 07       ..             ; Control char: done outputting title
+    jsr cb85b                                                         ; b8c4: 20 5b b8     [.            ; Output title character
+    cpy #&13                                                          ; b8c7: c0 13       ..             ; Reached max 19 chars?
+    bne loop_cb8ba                                                    ; b8c9: d0 ef       ..             ; No: continue outputting
 ; &b8cb referenced 1 time by &b8c2
 .cb8cb
-    lda fsm_s1_boot_option                                            ; b8cb: ad fd 0f    ...            ; lda wksp_current_drive
-    jsr cb85b                                                         ; b8ce: 20 5b b8     [.            ; ldy #0
-    lda wksp_current_drive                                            ; b8d1: ad 17 11    ...            ; ldx #&11; jmp cb8e2
-    asl a                                                             ; b8d4: 0a          .              ; Shift drive bits to low position
+    lda fsm_s1_boot_option                                            ; b8cb: ad fd 0f    ...            ; Get boot option from FSM sector 1
+    jsr cb85b                                                         ; b8ce: 20 5b b8     [.            ; Output boot option byte
+    lda wksp_current_drive                                            ; b8d1: ad 17 11    ...            ; Get current drive number
+    asl a                                                             ; b8d4: 0a          .              ; Shift drive into low 3 bits
     rol a                                                             ; b8d5: 2a          *              ; Second shift
-    rol a                                                             ; b8d6: 2a          *              ; lda l111b
-    rol a                                                             ; b8d7: 2a          *              ; Third shift
-    jsr cb85b                                                         ; b8d8: 20 5b b8     [.            ; ldy #&0a
+    rol a                                                             ; b8d6: 2a          *              ; Third shift
+    rol a                                                             ; b8d7: 2a          *              ; Fourth shift (now in bits 0-2)
+    jsr cb85b                                                         ; b8d8: 20 5b b8     [.            ; Output drive number byte
 ; &b8db referenced 6 times by &b89c, &b8fa, &b91e, &b933, &b93d, &b97d
 .cb8db
-    jsr release_tube                                                  ; b8db: 20 43 80     C.            ; ldx #&11; Release Tube if in use; cmp #&ff
-    jmp cb716                                                         ; b8de: 4c 16 b7    L..            ; beq cb8f7
+    jsr release_tube                                                  ; b8db: 20 43 80     C.            ; Release Tube if in use; Release Tube if in use
+    jmp cb716                                                         ; b8de: 4c 16 b7    L..            ; Return via OSGBPB exit path
 
 ; &b8e1 referenced 1 time by &b896
 .cb8e1
-    jsr sub_cb825                                                     ; b8e1: 20 25 b8     %.            ; asl ; rol
-    lda #1                                                            ; b8e4: a9 01       ..             ; rol ; rol
-    jsr cb85b                                                         ; b8e6: 20 5b b8     [.            ; pha ; lda #1
-    lda wksp_current_drive                                            ; b8e9: ad 17 11    ...            ; jsr sub_cb8fc
-    jsr sub_cb8fc                                                     ; b8ec: 20 fc b8     ..            ; pla ; ora #&30
-    lda #0                                                            ; b8ef: a9 00       ..             ; jsr sub_cb8fc
-    sta zp_b4                                                         ; b8f1: 85 b4       ..             ; lda #&0a
-    lda #&11                                                          ; b8f3: a9 11       ..             ; jmp cb907
-    sta zp_b5                                                         ; b8f5: 85 b5       ..             ; Store address high byte
-    jsr sub_cb872                                                     ; b8f7: 20 72 b8     r.            ; ldx #0; jmp cb85e
-    bmi cb8db                                                         ; b8fa: 30 df       0.             ; Bit 7: Tube active, skip direct
+    jsr sub_cb825                                                     ; b8e1: 20 25 b8     %.            ; Set up output buffer/Tube
+    lda #1                                                            ; b8e4: a9 01       ..             ; A=1: drive prefix is 1 char long
+    jsr cb85b                                                         ; b8e6: 20 5b b8     [.            ; Output drive prefix length
+    lda wksp_current_drive                                            ; b8e9: ad 17 11    ...            ; Get current drive number
+    jsr sub_cb8fc                                                     ; b8ec: 20 fc b8     ..            ; Convert drive to ASCII digit
+    lda #0                                                            ; b8ef: a9 00       ..             ; A=0: CSD name starts at offset 0
+    sta zp_b4                                                         ; b8f1: 85 b4       ..             ; Store CSD name pointer low
+    lda #&11                                                          ; b8f3: a9 11       ..             ; A=&11: CSD name is at &1100
+    sta zp_b5                                                         ; b8f5: 85 b5       ..             ; Store CSD name pointer high
+    jsr sub_cb872                                                     ; b8f7: 20 72 b8     r.            ; Output 10-byte CSD directory name
+    bmi cb8db                                                         ; b8fa: 30 df       0.             ; Exit via cleanup
 ; &b8fc referenced 2 times by &b8ec, &b910
 .sub_cb8fc
-    asl a                                                             ; b8fc: 0a          .              ; bit zp_flags
-    rol a                                                             ; b8fd: 2a          *              ; Rotate flag bit
-    rol a                                                             ; b8fe: 2a          *              ; bvs cb904
-    rol a                                                             ; b8ff: 2a          *              ; Continue rotation
-    adc #&30 ; '0'                                                    ; b900: 69 30       i0             ; sta (zp_b2),y
-    jmp cb85b                                                         ; b902: 4c 5b b8    L[.            ; bvc cb906; sta tube_data_register_3
+    asl a                                                             ; b8fc: 0a          .              ; Shift drive into high nibble
+    rol a                                                             ; b8fd: 2a          *              ; Continue shift
+    rol a                                                             ; b8fe: 2a          *              ; Continue shift
+    rol a                                                             ; b8ff: 2a          *              ; Continue shift (now in bits 4-7)
+    adc #&30 ; '0'                                                    ; b900: 69 30       i0             ; Add &30 for ASCII '0'
+    jmp cb85b                                                         ; b902: 4c 5b b8    L[.            ; Output via cb85b
 
 ; &b905 referenced 1 time by &b899
 .cb905
-    jsr sub_cb825                                                     ; b905: 20 25 b8     %.            ; iny ; jsr sub_cb8fc
-    lda #1                                                            ; b908: a9 01       ..             ; A=1: length of drive string
-    jsr cb85b                                                         ; b90a: 20 5b b8     [.            ; sty l10be
-    lda l111b                                                         ; b90d: ad 1b 11    ...            ; clc ; adc zp_b2
-    jsr sub_cb8fc                                                     ; b910: 20 fc b8     ..            ; sta zp_b2; bcc cb916
-    lda #&0a                                                          ; b913: a9 0a       ..             ; inc zp_b3
-    sta zp_b4                                                         ; b915: 85 b4       ..             ; ldx #&cc
-    lda #&11                                                          ; b917: a9 11       ..             ; lda #&16
-    sta zp_b5                                                         ; b919: 85 b5       ..             ; stx zp_b6
-    jsr sub_cb872                                                     ; b91b: 20 72 b8     r.            ; sta zp_b7
-    bmi cb8db                                                         ; b91e: 30 bb       0.             ; ldy #0
+    jsr sub_cb825                                                     ; b905: 20 25 b8     %.            ; Set up output buffer/Tube
+    lda #1                                                            ; b908: a9 01       ..             ; A=1: drive prefix is 1 char long
+    jsr cb85b                                                         ; b90a: 20 5b b8     [.            ; Output drive prefix length
+    lda l111b                                                         ; b90d: ad 1b 11    ...            ; Get library drive number
+    jsr sub_cb8fc                                                     ; b910: 20 fc b8     ..            ; Convert drive to ASCII digit
+    lda #&0a                                                          ; b913: a9 0a       ..             ; A=&0A: library name at offset &0A
+    sta zp_b4                                                         ; b915: 85 b4       ..             ; Store library name pointer low
+    lda #&11                                                          ; b917: a9 11       ..             ; A=&11: library name is at &110A
+    sta zp_b5                                                         ; b919: 85 b5       ..             ; Store library name pointer high
+    jsr sub_cb872                                                     ; b91b: 20 72 b8     r.            ; Output 10-byte library dir name
+    bmi cb8db                                                         ; b91e: 30 bb       0.             ; Exit via cleanup
 ; &b920 referenced 1 time by &b89e
 .cb920
-    jsr sub_cb825                                                     ; b920: 20 25 b8     %.            ; lda (zp_b6),y; beq cb942
-    ldy #0                                                            ; b923: a0 00       ..             ; Y=0: clear for search
-    sty l10b5                                                         ; b925: 8c b5 10    ...            ; and #&7f; cmp #&20
-    lda dir_master_sequence                                           ; b928: ad fa 16    ...            ; bcc cb935
-    sta (zp_c6),y                                                     ; b92b: 91 c6       ..             ; inx ; iny
-    ldy #5                                                            ; b92d: a0 05       ..             ; cpy #&0a
-    lda (zp_c6),y                                                     ; b92f: b1 c6       ..             ; bne loop_cb920
-    sta zp_b0                                                         ; b931: 85 b0       ..             ; txa ; jmp cb93c
-    beq cb8db                                                         ; b933: f0 a6       ..             ; Zero: loop done
-    ldy #9                                                            ; b935: a0 09       ..             ; txa ; jsr sub_cb8fc
-    lda (zp_c6),y                                                     ; b937: b1 c6       ..             ; Get byte count from control block
-    sta zp_b1                                                         ; b939: 85 b1       ..             ; ldy l10be
-    cmp #&2f ; '/'                                                    ; b93b: c9 2f       ./             ; lda (zp_b6),y
-    bcs cb8db                                                         ; b93d: b0 9c       ..             ; and #&7f
-    tax                                                               ; b93f: aa          .              ; Transfer to X
-    clc                                                               ; b940: 18          .              ; bne loop_cb936
-    lda #5                                                            ; b941: a9 05       ..             ; iny
-    ldy #&12                                                          ; b943: a0 12       ..             ; sty l10be
+    jsr sub_cb825                                                     ; b920: 20 25 b8     %.            ; Set up output buffer/Tube
+    ldy #0                                                            ; b923: a0 00       ..             ; Y=0: clear result counter
+    sty l10b5                                                         ; b925: 8c b5 10    ...            ; Clear result file count
+    lda dir_master_sequence                                           ; b928: ad fa 16    ...            ; Get directory sequence number
+    sta (zp_c6),y                                                     ; b92b: 91 c6       ..             ; Store in control block byte 0
+    ldy #5                                                            ; b92d: a0 05       ..             ; Y=5: get requested count from block
+    lda (zp_c6),y                                                     ; b92f: b1 c6       ..             ; Get requested entry count
+    sta zp_b0                                                         ; b931: 85 b0       ..             ; Store as entries remaining
+    beq cb8db                                                         ; b933: f0 a6       ..             ; Zero entries requested: done
+    ldy #9                                                            ; b935: a0 09       ..             ; Y=9: get start index from block
+    lda (zp_c6),y                                                     ; b937: b1 c6       ..             ; Get starting entry index
+    sta zp_b1                                                         ; b939: 85 b1       ..             ; Store as current entry counter
+    cmp #&2f ; '/'                                                    ; b93b: c9 2f       ./             ; Index >= 47? Past max entries
+    bcs cb8db                                                         ; b93d: b0 9c       ..             ; Yes: exit (no more entries)
+    tax                                                               ; b93f: aa          .              ; Transfer index to X for loop
+    clc                                                               ; b940: 18          .              ; Clear carry for pointer arithmetic
+    lda #5                                                            ; b941: a9 05       ..             ; A=5: first entry at offset &1205
+    ldy #&12                                                          ; b943: a0 12       ..             ; Y=&12: directory buffer page
 ; &b945 referenced 2 times by &b94a, &b94e
 .cb945
-    dex                                                               ; b945: ca          .              ; Decrement name counter
-    bmi cb950                                                         ; b946: 30 08       0.             ; clc ; lda l10be
-    adc #&1a                                                          ; b948: 69 1a       i.             ; Add &1A to advance past entry
-    bcc cb945                                                         ; b94a: 90 f9       ..             ; adc zp_b2
-    iny                                                               ; b94c: c8          .              ; sta zp_b2
-    clc                                                               ; b94d: 18          .              ; Clear carry for pointer advance
-    bcc cb945                                                         ; b94e: 90 f5       ..             ; bcc cb85e; ALWAYS branch
+    dex                                                               ; b945: ca          .              ; Decrement entries to skip
+    bmi cb950                                                         ; b946: 30 08       0.             ; Skipped enough: start reading
+    adc #&1a                                                          ; b948: 69 1a       i.             ; Add &1A (26 bytes per dir entry)
+    bcc cb945                                                         ; b94a: 90 f9       ..             ; No page crossing: continue
+    iny                                                               ; b94c: c8          .              ; Page crossing: increment page
+    clc                                                               ; b94d: 18          .              ; Clear carry for next addition
+    bcc cb945                                                         ; b94e: 90 f5       ..             ; Continue skipping entries; ALWAYS branch
 
 ; &b950 referenced 1 time by &b946
 .cb950
-    sty zp_b5                                                         ; b950: 84 b5       ..             ; ldy #0
-    sta zp_b4                                                         ; b952: 85 b4       ..             ; lda (zp_c6),y
+    sty zp_b5                                                         ; b950: 84 b5       ..             ; Store entry pointer high
+    sta zp_b4                                                         ; b952: 85 b4       ..             ; Store entry pointer low
 ; &b954 referenced 1 time by &b96f
 .loop_cb954
-    ldy #0                                                            ; b954: a0 00       ..             ; sta l10be
-    lda (zp_b4),y                                                     ; b956: b1 b4       ..             ; sty wksp_disc_op_result
-    sta l10b5                                                         ; b958: 8d b5 10    ...            ; jsr verify_dir_integrity
-    beq cb971                                                         ; b95b: f0 14       ..             ; Z: no more entries in block
-    jsr sub_cb872                                                     ; b95d: 20 72 b8     r.            ; ldy #9; lda dir_master_sequence
-    lda zp_b4                                                         ; b960: a5 b4       ..             ; Get filename pointer low
-    clc                                                               ; b962: 18          .              ; cmp l10be
-    adc #&1a                                                          ; b963: 69 1a       i.             ; Add &1A (entry size)
-    sta zp_b4                                                         ; b965: 85 b4       ..             ; beq cb970
-    bcc cb96b                                                         ; b967: 90 02       ..             ; lda #0
-    inc zp_b5                                                         ; b969: e6 b5       ..             ; sta (zp_c6),y
+    ldy #0                                                            ; b954: a0 00       ..             ; Y=0: check first byte of entry
+    lda (zp_b4),y                                                     ; b956: b1 b4       ..             ; Get entry name byte 0
+    sta l10b5                                                         ; b958: 8d b5 10    ...            ; Store as non-zero check for output
+    beq cb971                                                         ; b95b: f0 14       ..             ; Zero: end of directory entries
+    jsr sub_cb872                                                     ; b95d: 20 72 b8     r.            ; Output 10-byte entry name
+    lda zp_b4                                                         ; b960: a5 b4       ..             ; Get entry pointer low
+    clc                                                               ; b962: 18          .              ; Clear carry for addition
+    adc #&1a                                                          ; b963: 69 1a       i.             ; Add &1A to advance to next entry
+    sta zp_b4                                                         ; b965: 85 b4       ..             ; Store updated entry pointer low
+    bcc cb96b                                                         ; b967: 90 02       ..             ; No page crossing
+    inc zp_b5                                                         ; b969: e6 b5       ..             ; Page crossing: increment high byte
 ; &b96b referenced 1 time by &b967
 .cb96b
-    inc zp_b1                                                         ; b96b: e6 b1       ..             ; sta wksp_disc_op_result
-    dec zp_b0                                                         ; b96d: c6 b0       ..             ; beq cb974
-    bne loop_cb954                                                    ; b96f: d0 e3       ..             ; lda (zp_c6),y
+    inc zp_b1                                                         ; b96b: e6 b1       ..             ; Increment current entry index
+    dec zp_b0                                                         ; b96d: c6 b0       ..             ; Decrement remaining count
+    bne loop_cb954                                                    ; b96f: d0 e3       ..             ; More entries to read: continue
 ; &b971 referenced 1 time by &b95b
 .cb971
-    ldy #5                                                            ; b971: a0 05       ..             ; sta wksp_disc_op_result
-    lda zp_b0                                                         ; b973: a5 b0       ..             ; ldy wksp_disc_op_result
-    sta (zp_c6),y                                                     ; b975: 91 c6       ..             ; Store result in control block
-    ldy #9                                                            ; b977: a0 09       ..             ; beq cb9a3
-    lda zp_b1                                                         ; b979: a5 b1       ..             ; lda #&05
-    sta (zp_c6),y                                                     ; b97b: 91 c6       ..             ; sta zp_b6
-    jmp cb8db                                                         ; b97d: 4c db b8    L..            ; lda #&12; sta zp_b7
+    ldy #5                                                            ; b971: a0 05       ..             ; Y=5: update remaining count in block
+    lda zp_b0                                                         ; b973: a5 b0       ..             ; Get remaining entries count
+    sta (zp_c6),y                                                     ; b975: 91 c6       ..             ; Store in control block byte 5
+    ldy #9                                                            ; b977: a0 09       ..             ; Y=9: update current index in block
+    lda zp_b1                                                         ; b979: a5 b1       ..             ; Get current entry index
+    sta (zp_c6),y                                                     ; b97b: 91 c6       ..             ; Store in control block byte 9
+    jmp cb8db                                                         ; b97d: 4c db b8    L..            ; Exit via cleanup and return
 
 ; &b980 referenced 3 times by &b70d, &b720, &b81f
 .sub_cb980
-    lda l10b6                                                         ; b980: ad b6 10    ...            ; lda (zp_b6),y
-    cmp l10b7                                                         ; b983: cd b7 10    ...            ; beq cb9a3; lda zp_b6
-    bne cb989                                                         ; b986: d0 01       ..             ; clc
-    rts                                                               ; b988: 60          `              ; adc #&1a
+    lda l10b6                                                         ; b980: ad b6 10    ...            ; Get transfer start position
+    cmp l10b7                                                         ; b983: cd b7 10    ...            ; Compare with end position
+    bne cb989                                                         ; b986: d0 01       ..             ; Not equal: bytes to transfer
+    rts                                                               ; b988: 60          `              ; Equal: no bytes to transfer, return
 
 ; &b989 referenced 1 time by &b986
 .cb989
-    php                                                               ; b989: 08          .              ; Save flags
-    sei                                                               ; b98a: 78          x              ; sta zp_b6
-    bit zp_flags                                                      ; b98b: 24 cd       $.             ; bcc cb990
-    bpl cb9b5                                                         ; b98d: 10 26       .&             ; inc zp_b7
-    lda l10ba                                                         ; b98f: ad ba 10    ...            ; inc wksp_disc_op_result
-    cmp #&fe                                                          ; b992: c9 fe       ..             ; dey
-    bcc cb99d                                                         ; b994: 90 07       ..             ; bne loop_cb981
-    lda l10bb                                                         ; b996: ad bb 10    ...            ; ldx #5; lda (zp_c6),y
-    cmp #&ff                                                          ; b999: c9 ff       ..             ; beq cb9a3
-    beq cb9b5                                                         ; b99b: f0 18       ..             ; lda (zp_b6),y
+    php                                                               ; b989: 08          .              ; Save flags for Tube check
+    sei                                                               ; b98a: 78          x              ; Disable interrupts for Tube setup
+    bit zp_flags                                                      ; b98b: 24 cd       $.             ; Tube in use (bit 7 of flags)?
+    bpl cb9b5                                                         ; b98d: 10 26       .&             ; No Tube: skip to direct transfer
+    lda l10ba                                                         ; b98f: ad ba 10    ...            ; Get Tube address byte 3
+    cmp #&fe                                                          ; b992: c9 fe       ..             ; Address < &FE00?
+    bcc cb99d                                                         ; b994: 90 07       ..             ; Yes: Tube address, claim it
+    lda l10bb                                                         ; b996: ad bb 10    ...            ; Get Tube address byte 4
+    cmp #&ff                                                          ; b999: c9 ff       ..             ; Address = &FFxx (host memory)?
+    beq cb9b5                                                         ; b99b: f0 18       ..             ; Yes: skip Tube claim
 ; &b99d referenced 1 time by &b994
 .cb99d
-    lda zp_flags                                                      ; b99d: a5 cd       ..             ; beq cb9aa
-    ora #&40 ; '@'                                                    ; b99f: 09 40       .@             ; dex
-    sta zp_flags                                                      ; b9a1: 85 cd       ..             ; bne loop_cb998
-    jsr c803b                                                         ; b9a3: 20 3b 80     ;.            ; lda dir_master_sequence
-    lda l10b4                                                         ; b9a6: ad b4 10    ...            ; ldy #0; sta (zp_c6),y
-    cmp #3                                                            ; b9a9: c9 03       ..             ; lda #&0a
-    lda #0                                                            ; b9ab: a9 00       ..             ; jsr sub_cb8fc
-    rol a                                                             ; b9ad: 2a          *              ; Rotate bit into position
-    ldx #&b8                                                          ; b9ae: a2 b8       ..             ; ldy #0
-    ldy #&10                                                          ; b9b0: a0 10       ..             ; lda (zp_b6),y
-    jsr l0406                                                         ; b9b2: 20 06 04     ..            ; and #&7f
+    lda zp_flags                                                      ; b99d: a5 cd       ..             ; Set bit 6: Tube transfer active
+    ora #&40 ; '@'                                                    ; b99f: 09 40       .@             ; OR with &40 flag
+    sta zp_flags                                                      ; b9a1: 85 cd       ..             ; Store updated flags
+    jsr c803b                                                         ; b9a3: 20 3b 80     ;.            ; Claim Tube for transfer
+    lda l10b4                                                         ; b9a6: ad b4 10    ...            ; Get OSGBPB function code
+    cmp #3                                                            ; b9a9: c9 03       ..             ; C set if A>=3 (read from file)
+    lda #0                                                            ; b9ab: a9 00       ..             ; A=0: base for Tube direction
+    rol a                                                             ; b9ad: 2a          *              ; Rotate C to set direction bit
+    ldx #&b8                                                          ; b9ae: a2 b8       ..             ; X=&B8: Tube address workspace low
+    ldy #&10                                                          ; b9b0: a0 10       ..             ; Y=&10: Tube address workspace high
+    jsr l0406                                                         ; b9b2: 20 06 04     ..            ; Start Tube transfer
 ; &b9b5 referenced 2 times by &b98d, &b99b
 .cb9b5
-    plp                                                               ; b9b5: 28          (              ; cmp #&0d
-    lda l10b8                                                         ; b9b6: ad b8 10    ...            ; beq cb9bf
-    sec                                                               ; b9b9: 38          8              ; jsr sub_cb8fc
-    sbc l10b6                                                         ; b9ba: ed b6 10    ...            ; iny
-    sta zp_b2                                                         ; b9bd: 85 b2       ..             ; bne loop_cb9b1
-    lda l10b9                                                         ; b9bf: ad b9 10    ...            ; tya ; clc ; adc zp_b2
-    sbc #0                                                            ; b9c2: e9 00       ..             ; sta zp_b2
-    sta zp_b3                                                         ; b9c4: 85 b3       ..             ; bcc cb9c9
-    lda l10b4                                                         ; b9c6: ad b4 10    ...            ; inc zp_b3
-    cmp #3                                                            ; b9c9: c9 03       ..             ; lda #&0d
-    ldy l10b6                                                         ; b9cb: ac b6 10    ...            ; jsr sub_cb8fc
-    php                                                               ; b9ce: 08          .              ; inc zp_b2
+    plp                                                               ; b9b5: 28          (              ; Restore flags
+    lda l10b8                                                         ; b9b6: ad b8 10    ...            ; Get data address low
+    sec                                                               ; b9b9: 38          8              ; Set carry for subtraction
+    sbc l10b6                                                         ; b9ba: ed b6 10    ...            ; Subtract start offset for buffer ptr
+    sta zp_b2                                                         ; b9bd: 85 b2       ..             ; Store buffer pointer low
+    lda l10b9                                                         ; b9bf: ad b9 10    ...            ; Get data address high
+    sbc #0                                                            ; b9c2: e9 00       ..             ; Subtract borrow
+    sta zp_b3                                                         ; b9c4: 85 b3       ..             ; Store buffer pointer high
+    lda l10b4                                                         ; b9c6: ad b4 10    ...            ; Get OSGBPB function code
+    cmp #3                                                            ; b9c9: c9 03       ..             ; C set if A>=3 (read from file)
+    ldy l10b6                                                         ; b9cb: ac b6 10    ...            ; Get start position as byte index
+    php                                                               ; b9ce: 08          .              ; Save read/write direction flag
 ; &b9cf referenced 1 time by &b9f8
 .cb9cf
-    plp                                                               ; b9cf: 28          (              ; Restore flags
-    bit zp_flags                                                      ; b9d0: 24 cd       $.             ; bne cb9d4
-    bvs cb9e2                                                         ; b9d2: 70 0e       p.             ; inc zp_b3
-    bcc cb9dc                                                         ; b9d4: 90 06       ..             ; clc ; lda zp_b6
-    lda (zp_be),y                                                     ; b9d6: b1 be       ..             ; adc #&1a
-    sta (zp_b2),y                                                     ; b9d8: 91 b2       ..             ; sta zp_b6
-    bcs cb9f3                                                         ; b9da: b0 17       ..             ; ALWAYS branch; bcc cb9df
+    plp                                                               ; b9cf: 28          (              ; Restore direction flag
+    bit zp_flags                                                      ; b9d0: 24 cd       $.             ; Tube active (V flag)?
+    bvs cb9e2                                                         ; b9d2: 70 0e       p.             ; Yes: use Tube data path
+    bcc cb9dc                                                         ; b9d4: 90 06       ..             ; C set: reading from file to memory
+    lda (zp_be),y                                                     ; b9d6: b1 be       ..             ; Read: get byte from sector buffer
+    sta (zp_b2),y                                                     ; b9d8: 91 b2       ..             ; Write to user memory
+    bcs cb9f3                                                         ; b9da: b0 17       ..             ; Always branch to advance; ALWAYS branch
 
 ; &b9dc referenced 1 time by &b9d4
 .cb9dc
-    lda (zp_b2),y                                                     ; b9dc: b1 b2       ..             ; inc zp_b7
-    sta (zp_be),y                                                     ; b9de: 91 be       ..             ; inc wksp_disc_op_result
-    bcc cb9f3                                                         ; b9e0: 90 11       ..             ; C clear: no more entries
+    lda (zp_b2),y                                                     ; b9dc: b1 b2       ..             ; Write: get byte from user memory
+    sta (zp_be),y                                                     ; b9de: 91 be       ..             ; Store in sector buffer
+    bcc cb9f3                                                         ; b9e0: 90 11       ..             ; Always branch to advance
 ; &b9e2 referenced 1 time by &b9d2
 .cb9e2
-    jsr tube_delay2                                                   ; b9e2: 20 f8 81     ..            ; jsr tube_delay2
-    bcc cb9ee                                                         ; b9e5: 90 07       ..             ; ldy #0
-    lda (zp_be),y                                                     ; b9e7: b1 be       ..             ; sty l10be
-    sta tube_data_register_3                                          ; b9e9: 8d e5 fe    ...            ; lda (zp_b6),y
-    bcs cb9f3                                                         ; b9ec: b0 05       ..             ; bne cb9f3; ALWAYS branch
+    jsr tube_delay2                                                   ; b9e2: 20 f8 81     ..            ; Tube: delay for synchronisation
+    bcc cb9ee                                                         ; b9e5: 90 07       ..             ; C clear: writing to file from Tube
+    lda (zp_be),y                                                     ; b9e7: b1 be       ..             ; Read file: get byte from buffer
+    sta tube_data_register_3                                          ; b9e9: 8d e5 fe    ...            ; Write to Tube R4
+    bcs cb9f3                                                         ; b9ec: b0 05       ..             ; Always branch to advance; ALWAYS branch
 
 ; &b9ee referenced 1 time by &b9e5
 .cb9ee
-    lda tube_data_register_3                                          ; b9ee: ad e5 fe    ...            ; sty wksp_disc_op_result
-    sta (zp_be),y                                                     ; b9f1: 91 be       ..             ; beq cb9fc
+    lda tube_data_register_3                                          ; b9ee: ad e5 fe    ...            ; Write file: read byte from Tube R4
+    sta (zp_be),y                                                     ; b9f1: 91 be       ..             ; Store in sector buffer
 ; &b9f3 referenced 3 times by &b9da, &b9e0, &b9ec
 .cb9f3
-    iny                                                               ; b9f3: c8          .              ; sec
-    php                                                               ; b9f4: 08          .              ; ldy #5
-    cpy l10b7                                                         ; b9f5: cc b7 10    ...            ; lda (zp_c6),y
-    bne cb9cf                                                         ; b9f8: d0 d5       ..             ; sbc #1
-    plp                                                               ; b9fa: 28          (              ; sta (zp_c6),y
-    jmp release_tube                                                  ; b9fb: 4c 43 80    LC.            ; Release Tube if in use; ldy #9
+    iny                                                               ; b9f3: c8          .              ; Next byte position
+    php                                                               ; b9f4: 08          .              ; Save direction flag for next byte
+    cpy l10b7                                                         ; b9f5: cc b7 10    ...            ; Reached end position?
+    bne cb9cf                                                         ; b9f8: d0 d5       ..             ; No: continue copying
+    plp                                                               ; b9fa: 28          (              ; Restore flags
+    jmp release_tube                                                  ; b9fb: 4c 43 80    LC.            ; Release Tube and return; Release Tube if in use
 
-    equb &2e, &0d                                                     ; b9fe: 2e 0d       ..             ; lda wksp_disc_op_result
+    equb &2e, &0d                                                     ; b9fe: 2e 0d       ..
 
 ; ***************************************************************************************
 ; Floppy disc command (indirect entry)
@@ -10151,19 +10151,19 @@ la868 = sub_ca867+1
 ; ***************************************************************************************
 ; &ba00 referenced 1 time by &80cc
 .do_floppy_scsi_command_ind
-    jmp do_floppy_scsi_command                                        ; ba00: 4c 14 bb    L..            ; JMP to main floppy command handler; Execute floppy disc command; sta (zp_c6),y
+    jmp do_floppy_scsi_command                                        ; ba00: 4c 14 bb    L..            ; Execute floppy disc command
 
 ; &ba03 referenced 1 time by &8b3e
 .exec_floppy_partial_sector_buf_ind
-    jmp exec_floppy_partial_sector_buf                                ; ba03: 4c 25 bb    L%.            ; JMP to partial sector buffer op; jmp loop_cb996
+    jmp exec_floppy_partial_sector_buf                                ; ba03: 4c 25 bb    L%.
 
 ; &ba06 referenced 1 time by &ab3f
 .exec_floppy_write_bput_sector_ind
-    jmp exec_floppy_write_bput_sector                                 ; ba06: 4c 26 ba    L&.            ; JMP to floppy write BPUT sector
+    jmp exec_floppy_write_bput_sector                                 ; ba06: 4c 26 ba    L&.
 
 ; &ba09 referenced 1 time by &aca6
 .exec_floppy_read_bput_sector_ind
-    jmp exec_floppy_read_bput_sector                                  ; ba09: 4c 2a ba    L*.            ; JMP to floppy read BPUT sector
+    jmp exec_floppy_read_bput_sector                                  ; ba09: 4c 2a ba    L*.
 
 ; &ba0c referenced 1 time by &9bca
 .sub_cba0c
