@@ -1029,7 +1029,7 @@ oscli                                           = &fff7
     jsr osbyte                                                        ; 82a8: 20 f4 ff     ..            ; Clear escape condition and perform escape effects
     jsr invalidate_fsm_and_dir                                        ; 82ab: 20 76 84     v.            ; Invalidate FSM and directory; Mark FSM and directory as invalid
     jsr reload_fsm_and_dir_then_brk                                   ; 82ae: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &11                                                          ; 82b1: 11          .
+    equb &11                                                          ; 82b1: 11          .              ; Error &11: Escape
     equs "Escape", 0                                                  ; 82b2: 45 73 63... Esc
 
 ; &82b9 referenced 1 time by &82a4
@@ -1037,7 +1037,7 @@ oscli                                           = &fff7
     cmp #4                                                            ; 82b9: c9 04       ..             ; Error code &04 = drive not ready?
     bne translate_scsi_error                                          ; 82bb: d0 14       ..             ; Not drive overrun, check other codes
     jsr reload_fsm_and_dir_then_brk                                   ; 82bd: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &cd                                                          ; 82c0: cd          .
+    equb &cd                                                          ; 82c0: cd          .              ; Error &CD: Drive not ready
     equs "Drive not ready", 0                                         ; 82c1: 44 72 69... Dri
 
 ; &82d1 referenced 1 time by &82bb
@@ -1047,13 +1047,13 @@ oscli                                           = &fff7
     jsr save_wksp_and_return                                          ; 82d5: 20 d3 89     ..            ; Convert SCSI error to disc error; Save workspace state and return result
     tax                                                               ; 82d8: aa          .              ; X = suffix control
     jsr generate_error_suffix_x                                       ; 82d9: 20 53 83     S.            ; Generate error with suffix control in X
-    equb &c7                                                          ; 82dc: c7          .
+    equb &c7                                                          ; 82dc: c7          .              ; Error &C7: Disc error
     equs "Disc error", 0                                              ; 82dd: 44 69 73... Dis
 
 ; &82e8 referenced 1 time by &82d3
 .store_error_sector
     jsr generate_disc_error                                           ; 82e8: 20 2b 83     +.            ; Write protected: save drive state; Generate disc error with state recovery
-    equb &c9                                                          ; 82eb: c9          .
+    equb &c9                                                          ; 82eb: c9          .              ; Error &C9: Disc protected
     equs "Disc protected", 0                                          ; 82ec: 44 69 73... Dis
 
 ; ***************************************************************************************
@@ -1711,7 +1711,7 @@ oscli                                           = &fff7
     cmp #&f6                                                          ; 85c4: c9 f6       ..             ; Room for new entry (< &F6)?
     bcc shift_entries_up_start                                        ; 85c6: 90 0d       ..             ; Yes: proceed with insert
     jsr generate_disc_error                                           ; 85c8: 20 2b 83     +.            ; Save drive state and raise error; Generate disc error with state recovery
-    equb &99                                                          ; 85cb: 99          .
+    equb &99                                                          ; 85cb: 99          .              ; Error &99: Map full
     equs "Map full", 0                                                ; 85cc: 4d 61 70... Map
 
 ; &85d5 referenced 1 time by &85c6
@@ -1817,13 +1817,13 @@ oscli                                           = &fff7
 ; &8656 referenced 2 times by &8f3a, &aed4
 .disc_full_error
     jsr generate_disc_error                                           ; 8656: 20 2b 83     +.            ; Not enough: Disc full error; Generate disc error with state recovery
-    equb &c6                                                          ; 8659: c6          .
+    equb &c6                                                          ; 8659: c6          .              ; Error &C6: Disc full
     equs "Disc full", 0                                               ; 865a: 44 69 73... Dis
 
 ; &8664 referenced 1 time by &8654
 .compaction_required_error
     jsr generate_disc_error                                           ; 8664: 20 2b 83     +.            ; Compaction needed: error; Generate disc error with state recovery
-    equb &98                                                          ; 8667: 98          .
+    equb &98                                                          ; 8667: 98          .              ; Error &98: Compaction required
     equs "Compaction required", 0                                     ; 8668: 43 6f 6d... Com
 
 ; &867c referenced 1 time by &8640
@@ -2006,7 +2006,7 @@ oscli                                           = &fff7
 ; &8737 referenced 6 times by &8785, &8849, &8bd0, &8ddb, &a4e2, &a86c
 .bad_name_error
     jsr reload_fsm_and_dir_then_brk                                   ; 8737: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &cc                                                          ; 873a: cc          .
+    equb &cc                                                          ; 873a: cc          .              ; Error &CC: Bad name
     equs "Bad name", 0                                                ; 873b: 42 61 64... Bad
 
 ; &8744 referenced 1 time by &8732
@@ -2487,7 +2487,7 @@ oscli                                           = &fff7
 ; &8982 referenced 1 time by &a500
 .clean_dir_rename_bit
     jsr reload_fsm_and_dir_then_brk                                   ; 8982: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &b0                                                          ; 8985: b0          .
+    equb &b0                                                          ; 8985: b0          .              ; Error &B0: Bad rename
     equs "Bad rename", 0                                              ; 8986: 42 61 64... Bad
 
 ; &8991 referenced 2 times by &88e2, &8979
@@ -2920,7 +2920,7 @@ oscli                                           = &fff7
 ; &8bd7 referenced 3 times by &8297, &948f, &a0c0
 .bad_parms_error
     jsr reload_fsm_and_dir_then_brk                                   ; 8bd7: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &d6                                                          ; 8bda: d6          .
+    equb &d6                                                          ; 8bda: d6          .              ; Error &D6: Not found
     equs "Not found", 0                                               ; 8bdb: 4e 6f 74... Not
 
 ; &8be5 referenced 3 times by &907f, &9101, &a50f
@@ -2933,7 +2933,7 @@ oscli                                           = &fff7
 ; &8bf0 referenced 3 times by &a41b, &b256, &b2f8
 .validate_found_entry
     jsr reload_fsm_and_dir_then_brk                                   ; 8bf0: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &bd                                                          ; 8bf3: bd          .
+    equb &bd                                                          ; 8bf3: bd          .              ; Error &BD: Access violation
     equs "Access violation", 0                                        ; 8bf4: 41 63 63... Acc
     equb &20, &b3, &8b, &d0, &be, &a0, 0, &b1, &b6, &10, &e0          ; 8c05: 20 b3 8b...  ..
 
@@ -3166,7 +3166,7 @@ oscli                                           = &fff7
     lda (zp_entry_ptr),y                                              ; 8d12: b1 b6       ..             ; Get access byte 2 (L attribute)
     bpl check_open                                                    ; 8d14: 10 0b       ..             ; Check if file is open
     jsr reload_fsm_and_dir_then_brk                                   ; 8d16: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &c3                                                          ; 8d19: c3          .
+    equb &c3                                                          ; 8d19: c3          .              ; Error &C3: Locked
     equs "Locked", 0                                                  ; 8d1a: 4c 6f 63... Loc
 
 ; ***************************************************************************************
@@ -3203,7 +3203,7 @@ oscli                                           = &fff7
 ; &8d53 referenced 1 time by &b24a
 .channel_on_same_drive
     jsr reload_fsm_and_dir_then_brk                                   ; 8d53: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &c2                                                          ; 8d56: c2          .
+    equb &c2                                                          ; 8d56: c2          .              ; Error &C2: Already open
     equs "Can't - File open", 0                                       ; 8d57: 43 61 6e... Can
 
 ; ***************************************************************************************
@@ -3331,7 +3331,7 @@ oscli                                           = &fff7
 ; &8dde referenced 2 times by &8dc6, &8dca
 .mark_saved_drive_unset
     jsr reload_fsm_and_dir_then_brk                                   ; 8dde: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &fd                                                          ; 8de1: fd          .
+    equb &fd                                                          ; 8de1: fd          .              ; Error &FD: Wild cards
     equs "Wild cards", 0                                              ; 8de2: 57 69 6c... Wil
 ; &8ded referenced 1 time by &8db2
 .l8ded
@@ -3372,7 +3372,7 @@ oscli                                           = &fff7
     lda dir_last_entry_area                                           ; 8e19: ad b1 16    ...            ; Below limit: slot found; At limit: dir full
     beq check_name_already_exists                                     ; 8e1c: f0 0d       ..             ; Exactly at limit: dir full
     jsr reload_fsm_and_dir_then_brk                                   ; 8e1e: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &b3                                                          ; 8e21: b3          .
+    equb &b3                                                          ; 8e21: b3          .              ; Error &B3: Dir full
     equs "Dir full", 0                                                ; 8e22: 44 69 72... Dir
 
 ; &8e2b referenced 1 time by &8e1c
@@ -3734,7 +3734,7 @@ oscli                                           = &fff7
 ; &8ffa referenced 7 times by &8ff3, &9017, &901a, &9021, &903a, &9045, &904a
 .check_first_char_wildcard
     jsr generate_disc_error                                           ; 8ffa: 20 2b 83     +.            ; Bad FS map error; Generate disc error with state recovery
-    equb &a9                                                          ; 8ffd: a9          .
+    equb &a9                                                          ; 8ffd: a9          .              ; Error &A9: Bad FS map
     equs "Bad FS map", 0                                              ; 8ffe: 42 61 64... Bad
 
 ; &9009 referenced 2 times by &8f89, &8fea
@@ -3986,7 +3986,7 @@ oscli                                           = &fff7
     plp                                                               ; 9159: 28          (              ; Restore empty flag
     beq proceed_with_delete                                           ; 915a: f0 12       ..             ; Directory was empty: proceed
     jsr reload_fsm_and_dir_then_brk                                   ; 915c: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &b4                                                          ; 915f: b4          .
+    equb &b4                                                          ; 915f: b4          .              ; Error &B4: Dir not empty
     equs "Dir not empty", 0                                           ; 9160: 44 69 72... Dir
 
 ; &916e referenced 2 times by &912f, &915a
@@ -4031,7 +4031,7 @@ oscli                                           = &fff7
     dex                                                               ; 91aa: ca          .              ; Next byte in CSD comparison
     bpl copy_entry_name_to_wksp_loop                                  ; 91ab: 10 f5       ..             ; Loop for 3 bytes
     jsr reload_fsm_and_dir_then_brk                                   ; 91ad: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &96                                                          ; 91b0: 96          .
+    equb &96                                                          ; 91b0: 96          .              ; Error &96: Cant delete CSD
     equs "Can't delete CSD", 0                                        ; 91b1: 43 61 6e... Can
 
 ; &91c2 referenced 2 times by &919e, &91a8
@@ -4048,7 +4048,7 @@ oscli                                           = &fff7
     dex                                                               ; 91d4: ca          .              ; Next byte in library comparison
     bpl remove_entry_shift_loop                                       ; 91d5: 10 f5       ..             ; Loop for 3 bytes
     jsr reload_fsm_and_dir_then_brk                                   ; 91d7: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &97                                                          ; 91da: 97          .
+    equb &97                                                          ; 91da: 97          .              ; Error &97: Cant delete library
     equs "Can't delete Library", 0                                    ; 91db: 43 61 6e... Can
 
 ; &91f0 referenced 2 times by &91c8, &91d2
@@ -4754,7 +4754,7 @@ oscli                                           = &fff7
 ; &95a4 referenced 2 times by &8d0d, &a5e8
 .already_exists_error2
     jsr reload_fsm_and_dir_then_brk                                   ; 95a4: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &c4                                                          ; 95a7: c4          .
+    equb &c4                                                          ; 95a7: c4          .              ; Error &C4: Already exists
     equs "Already exists", 0                                          ; 95a8: 41 6c 72... Alr
 
 ; &95b7 referenced 2 times by &95a2, &95c8
@@ -5428,7 +5428,7 @@ oscli                                           = &fff7
 .print_aborted_error
     jsr osnewl                                                        ; 99d7: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
     jsr reload_fsm_and_dir_then_brk                                   ; 99da: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &92                                                          ; 99dd: 92          .
+    equb &92                                                          ; 99dd: 92          .              ; Error &92: Aborted
     equs "Aborted", 0                                                 ; 99de: 41 62 6f... Abo
 
 ; ***************************************************************************************
@@ -6507,7 +6507,7 @@ l9dd3 = check_help_adfs_keyword+1
 ; &a00a referenced 1 time by &9ff8
 .ca00a
     jsr reload_fsm_and_dir_then_brk                                   ; a00a: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &cb                                                          ; a00d: cb          .
+    equb &cb                                                          ; a00d: cb          .              ; Error &CB: Bad opt
     equs "Bad opt", 0                                                 ; a00e: 42 61 64... Bad
 
 ; ***************************************************************************************
@@ -6936,7 +6936,7 @@ la154 = sub_ca153+1
 ; &a29b referenced 11 times by &a287, &a28a, &a2bd, &a2e6, &a2ef, &a301, &a305, &a313, &a31f, &a331, &a341
 .bad_compact_error
     jsr reload_fsm_and_dir_then_brk                                   ; a29b: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &94                                                          ; a29e: 94          .
+    equb &94                                                          ; a29e: 94          .              ; Error &94: Bad compact
     equs "Bad compact", 0                                             ; a29f: 42 61 64... Bad
 
 ; &a2ab referenced 1 time by &a27f
@@ -7095,7 +7095,7 @@ la154 = sub_ca153+1
 ; &a389 referenced 1 time by &a377
 .bad_command_error
     jsr reload_fsm_and_dir_then_brk                                   ; a389: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &fe                                                          ; a38c: fe          .
+    equb &fe                                                          ; a38c: fe          .              ; Error &FE: Bad command
     equs "Bad command", 0                                             ; a38d: 42 61 64... Bad
 
 ; ***************************************************************************************
@@ -7158,7 +7158,7 @@ la154 = sub_ca153+1
     cmp #&ff                                                          ; a3f3: c9 ff       ..             ; All &FF? Load addr = &FFFFFFFF
     bne run_tube_transfer                                             ; a3f5: d0 0a       ..             ; No, proceed with load and execute
     jsr reload_fsm_and_dir_then_brk                                   ; a3f7: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &93                                                          ; a3fa: 93          .
+    equb &93                                                          ; a3fa: 93          .              ; Error &93: Wont
     equs "Won't", 0                                                   ; a3fb: 57 6f 6e... Won
 
 ; &a401 referenced 1 time by &a3f5
@@ -7724,7 +7724,7 @@ la154 = sub_ca153+1
     inx                                                               ; a6ca: e8          .              ; Increment: &FF becomes 0
     bne return_31                                                     ; a6cb: d0 2b       .+             ; Non-zero = drive is set, OK
     jsr generate_error_no_suffix                                      ; a6cd: 20 51 83     Q.            ; Drive is &FF: no directory loaded; Generate error without drive/sector suffix
-    equb &a9                                                          ; a6d0: a9          .
+    equb &a9                                                          ; a6d0: a9          .              ; Error &A9: Bad FS map
     equs "No directory", 0                                            ; a6d1: 4e 6f 20... No
 
 ; ***************************************************************************************
@@ -7765,7 +7765,7 @@ la154 = sub_ca153+1
 ; &a6f9 referenced 2 times by &a6e9, &a6ee
 .broken_directory_error
     jsr generate_disc_error                                           ; a6f9: 20 2b 83     +.            ; Dir broken: save drive and error; Generate disc error with state recovery
-    equb &a8                                                          ; a6fc: a8          .
+    equb &a8                                                          ; a6fc: a8          .              ; Error &A8: Broken directory
     equs "Broken directory", 0                                        ; a6fd: 42 72 6f... Bro
 
 ; ***************************************************************************************
@@ -7836,7 +7836,7 @@ la154 = sub_ca153+1
     lda #&0f                                                          ; a738: a9 0f       ..             ; Checksum mismatch or corruption
     sta l10ce                                                         ; a73a: 8d ce 10    ...            ; Set error flag
     jsr generate_error_no_suffix                                      ; a73d: 20 51 83     Q.            ; Generate error without drive/sector suffix
-    equb &aa                                                          ; a740: aa          .
+    equb &aa                                                          ; a740: aa          .              ; Error &AA: Bad checksum
     equs "Bad sum", 0                                                 ; a741: 42 61 64... Bad
 
 ; ***************************************************************************************
@@ -8344,7 +8344,7 @@ la868 = check_dest_terminator+1
 ; &aa35 referenced 1 time by &aa1c
 .check_read_allocation
     jsr reload_fsm_and_dir_then_brk                                   ; aa35: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &b7                                                          ; aa38: b7          .
+    equb &b7                                                          ; aa38: b7          .              ; Error &B7: Outside file
     equs "Outside file", 0                                            ; aa39: 4f 75 74... Out
 
 ; &aa46 referenced 1 time by &a9c8
@@ -8574,7 +8574,7 @@ la868 = check_dest_terminator+1
     sta wksp_1131                                                     ; abac: 8d 31 11    .1.            ; Clear error status
     ldx l10d4                                                         ; abaf: ae d4 10    ...            ; Get file handle for error message
     jsr generate_error_suffix_x                                       ; abb2: 20 53 83     S.            ; Generate error with suffix control in X
-    equb &ca                                                          ; abb5: ca          .
+    equb &ca                                                          ; abb5: ca          .              ; Error &CA: Data lost
     equs "Data lost, channel", 0                                      ; abb6: 44 61 74... Dat
 
 ; &abc9 referenced 2 times by &ac05, &ac89
@@ -8794,7 +8794,7 @@ la868 = check_dest_terminator+1
 ; &ace9 referenced 3 times by &ad05, &ad0b, &ad13
 .step_ensure_offset_loop
     jsr reload_fsm_and_dir_then_brk                                   ; ace9: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &de                                                          ; acec: de          .
+    equb &de                                                          ; acec: de          .              ; Error &DE: Channel
     equs "Channel", 0                                                 ; aced: 43 68 61... Cha
 
 ; &acf5 referenced 3 times by &ac31, &ac52, &ac55
@@ -8891,7 +8891,7 @@ la868 = check_dest_terminator+1
     and #&c8                                                          ; ad56: 29 c8       ).             ; Keep bits 7,6,3 (writeable,open)
     sta wksp_ch_flags,x                                               ; ad58: 9d ac 11    ...            ; Store updated flags
     jsr reload_fsm_and_dir_then_brk                                   ; ad5b: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &df                                                          ; ad5e: df          .
+    equb &df                                                          ; ad5e: df          .              ; Error &DF: EOF
     equs "EOF", 0                                                     ; ad5f: 45 4f 46... EOF
 
 ; ***************************************************************************************
@@ -9359,7 +9359,7 @@ la868 = check_dest_terminator+1
 ; &b09d referenced 2 times by &aa6c, &b5c5
 .not_open_for_update_error
     jsr reload_fsm_and_dir_then_brk                                   ; b09d: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &c1                                                          ; b0a0: c1          .
+    equb &c1                                                          ; b0a0: c1          .              ; Error &C1: Not open for update
     equs "Not open for update", 0                                     ; b0a1: 4e 6f 74... Not
 
 ; &b0b5 referenced 1 time by &b09b
@@ -9565,7 +9565,7 @@ la868 = check_dest_terminator+1
     dex                                                               ; b1e8: ca          .              ; Try next channel
     bpl scan_channels_loop                                            ; b1e9: 10 f8       ..             ; Loop for all 10 channels
     jsr reload_fsm_and_dir_then_brk                                   ; b1eb: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &c0                                                          ; b1ee: c0          .
+    equb &c0                                                          ; b1ee: c0          .              ; Error &C0: Too many open
     equs "Too many open files", 0                                     ; b1ef: 54 6f 6f... Too
 
 ; &b203 referenced 1 time by &b1e6
@@ -9954,7 +9954,7 @@ la868 = check_dest_terminator+1
 ; &b4ae referenced 2 times by &b49d, &b4a5
 .check_disc_id_changed
     jsr reload_fsm_and_dir_then_brk                                   ; b4ae: 20 48 83     H.            ; Reload FSM and directory then raise error
-    equb &c8                                                          ; b4b1: c8          .
+    equb &c8                                                          ; b4b1: c8          .              ; Error &C8: Disc changed
     equs "Disc changed", 0                                            ; b4b2: 44 69 73... Dis
 
 ; &b4bf referenced 3 times by &b48e, &b4f5, &b525

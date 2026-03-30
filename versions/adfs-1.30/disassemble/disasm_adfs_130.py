@@ -11055,6 +11055,48 @@ the free space map.
 """)
 
 # ---------------------------------------------------------------------------
+# Inline error number bytes
+# These equb values are BRK error codes in inline error blocks:
+#   JSR error_routine / error_number / "message" / &00
+# ---------------------------------------------------------------------------
+
+comment(0x82B1, "Error &11: Escape", inline=True)
+comment(0x82C0, "Error &CD: Drive not ready", inline=True)
+comment(0x82DC, "Error &C7: Disc error", inline=True)
+comment(0x82EB, "Error &C9: Disc protected", inline=True)
+comment(0x85CB, "Error &99: Map full", inline=True)
+comment(0x8659, "Error &C6: Disc full", inline=True)
+comment(0x8667, "Error &98: Compaction required", inline=True)
+comment(0x873A, "Error &CC: Bad name", inline=True)
+comment(0x8985, "Error &B0: Bad rename", inline=True)
+comment(0x8BDA, "Error &D6: Not found", inline=True)
+comment(0x8BF3, "Error &BD: Access violation", inline=True)
+comment(0x8D19, "Error &C3: Locked", inline=True)
+comment(0x8D56, "Error &C2: Already open", inline=True)
+comment(0x8DE1, "Error &FD: Wild cards", inline=True)
+comment(0x8E21, "Error &B3: Dir full", inline=True)
+comment(0x8FFD, "Error &A9: Bad FS map", inline=True)
+comment(0x915F, "Error &B4: Dir not empty", inline=True)
+comment(0x91B0, "Error &96: Cant delete CSD", inline=True)
+comment(0x91DA, "Error &97: Cant delete library", inline=True)
+comment(0x95A7, "Error &C4: Already exists", inline=True)
+comment(0x99DD, "Error &92: Aborted", inline=True)
+comment(0xA00D, "Error &CB: Bad opt", inline=True)
+comment(0xA29E, "Error &94: Bad compact", inline=True)
+comment(0xA38C, "Error &FE: Bad command", inline=True)
+comment(0xA3FA, "Error &93: Wont", inline=True)
+comment(0xA6D0, "Error &A9: Bad FS map", inline=True)
+comment(0xA6FC, "Error &A8: Broken directory", inline=True)
+comment(0xA740, "Error &AA: Bad checksum", inline=True)
+comment(0xAA38, "Error &B7: Outside file", inline=True)
+comment(0xABB5, "Error &CA: Data lost", inline=True)
+comment(0xACEC, "Error &DE: Channel", inline=True)
+comment(0xAD5E, "Error &DF: EOF", inline=True)
+comment(0xB0A0, "Error &C1: Not open for update", inline=True)
+comment(0xB1EE, "Error &C0: Too many open", inline=True)
+comment(0xB4B1, "Error &C8: Disc changed", inline=True)
+
+# ---------------------------------------------------------------------------
 # Generate disassembly
 # ---------------------------------------------------------------------------
 
