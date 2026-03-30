@@ -1444,10 +1444,9 @@ oscli                                           = &fff7
     rts                                                               ; 8498: 60          `              ; Return
 
 .str_exec_abbrev
-    equb &45, &2e, &0d                                                ; 8499: 45 2e 0d    E..
+    equs "E.", &0d                                                    ; 8499: 45 2e 0d    E..            ; "E." + CR: *EXEC abbreviation
 .str_spool_abbrev
-    equs "SP."                                                        ; 849c: 53 50 2e    SP.
-    equb &0d                                                          ; 849f: 0d          .
+    equs "SP.", &0d                                                   ; 849c: 53 50 2e... SP.            ; "SP." + CR: *SPOOL abbreviation
 
 ; ***************************************************************************************
 ; Call OSBYTE to read current value
@@ -1476,11 +1475,11 @@ oscli                                           = &fff7
 
 ; &84ac referenced 1 time by &9a18
 .str_yes
-    equb &0d                                                          ; 84ac: 0d          .
+    equs &0d                                                          ; 84ac: 0d          .              ; CR + "SEY": reversed "YES" + CR
     equs "SEY"                                                        ; 84ad: 53 45 59    SEY
 ; &84b0 referenced 2 times by &95f9, &a6f1
 .str_hugo
-    equb 0                                                            ; 84b0: 00          .
+    equs 0                                                            ; 84b0: 00          .              ; NUL + "Hugo": directory identity
     equs "Hugo"                                                       ; 84b1: 48 75 67... Hug
 
 ; ***************************************************************************************
@@ -5541,11 +5540,9 @@ oscli                                           = &fff7
 .boot_data
     equb &7b, &7d, &85                                                ; 9a78: 7b 7d 85    {}.
 .str_l_boot
-    equs "L.$.!BOOT"                                                  ; 9a7b: 4c 2e 24... L.$            ; L.$.!BOOT (load boot file)
-    equb &0d                                                          ; 9a84: 0d          .
+    equs "L.$.!BOOT", &0d                                             ; 9a7b: 4c 2e 24... L.$            ; "L.$.!BOOT" + CR: load boot file
 .str_e_boot
-    equs "E.$.!BOOT"                                                  ; 9a85: 45 2e 24... E.$            ; E.$.!BOOT (exec boot file)
-    equb &0d                                                          ; 9a8e: 0d          .
+    equs "E.$.!BOOT", &0d                                             ; 9a85: 45 2e 24... E.$            ; "E.$.!BOOT" + CR: exec boot file; E.$.!BOOT (exec boot file)
 ; &9a8f referenced 1 time by &9ac7
 .service_dispatch_lo
     equb <(service_handler_0-1)                                       ; 9a8f: b7          .
@@ -5943,8 +5940,7 @@ boot_run_option = sub_c9b86+1
     lda #0                                                            ; 9ca8: a9 00       ..             ; A=0: service claimed
     rts                                                               ; 9caa: 60          `              ; Return
 
-    equs ":0.LIB*"                                                    ; 9cab: 3a 30 2e... :0.
-    equb &0d                                                          ; 9cb2: 0d          .
+    equs ":0.LIB*", &0d                                               ; 9cab: 3a 30 2e... :0.            ; ":0.LIB*" + CR: default library path
 ; &9cb3 referenced 1 time by &9b9c
 .l9cb3
     equb &1b, &ff, &1e, &ff, &21, &ff, &24, &ff, &27, &ff, &2a, &ff   ; 9cb3: 1b ff 1e... ...
@@ -6757,8 +6753,8 @@ la154 = sub_ca153+1
 ; &a154 referenced 1 time by &a14b
     rts                                                               ; a155: 60          `              ; Return
 
-    equb &0d                                                          ; a156: 0d          .
-    equs '"', "tesnU", '"'                                            ; a157: 22 74 65... "te
+    equb &0d                                                          ; a156: 0d          .              ; CR (read backwards as name terminator)
+    equs '"', "tesnU", '"'                                            ; a157: 22 74 65... "te            ; Reversed: '"Unset"' default dir name
 
 ; ***************************************************************************************
 ; *MOUNT command handler
@@ -11984,8 +11980,7 @@ la868 = check_dest_terminator+1
     and #&7f                                                          ; bff3: 29 7f       ).             ; Mask to 7-bit error code
     rts                                                               ; bff5: 60          `              ; Return
 
-    equs "and Hugo."                                                  ; bff6: 61 6e 64... and
-    equb &0d                                                          ; bfff: 0d          .
+    equs "and Hugo.", &0d                                             ; bff6: 61 6e 64... and            ; "and Hugo." + CR: ROM footer text
 .pydis_end
 
     assert <(check_compaction_recommended-1) == &93
@@ -13688,7 +13683,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1540 bytes (9%)
 ;
 ;     Number of instructions   = 6908
-;     Number of data bytes     = 599 bytes
+;     Number of data bytes     = 589 bytes
 ;     Number of data words     = 16 bytes
-;     Number of string bytes   = 925 bytes
-;     Number of strings        = 103
+;     Number of string bytes   = 935 bytes
+;     Number of strings        = 106
