@@ -3368,7 +3368,7 @@ lffff                                           = &ffff
     ldx #5                                                            ; 8db0: a2 05       ..             ; X=5: check against 6 special chars
 ; &8db2 referenced 1 time by &8db8
 .valid_name_continue_loop
-    cmp l8ded,x                                                       ; 8db2: dd ed 8d    ...            ; Compare with special char table
+    cmp tbl_forbidden_chars,x                                         ; 8db2: dd ed 8d    ...            ; Compare with special char table
     beq bad_name_in_path                                              ; 8db5: f0 24       .$             ; Match: wild cards error
     dex                                                               ; 8db7: ca          .              ; Next special char
     bpl valid_name_continue_loop                                      ; 8db8: 10 f8       ..             ; Loop for 6 chars
@@ -3420,10 +3420,23 @@ lffff                                           = &ffff
     jsr reload_fsm_and_dir_then_brk                                   ; 8dde: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &fd                                                          ; 8de1: fd          .              ; Error &FD: Wild cards
     equs "Wild cards", 0                                              ; 8de2: 57 69 6c... Wil
+; ***************************************************************************************
+; Forbidden filename characters
+; 
+; Six characters that may not appear in ADFS filenames because
+; they have special meaning in the pathname syntax. The path
+; validator at set_up_directory_search loops through this table,
+; rejecting any filename containing these characters.
+; 
+; ***************************************************************************************
 ; &8ded referenced 1 time by &8db2
-.l8ded
-    equb &7f                                                          ; 8ded: 7f          .
-    equs "^@:$&"                                                      ; 8dee: 5e 40 3a... ^@:
+.tbl_forbidden_chars
+    equb &7f                                                          ; 8ded: 7f          .              ; &7F: DEL (control character)
+    equb &5e                                                          ; 8dee: 5e          ^              ; '^': parent directory specifier
+    equb &40                                                          ; 8def: 40          @              ; '@': current directory specifier
+    equb &3a                                                          ; 8df0: 3a          :              ; ':': drive separator
+    equb &24                                                          ; 8df1: 24          $              ; '$': root directory specifier
+    equb &26                                                          ; 8df2: 26          &              ; '&': hex number prefix
 
 ; &8df3 referenced 4 times by &8f4c, &9594, &a649, &a8dc
 .check_file_not_open2
@@ -13285,7 +13298,6 @@ save pydis_start, pydis_end
 ;     l1183:                                              1
 ;     l200f:                                              1
 ;     l2420:                                              1
-;     l8ded:                                              1
 ;     l9632:                                              1
 ;     l9cb3:                                              1
 ;     l9e48:                                              1
@@ -13646,6 +13658,7 @@ save pydis_start, pydis_end
 ;     switch_drive_for_extend:                            1
 ;     system_via_t1c_l:                                   1
 ;     tbl_extended_vectors:                               1
+;     tbl_forbidden_chars:                                1
 ;     translate_scsi_error:                               1
 ;     try_star_position_loop:                             1
 ;     tube_byte_transfer:                                 1
@@ -13867,7 +13880,6 @@ save pydis_start, pydis_end
 ;     l200f
 ;     l2020
 ;     l2420
-;     l8ded
 ;     l9632
 ;     l9cb3
 ;     l9dd3
@@ -13940,7 +13952,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1429 bytes (9%)
 ;
 ;     Number of instructions   = 6963
-;     Number of data bytes     = 508 bytes
+;     Number of data bytes     = 513 bytes
 ;     Number of data words     = 16 bytes
-;     Number of string bytes   = 905 bytes
-;     Number of strings        = 102
+;     Number of string bytes   = 900 bytes
+;     Number of strings        = 101

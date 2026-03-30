@@ -974,6 +974,20 @@ byte(0x8820)
 comment(0x8820, "Sector count: &05 (5 sectors per directory)", inline=True)
 byte(0x8821)
 comment(0x8821, "Control: &00", inline=True)
+label(0x8DED, "tbl_forbidden_chars")
+entry(0x8DED)
+byte(0x8DED)
+comment(0x8DED, "&7F: DEL (control character)", inline=True)
+byte(0x8DEE)
+comment(0x8DEE, "'^': parent directory specifier", inline=True)
+byte(0x8DEF)
+comment(0x8DEF, "'@': current directory specifier", inline=True)
+byte(0x8DF0)
+comment(0x8DF0, "':': drive separator", inline=True)
+byte(0x8DF1)
+comment(0x8DF1, "'$': root directory specifier", inline=True)
+byte(0x8DF2)
+comment(0x8DF2, "'&': hex number prefix", inline=True)
 entry(0x9269)
 entry(0x9316)
 entry(0x9A46)
@@ -11328,6 +11342,15 @@ subroutine(0xBFF6, "str_rom_footer",
 The text 'and Hugo.' followed by CR. This fills the last
 10 bytes of the ROM, a signature referencing the Hugo
 directory format used by ADFS.
+""")
+
+subroutine(0x8DED, "tbl_forbidden_chars",
+    title="Forbidden filename characters",
+    description="""\
+Six characters that may not appear in ADFS filenames because
+they have special meaning in the pathname syntax. The path
+validator at set_up_directory_search loops through this table,
+rejecting any filename containing these characters.
 """)
 
 subroutine(0x8C05, "osfile_save_check_existing",
