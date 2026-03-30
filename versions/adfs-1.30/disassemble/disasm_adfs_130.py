@@ -1167,6 +1167,24 @@ comment(0x9CD3, "FSCV:  my_fscv (&9E50)", inline=True)
 byte(0x9CD5)
 comment(0x9CD5, "ROM: &FF", inline=True)
 entry(0x9CD6)
+label(0x9E48, "tbl_help_param_ptrs")
+entry(0x9E48)
+byte(0x9E48)
+comment(0x9E48, '0: &D7 -> &9FD7 "" (no parameter)', inline=True)
+byte(0x9E49)
+comment(0x9E49, '1: &8D -> &9F8D "<List Spec>"', inline=True)
+byte(0x9E4A)
+comment(0x9E4A, '2: &99 -> &9F99 "<Ob Spec>"', inline=True)
+byte(0x9E4B)
+comment(0x9E4B, '3: &A3 -> &9FA3 "<*Ob Spec*>"', inline=True)
+byte(0x9E4C)
+comment(0x9E4C, '4: &AF -> &9FAF "(<Drive>)"', inline=True)
+byte(0x9E4D)
+comment(0x9E4D, '5: &B9 -> &9FB9 "<SP> <LP>"', inline=True)
+byte(0x9E4E)
+comment(0x9E4E, '6: &C3 -> &9FC3 "(L)(W)(R)(E)"', inline=True)
+byte(0x9E4F)
+comment(0x9E4F, '7: &D0 -> &9FD0 "<Title>"', inline=True)
 entry(0x9E6D)
 entry(0x9EE3)
 entry(0xBC79)
@@ -11576,6 +11594,22 @@ subroutine(0x9CD6, "str_filing_system_name",
 The string 'adfs' (reversed for stack-based comparison)
 used to identify the filing system during service call
 handling.
+""")
+
+subroutine(0x9E48, "tbl_help_param_ptrs",
+    title="*HELP parameter format string pointer table",
+    description="""\
+Eight low-byte pointers into the &9Fxx page, indexing the
+parameter format strings displayed after each command name
+in the *HELP ADFS output. Each command's third table byte
+encodes two nibble indices: high nibble selects the first
+parameter string, low nibble selects the second.
+
+  0: (none)         5: <SP> <LP>
+  1: <List Spec>    6: (L)(W)(R)(E)
+  2: <Ob Spec>      7: <Title>
+  3: <*Ob Spec*>
+  4: (<Drive>)
 """)
 
 subroutine(0x9E6D, "fscv_dispatch_lo",

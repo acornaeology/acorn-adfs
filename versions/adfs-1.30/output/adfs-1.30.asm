@@ -4297,7 +4297,7 @@ lffff                                           = &ffff
     tax                                                               ; 927b: aa          .              ; Transfer index to X
     lda #&9f                                                          ; 927c: a9 9f       ..             ; Set up (&B6) to point to pathname
     sta zp_entry_ptr_hi                                               ; 927e: 85 b7       ..             ; Set pointer high byte
-    lda l9e48,x                                                       ; 9280: bd 48 9e    .H.            ; Get pathname format byte
+    lda tbl_help_param_ptrs,x                                         ; 9280: bd 48 9e    .H.            ; Get pathname format byte
     sta zp_entry_ptr_lo                                               ; 9283: 85 b6       ..             ; Store as pointer low byte
     ldx #&0c                                                          ; 9285: a2 0c       ..             ; X=&0C: max 12 characters
 ; &9287 referenced 6 times by &92e0, &9337, &9366, &938c, &93a3, &93bd
@@ -6599,9 +6599,32 @@ l9dd3 = check_help_adfs_keyword+1
     inx                                                               ; 9e44: e8          .              ; Skip past 1st dispatch byte
     inx                                                               ; 9e45: e8          .              ; Skip past 2nd dispatch byte
     bne print_help_data_commands                                      ; 9e46: d0 c5       ..             ; Loop for all commands
+; ***************************************************************************************
+; *HELP parameter format string pointer table
+; 
+; Eight low-byte pointers into the &9Fxx page, indexing the
+; parameter format strings displayed after each command name
+; in the *HELP ADFS output. Each command's third table byte
+; encodes two nibble indices: high nibble selects the first
+; parameter string, low nibble selects the second.
+; 
+;   0: (none)         5: <SP> <LP>
+;   1: <List Spec>    6: (L)(W)(R)(E)
+;   2: <Ob Spec>      7: <Title>
+;   3: <*Ob Spec*>
+;   4: (<Drive>)
+; 
+; ***************************************************************************************
 ; &9e48 referenced 1 time by &9280
-.l9e48
-    equb &d7, &8d, &99, &a3, &af, &b9, &c3, &d0                       ; 9e48: d7 8d 99... ...
+.tbl_help_param_ptrs
+    equb &d7                                                          ; 9e48: d7          .              ; 0: &D7 -> &9FD7 "" (no parameter)
+    equb &8d                                                          ; 9e49: 8d          .              ; 1: &8D -> &9F8D "<List Spec>"
+    equb &99                                                          ; 9e4a: 99          .              ; 2: &99 -> &9F99 "<Ob Spec>"
+    equb &a3                                                          ; 9e4b: a3          .              ; 3: &A3 -> &9FA3 "<*Ob Spec*>"
+    equb &af                                                          ; 9e4c: af          .              ; 4: &AF -> &9FAF "(<Drive>)"
+    equb &b9                                                          ; 9e4d: b9          .              ; 5: &B9 -> &9FB9 "<SP> <LP>"
+    equb &c3                                                          ; 9e4e: c3          .              ; 6: &C3 -> &9FC3 "(L)(W)(R)(E)"
+    equb &d0                                                          ; 9e4f: d0          .              ; 7: &D0 -> &9FD0 "<Title>"
 
 ; ***************************************************************************************
 ; Filing system control vector handler
@@ -13459,7 +13482,6 @@ save pydis_start, pydis_end
 ;     l111d:                                              1
 ;     l1183:                                              1
 ;     l941f:                                              1
-;     l9e48:                                              1
 ;     l9ee4:                                              1
 ;     l9ee5:                                              1
 ;     la154:                                              1
@@ -13819,6 +13841,7 @@ save pydis_start, pydis_end
 ;     tbl_extended_vectors:                               1
 ;     tbl_forbidden_chars:                                1
 ;     tbl_fs_vectors:                                     1
+;     tbl_help_param_ptrs:                                1
 ;     translate_scsi_error:                               1
 ;     try_star_position_loop:                             1
 ;     tube_byte_transfer:                                 1
@@ -14037,7 +14060,6 @@ save pydis_start, pydis_end
 ;     l11f2
 ;     l941f
 ;     l9dd3
-;     l9e48
 ;     l9ee4
 ;     l9ee5
 ;     la154
