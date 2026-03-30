@@ -707,6 +707,12 @@ label(0xBCC2, "floppy_wait_nmi_finish")
 # shorter alternatives that overlay the same address; show those
 # as annotated data since py8dis can only move() one block to a
 # given destination.
+#
+# TODO: Extend py8dis move() to support multiple source blocks
+# targeting the same runtime address ("variant moves"). Each
+# variant would be emitted as a separately-labeled block with
+# its own copyblock/clear/org sequence. This would allow all
+# three NMI fragments to be decoded as proper instructions.
 label(0xBCDF, "nmi_write_code")
 move(0x0D0A, 0xBCDF, 14)
 entry(0x0D0A)
