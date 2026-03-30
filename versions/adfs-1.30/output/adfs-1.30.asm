@@ -4903,27 +4903,27 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 .star_access
     jsr sub_c8fdf                                                     ; 993d: 20 df 8f     ..            ; Find first matching file
-    beq c9951                                                         ; 9940: f0 0f       ..             ; Found? Set attributes
+    beq set_file_attributes                                           ; 9940: f0 0f       ..             ; Found? Set attributes
     jmp c8bc8                                                         ; 9942: 4c c8 8b    L..            ; Not found: report error
 
 ; &9945 referenced 2 times by &9951, &9995
-.sub_c9945
+.clear_rwl_attributes
     ldy #2                                                            ; 9945: a0 02       ..             ; Y=2: clear R,W,L attribute bits
 ; &9947 referenced 1 time by &994e
-.loop_c9947
+.clear_attr_bits_loop
     lda (zp_b6),y                                                     ; 9947: b1 b6       ..             ; Get name byte
     and #&7f                                                          ; 9949: 29 7f       ).             ; Strip bit 7 (clear attribute)
     sta (zp_b6),y                                                     ; 994b: 91 b6       ..             ; Store back
     dey                                                               ; 994d: 88          .              ; Next name byte
-    bpl loop_c9947                                                    ; 994e: 10 f7       ..             ; Loop for 3 bytes
+    bpl clear_attr_bits_loop                                          ; 994e: 10 f7       ..             ; Loop for 3 bytes
     rts                                                               ; 9950: 60          `              ; Return (attributes cleared)
 
 ; &9951 referenced 2 times by &9940, &99c1
-.c9951
-    jsr sub_c9945                                                     ; 9951: 20 45 99     E.            ; Clear existing R,W,L attributes
+.set_file_attributes
+    jsr clear_rwl_attributes                                          ; 9951: 20 45 99     E.            ; Clear existing R,W,L attributes
     ldy #4                                                            ; 9954: a0 04       ..             ; Y=4: check E attribute byte
     lda (zp_b6),y                                                     ; 9956: b1 b6       ..             ; Get byte 4
-    bmi c9965                                                         ; 9958: 30 0b       0.             ; Bit 7 set: E attribute, skip
+    bmi save_e_attribute_state                                        ; 9958: 30 0b       0.             ; Bit 7 set: E attribute, skip
     dey                                                               ; 995a: 88          .              ; Y=3: get D attribute byte; Y=&03
     lda (zp_b6),y                                                     ; 995b: b1 b6       ..             ; Get byte 3
     and #&80                                                          ; 995d: 29 80       ).             ; Keep only bit 7 (D flag)
@@ -4931,76 +4931,76 @@ oscli                                           = &fff7
     ora (zp_b6),y                                                     ; 9961: 11 b6       ..             ; OR D flag into name byte 0
     sta (zp_b6),y                                                     ; 9963: 91 b6       ..             ; Store back
 ; &9965 referenced 1 time by &9958
-.c9965
+.save_e_attribute_state
     sta wksp_102b                                                     ; 9965: 8d 2b 10    .+.            ; Save for E attribute check
     ldy #0                                                            ; 9968: a0 00       ..             ; Y=0: scan for attribute string
 ; &996a referenced 1 time by &9977
-.loop_c996a
+.skip_filename_loop
     lda (zp_b4),y                                                     ; 996a: b1 b4       ..             ; Skip filename characters
     cmp #&20 ; ' '                                                    ; 996c: c9 20       .              ; Compare with space
-    bcc c99bb                                                         ; 996e: 90 4b       .K             ; Control char: end of command
-    beq c9979                                                         ; 9970: f0 07       ..             ; Space: skip to attributes
+    bcc display_and_find_next                                         ; 996e: 90 4b       .K             ; Control char: end of command
+    beq skip_spaces_before_attrs                                      ; 9970: f0 07       ..             ; Space: skip to attributes
     cmp #&22 ; '"'                                                    ; 9972: c9 22       ."             ; Double-quote?
-    beq c9979                                                         ; 9974: f0 03       ..             ; Yes: skip to attributes
+    beq skip_spaces_before_attrs                                      ; 9974: f0 03       ..             ; Yes: skip to attributes
     iny                                                               ; 9976: c8          .              ; Next filename character
-    bne loop_c996a                                                    ; 9977: d0 f1       ..             ; Loop scanning filename
+    bne skip_filename_loop                                            ; 9977: d0 f1       ..             ; Loop scanning filename
 ; &9979 referenced 3 times by &9970, &9974, &9986
-.c9979
+.skip_spaces_before_attrs
     lda (zp_b4),y                                                     ; 9979: b1 b4       ..             ; Skip spaces between name and attrs
     cmp #&20 ; ' '                                                    ; 997b: c9 20       .              ; Is it a space?
-    bcc c99bb                                                         ; 997d: 90 3c       .<             ; Control char: no attributes given
-    beq c9985                                                         ; 997f: f0 04       ..             ; Space: keep skipping
+    bcc display_and_find_next                                         ; 997d: 90 3c       .<             ; Control char: no attributes given
+    beq skip_space_or_quote                                           ; 997f: f0 04       ..             ; Space: keep skipping
     cmp #&22 ; '"'                                                    ; 9981: c9 22       ."             ; Is it a double-quote?
-    bne c9988                                                         ; 9983: d0 03       ..             ; No, start parsing attribute chars
+    bne parse_attr_char                                               ; 9983: d0 03       ..             ; No, start parsing attribute chars
 ; &9985 referenced 1 time by &997f
-.c9985
+.skip_space_or_quote
     iny                                                               ; 9985: c8          .              ; Skip quote character
-    bne c9979                                                         ; 9986: d0 f1       ..             ; Continue skipping spaces
+    bne skip_spaces_before_attrs                                      ; 9986: d0 f1       ..             ; Continue skipping spaces
 ; &9988 referenced 2 times by &9983, &99b9
-.c9988
+.parse_attr_char
     lda (zp_b4),y                                                     ; 9988: b1 b4       ..             ; Parse attribute character
     and #&df                                                          ; 998a: 29 df       ).             ; Convert to uppercase
     bit wksp_102b                                                     ; 998c: 2c 2b 10    ,+.            ; Check if E attribute already set
-    bmi c99a5                                                         ; 998f: 30 14       0.             ; E set: only L attribute allowed
+    bmi check_rwl_char                                                ; 998f: 30 14       0.             ; E set: only L attribute allowed
     cmp #&45 ; 'E'                                                    ; 9991: c9 45       .E             ; Is it 'E'?
-    bne c99a5                                                         ; 9993: d0 10       ..             ; No, check R/W/L
-    jsr sub_c9945                                                     ; 9995: 20 45 99     E.            ; E: clear R,W,L first
+    bne check_rwl_char                                                ; 9993: d0 10       ..             ; No, check R/W/L
+    jsr clear_rwl_attributes                                          ; 9995: 20 45 99     E.            ; E: clear R,W,L first
     ldy #4                                                            ; 9998: a0 04       ..             ; Y=4: set bit 7 of byte 4
     lda (zp_b6),y                                                     ; 999a: b1 b6       ..             ; Get entry byte at attribute pos
     ora #&80                                                          ; 999c: 09 80       ..             ; Set E attribute
     sta (zp_b6),y                                                     ; 999e: 91 b6       ..             ; Store with E bit set
     sta wksp_102b                                                     ; 99a0: 8d 2b 10    .+.            ; Save E flag for later checks
-    bmi c99b8                                                         ; 99a3: 30 13       0.             ; ALWAYS branch
+    bmi next_attr_char                                                ; 99a3: 30 13       0.             ; ALWAYS branch
 
 ; &99a5 referenced 2 times by &998f, &9993
-.c99a5
+.check_rwl_char
     ldx #2                                                            ; 99a5: a2 02       ..             ; X=2: check against "RWL" table
 ; &99a7 referenced 1 time by &99b2
-.loop_c99a7
+.match_rwl_loop
     cmp l9316,x                                                       ; 99a7: dd 16 93    ...            ; Compare with R/W/L character
-    beq c99c9                                                         ; 99aa: f0 1d       ..             ; Match: set this attribute
+    beq set_rwl_attribute_bit                                         ; 99aa: f0 1d       ..             ; Match: set this attribute
     bit wksp_102b                                                     ; 99ac: 2c 2b 10    ,+.            ; E already set? Only L allowed
-    bmi c99b4                                                         ; 99af: 30 03       0.             ; E already set: only L allowed
+    bmi check_attr_terminator                                         ; 99af: 30 03       0.             ; E already set: only L allowed
     dex                                                               ; 99b1: ca          .              ; Try next R/W/L character
-    bpl loop_c99a7                                                    ; 99b2: 10 f3       ..             ; Loop through R, W, L
+    bpl match_rwl_loop                                                ; 99b2: 10 f3       ..             ; Loop through R, W, L
 ; &99b4 referenced 1 time by &99af
-.c99b4
+.check_attr_terminator
     cmp #&21 ; '!'                                                    ; 99b4: c9 21       .!             ; Unknown char: check if printable
-    bcc c99bb                                                         ; 99b6: 90 03       ..             ; Control char: end of attributes
+    bcc display_and_find_next                                         ; 99b6: 90 03       ..             ; Control char: end of attributes
 ; &99b8 referenced 2 times by &99a3, &99d5
-.c99b8
+.next_attr_char
     iny                                                               ; 99b8: c8          .              ; Next attribute character
-    bne c9988                                                         ; 99b9: d0 cd       ..             ; Continue parsing
+    bne parse_attr_char                                               ; 99b9: d0 cd       ..             ; Continue parsing
 ; &99bb referenced 3 times by &996e, &997d, &99b6
-.c99bb
+.display_and_find_next
     jsr conditional_info_display                                      ; 99bb: 20 fa 94     ..            ; Display info if *OPT1 verbose
     jsr c895e                                                         ; 99be: 20 5e 89     ^.            ; Find next matching file
-    beq c9951                                                         ; 99c1: f0 8e       ..             ; More matches? Continue
+    beq set_file_attributes                                           ; 99c1: f0 8e       ..             ; More matches? Continue
     jsr c8f86                                                         ; 99c3: 20 86 8f     ..            ; Write directory back to disc
     jmp c89d3                                                         ; 99c6: 4c d3 89    L..            ; Save workspace and return
 
 ; &99c9 referenced 1 time by &99aa
-.c99c9
+.set_rwl_attribute_bit
     tya                                                               ; 99c9: 98          .              ; Set attribute: save text pointer
     pha                                                               ; 99ca: 48          H              ; Save Y (text position) on stack
     txa                                                               ; 99cb: 8a          .              ; X = index into R/W/L (0,1,2)
@@ -5010,9 +5010,9 @@ oscli                                           = &fff7
     sta (zp_b6),y                                                     ; 99d1: 91 b6       ..             ; Store back
     pla                                                               ; 99d3: 68          h              ; Restore text pointer
     tay                                                               ; 99d4: a8          .              ; Restore Y
-    bne c99b8                                                         ; 99d5: d0 e1       ..             ; Continue parsing attributes
+    bne next_attr_char                                                ; 99d5: d0 e1       ..             ; Continue parsing attributes
 ; &99d7 referenced 1 time by &9a1b
-.c99d7
+.print_aborted_error
     jsr osnewl                                                        ; 99d7: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
     jsr reload_fsm_and_dir_then_brk                                   ; 99da: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &92                                                          ; 99dd: 92          .
@@ -5054,7 +5054,7 @@ oscli                                           = &fff7
 .c9a16
     and #&df                                                          ; 9a16: 29 df       ).             ; Convert to uppercase
     cmp str_yes,x                                                     ; 9a18: dd ac 84    ...            ; Compare with "YES\r" (reversed)
-    bne c99d7                                                         ; 9a1b: d0 ba       ..             ; Mismatch: abort with Aborted error
+    bne print_aborted_error                                           ; 9a1b: d0 ba       ..             ; Mismatch: abort with Aborted error
     dex                                                               ; 9a1d: ca          .              ; Next expected character
     bpl loop_c9a0c                                                    ; 9a1e: 10 ec       ..             ; Loop for all 4 chars
     jsr osnewl                                                        ; 9a20: 20 e7 ff     ..            ; Print newline after YES; Write newline (characters 10 and 13)
@@ -5908,59 +5908,59 @@ l9dd3 = sub_c9dd2+1
     jsr skip_spaces                                                   ; 9e8a: 20 cf a4     ..            ; Skip leading spaces in command; Skip leading spaces in command argument
     ldx #&fd                                                          ; 9e8d: a2 fd       ..             ; X=&FD: start before first table entry
 ; &9e8f referenced 2 times by &9eaf, &9ec1
-.c9e8f
+.next_command_entry
     inx                                                               ; 9e8f: e8          .              ; Advance X past previous entry's data
     inx                                                               ; 9e90: e8          .              ; Next table entry
     ldy #&ff                                                          ; 9e91: a0 ff       ..             ; Y=&FF: start before first char
 ; &9e93 referenced 2 times by &9e9c, &9ea2
-.c9e93
+.match_command_char
     inx                                                               ; 9e93: e8          .              ; Next table byte and command char
     iny                                                               ; 9e94: c8          .              ; Next argument character
     lda tbl_commands,x                                                ; 9e95: bd e3 9e    ...            ; Get byte from command table
-    bmi c9eb4                                                         ; 9e98: 30 1a       0.             ; Bit 7 set: end of command name
+    bmi end_of_table_name                                             ; 9e98: 30 1a       0.             ; Bit 7 set: end of command name
     cmp (zp_b4),y                                                     ; 9e9a: d1 b4       ..             ; Compare with input character
-    beq c9e93                                                         ; 9e9c: f0 f5       ..             ; Match, continue
+    beq match_command_char                                            ; 9e9c: f0 f5       ..             ; Match, continue
     ora #&20 ; ' '                                                    ; 9e9e: 09 20       .              ; Try case-insensitive (OR &20)
     cmp (zp_b4),y                                                     ; 9ea0: d1 b4       ..             ; Compare again
-    beq c9e93                                                         ; 9ea2: f0 ef       ..             ; Match, continue
+    beq match_command_char                                            ; 9ea2: f0 ef       ..             ; Match, continue
     dex                                                               ; 9ea4: ca          .              ; Back up table pointer
 ; &9ea5 referenced 1 time by &9ea9
-.loop_c9ea5
+.skip_to_end_of_name
     inx                                                               ; 9ea5: e8          .              ; Skip to next table entry
     lda tbl_commands,x                                                ; 9ea6: bd e3 9e    ...            ; Read table byte
-    bpl loop_c9ea5                                                    ; 9ea9: 10 fa       ..             ; Loop until bit 7 set (end marker)
+    bpl skip_to_end_of_name                                           ; 9ea9: 10 fa       ..             ; Loop until bit 7 set (end marker)
     lda (zp_b4),y                                                     ; 9eab: b1 b4       ..             ; Check if input has abbreviation dot
     cmp #&2e ; '.'                                                    ; 9ead: c9 2e       ..             ; Is it a dot?
-    bne c9e8f                                                         ; 9eaf: d0 de       ..             ; No, try next command
+    bne next_command_entry                                            ; 9eaf: d0 de       ..             ; No, try next command
     iny                                                               ; 9eb1: c8          .              ; Skip past the dot
-    bne c9ec3                                                         ; 9eb2: d0 0f       ..             ; Always branch (Y != 0)
+    bne advance_past_command                                          ; 9eb2: d0 0f       ..             ; Always branch (Y != 0)
 ; &9eb4 referenced 1 time by &9e98
-.c9eb4
+.end_of_table_name
     tya                                                               ; 9eb4: 98          .              ; Y=0: no chars matched at all?
-    beq c9eda                                                         ; 9eb5: f0 23       .#             ; Yes, unknown command
+    beq dispatch_command                                              ; 9eb5: f0 23       .#             ; Yes, unknown command
     lda (zp_b4),y                                                     ; 9eb7: b1 b4       ..             ; Check if next input char is alpha
     and #&5f ; '_'                                                    ; 9eb9: 29 5f       )_             ; Mask to uppercase
     cmp #&41 ; 'A'                                                    ; 9ebb: c9 41       .A             ; Below 'A'? Not alpha, command done
-    bcc c9ec3                                                         ; 9ebd: 90 04       ..             ; Not alpha: command name complete
+    bcc advance_past_command                                          ; 9ebd: 90 04       ..             ; Not alpha: command name complete
     cmp #&5b ; '['                                                    ; 9ebf: c9 5b       .[             ; Above 'Z'? Not alpha, command done
-    bcc c9e8f                                                         ; 9ec1: 90 cc       ..             ; Alpha: partial match, try next cmd
+    bcc next_command_entry                                            ; 9ec1: 90 cc       ..             ; Alpha: partial match, try next cmd
 ; &9ec3 referenced 2 times by &9eb2, &9ebd
-.c9ec3
+.advance_past_command
     tya                                                               ; 9ec3: 98          .              ; Advance text pointer past matched chars
     clc                                                               ; 9ec4: 18          .              ; Clear carry for pointer advance
     adc zp_b4                                                         ; 9ec5: 65 b4       e.             ; Add matched length to pointer
     sta zp_b4                                                         ; 9ec7: 85 b4       ..             ; Store updated pointer low
-    bcc c9ecd                                                         ; 9ec9: 90 02       ..             ; No page crossing
+    bcc skip_spaces_before_args                                       ; 9ec9: 90 02       ..             ; No page crossing
     inc zp_b5                                                         ; 9ecb: e6 b5       ..             ; Increment pointer high page
 ; &9ecd referenced 1 time by &9ec9
-.c9ecd
+.skip_spaces_before_args
     jsr skip_spaces                                                   ; 9ecd: 20 cf a4     ..            ; Skip spaces after command; Skip leading spaces in command argument
     lda zp_b4                                                         ; 9ed0: a5 b4       ..             ; Save text pointer for command handler
     sta l10d6                                                         ; 9ed2: 8d d6 10    ...            ; Save text pointer low for handler
     lda zp_b5                                                         ; 9ed5: a5 b5       ..             ; Get text pointer high
     sta wksp_shadow_save                                              ; 9ed7: 8d d7 10    ...            ; Save for handler
 ; &9eda referenced 1 time by &9eb5
-.c9eda
+.dispatch_command
     lda tbl_commands,x                                                ; 9eda: bd e3 9e    ...            ; Get dispatch address from table
     pha                                                               ; 9edd: 48          H              ; Push high byte
     lda l9ee4,x                                                       ; 9ede: bd e4 9e    ...            ; Get dispatch low from table+1
@@ -11574,8 +11574,6 @@ save pydis_start, pydis_end
 ;     c87a8:                                              3
 ;     c8bd7:                                              3
 ;     c8bf0:                                              3
-;     c9979:                                              3
-;     c99bb:                                              3
 ;     c9de5:                                              3
 ;     ca344:                                              3
 ;     ca9bd:                                              3
@@ -11595,6 +11593,7 @@ save pydis_start, pydis_end
 ;     claim_tube:                                         3
 ;     dir_buffer:                                         3
 ;     dir_title:                                          3
+;     display_and_find_next:                              3
 ;     floppy_calc_track_sector_from_b0_block:             3
 ;     fred_hard_drive_3:                                  3
 ;     fsm_s1_boot_option:                                 3
@@ -11635,6 +11634,7 @@ save pydis_start, pydis_end
 ;     return_15:                                          3
 ;     return_18:                                          3
 ;     scsi_start_command:                                 3
+;     skip_spaces_before_attrs:                           3
 ;     sub_c8632:                                          3
 ;     sub_c8708:                                          3
 ;     sub_c8be5:                                          3
@@ -11670,6 +11670,7 @@ save pydis_start, pydis_end
 ;     zp_ca:                                              3
 ;     zp_cb:                                              3
 ;     zp_scsi_status:                                     3
+;     advance_past_command:                               2
 ;     apply_head_load_flag:                               2
 ;     c80be:                                              2
 ;     c8136:                                              2
@@ -11724,18 +11725,11 @@ save pydis_start, pydis_end
 ;     c980c:                                              2
 ;     c98dd:                                              2
 ;     c990e:                                              2
-;     c9951:                                              2
-;     c9988:                                              2
-;     c99a5:                                              2
-;     c99b8:                                              2
 ;     c9ae6:                                              2
 ;     c9b87:                                              2
 ;     c9ca4:                                              2
 ;     c9d6a:                                              2
 ;     c9e25:                                              2
-;     c9e8f:                                              2
-;     c9e93:                                              2
-;     c9ec3:                                              2
 ;     c9fed:                                              2
 ;     ca12f:                                              2
 ;     ca179:                                              2
@@ -11786,7 +11780,9 @@ save pydis_start, pydis_end
 ;     check_drive_colon:                                  2
 ;     check_filename_length:                              2
 ;     check_open:                                         2
+;     check_rwl_char:                                     2
 ;     check_wksp_checksum:                                2
+;     clear_rwl_attributes:                               2
 ;     clear_seek_flag:                                    2
 ;     compare_filename:                                   2
 ;     conditional_info_display:                           2
@@ -11833,12 +11829,16 @@ save pydis_start, pydis_end
 ;     l9316:                                              2
 ;     l9dd3:                                              2
 ;     last_break_type:                                    2
+;     match_command_char:                                 2
 ;     my_osfind:                                          2
+;     next_attr_char:                                     2
+;     next_command_entry:                                 2
 ;     nmi_0d0b:                                           2
 ;     nmi_0d0c:                                           2
 ;     nmi_0d5d:                                           2
 ;     nmi_0dff:                                           2
 ;     pad_with_spaces:                                    2
+;     parse_attr_char:                                    2
 ;     parse_dir_argument:                                 2
 ;     parse_drive_argument:                               2
 ;     parse_drive_specifier:                              2
@@ -11858,6 +11858,7 @@ save pydis_start, pydis_end
 ;     return_48:                                          2
 ;     service4_claim_and_dispatch:                        2
 ;     service4_not_matched:                               2
+;     set_file_attributes:                                2
 ;     set_terminator_flag:                                2
 ;     setup_entry_name_ptr:                               2
 ;     skip_filename:                                      2
@@ -11881,7 +11882,6 @@ save pydis_start, pydis_end
 ;     sub_c905c:                                          2
 ;     sub_c92de:                                          2
 ;     sub_c932a:                                          2
-;     sub_c9945:                                          2
 ;     sub_c9dda:                                          2
 ;     sub_ca35a:                                          2
 ;     sub_ca685:                                          2
@@ -12051,11 +12051,6 @@ save pydis_start, pydis_end
 ;     c98c9:                                              1
 ;     c992b:                                              1
 ;     c9938:                                              1
-;     c9965:                                              1
-;     c9985:                                              1
-;     c99b4:                                              1
-;     c99c9:                                              1
-;     c99d7:                                              1
 ;     c9a16:                                              1
 ;     c9a3e:                                              1
 ;     c9b08:                                              1
@@ -12080,9 +12075,6 @@ save pydis_start, pydis_end
 ;     c9def:                                              1
 ;     c9e08:                                              1
 ;     c9e0d:                                              1
-;     c9eb4:                                              1
-;     c9ecd:                                              1
-;     c9eda:                                              1
 ;     c9ff1:                                              1
 ;     c9ff6:                                              1
 ;     ca00a:                                              1
@@ -12252,6 +12244,7 @@ save pydis_start, pydis_end
 ;     cbf51:                                              1
 ;     check_adfs_prefix:                                  1
 ;     check_at_sign:                                      1
+;     check_attr_terminator:                              1
 ;     check_dot_separator:                                1
 ;     check_field_boundary:                               1
 ;     check_multi_sector_range:                           1
@@ -12261,6 +12254,7 @@ save pydis_start, pydis_end
 ;     check_workspace_claimed:                            1
 ;     claim_nmi:                                          1
 ;     clear_accumulators_loop:                            1
+;     clear_attr_bits_loop:                               1
 ;     clear_side_flag:                                    1
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
@@ -12289,9 +12283,11 @@ save pydis_start, pydis_end
 ;     dir2_parent_sector:                                 1
 ;     dir_first_entry:                                    1
 ;     dir_last_entry_area:                                1
+;     dispatch_command:                                   1
 ;     dispatch_service_call:                              1
 ;     do_floppy_scsi_command:                             1
 ;     do_floppy_scsi_command_ind:                         1
+;     end_of_table_name:                                  1
 ;     enter_quoted_string:                                1
 ;     error_escape_ack_invalidate_reload_fsm:             1
 ;     escape_during_retry:                                1
@@ -12484,9 +12480,6 @@ save pydis_start, pydis_end
 ;     loop_c989c:                                         1
 ;     loop_c98ce:                                         1
 ;     loop_c9903:                                         1
-;     loop_c9947:                                         1
-;     loop_c996a:                                         1
-;     loop_c99a7:                                         1
 ;     loop_c9a0c:                                         1
 ;     loop_c9a27:                                         1
 ;     loop_c9aff:                                         1
@@ -12504,7 +12497,6 @@ save pydis_start, pydis_end
 ;     loop_c9dea:                                         1
 ;     loop_c9df1:                                         1
 ;     loop_c9e19:                                         1
-;     loop_c9ea5:                                         1
 ;     loop_ca031:                                         1
 ;     loop_ca06d:                                         1
 ;     loop_ca083:                                         1
@@ -12592,6 +12584,7 @@ save pydis_start, pydis_end
 ;     loop_cbd9a:                                         1
 ;     loop_cbef4:                                         1
 ;     match_command_loop:                                 1
+;     match_rwl_loop:                                     1
 ;     my_osargs:                                          1
 ;     name_length_ok:                                     1
 ;     next_entry_byte:                                    1
@@ -12613,6 +12606,7 @@ save pydis_start, pydis_end
 ;     path_not_found:                                     1
 ;     poll_req_loop:                                      1
 ;     prepare_dir_read:                                   1
+;     print_aborted_error:                                1
 ;     print_name_char_loop:                               1
 ;     print_newline_return:                               1
 ;     ra_buffer_2:                                        1
@@ -12659,6 +12653,7 @@ save pydis_start, pydis_end
 ;     return_eof_result:                                  1
 ;     return_eof_status:                                  1
 ;     return_error_code:                                  1
+;     save_e_attribute_state:                             1
 ;     save_error_and_release_nmi:                         1
 ;     save_workspace_and_return:                          1
 ;     scan_filename_loop:                                 1
@@ -12676,11 +12671,16 @@ save pydis_start, pydis_end
 ;     service_handler_0:                                  1
 ;     service_handler_1:                                  1
 ;     set_matched_flag:                                   1
+;     set_rwl_attribute_bit:                              1
 ;     setup_direct_nmi:                                   1
 ;     setup_direct_write_nmi:                             1
 ;     setup_tube_nmi_transfer:                            1
 ;     setup_tube_read_nmi:                                1
+;     skip_filename_loop:                                 1
 ;     skip_leading_zero:                                  1
+;     skip_space_or_quote:                                1
+;     skip_spaces_before_args:                            1
+;     skip_to_end_of_name:                                1
 ;     star_dir:                                           1
 ;     star_info:                                          1
 ;     star_remove:                                        1
@@ -12959,17 +12959,6 @@ save pydis_start, pydis_end
 ;     c990e
 ;     c992b
 ;     c9938
-;     c9951
-;     c9965
-;     c9979
-;     c9985
-;     c9988
-;     c99a5
-;     c99b4
-;     c99b8
-;     c99bb
-;     c99c9
-;     c99d7
 ;     c9a16
 ;     c9a3e
 ;     c9ae6
@@ -13003,12 +12992,6 @@ save pydis_start, pydis_end
 ;     c9e08
 ;     c9e0d
 ;     c9e25
-;     c9e8f
-;     c9e93
-;     c9eb4
-;     c9ec3
-;     c9ecd
-;     c9eda
 ;     c9fed
 ;     c9ff1
 ;     c9ff6
@@ -13523,9 +13506,6 @@ save pydis_start, pydis_end
 ;     loop_c989c
 ;     loop_c98ce
 ;     loop_c9903
-;     loop_c9947
-;     loop_c996a
-;     loop_c99a7
 ;     loop_c9a0c
 ;     loop_c9a27
 ;     loop_c9aff
@@ -13543,7 +13523,6 @@ save pydis_start, pydis_end
 ;     loop_c9dea
 ;     loop_c9df1
 ;     loop_c9e19
-;     loop_c9ea5
 ;     loop_ca031
 ;     loop_ca06d
 ;     loop_ca083
@@ -13730,7 +13709,6 @@ save pydis_start, pydis_end
 ;     sub_c9436
 ;     sub_c9642
 ;     sub_c98ae
-;     sub_c9945
 ;     sub_c9dd2
 ;     sub_c9dda
 ;     sub_c9fd8

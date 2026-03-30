@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 61 / 115
-- Auto-labels renamed: 99 / 940
+- Reviewed: 63 / 115
+- Auto-labels renamed: 121 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -79,8 +79,8 @@ before their callers.
 | &872D | check_filename_length | 14 | 3 | REVIEWED |
 | &9471 | parse_dir_argument | 42 | 9 | REVIEWED |
 | &94E7 | star_info | 11 | 1 | REVIEWED |
-| &993D | star_access | 79 | 14 | |
-| &9E7F | star_cmd | 79 | 6 | |
+| &993D | star_access | 79 | 14 | REVIEWED |
+| &9E7F | star_cmd | 79 | 6 | REVIEWED |
 | &A0F5 | parse_drive_argument | 13 | 2 | REVIEWED |
 | &A252 | star_title | 16 | 2 | REVIEWED |
 | &A47F | star_lcat | 4 | 0 | REVIEWED |
