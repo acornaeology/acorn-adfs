@@ -47,6 +47,23 @@ def analyze_labels(json_filepath):
     for i in range(1, len(code_items)):
         prev_map[code_items[i]["addr"]] = code_items[i - 1]
 
+    # Build set of addresses that have data items between them and their
+    # predecessor code item. If data separates two code regions, there
+    # is no fall-through path regardless of the predecessor's mnemonic.
+    data_separated = set()
+    all_items_sorted = sorted(items, key=lambda i: i["addr"])
+    for i, item in enumerate(all_items_sorted):
+        if item["type"] != "code" or not item.get("labels"):
+            continue
+        # Walk backwards from this item to find data between it and prev code
+        for j in range(i - 1, max(i - 20, -1), -1):
+            prev_item = all_items_sorted[j]
+            if prev_item["type"] == "code":
+                break  # reached previous code with no data gap
+            if prev_item["type"] in ("byte", "string", "word"):
+                data_separated.add(item["addr"])
+                break
+
     # Collect entry() addresses from the JSON (items with comments_before
     # containing the reference line indicate entry points)
     entry_addrs = set()
@@ -78,10 +95,11 @@ def analyze_labels(json_filepath):
         is_subroutine = addr in sub_addrs
         is_entry = addr in entry_addrs
 
-        # Check if preceded by terminal instruction
+        # Check if preceded by terminal instruction OR separated by data
         prev = prev_map.get(addr)
         after_terminal = (
-            prev is not None and prev.get("mnemonic") in TERMINAL_MNEMONICS
+            addr in data_separated
+            or prev is not None and prev.get("mnemonic") in TERMINAL_MNEMONICS
         )
 
         # Count references by type

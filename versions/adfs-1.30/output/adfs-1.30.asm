@@ -3438,6 +3438,16 @@ lffff                                           = &ffff
     equb &24                                                          ; 8df1: 24          $              ; '$': root directory specifier
     equb &26                                                          ; 8df2: 26          &              ; '&': hex number prefix
 
+; ***************************************************************************************
+; Copy OSFILE addresses and search for empty entry
+; 
+; Copy the load and exec addresses from the OSFILE control
+; block into the disc operation workspace, then search the
+; current directory for an empty entry slot to use for a
+; new file. Called when creating files via OSFILE save,
+; *CDIR, *RENAME, and *COPY.
+; 
+; ***************************************************************************************
 ; &8df3 referenced 4 times by &8f4c, &9594, &a649, &a8dc
 .check_file_not_open2
     jsr copy_osfile_addrs                                             ; 8df3: 20 e9 8c     ..            ; A=&FF: mark saved drive as unset; Store in saved drive
@@ -3696,7 +3706,7 @@ lffff                                           = &ffff
 ; ***************************************************************************************
 ; &8f4c referenced 3 times by &8f74, &8f7d, &b35a
 .validate_not_locked
-    jsr check_file_not_open2                                          ; 8f4c: 20 f3 8d     ..            ; Save (&B6) for restore; Push on stack
+    jsr check_file_not_open2                                          ; 8f4c: 20 f3 8d     ..            ; Save (&B6) for restore; Copy OSFILE addresses and search for empty entry; Push on stack
     jsr allocate_disc_space_for_file                                  ; 8f4f: 20 6f 8e     o.            ; Save (&B7); Allocate disc space and store in entry; Push on stack
 ; &8f52 referenced 2 times by &95ca, &a8e2
 .write_entry_sector_info
@@ -4862,7 +4872,7 @@ lffff                                           = &ffff
     sta zp_osfile_ptr                                                 ; 958e: 85 b8       ..             ; Store block pointer low
     lda #&10                                                          ; 9590: a9 10       ..             ; Block page = &10
     sta zp_osfile_ptr_h                                               ; 9592: 85 b9       ..             ; Store block pointer high
-    jsr check_file_not_open2                                          ; 9594: 20 f3 8d     ..            ; Search for existing entry
+    jsr check_file_not_open2                                          ; 9594: 20 f3 8d     ..            ; Search for existing entry; Copy OSFILE addresses and search for empty entry
     ldy #9                                                            ; 9597: a0 09       ..             ; Y=9: check if entry has size > 0
     lda l1037                                                         ; 9599: ad 37 10    .7.            ; Check size bytes for non-zero
     ora wksp_1038                                                     ; 959c: 0d 38 10    .8.            ; OR size mid byte
@@ -7817,7 +7827,7 @@ la154 = sub_ca153+1
     sta zp_osfile_ptr                                                 ; a643: 85 b8       ..             ; Store block pointer low
     lda #&10                                                          ; a645: a9 10       ..             ; Block page = &10
     sta zp_osfile_ptr_h                                               ; a647: 85 b9       ..             ; Store block pointer high
-    jsr check_file_not_open2                                          ; a649: 20 f3 8d     ..            ; Create entry in dest directory
+    jsr check_file_not_open2                                          ; a649: 20 f3 8d     ..            ; Create entry in dest directory; Copy OSFILE addresses and search for empty entry
     jsr allocate_disc_space_for_file                                  ; a64c: 20 6f 8e     o.            ; Allocate disc space; Allocate disc space and store in entry
     ldy #3                                                            ; a64f: a0 03       ..             ; Y=3: copy attributes back to entry
 ; &a651 referenced 1 time by &a65b
@@ -8315,7 +8325,7 @@ la868 = check_dest_terminator+1
     lda #&0d                                                          ; a8d4: a9 0d       ..             ; A=CR: terminate filename
     sta l107e                                                         ; a8d6: 8d 7e 10    .~.            ; Store terminator
     jsr setup_fsm_read                                                ; a8d9: 20 f5 a7     ..            ; Set up disc read for source file
-    jsr check_file_not_open2                                          ; a8dc: 20 f3 8d     ..            ; Check if file is open
+    jsr check_file_not_open2                                          ; a8dc: 20 f3 8d     ..            ; Check if file is open; Copy OSFILE addresses and search for empty entry
     jsr allocate_disc_space_for_file                                  ; a8df: 20 6f 8e     o.            ; Allocate space for dest file; Allocate disc space and store in entry
     jsr write_entry_sector_info                                       ; a8e2: 20 52 8f     R.            ; Write dest directory entry
     ldy #2                                                            ; a8e5: a0 02       ..             ; Y=2: copy sector addresses

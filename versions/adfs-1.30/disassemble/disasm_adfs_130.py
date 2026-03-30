@@ -11353,6 +11353,16 @@ validator at set_up_directory_search loops through this table,
 rejecting any filename containing these characters.
 """)
 
+subroutine(0x8DF3, "check_file_not_open2",
+    title="Copy OSFILE addresses and search for empty entry",
+    description="""\
+Copy the load and exec addresses from the OSFILE control
+block into the disc operation workspace, then search the
+current directory for an empty entry slot to use for a
+new file. Called when creating files via OSFILE save,
+*CDIR, *RENAME, and *COPY.
+""")
+
 subroutine(0x8C05, "osfile_save_check_existing",
     title="OSFILE A=0: check for existing file before save",
     description="""\
