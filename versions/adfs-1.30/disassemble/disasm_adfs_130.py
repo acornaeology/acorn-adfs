@@ -1376,6 +1376,24 @@ entry(0xBC79)
 label(0xBFF6, "str_rom_footer")
 entry(0xBFF6)
 
+# *HELP parameter format strings (referenced by tbl_help_param_ptrs)
+label(0x9F8D, "tbl_help_param_strings")
+entry(0x9F8D)
+stringz(0x9F8D)
+comment(0x9F8D, "Index 1: file list specification", inline=True)
+stringz(0x9F99)
+comment(0x9F99, "Index 2: object specification", inline=True)
+stringz(0x9FA3)
+comment(0x9FA3, "Index 3: wildcard object specification", inline=True)
+stringz(0x9FAF)
+comment(0x9FAF, "Index 4: optional drive number", inline=True)
+stringz(0x9FB9)
+comment(0x9FB9, "Index 5: *COMPACT start/length pages", inline=True)
+stringz(0x9FC3)
+comment(0x9FC3, "Index 6: access attribute flags", inline=True)
+stringz(0x9FD0)
+comment(0x9FD0, "Index 7: directory title string", inline=True)
+
 # ===========================================================================
 # Code label renames
 # ===========================================================================
@@ -11816,6 +11834,24 @@ dispatch address high, dispatch address low, parameter
 count. Commands include ACCESS, BACK, BYE, CDIR, CLOSE,
 COMPACT, COPY, DELETE, DESTROY, DIR, DISMOUNT, EX, FREE,
 INFO, LCAT, LEX, LIB, MAP, MOUNT, REMOVE, RENAME, TITLE.
+""")
+
+subroutine(0x9F8D, "tbl_help_param_strings",
+    title="*HELP parameter format strings",
+    description="""\
+Seven NUL-terminated strings displayed after command names in
+the *HELP ADFS listing. Indexed via tbl_help_param_ptrs using
+nibble pairs from each command's parameter byte. Index 0 points
+to the NUL at &9FD7 (end of the last string), producing no
+output for commands with no parameters.
+
+  1: "<List Spec>"     Wildcard file specification
+  2: "<Ob Spec>"       Single object specification
+  3: "<*Ob Spec*>"     Optional wildcard specification
+  4: "(<Drive>)"       Optional drive number
+  5: "<SP> <LP>"       Start page and length page
+  6: "(L)(W)(R)(E)"    Access attribute flags
+  7: "<Title>"         Directory title string
 """)
 
 subroutine(0xBC79, "nmi_code_start",

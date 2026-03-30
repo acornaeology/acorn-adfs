@@ -6869,20 +6869,32 @@ l9ee5 = tbl_commands+2
     equb &70                                                          ; 9f8a: 70          p              ; Params &70: <Title>
     equb &a3                                                          ; 9f8b: a3          .              ; End: hi|&80 -> &A399 (*RUN handler)
     equb &98                                                          ; 9f8c: 98          .              ; End: lo (used for *RUN dispatch)
-    equs "<List Spec>"                                                ; 9f8d: 3c 4c 69... <Li
-    equb 0                                                            ; 9f98: 00          .
-    equs "<Ob Spec>"                                                  ; 9f99: 3c 4f 62... <Ob
-    equb 0                                                            ; 9fa2: 00          .
-    equs "<*Ob Spec*>"                                                ; 9fa3: 3c 2a 4f... <*O
-    equb 0                                                            ; 9fae: 00          .
-    equs "(<Drive>)"                                                  ; 9faf: 28 3c 44... (<D
-    equb 0                                                            ; 9fb8: 00          .
-    equs "<SP> <LP>"                                                  ; 9fb9: 3c 53 50... <SP
-    equb 0                                                            ; 9fc2: 00          .
-    equs "(L)(W)(R)(E)"                                               ; 9fc3: 28 4c 29... (L)
-    equb 0                                                            ; 9fcf: 00          .
-    equs "<Title>"                                                    ; 9fd0: 3c 54 69... <Ti
-    equb 0                                                            ; 9fd7: 00          .
+; ***************************************************************************************
+; *HELP parameter format strings
+; 
+; Seven NUL-terminated strings displayed after command names in
+; the *HELP ADFS listing. Indexed via tbl_help_param_ptrs using
+; nibble pairs from each command's parameter byte. Index 0 points
+; to the NUL at &9FD7 (end of the last string), producing no
+; output for commands with no parameters.
+; 
+;   1: "<List Spec>"     Wildcard file specification
+;   2: "<Ob Spec>"       Single object specification
+;   3: "<*Ob Spec*>"     Optional wildcard specification
+;   4: "(<Drive>)"       Optional drive number
+;   5: "<SP> <LP>"       Start page and length page
+;   6: "(L)(W)(R)(E)"    Access attribute flags
+;   7: "<Title>"         Directory title string
+; 
+; ***************************************************************************************
+.tbl_help_param_strings
+    equs "<List Spec>", 0                                             ; 9f8d: 3c 4c 69... <Li            ; Index 1: file list specification
+    equs "<Ob Spec>", 0                                               ; 9f99: 3c 4f 62... <Ob            ; Index 2: object specification
+    equs "<*Ob Spec*>", 0                                             ; 9fa3: 3c 2a 4f... <*O            ; Index 3: wildcard object specification
+    equs "(<Drive>)", 0                                               ; 9faf: 28 3c 44... (<D            ; Index 4: optional drive number
+    equs "<SP> <LP>", 0                                               ; 9fb9: 3c 53 50... <SP            ; Index 5: *COMPACT start/length pages
+    equs "(L)(W)(R)(E)", 0                                            ; 9fc3: 28 4c 29... (L)            ; Index 6: access attribute flags
+    equs "<Title>", 0                                                 ; 9fd0: 3c 54 69... <Ti            ; Index 7: directory title string
 
 .sub_c9fd8
     ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0             ; X=&30: *CAT address low
@@ -14170,7 +14182,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1398 bytes (9%)
 ;
 ;     Number of instructions   = 6978
-;     Number of data bytes     = 442 bytes
+;     Number of data bytes     = 435 bytes
 ;     Number of data words     = 44 bytes
-;     Number of string bytes   = 912 bytes
+;     Number of string bytes   = 919 bytes
 ;     Number of strings        = 106
