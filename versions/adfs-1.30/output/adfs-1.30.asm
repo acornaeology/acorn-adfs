@@ -5673,7 +5673,7 @@ lffff                                           = &ffff
     sta zp_text_ptr_lo                                                ; 99fb: 85 b4       ..             ; Store in (&B4)
     jsr print_inline_string                                           ; 99fd: 20 a0 92     ..            ; Print "Destroy ? "; Print bit-7-terminated inline string
     equs "Destroy ?"                                                  ; 9a00: 44 65 73... Des
-    equb &a0                                                          ; 9a09: a0          .
+    equb &a0                                                          ; 9a09: a0          .              ; ' ' + bit 7: end of inline string
 
     ldx #3                                                            ; 9a0a: a2 03       ..             ; X=3: expect 4 chars (CR,Y,E,S)
 ; &9a0c referenced 1 time by &9a1e
