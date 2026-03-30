@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 78 / 115
-- Auto-labels renamed: 353 / 940
+- Reviewed: 79 / 115
+- Auto-labels renamed: 414 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -109,7 +109,7 @@ before their callers.
 | &A731 | check_wksp_checksum | 116 | 16 | REVIEWED |
 | &A955 | my_osargs | 159 | 21 | REVIEWED |
 | &AD63 | my_osbget | 330 | 42 | REVIEWED |
-| &B57F | my_osgbpb | 524 | 62 | |
+| &B57F | my_osgbpb | 524 | 62 | REVIEWED |
 | &BB42 | floppy_init_transfer | 53 | 9 | REVIEWED |
 | &BCC2 | floppy_wait_nmi_finish | 26 | 3 | REVIEWED |
 
