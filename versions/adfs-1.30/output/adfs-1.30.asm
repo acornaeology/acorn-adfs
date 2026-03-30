@@ -7802,7 +7802,7 @@ la868 = check_dest_terminator+1
     sta l109c                                                         ; a9dd: 8d 9c 10    ...            ; Store in workspace
     lda l0003,x                                                       ; a9e0: b5 03       ..             ; Get new PTR high
     sta l109d                                                         ; a9e2: 8d 9d 10    ...            ; Store in workspace
-    jsr sub_cae59                                                     ; a9e5: 20 59 ae     Y.            ; Validate and apply new PTR
+    jsr check_ptr_within_allocation                                   ; a9e5: 20 59 ae     Y.            ; Validate and apply new PTR
     ldx zp_save_x                                                     ; a9e8: a6 c3       ..             ; Store new PTR in channel table
     ldy zp_channel_offset                                             ; a9ea: a4 cf       ..             ; Get channel index
     lda l0000,x                                                       ; a9ec: b5 00       ..             ; Get validated PTR low from user ZP
@@ -7881,7 +7881,7 @@ la868 = check_dest_terminator+1
     sta l109c                                                         ; aa7b: 8d 9c 10    ...            ; Store in workspace
     lda l0003,x                                                       ; aa7e: b5 03       ..             ; Get new EXT high
     sta l109d                                                         ; aa80: 8d 9d 10    ...            ; Store in workspace
-    jsr sub_cae59                                                     ; aa83: 20 59 ae     Y.            ; Validate and apply new EXT
+    jsr check_ptr_within_allocation                                   ; aa83: 20 59 ae     Y.            ; Validate and apply new EXT
     ldx zp_save_x                                                     ; aa86: a6 c3       ..             ; Restore X
     ldy zp_channel_offset                                             ; aa88: a4 cf       ..             ; Get channel index
     lda l0000,x                                                       ; aa8a: b5 00       ..             ; Get validated EXT low
@@ -8354,11 +8354,11 @@ la868 = check_dest_terminator+1
     stx zp_save_x                                                     ; ad63: 86 c3       ..             ; Save X register
     jsr check_set_channel_y                                           ; ad65: 20 fe ac     ..            ; Validate file handle in Y; Validate and set channel number from Y
     ror a                                                             ; ad68: 6a          j              ; Rotate channel flags bit 0 to C
-    bcs cad8d                                                         ; ad69: b0 22       ."             ; Bit 0 set: file is readable
+    bcs calc_bget_sector_addr                                         ; ad69: b0 22       ."             ; Bit 0 set: file is readable
     and #4                                                            ; ad6b: 29 04       ).             ; Check bit 2 (at EOF flag)
     bne eof_error                                                     ; ad6d: d0 e4       ..             ; At EOF: raise EOF error
     jsr compare_ext_to_ptr                                            ; ad6f: 20 16 ad     ..            ; Compare EXT with PTR; Compare file EXT to PTR
-    bcs cad8d                                                         ; ad72: b0 19       ..             ; EXT != PTR: not at EOF, read byte
+    bcs calc_bget_sector_addr                                         ; ad72: b0 19       ..             ; EXT != PTR: not at EOF, read byte
     bne eof_error                                                     ; ad74: d0 dd       ..             ; EXT == PTR and EOF: raise error
     jsr save_workspace_state                                          ; ad76: 20 49 a7     I.            ; Save registers for restore
     ldx zp_channel_offset                                             ; ad79: a6 cf       ..             ; Get channel index
@@ -8373,7 +8373,7 @@ la868 = check_dest_terminator+1
     rts                                                               ; ad8c: 60          `              ; Return (EOF)
 
 ; &ad8d referenced 2 times by &ad69, &ad72
-.cad8d
+.calc_bget_sector_addr
     ldx zp_channel_offset                                             ; ad8d: a6 cf       ..             ; Get channel index for buffer calc
     clc                                                               ; ad8f: 18          .              ; Clear carry for address calculation
     lda l11ca,x                                                       ; ad90: bd ca 11    ...            ; Get channel buffer offset low
@@ -8399,14 +8399,14 @@ la868 = check_dest_terminator+1
     rts                                                               ; adc4: 60          `              ; Return (byte in A)
 
 ; &adc5 referenced 2 times by &aed7, &b3f1
-.sub_cadc5
+.switch_to_channel_drive
     ldy #2                                                            ; adc5: a0 02       ..             ; Y=2: save 3 bytes of CSD sector
 ; &adc7 referenced 1 time by &adce
-.loop_cadc7
+.save_csd_sector_loop
     lda l1114,y                                                       ; adc7: b9 14 11    ...            ; Get CSD sector byte
     sta wksp_1030,y                                                   ; adca: 99 30 10    .0.            ; Store in temp workspace
     dey                                                               ; adcd: 88          .              ; Next byte
-    bpl loop_cadc7                                                    ; adce: 10 f7       ..             ; Loop for 3 bytes
+    bpl save_csd_sector_loop                                          ; adce: 10 f7       ..             ; Loop for 3 bytes
     lda wksp_current_drive                                            ; add0: ad 17 11    ...            ; Save current drive
     sta wksp_last_access_drive                                        ; add3: 8d 33 10    .3.            ; Store as last access drive
     ldx zp_channel_offset                                             ; add6: a6 cf       ..             ; Get channel index
@@ -8422,11 +8422,11 @@ la868 = check_dest_terminator+1
     jsr c89d3                                                         ; adf2: 20 d3 89     ..            ; Save workspace state
     ldy #2                                                            ; adf5: a0 02       ..             ; Y=2: restore CSD sector
 ; &adf7 referenced 1 time by &adfe
-.loop_cadf7
+.restore_csd_after_switch_loop
     lda wksp_1030,y                                                   ; adf7: b9 30 10    .0.            ; Get saved CSD sector byte
     sta wksp_csd_drive_sector,y                                       ; adfa: 99 2c 10    .,.            ; Restore to CSD workspace
     dey                                                               ; adfd: 88          .              ; Next byte
-    bpl loop_cadf7                                                    ; adfe: 10 f7       ..             ; Loop for 3 bytes
+    bpl restore_csd_after_switch_loop                                 ; adfe: 10 f7       ..             ; Loop for 3 bytes
     lda wksp_last_access_drive                                        ; ae00: ad 33 10    .3.            ; Get last access drive
     sta wksp_saved_drive                                              ; ae03: 8d 2f 10    ./.            ; Set as saved drive for restore
     jsr cb48e                                                         ; ae06: 20 8e b4     ..            ; Ensure files on drive are closed
@@ -8444,96 +8444,96 @@ la868 = check_dest_terminator+1
     sta zp_b9                                                         ; ae25: 85 b9       ..             ; Store high byte
     ldx zp_channel_offset                                             ; ae27: a6 cf       ..             ; Get channel index
 ; &ae29 referenced 2 times by &ae53, &ae57
-.cae29
+.search_dir_for_channel
     ldy #0                                                            ; ae29: a0 00       ..             ; Y=0: check first dir entry byte
     lda (zp_b8),y                                                     ; ae2b: b1 b8       ..             ; Get first byte
-    bne cae35                                                         ; ae2d: d0 06       ..             ; Non-zero: valid entry
+    bne compare_entry_sequence                                        ; ae2d: d0 06       ..             ; Non-zero: valid entry
     sta wksp_ch_flags,x                                               ; ae2f: 9d ac 11    ...            ; Zero: channel invalid, clear flags
     jmp bad_checksum_error                                            ; ae32: 4c 38 a7    L8.            ; Bad checksum error
 
 ; &ae35 referenced 1 time by &ae2d
-.cae35
+.compare_entry_sequence
     ldy #&19                                                          ; ae35: a0 19       ..             ; Y=&19: check entry sequence number
     lda (zp_b8),y                                                     ; ae37: b1 b8       ..             ; Get sequence number from entry
     cmp l11f2,x                                                       ; ae39: dd f2 11    ...            ; Compare with channel's saved seq
-    bne cae4c                                                         ; ae3c: d0 0e       ..             ; Mismatch: different entry
+    bne advance_to_next_dir_entry                                     ; ae3c: d0 0e       ..             ; Mismatch: different entry
     dey                                                               ; ae3e: 88          .              ; Y=&18
 ; &ae3f referenced 1 time by &ae49
-.loop_cae3f
+.compare_entry_sector_loop
     lda (zp_b8),y                                                     ; ae3f: b1 b8       ..             ; Check next entry field
     cmp wksp_disc_op_sector_count,y                                   ; ae41: d9 1e 10    ...            ; Compare sector field with channel
-    bne cae4c                                                         ; ae44: d0 06       ..             ; Mismatch: try next entry
+    bne advance_to_next_dir_entry                                     ; ae44: d0 06       ..             ; Mismatch: try next entry
     dey                                                               ; ae46: 88          .              ; Next byte (decreasing Y)
     cpy #&16                                                          ; ae47: c0 16       ..             ; Past start of sector field (&16)?
-    bcs loop_cae3f                                                    ; ae49: b0 f4       ..             ; Still in range: continue comparing
+    bcs compare_entry_sector_loop                                     ; ae49: b0 f4       ..             ; Still in range: continue comparing
     rts                                                               ; ae4b: 60          `              ; All fields match: return
 
 ; &ae4c referenced 2 times by &ae3c, &ae44
-.cae4c
+.advance_to_next_dir_entry
     lda zp_b8                                                         ; ae4c: a5 b8       ..             ; Advance to next dir entry (+&1A)
     clc                                                               ; ae4e: 18          .              ; Clear carry
     adc #&1a                                                          ; ae4f: 69 1a       i.             ; Add 26 bytes per entry
     sta zp_b8                                                         ; ae51: 85 b8       ..             ; Store updated pointer
-    bcc cae29                                                         ; ae53: 90 d4       ..             ; No page crossing: continue search
+    bcc search_dir_for_channel                                        ; ae53: 90 d4       ..             ; No page crossing: continue search
     inc zp_b9                                                         ; ae55: e6 b9       ..             ; Increment page
-    bcs cae29                                                         ; ae57: b0 d0       ..             ; ALWAYS branch
+    bcs search_dir_for_channel                                        ; ae57: b0 d0       ..             ; ALWAYS branch
 
 ; &ae59 referenced 3 times by &a9e5, &aa83, &b0eb
-.sub_cae59
+.check_ptr_within_allocation
     lda #0                                                            ; ae59: a9 00       ..             ; A=0: clear allocation flag
     sta l10b5                                                         ; ae5b: 8d b5 10    ...            ; Clear extension flag
 ; &ae5e referenced 1 time by &b5ff
-.sub_cae5e
+.extend_file_if_needed
     lda wksp_saved_drive                                              ; ae5e: ad 2f 10    ./.            ; Get saved drive
     sta l10bf                                                         ; ae61: 8d bf 10    ...            ; Store for restore later
     ldx #2                                                            ; ae64: a2 02       ..             ; X=2: save 3 bytes of CSD
 ; &ae66 referenced 1 time by &ae6d
-.loop_cae66
+.save_csd_for_extend_loop
     lda wksp_csd_drive_sector,x                                       ; ae66: bd 2c 10    .,.            ; Get CSD sector byte
     sta l10bc,x                                                       ; ae69: 9d bc 10    ...            ; Store in temp workspace
     dex                                                               ; ae6c: ca          .              ; Next byte
-    bpl loop_cae66                                                    ; ae6d: 10 f7       ..             ; Loop for 3 bytes
+    bpl save_csd_for_extend_loop                                      ; ae6d: 10 f7       ..             ; Loop for 3 bytes
     lda #&ff                                                          ; ae6f: a9 ff       ..             ; A=&FF: mark workspace as modified
     sta l102e                                                         ; ae71: 8d 2e 10    ...            ; Clear alt workspace pointer
     sta wksp_saved_drive                                              ; ae74: 8d 2f 10    ./.            ; Clear saved drive
     ldx zp_channel_offset                                             ; ae77: a6 cf       ..             ; Get channel index
     lda l1184,x                                                       ; ae79: bd 84 11    ...            ; Compare allocation with new PTR
     cmp l109d                                                         ; ae7c: cd 9d 10    ...            ; High byte matches?
-    bne cae97                                                         ; ae7f: d0 16       ..             ; No: need to extend
+    bne check_alloc_vs_ptr                                            ; ae7f: d0 16       ..             ; No: need to extend
     lda l118e,x                                                       ; ae81: bd 8e 11    ...            ; Compare mid-high
     cmp l109c                                                         ; ae84: cd 9c 10    ...            ; Match?
-    bne cae97                                                         ; ae87: d0 0e       ..             ; No: need to extend
+    bne check_alloc_vs_ptr                                            ; ae87: d0 0e       ..             ; No: need to extend
     lda l1198,x                                                       ; ae89: bd 98 11    ...            ; Compare mid-low
     cmp l109b                                                         ; ae8c: cd 9b 10    ...            ; Match?
-    bne cae97                                                         ; ae8f: d0 06       ..             ; No: need to extend
+    bne check_alloc_vs_ptr                                            ; ae8f: d0 06       ..             ; No: need to extend
     lda l11a2,x                                                       ; ae91: bd a2 11    ...            ; Compare low byte
     cmp l109a                                                         ; ae94: cd 9a 10    ...            ; Match?
 ; &ae97 referenced 3 times by &ae7f, &ae87, &ae8f
-.cae97
-    bcc caec1                                                         ; ae97: 90 28       .(             ; Alloc < PTR: need to extend
+.check_alloc_vs_ptr
+    bcc extend_file_allocation                                        ; ae97: 90 28       .(             ; Alloc < PTR: need to extend
     lda wksp_ch_ext_h,x                                               ; ae99: bd 34 11    .4.            ; Compare EXT with new PTR
     cmp l109d                                                         ; ae9c: cd 9d 10    ...            ; High byte matches?
-    bne caebc                                                         ; ae9f: d0 1b       ..             ; No: EXT needs update
+    bne update_ext_to_ptr                                             ; ae9f: d0 1b       ..             ; No: EXT needs update
     lda wksp_ch_ext_mh,x                                              ; aea1: bd 3e 11    .>.            ; Compare mid-high
     cmp l109c                                                         ; aea4: cd 9c 10    ...            ; Match?
-    bne caebc                                                         ; aea7: d0 13       ..             ; No: EXT needs update
+    bne update_ext_to_ptr                                             ; aea7: d0 13       ..             ; No: EXT needs update
     lda wksp_ch_ext_ml,x                                              ; aea9: bd 48 11    .H.            ; Compare mid-low
     cmp l109b                                                         ; aeac: cd 9b 10    ...            ; Match?
-    bne caebc                                                         ; aeaf: d0 0b       ..             ; No: EXT needs update
+    bne update_ext_to_ptr                                             ; aeaf: d0 0b       ..             ; No: EXT needs update
     lda wksp_ch_ext_l,x                                               ; aeb1: bd 52 11    .R.            ; Compare low byte
     cmp l109a                                                         ; aeb4: cd 9a 10    ...            ; Match?
-    bne caebc                                                         ; aeb7: d0 03       ..             ; No: EXT needs update
+    bne update_ext_to_ptr                                             ; aeb7: d0 03       ..             ; No: EXT needs update
 ; &aeb9 referenced 1 time by &aebc
-.loop_caeb9
-    jmp cb07d                                                         ; aeb9: 4c 7d b0    L}.            ; PTR == EXT: handle EOF write
+.handle_eof_write
+    jmp restore_drive_after_extend                                    ; aeb9: 4c 7d b0    L}.            ; PTR == EXT: handle EOF write
 
 ; &aebc referenced 4 times by &ae9f, &aea7, &aeaf, &aeb7
-.caebc
-    bcs loop_caeb9                                                    ; aebc: b0 fb       ..             ; EXT > PTR: still within file
-    jmp caf87                                                         ; aebe: 4c 87 af    L..            ; PTR > alloc: need to extend file
+.update_ext_to_ptr
+    bcs handle_eof_write                                              ; aebc: b0 fb       ..             ; EXT > PTR: still within file
+    jmp skip_zero_fill                                                ; aebe: 4c 87 af    L..            ; PTR > alloc: need to extend file
 
 ; &aec1 referenced 1 time by &ae97
-.caec1
+.extend_file_allocation
     sec                                                               ; aec1: 38          8              ; Calculate new allocation size
     lda #0                                                            ; aec2: a9 00       ..             ; A=0: compute pages needed
     adc l109c                                                         ; aec4: 6d 9c 10    m..            ; Add PTR mid-low + 1 page
@@ -8541,12 +8541,12 @@ la868 = check_dest_terminator+1
     lda #0                                                            ; aeca: a9 00       ..             ; A=0: propagate carry
     adc l109d                                                         ; aecc: 6d 9d 10    m..            ; Add PTR high + carry
     sta l109f                                                         ; aecf: 8d 9f 10    ...            ; Store new allocation high
-    bcc caed7                                                         ; aed2: 90 03       ..             ; No overflow: proceed
+    bcc switch_drive_for_extend                                       ; aed2: 90 03       ..             ; No overflow: proceed
     jmp disc_full_error                                               ; aed4: 4c 56 86    LV.            ; Overflow: Disc full error
 
 ; &aed7 referenced 1 time by &aed2
-.caed7
-    jsr sub_cadc5                                                     ; aed7: 20 c5 ad     ..            ; Switch to file's drive
+.switch_drive_for_extend
+    jsr switch_to_channel_drive                                       ; aed7: 20 c5 ad     ..            ; Switch to file's drive
     lda l11a2,x                                                       ; aeda: bd a2 11    ...            ; Get current allocation low
     cmp #1                                                            ; aedd: c9 01       ..             ; Compare with 1 (minimum)
     lda l1198,x                                                       ; aedf: bd 98 11    ...            ; Get allocation mid-low
@@ -8606,31 +8606,31 @@ la868 = check_dest_terminator+1
     ldx #0                                                            ; af62: a2 00       ..             ; X=0: check if file was relocated
     ldy #2                                                            ; af64: a0 02       ..             ; Y=2: compare old and new sectors
 ; &af66 referenced 1 time by &af7f
-.loop_caf66
+.copy_old_sector_info_loop
     lda wksp_object_sector,y                                          ; af66: b9 34 10    .4.            ; Get old start sector byte
     sta l10a2,y                                                       ; af69: 99 a2 10    ...            ; Store for copy source
     cmp wksp_103a,y                                                   ; af6c: d9 3a 10    .:.            ; Compare with new start sector
-    beq caf75                                                         ; af6f: f0 04       ..             ; Same: no relocation needed
+    beq check_relocation_needed                                       ; af6f: f0 04       ..             ; Same: no relocation needed
     inx                                                               ; af71: e8          .              ; Different: flag relocation
     lda wksp_103a,y                                                   ; af72: b9 3a 10    .:.            ; Get new start sector byte
 ; &af75 referenced 1 time by &af6f
-.caf75
+.check_relocation_needed
     sta l10a8,y                                                       ; af75: 99 a8 10    ...            ; Store for copy destination
     lda l1037,y                                                       ; af78: b9 37 10    .7.            ; Get required size byte
     sta l10a5,y                                                       ; af7b: 99 a5 10    ...            ; Store for copy length
     dey                                                               ; af7e: 88          .              ; Next byte
-    bpl loop_caf66                                                    ; af7f: 10 e5       ..             ; Loop for 3 bytes
+    bpl copy_old_sector_info_loop                                     ; af7f: 10 e5       ..             ; Loop for 3 bytes
     txa                                                               ; af81: 8a          .              ; X non-zero: relocation occurred
-    beq caf87                                                         ; af82: f0 03       ..             ; Zero: no relocation, skip copy
+    beq skip_zero_fill                                                ; af82: f0 03       ..             ; Zero: no relocation, skip copy
     jsr c96a6                                                         ; af84: 20 a6 96     ..            ; Copy data from old to new location
 ; &af87 referenced 2 times by &aebe, &af82
-.caf87
+.skip_zero_fill
     lda l10b5                                                         ; af87: ad b5 10    ...            ; Check extension flag
-    beq caf8f                                                         ; af8a: f0 03       ..             ; Non-zero: skip zeroing
-    jmp cb060                                                         ; af8c: 4c 60 b0    L`.            ; Jump to update EXT
+    beq calc_zero_fill_start                                          ; af8a: f0 03       ..             ; Non-zero: skip zeroing
+    jmp update_ext_from_new_ptr                                       ; af8c: 4c 60 b0    L`.            ; Jump to update EXT
 
 ; &af8f referenced 1 time by &af8a
-.caf8f
+.calc_zero_fill_start
     ldx zp_channel_offset                                             ; af8f: a6 cf       ..             ; Get channel index
     clc                                                               ; af91: 18          .              ; Clear carry for address calculation
     lda wksp_ch_ext_ml,x                                              ; af92: bd 48 11    .H.            ; Get EXT mid-low
@@ -8648,10 +8648,10 @@ la868 = check_dest_terminator+1
     ldy wksp_ch_ext_l,x                                               ; afb4: bc 52 11    .R.            ; Get EXT low as buffer start
     lda #0                                                            ; afb7: a9 00       ..             ; A=0: zero fill
 ; &afb9 referenced 1 time by &afbc
-.loop_cafb9
+.zero_fill_sector_loop
     sta (zp_be),y                                                     ; afb9: 91 be       ..             ; Write zero to buffer
     iny                                                               ; afbb: c8          .              ; Next byte
-    bne loop_cafb9                                                    ; afbc: d0 fb       ..             ; Loop for rest of sector
+    bne zero_fill_sector_loop                                         ; afbc: d0 fb       ..             ; Loop for rest of sector
     lda l109b                                                         ; afbe: ad 9b 10    ...            ; Get new PTR mid-low
     clc                                                               ; afc1: 18          .              ; Clear carry
     adc l11ca,x                                                       ; afc2: 7d ca 11    }..            ; Add channel base
@@ -8663,52 +8663,52 @@ la868 = check_dest_terminator+1
     adc l11b6,x                                                       ; afd4: 7d b6 11    }..            ; Add channel base + drive
     sta l1036                                                         ; afd7: 8d 36 10    .6.            ; Store target sector high
     lda l109a                                                         ; afda: ad 9a 10    ...            ; Get PTR low byte
-    bne caff2                                                         ; afdd: d0 13       ..             ; Non-zero: not sector-aligned
+    bne decrement_fill_sector                                         ; afdd: d0 13       ..             ; Non-zero: not sector-aligned
     lda wksp_object_sector                                            ; afdf: ad 34 10    .4.            ; Check sector low
-    bne cafef                                                         ; afe2: d0 0b       ..             ; Non-zero: adjust sector
+    bne check_sector_mid                                              ; afe2: d0 0b       ..             ; Non-zero: adjust sector
     lda l1035                                                         ; afe4: ad 35 10    .5.            ; Check sector mid
-    bne cafec                                                         ; afe7: d0 03       ..             ; Non-zero: adjust mid
+    bne check_sector_low                                              ; afe7: d0 03       ..             ; Non-zero: adjust mid
     dec l1036                                                         ; afe9: ce 36 10    .6.            ; Decrement sector high
 ; &afec referenced 1 time by &afe7
-.cafec
+.check_sector_low
     dec l1035                                                         ; afec: ce 35 10    .5.            ; Decrement sector mid
 ; &afef referenced 1 time by &afe2
-.cafef
+.check_sector_mid
     dec wksp_object_sector                                            ; afef: ce 34 10    .4.            ; Decrement sector low
 ; &aff2 referenced 1 time by &afdd
-.caff2
+.decrement_fill_sector
     lda wksp_object_sector                                            ; aff2: ad 34 10    .4.            ; Compare with buffer sector
     cmp l1096                                                         ; aff5: cd 96 10    ...            ; Match low byte?
-    bne cb00d                                                         ; aff8: d0 13       ..             ; No: need to write more zeros
+    bne write_zero_sector                                             ; aff8: d0 13       ..             ; No: need to write more zeros
     lda l1035                                                         ; affa: ad 35 10    .5.            ; Match mid byte?
     cmp l1097                                                         ; affd: cd 97 10    ...            ; Check mid
-    bne cb00d                                                         ; b000: d0 0b       ..             ; No: need more
+    bne write_zero_sector                                             ; b000: d0 0b       ..             ; No: need more
     lda l1036                                                         ; b002: ad 36 10    .6.            ; Match high byte?
     cmp l1098                                                         ; b005: cd 98 10    ...            ; Check high
-    bne cb00d                                                         ; b008: d0 03       ..             ; No: need more
-    jmp cb060                                                         ; b00a: 4c 60 b0    L`.            ; All match: done zeroing
+    bne write_zero_sector                                             ; b008: d0 03       ..             ; No: need more
+    jmp update_ext_from_new_ptr                                       ; b00a: 4c 60 b0    L`.            ; All match: done zeroing
 
 ; &b00d referenced 3 times by &aff8, &b000, &b008
-.cb00d
+.write_zero_sector
     jsr wait_ensuring                                                 ; b00d: 20 05 83     ..            ; Wait while files are being ensured
     inc l1096                                                         ; b010: ee 96 10    ...            ; Advance buffer sector: inc low
-    bne cb01d                                                         ; b013: d0 08       ..             ; No wrap
+    bne advance_fill_sector                                           ; b013: d0 08       ..             ; No wrap
     inc l1097                                                         ; b015: ee 97 10    ...            ; Wrap: inc mid
-    bne cb01d                                                         ; b018: d0 03       ..             ; No wrap
+    bne advance_fill_sector                                           ; b018: d0 03       ..             ; No wrap
     inc l1098                                                         ; b01a: ee 98 10    ...            ; Wrap: inc high
 ; &b01d referenced 2 times by &b013, &b018
-.cb01d
+.advance_fill_sector
     lda #&40 ; '@'                                                    ; b01d: a9 40       .@             ; A=&40: read buffer mode
     jsr sub_cabd8                                                     ; b01f: 20 d8 ab     ..            ; Load next sector into buffer
     ldy #0                                                            ; b022: a0 00       ..             ; Y=0: zero fill entire sector
     tya                                                               ; b024: 98          .              ; A=&00
 ; &b025 referenced 1 time by &b028
-.loop_cb025
+.zero_entire_sector_loop
     sta (zp_be),y                                                     ; b025: 91 be       ..             ; Write zero to buffer
     iny                                                               ; b027: c8          .              ; Next byte
-    bne loop_cb025                                                    ; b028: d0 fb       ..             ; Loop for 256 bytes
+    bne zero_entire_sector_loop                                       ; b028: d0 fb       ..             ; Loop for 256 bytes
 ; &b02a referenced 3 times by &b053, &b058, &b05d
-.cb02a
+.mark_buffer_dirty
     ldx l10a1                                                         ; b02a: ae a1 10    ...            ; Get channel buffer table index
     lda #&c0                                                          ; b02d: a9 c0       ..             ; A=&C0: mark buffer as dirty
     ora wksp_1004,x                                                   ; b02f: 1d 04 10    ...            ; OR with channel state
@@ -8716,24 +8716,24 @@ la868 = check_dest_terminator+1
     jsr sub_caaf3                                                     ; b035: 20 f3 aa     ..            ; Flush dirty buffer to disc
     lda wksp_object_sector                                            ; b038: ad 34 10    .4.            ; Compare current sector with target
     cmp wksp_1001,x                                                   ; b03b: dd 01 10    ...            ; Compare low bytes
-    bne cb050                                                         ; b03e: d0 10       ..             ; No match: advance sector
+    bne advance_channel_sector                                        ; b03e: d0 10       ..             ; No match: advance sector
     lda l1035                                                         ; b040: ad 35 10    .5.            ; Compare mid bytes
     cmp wksp_1002,x                                                   ; b043: dd 02 10    ...            ; Compare
-    bne cb050                                                         ; b046: d0 08       ..             ; No match: advance
+    bne advance_channel_sector                                        ; b046: d0 08       ..             ; No match: advance
     lda l1036                                                         ; b048: ad 36 10    .6.            ; Compare high bytes
     cmp wksp_1003,x                                                   ; b04b: dd 03 10    ...            ; Compare
-    beq cb060                                                         ; b04e: f0 10       ..             ; Match: done writing zeros
+    beq update_ext_from_new_ptr                                       ; b04e: f0 10       ..             ; Match: done writing zeros
 ; &b050 referenced 2 times by &b03e, &b046
-.cb050
+.advance_channel_sector
     inc wksp_1001,x                                                   ; b050: fe 01 10    ...            ; Advance channel sector: inc low
-    bne cb02a                                                         ; b053: d0 d5       ..             ; No wrap
+    bne mark_buffer_dirty                                             ; b053: d0 d5       ..             ; No wrap
     inc wksp_1002,x                                                   ; b055: fe 02 10    ...            ; Wrap: inc mid
-    bne cb02a                                                         ; b058: d0 d0       ..             ; No wrap
+    bne mark_buffer_dirty                                             ; b058: d0 d0       ..             ; No wrap
     inc wksp_1003,x                                                   ; b05a: fe 03 10    ...            ; Wrap: inc high
-    jmp cb02a                                                         ; b05d: 4c 2a b0    L*.            ; Continue zeroing loop
+    jmp mark_buffer_dirty                                             ; b05d: 4c 2a b0    L*.            ; Continue zeroing loop
 
 ; &b060 referenced 3 times by &af8c, &b00a, &b04e
-.cb060
+.update_ext_from_new_ptr
     ldx zp_channel_offset                                             ; b060: a6 cf       ..             ; Get channel index
     lda l109a                                                         ; b062: ad 9a 10    ...            ; Get new PTR low
     sta wksp_ch_ext_l,x                                               ; b065: 9d 52 11    .R.            ; Store as new EXT low
@@ -8745,16 +8745,16 @@ la868 = check_dest_terminator+1
     sta wksp_ch_ext_h,x                                               ; b077: 9d 34 11    .4.            ; Store as new EXT high
     jsr c89d3                                                         ; b07a: 20 d3 89     ..            ; Save workspace
 ; &b07d referenced 1 time by &aeb9
-.cb07d
+.restore_drive_after_extend
     lda l10bf                                                         ; b07d: ad bf 10    ...            ; Restore saved drive from temp
     sta wksp_saved_drive                                              ; b080: 8d 2f 10    ./.            ; Set as saved drive
     ldx #2                                                            ; b083: a2 02       ..             ; X=2: restore 3 bytes of CSD
 ; &b085 referenced 1 time by &b08c
-.loop_cb085
+.restore_csd_after_extend_loop
     lda l10bc,x                                                       ; b085: bd bc 10    ...            ; Get saved CSD byte
     sta wksp_csd_drive_sector,x                                       ; b088: 9d 2c 10    .,.            ; Restore to CSD workspace
     dex                                                               ; b08b: ca          .              ; Next byte
-    bpl loop_cb085                                                    ; b08c: 10 f7       ..             ; Loop for 3 bytes
+    bpl restore_csd_after_extend_loop                                 ; b08c: 10 f7       ..             ; Loop for 3 bytes
     rts                                                               ; b08e: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -8802,7 +8802,7 @@ la868 = check_dest_terminator+1
     jsr save_workspace_state                                          ; b0e4: 20 49 a7     I.            ; Save registers for restore
     pha                                                               ; b0e7: 48          H              ; Re-push byte to write
     dec l10cf                                                         ; b0e8: ce cf 10    ...            ; Set modification flag
-    jsr sub_cae59                                                     ; b0eb: 20 59 ae     Y.            ; Validate PTR and load sector
+    jsr check_ptr_within_allocation                                   ; b0eb: 20 59 ae     Y.            ; Validate PTR and load sector
     ldx zp_channel_offset                                             ; b0ee: a6 cf       ..             ; Get channel index
 ; &b0f0 referenced 2 times by &b0bc, &b0c0
 .calc_buffer_sector_addr
@@ -9249,7 +9249,7 @@ la868 = check_dest_terminator+1
 
 ; &b3f1 referenced 4 times by &b3ca, &b3d2, &b3da, &b3e2
 .cb3f1
-    jsr sub_cadc5                                                     ; b3f1: 20 c5 ad     ..            ; Switch to file's drive
+    jsr switch_to_channel_drive                                       ; b3f1: 20 c5 ad     ..            ; Switch to file's drive
     lda wksp_ch_ext_l,x                                               ; b3f4: bd 52 11    .R.            ; Calculate sectors used from EXT
     cmp #1                                                            ; b3f7: c9 01       ..             ; Compare low byte with 1
     lda wksp_object_sector                                            ; b3f9: ad 34 10    .4.            ; Get object sector low
@@ -9548,7 +9548,7 @@ la868 = check_dest_terminator+1
     sta l10b5                                                         ; b5f8: 8d b5 10    ...            ; Store in mode flag
     cmp #3                                                            ; b5fb: c9 03       ..             ; A >= 3 (read)?
     bcs cb602                                                         ; b5fd: b0 03       ..             ; Yes: skip extent check
-    jsr sub_cae5e                                                     ; b5ff: 20 5e ae     ^.            ; Write: extend file if needed
+    jsr extend_file_if_needed                                         ; b5ff: 20 5e ae     ^.            ; Write: extend file if needed
 ; &b602 referenced 1 time by &b5fd
 .cb602
     ldy #9                                                            ; b602: a0 09       ..             ; Y=9: PTR offset in control block
@@ -11521,7 +11521,6 @@ save pydis_start, pydis_end
 ;     c9c74:                                              4
 ;     c9d63:                                              4
 ;     cac62:                                              4
-;     caebc:                                              4
 ;     cb3f1:                                              4
 ;     claim_tube_retry:                                   4
 ;     command_exec_start_exec:                            4
@@ -11557,6 +11556,7 @@ save pydis_start, pydis_end
 ;     sub_c8df3:                                          4
 ;     sub_cb4f5:                                          4
 ;     sub_cb825:                                          4
+;     update_ext_to_ptr:                                  4
 ;     wksp_1014:                                          4
 ;     wksp_csd_sector:                                    4
 ;     wksp_disc_op_control:                               4
@@ -11580,15 +11580,13 @@ save pydis_start, pydis_end
 ;     c9de5:                                              3
 ;     cac5f:                                              3
 ;     cace9:                                              3
-;     cae97:                                              3
 ;     calc_total_free_space:                              3
-;     cb00d:                                              3
-;     cb02a:                                              3
-;     cb060:                                              3
 ;     cb446:                                              3
 ;     cb742:                                              3
 ;     cb75d:                                              3
 ;     cb9f3:                                              3
+;     check_alloc_vs_ptr:                                 3
+;     check_ptr_within_allocation:                        3
 ;     check_special_dir_char:                             3
 ;     claim_tube:                                         3
 ;     dir_buffer:                                         3
@@ -11620,6 +11618,7 @@ save pydis_start, pydis_end
 ;     l10e2:                                              3
 ;     l10e5:                                              3
 ;     l10e6:                                              3
+;     mark_buffer_dirty:                                  3
 ;     nmi_0d0a:                                           3
 ;     nmi_0d0e:                                           3
 ;     nmi_0d0f:                                           3
@@ -11645,7 +11644,6 @@ save pydis_start, pydis_end
 ;     sub_c93c5:                                          3
 ;     sub_caaf3:                                          3
 ;     sub_cacf5:                                          3
-;     sub_cae59:                                          3
 ;     sub_cb4bf:                                          3
 ;     sub_cb510:                                          3
 ;     sub_cb51c:                                          3
@@ -11654,6 +11652,7 @@ save pydis_start, pydis_end
 ;     sub_cbac6:                                          3
 ;     switch_to_library:                                  3
 ;     tube_delay2:                                        3
+;     update_ext_from_new_ptr:                            3
 ;     validate_and_set_ptr:                               3
 ;     verify_dir_integrity:                               3
 ;     wksp_1024:                                          3
@@ -11667,11 +11666,15 @@ save pydis_start, pydis_end
 ;     wksp_last_access_drive:                             3
 ;     wksp_shadow_save:                                   3
 ;     wksp_tube_transfer_addr_1:                          3
+;     write_zero_sector:                                  3
 ;     zp_ca:                                              3
 ;     zp_cb:                                              3
 ;     zp_scsi_status:                                     3
 ;     add_size_to_existing_entry:                         2
+;     advance_channel_sector:                             2
+;     advance_fill_sector:                                2
 ;     advance_past_command:                               2
+;     advance_to_next_dir_entry:                          2
 ;     apply_head_load_flag:                               2
 ;     apply_writable_mask:                                2
 ;     broken_directory_error:                             2
@@ -11726,14 +11729,9 @@ save pydis_start, pydis_end
 ;     ca434:                                              2
 ;     cab3d:                                              2
 ;     cab63:                                              2
-;     cad8d:                                              2
-;     cae29:                                              2
-;     cae4c:                                              2
-;     caf87:                                              2
+;     calc_bget_sector_addr:                              2
 ;     calc_buffer_sector_addr:                            2
 ;     calc_wksp_checksum:                                 2
-;     cb01d:                                              2
-;     cb050:                                              2
 ;     cb218:                                              2
 ;     cb2d9:                                              2
 ;     cb3e4:                                              2
@@ -11856,6 +11854,7 @@ save pydis_start, pydis_end
 ;     return_42:                                          2
 ;     return_48:                                          2
 ;     return_success:                                     2
+;     search_dir_for_channel:                             2
 ;     select_fdc_rw_command:                              2
 ;     service4_claim_and_dispatch:                        2
 ;     service4_not_matched:                               2
@@ -11867,6 +11866,7 @@ save pydis_start, pydis_end
 ;     skip_filename:                                      2
 ;     skip_separator_spaces:                              2
 ;     skip_trailing_spaces:                               2
+;     skip_zero_fill:                                     2
 ;     star_close:                                         2
 ;     store_channel_flags:                                2
 ;     store_wksp_checksum_ba_y:                           2
@@ -11888,9 +11888,9 @@ save pydis_start, pydis_end
 ;     sub_c9dda:                                          2
 ;     sub_cabc9:                                          2
 ;     sub_cacd7:                                          2
-;     sub_cadc5:                                          2
 ;     sub_cb8fc:                                          2
 ;     sum_free_space:                                     2
+;     switch_to_channel_drive:                            2
 ;     tube_start_xfer_sei:                                2
 ;     update_dir_sequence:                                2
 ;     update_moved_dir_parent:                            2
@@ -12085,15 +12085,7 @@ save pydis_start, pydis_end
 ;     caca6:                                              1
 ;     cacc6:                                              1
 ;     caccb:                                              1
-;     cae35:                                              1
-;     caec1:                                              1
-;     caed7:                                              1
-;     caf75:                                              1
-;     caf8f:                                              1
-;     cafec:                                              1
-;     cafef:                                              1
-;     caff2:                                              1
-;     cb07d:                                              1
+;     calc_zero_fill_start:                               1
 ;     cb1d4:                                              1
 ;     cb1e1:                                              1
 ;     cb203:                                              1
@@ -12204,6 +12196,9 @@ save pydis_start, pydis_end
 ;     check_name_char_loop:                               1
 ;     check_prev_dir_deleted:                             1
 ;     check_read_allocation:                              1
+;     check_relocation_needed:                            1
+;     check_sector_low:                                   1
+;     check_sector_mid:                                   1
 ;     check_shadow_save:                                  1
 ;     check_special_dir:                                  1
 ;     check_triple_merge_loop:                            1
@@ -12221,6 +12216,8 @@ save pydis_start, pydis_end
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
 ;     compaction_required_error:                          1
+;     compare_entry_sector_loop:                          1
+;     compare_entry_sequence:                             1
 ;     compare_entry_size:                                 1
 ;     compare_fsm_addr_loop:                              1
 ;     compare_hugo_loop:                                  1
@@ -12260,6 +12257,7 @@ save pydis_start, pydis_end
 ;     copy_new_name_to_entry:                             1
 ;     copy_new_ptr_from_user:                             1
 ;     copy_nmi_code_loop:                                 1
+;     copy_old_sector_info_loop:                          1
 ;     copy_osfile_params_loop:                            1
 ;     copy_parent_sector_loop:                            1
 ;     copy_prev_dir_name_loop:                            1
@@ -12275,6 +12273,7 @@ save pydis_start, pydis_end
 ;     copy_tube_write_nmi_loop:                           1
 ;     copy_write_nmi_loop:                                1
 ;     cross_dir_rename:                                   1
+;     decrement_fill_sector:                              1
 ;     default_workspace_data:                             1
 ;     dir2_master_sequence:                               1
 ;     dir2_name:                                          1
@@ -12295,6 +12294,8 @@ save pydis_start, pydis_end
 ;     exec_floppy_read_bput_sector_ind:                   1
 ;     exec_floppy_write_bput_sector:                      1
 ;     exec_floppy_write_bput_sector_ind:                  1
+;     extend_file_allocation:                             1
+;     extend_file_if_needed:                              1
 ;     file_is_locked:                                     1
 ;     filev:                                              1
 ;     find_fsm_position:                                  1
@@ -12314,6 +12315,7 @@ save pydis_start, pydis_end
 ;     fsm_s0_reserved:                                    1
 ;     fsm_s1_first_length:                                1
 ;     generate_error_skip_no_suffix:                      1
+;     handle_eof_write:                                   1
 ;     hd_bget_read_sector:                                1
 ;     hd_command:                                         1
 ;     hd_command_partial_sector:                          1
@@ -12481,15 +12483,6 @@ save pydis_start, pydis_end
 ;     loop_cacab:                                         1
 ;     loop_cacbe:                                         1
 ;     loop_cacd9:                                         1
-;     loop_cadc7:                                         1
-;     loop_cadf7:                                         1
-;     loop_cae3f:                                         1
-;     loop_cae66:                                         1
-;     loop_caeb9:                                         1
-;     loop_caf66:                                         1
-;     loop_cafb9:                                         1
-;     loop_cb025:                                         1
-;     loop_cb085:                                         1
 ;     loop_cb1e3:                                         1
 ;     loop_cb2f8:                                         1
 ;     loop_cb316:                                         1
@@ -12573,9 +12566,12 @@ save pydis_start, pydis_end
 ;     remove_exact_entry_loop:                            1
 ;     restore_attributes_loop:                            1
 ;     restore_csd_after_check_loop:                       1
+;     restore_csd_after_extend_loop:                      1
+;     restore_csd_after_switch_loop:                      1
 ;     restore_csd_and_error:                              1
 ;     restore_csd_sector_loop:                            1
 ;     restore_csd_sector_loop2:                           1
+;     restore_drive_after_extend:                         1
 ;     restore_head_flag:                                  1
 ;     restore_shadow_screen:                              1
 ;     restore_wksp_byte_loop:                             1
@@ -12618,6 +12614,8 @@ save pydis_start, pydis_end
 ;     return_error_code:                                  1
 ;     run_exec_or_spool:                                  1
 ;     save_csd_for_dir_check_loop:                        1
+;     save_csd_for_extend_loop:                           1
+;     save_csd_sector_loop:                               1
 ;     save_dest_dir_info_loop:                            1
 ;     save_dest_dir_sector_loop:                          1
 ;     save_e_attribute_state:                             1
@@ -12703,7 +12701,6 @@ save pydis_start, pydis_end
 ;     sub_c98ae:                                          1
 ;     sub_ca161:                                          1
 ;     sub_caba5:                                          1
-;     sub_cae5e:                                          1
 ;     sub_cb3b6:                                          1
 ;     sub_cb468:                                          1
 ;     sub_cb47c:                                          1
@@ -12716,6 +12713,7 @@ save pydis_start, pydis_end
 ;     sum_workspace_loop:                                 1
 ;     swap_csd_to_lib_loop:                               1
 ;     swap_dir_sectors_loop:                              1
+;     switch_drive_for_extend:                            1
 ;     system_via_t1c_l:                                   1
 ;     tbl_extended_vectors:                               1
 ;     tube_start_xfer:                                    1
@@ -12737,6 +12735,8 @@ save pydis_start, pydis_end
 ;     write_parent_sector_loop:                           1
 ;     write_sector_byte_loop:                             1
 ;     zero_buffers_loop:                                  1
+;     zero_entire_sector_loop:                            1
+;     zero_fill_sector_loop:                              1
 
 ; Automatically generated labels:
 ;     c80af
@@ -12984,26 +12984,6 @@ save pydis_start, pydis_end
 ;     cacc6
 ;     caccb
 ;     cace9
-;     cad8d
-;     cae29
-;     cae35
-;     cae4c
-;     cae97
-;     caebc
-;     caec1
-;     caed7
-;     caf75
-;     caf87
-;     caf8f
-;     cafec
-;     cafef
-;     caff2
-;     cb00d
-;     cb01d
-;     cb02a
-;     cb050
-;     cb060
-;     cb07d
 ;     cb1d4
 ;     cb1e1
 ;     cb203
@@ -13392,15 +13372,6 @@ save pydis_start, pydis_end
 ;     loop_cacab
 ;     loop_cacbe
 ;     loop_cacd9
-;     loop_cadc7
-;     loop_cadf7
-;     loop_cae3f
-;     loop_cae66
-;     loop_caeb9
-;     loop_caf66
-;     loop_cafb9
-;     loop_cb025
-;     loop_cb085
 ;     loop_cb1e3
 ;     loop_cb2f8
 ;     loop_cb316
@@ -13535,9 +13506,6 @@ save pydis_start, pydis_end
 ;     sub_cabd8
 ;     sub_cacd7
 ;     sub_cacf5
-;     sub_cadc5
-;     sub_cae59
-;     sub_cae5e
 ;     sub_cb3b6
 ;     sub_cb468
 ;     sub_cb47c
