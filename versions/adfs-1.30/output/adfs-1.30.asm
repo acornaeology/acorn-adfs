@@ -83,30 +83,30 @@ zp_floppy_sector                                = &00a4
 zp_floppy_track_num                             = &00a5
 zp_floppy_dest_page                             = &00a6
 l00a9                                           = &00a9
-zp_ctrl_blk                                     = &00b0
-zp_ctrl_blk_h                                   = &00b1
-zp_mem_ptr                                      = &00b2
-zp_mem_ptr_h                                    = &00b3
-zp_text_ptr                                     = &00b4
-zp_text_ptr_h                                   = &00b5
-zp_entry_ptr                                    = &00b6
-zp_entry_ptr_h                                  = &00b7
-zp_osfile_ptr                                   = &00b8
-zp_osfile_ptr_h                                 = &00b9
-zp_wksp_ptr                                     = &00ba
-zp_wksp_ptr_h                                   = &00bb
-zp_buf_src                                      = &00bc
-zp_buf_src_h                                    = &00bd
-zp_buf_dest                                     = &00be
-zp_buf_dest_h                                   = &00bf
-zp_name_ptr                                     = &00c0
-zp_name_ptr_h                                   = &00c1
+zp_ctrl_blk_lo                                  = &00b0
+zp_ctrl_blk_hi                                  = &00b1
+zp_mem_ptr_lo                                   = &00b2
+zp_mem_ptr_hi                                   = &00b3
+zp_text_ptr_lo                                  = &00b4
+zp_text_ptr_hi                                  = &00b5
+zp_entry_ptr_lo                                 = &00b6
+zp_entry_ptr_hi                                 = &00b7
+zp_osfile_ptr_lo                                = &00b8
+zp_osfile_ptr_hi                                = &00b9
+zp_wksp_ptr_lo                                  = &00ba
+zp_wksp_ptr_hi                                  = &00bb
+zp_buf_src_lo                                   = &00bc
+zp_buf_src_hi                                   = &00bd
+zp_buf_dest_lo                                  = &00be
+zp_buf_dest_hi                                  = &00bf
+zp_name_ptr_lo                                  = &00c0
+zp_name_ptr_hi                                  = &00c1
 zp_save_y                                       = &00c2
 zp_save_x                                       = &00c3
 zp_osfind_y                                     = &00c4
 zp_osfind_x                                     = &00c5
-zp_gspb_ptr                                     = &00c6
-zp_gspb_ptr_h                                   = &00c7
+zp_gspb_ptr_lo                                  = &00c6
+zp_gspb_ptr_hi                                  = &00c7
 zp_temp_ptr                                     = &00c8
 zp_temp_ptr_1                                   = &00c9
 zp_temp_ptr_2                                   = &00ca
@@ -453,7 +453,7 @@ lffff                                           = &ffff
     bpl return_1                                                      ; 802b: 10 15       ..             ; No, return immediately
 ; &802d referenced 1 time by &8033
 .copy_tube_addr_loop
-    lda (zp_ctrl_blk),y                                               ; 802d: b1 b0       ..             ; Copy 4-byte transfer address
+    lda (zp_ctrl_blk_lo),y                                            ; 802d: b1 b0       ..             ; Copy 4-byte transfer address
     sta wksp_tube_transfer_addr,y                                     ; 802f: 99 26 10    .&.            ; Store in Tube transfer workspace
     dey                                                               ; 8032: 88          .              ; Next byte
     bne copy_tube_addr_loop                                           ; 8033: d0 f8       ..             ; Loop for 4 bytes
@@ -580,11 +580,11 @@ lffff                                           = &ffff
 ; &8089 referenced 6 times by &828b, &8a74, &8abf, &9d52, &a0d7, &a16b
 .command_exec_xy
     jsr wait_ensuring                                                 ; 8089: 20 05 83     ..            ; Wait if files being ensured; Wait while files are being ensured
-    stx zp_ctrl_blk                                                   ; 808c: 86 b0       ..             ; Store control block address low
-    sty zp_ctrl_blk_h                                                 ; 808e: 84 b1       ..             ; Store control block address high
+    stx zp_ctrl_blk_lo                                                ; 808c: 86 b0       ..             ; Store control block address low
+    sty zp_ctrl_blk_hi                                                ; 808e: 84 b1       ..             ; Store control block address high
     jsr check_dir_loaded                                              ; 8090: 20 c7 a6     ..            ; Ensure directory is loaded; Ensure current directory is loaded
     ldy #5                                                            ; 8093: a0 05       ..             ; Byte 5 of control block = command
-    lda (zp_ctrl_blk),y                                               ; 8095: b1 b0       ..             ; Get command byte from control block
+    lda (zp_ctrl_blk_lo),y                                            ; 8095: b1 b0       ..             ; Get command byte from control block
     cmp #&2f ; '/'                                                    ; 8097: c9 2f       ./             ; Format track?
     beq command_exec_start_exec                                       ; 8099: f0 2b       .+             ; Yes, skip retries
     cmp #&1b                                                          ; 809b: c9 1b       ..             ; Seek?
@@ -626,14 +626,14 @@ lffff                                           = &ffff
     beq return_4                                                      ; 80cf: f0 1b       ..             ; Success, return
     pha                                                               ; 80d1: 48          H              ; Save error code
     ldy #6                                                            ; 80d2: a0 06       ..             ; Byte 6: drive + sector high
-    lda (zp_ctrl_blk),y                                               ; 80d4: b1 b0       ..             ; Get drive+sector byte from blk
+    lda (zp_ctrl_blk_lo),y                                            ; 80d4: b1 b0       ..             ; Get drive+sector byte from blk
     ora wksp_current_drive                                            ; 80d6: 0d 17 11    ...            ; Combine with current drive number
     sta l10d2                                                         ; 80d9: 8d d2 10    ...            ; Store in error sector workspace
     iny                                                               ; 80dc: c8          .              ; Y=&07
-    lda (zp_ctrl_blk),y                                               ; 80dd: b1 b0       ..             ; Byte 7: sector mid
+    lda (zp_ctrl_blk_lo),y                                            ; 80dd: b1 b0       ..             ; Byte 7: sector mid
     sta l10d1                                                         ; 80df: 8d d1 10    ...            ; Store sector mid byte
     iny                                                               ; 80e2: c8          .              ; Y=&08
-    lda (zp_ctrl_blk),y                                               ; 80e3: b1 b0       ..             ; Byte 8: sector low
+    lda (zp_ctrl_blk_lo),y                                            ; 80e3: b1 b0       ..             ; Byte 8: sector low
     sta wksp_err_sector                                               ; 80e5: 8d d0 10    ...            ; Store sector low byte
     pla                                                               ; 80e8: 68          h              ; Retrieve error code
     sta wksp_err_code                                                 ; 80e9: 8d d3 10    ...            ; Store error code
@@ -662,22 +662,22 @@ lffff                                           = &ffff
 ; &80ed referenced 1 time by &80ca
 .hd_command
     ldy #6                                                            ; 80ed: a0 06       ..             ; Byte 6: drive + sector b16-b20
-    lda (zp_ctrl_blk),y                                               ; 80ef: b1 b0       ..             ; Get byte from control block
+    lda (zp_ctrl_blk_lo),y                                            ; 80ef: b1 b0       ..             ; Get byte from control block
     ora wksp_current_drive                                            ; 80f1: 0d 17 11    ...            ; Combine with current drive
     bmi command_exec_floppy_op                                        ; 80f4: 30 d6       0.             ; Bit 7 set = floppy drive
     jsr scsi_start_command                                            ; 80f6: 20 65 80     e.            ; Select SCSI device and begin command; SCSI bus selection and command phase
     iny                                                               ; 80f9: c8          .              ; Byte 7: sector b8-b15
-    lda (zp_ctrl_blk),y                                               ; 80fa: b1 b0       ..             ; Get byte from control block
-    sta zp_mem_ptr                                                    ; 80fc: 85 b2       ..             ; Store as memory address low
+    lda (zp_ctrl_blk_lo),y                                            ; 80fa: b1 b0       ..             ; Get byte from control block
+    sta zp_mem_ptr_lo                                                 ; 80fc: 85 b2       ..             ; Store as memory address low
     iny                                                               ; 80fe: c8          .              ; Byte 8: sector b0-b7
-    lda (zp_ctrl_blk),y                                               ; 80ff: b1 b0       ..             ; Get byte from control block
-    sta zp_mem_ptr_h                                                  ; 8101: 85 b3       ..             ; Store as memory address high
+    lda (zp_ctrl_blk_lo),y                                            ; 80ff: b1 b0       ..             ; Get byte from control block
+    sta zp_mem_ptr_hi                                                 ; 8101: 85 b3       ..             ; Store as memory address high
     iny                                                               ; 8103: c8          .              ; Byte 9: transfer address high
-    lda (zp_ctrl_blk),y                                               ; 8104: b1 b0       ..             ; Get byte from control block
+    lda (zp_ctrl_blk_lo),y                                            ; 8104: b1 b0       ..             ; Get byte from control block
     cmp #&fe                                                          ; 8106: c9 fe       ..             ; Address >= &FE00?
     bcc skip_tube_claim                                               ; 8108: 90 07       ..             ; No, claim Tube for normal transfer
     iny                                                               ; 810a: c8          .              ; Byte 10: next address byte
-    lda (zp_ctrl_blk),y                                               ; 810b: b1 b0       ..             ; Get byte from control block
+    lda (zp_ctrl_blk_lo),y                                            ; 810b: b1 b0       ..             ; Get byte from control block
     cmp #&ff                                                          ; 810d: c9 ff       ..             ; Address = &FFxx (host memory)?
     beq send_scsi_command_bytes                                       ; 810f: f0 03       ..             ; Yes, skip Tube claim
 ; &8111 referenced 1 time by &8108
@@ -686,17 +686,17 @@ lffff                                           = &ffff
 ; &8114 referenced 1 time by &810f
 .send_scsi_command_bytes
     ldy #5                                                            ; 8114: a0 05       ..             ; Byte 5: SCSI command byte
-    lda (zp_ctrl_blk),y                                               ; 8116: b1 b0       ..             ; Get byte from control block
+    lda (zp_ctrl_blk_lo),y                                            ; 8116: b1 b0       ..             ; Get byte from control block
     jsr scsi_send_byte_a                                              ; 8118: 20 1b 83     ..            ; Send SCSI command byte; Send byte A on SCSI bus after REQ
     iny                                                               ; 811b: c8          .              ; Byte 6: drive + sector high
-    lda (zp_ctrl_blk),y                                               ; 811c: b1 b0       ..             ; Get byte from control block
+    lda (zp_ctrl_blk_lo),y                                            ; 811c: b1 b0       ..             ; Get byte from control block
     ora wksp_current_drive                                            ; 811e: 0d 17 11    ...            ; Combine with current drive for LUN
     sta wksp_current_drive_hi                                         ; 8121: 8d 33 11    .3.            ; Save combined drive/LUN
     jmp send_next_cmd_byte                                            ; 8124: 4c 29 81    L).            ; Jump into command send loop
 
 ; &8127 referenced 1 time by &8134
 .send_cmd_byte_loop
-    lda (zp_ctrl_blk),y                                               ; 8127: b1 b0       ..             ; Get next command byte
+    lda (zp_ctrl_blk_lo),y                                            ; 8127: b1 b0       ..             ; Get next command byte
 ; &8129 referenced 1 time by &8124
 .send_next_cmd_byte
     jsr scsi_send_byte_a                                              ; 8129: 20 1b 83     ..            ; Send command byte to target; Send byte A on SCSI bus after REQ
@@ -708,7 +708,7 @@ lffff                                           = &ffff
 ; &8136 referenced 2 times by &812f, &8131
 .check_256_byte_transfer
     ldy #5                                                            ; 8136: a0 05       ..             ; Check for 256-byte sector transfer
-    lda (zp_ctrl_blk),y                                               ; 8138: b1 b0       ..             ; Get command byte
+    lda (zp_ctrl_blk_lo),y                                            ; 8138: b1 b0       ..             ; Get command byte
     and #&fd                                                          ; 813a: 29 fd       ).             ; Mask to read/write bits
     eor #8                                                            ; 813c: 49 08       I.             ; Is it a read/write 256-byte command?
     beq hd_data_transfer_256                                          ; 813e: f0 78       .x             ; Yes, use optimised transfer; SCSI 256-byte sector data transfer
@@ -735,19 +735,19 @@ lffff                                           = &ffff
     bit zp_adfs_flags                                                 ; 815e: 24 cd       $.             ; Tube in use?
     bvs read_scsi_via_tube                                            ; 8160: 70 16       p.             ; Yes, use Tube path
     bcs read_scsi_to_memory                                           ; 8162: b0 07       ..             ; Reading from SCSI?
-    lda (zp_mem_ptr),y                                                ; 8164: b1 b2       ..             ; Writing: get byte from memory
+    lda (zp_mem_ptr_lo),y                                             ; 8164: b1 b2       ..             ; Writing: get byte from memory
     sta fred_hard_drive_0                                             ; 8166: 8d 40 fc    .@.            ; Write to SCSI data register
     bcc advance_memory_page                                           ; 8169: 90 05       ..             ; Always branch to increment; ALWAYS branch
 
 ; &816b referenced 1 time by &8162
 .read_scsi_to_memory
     lda fred_hard_drive_0                                             ; 816b: ad 40 fc    .@.            ; Reading: get byte from SCSI
-    sta (zp_mem_ptr),y                                                ; 816e: 91 b2       ..             ; Store in memory
+    sta (zp_mem_ptr_lo),y                                             ; 816e: 91 b2       ..             ; Store in memory
 ; &8170 referenced 1 time by &8169
 .advance_memory_page
     iny                                                               ; 8170: c8          .              ; Next byte
     bne wait_data_phase                                               ; 8171: d0 e6       ..             ; Continue until page done
-    inc zp_mem_ptr_h                                                  ; 8173: e6 b3       ..             ; Increment page pointer
+    inc zp_mem_ptr_hi                                                 ; 8173: e6 b3       ..             ; Increment page pointer
     jmp wait_data_phase                                               ; 8175: 4c 59 81    LY.            ; Continue transfer
 
 ; &8178 referenced 1 time by &8160
@@ -802,8 +802,8 @@ lffff                                           = &ffff
     lda #0                                                            ; 81af: a9 00       ..             ; A=0: success return code
 ; &81b1 referenced 2 times by &827f, &8284
 .mask_error_code
-    ldx zp_ctrl_blk                                                   ; 81b1: a6 b0       ..             ; Restore control block pointer
-    ldy zp_ctrl_blk_h                                                 ; 81b3: a4 b1       ..             ; Restore Y
+    ldx zp_ctrl_blk_lo                                                ; 81b1: a6 b0       ..             ; Restore control block pointer
+    ldy zp_ctrl_blk_hi                                                ; 81b3: a4 b1       ..             ; Restore Y
     and #&7f                                                          ; 81b5: 29 7f       ).             ; Mask to 7-bit error code
     rts                                                               ; 81b7: 60          `              ; Return
 
@@ -831,19 +831,19 @@ lffff                                           = &ffff
     bvs read_sector_byte_loop                                         ; 81c3: 70 0c       p.             ; I/O bit: reading from SCSI?
 ; &81c5 referenced 1 time by &81cb
 .write_sector_byte_loop
-    lda (zp_mem_ptr),y                                                ; 81c5: b1 b2       ..             ; Writing: get byte from memory
+    lda (zp_mem_ptr_lo),y                                             ; 81c5: b1 b2       ..             ; Writing: get byte from memory
     sta fred_hard_drive_0                                             ; 81c7: 8d 40 fc    .@.            ; Write to SCSI data register
     iny                                                               ; 81ca: c8          .              ; Next byte
     bne write_sector_byte_loop                                        ; 81cb: d0 f8       ..             ; Continue for 256 bytes
-    inc zp_mem_ptr_h                                                  ; 81cd: e6 b3       ..             ; Next page
+    inc zp_mem_ptr_hi                                                 ; 81cd: e6 b3       ..             ; Next page
     bvc wait_req_and_transfer                                         ; 81cf: 50 ed       P.             ; Continue transfer
 ; &81d1 referenced 2 times by &81c3, &81d7
 .read_sector_byte_loop
     lda fred_hard_drive_0                                             ; 81d1: ad 40 fc    .@.            ; Reading: get byte from SCSI
-    sta (zp_mem_ptr),y                                                ; 81d4: 91 b2       ..             ; Store in memory
+    sta (zp_mem_ptr_lo),y                                             ; 81d4: 91 b2       ..             ; Store in memory
     iny                                                               ; 81d6: c8          .              ; Next byte
     bne read_sector_byte_loop                                         ; 81d7: d0 f8       ..             ; Continue for 256 bytes
-    inc zp_mem_ptr_h                                                  ; 81d9: e6 b3       ..             ; Next page
+    inc zp_mem_ptr_hi                                                 ; 81d9: e6 b3       ..             ; Next page
     bvs wait_req_and_transfer                                         ; 81db: 70 e1       p.             ; Continue transfer
 ; &81dd referenced 2 times by &821c, &8234
 .increment_tube_xfer_addr
@@ -1204,9 +1204,9 @@ lffff                                           = &ffff
 ; &8353 referenced 2 times by &82d9, &abb2
 .generate_error_suffix_x
     pla                                                               ; 8353: 68          h              ; Pop return address (inline data ptr)
-    sta zp_mem_ptr                                                    ; 8354: 85 b2       ..             ; Store inline data pointer low
+    sta zp_mem_ptr_lo                                                 ; 8354: 85 b2       ..             ; Store inline data pointer low
     pla                                                               ; 8356: 68          h              ; High byte of inline data address
-    sta zp_mem_ptr_h                                                  ; 8357: 85 b3       ..             ; Store inline data pointer high
+    sta zp_mem_ptr_hi                                                 ; 8357: 85 b3       ..             ; Store inline data pointer high
     lda zp_adfs_flags                                                 ; 8359: a5 cd       ..             ; Clear FSM-inconsistent flag (bit 4)
     and #&ef                                                          ; 835b: 29 ef       ).             ; Mask off bit 4
     sta zp_adfs_flags                                                 ; 835d: 85 cd       ..             ; Store cleared flags
@@ -1214,7 +1214,7 @@ lffff                                           = &ffff
 ; &8361 referenced 1 time by &8367
 .copy_error_msg_loop
     iny                                                               ; 8361: c8          .              ; Copy inline error message to page 1
-    lda (zp_mem_ptr),y                                                ; 8362: b1 b2       ..             ; Read error msg byte from inline data
+    lda (zp_mem_ptr_lo),y                                             ; 8362: b1 b2       ..             ; Read error msg byte from inline data
     sta l0100,y                                                       ; 8364: 99 00 01    ...            ; Store in error block on page 1
     bne copy_error_msg_loop                                           ; 8367: d0 f8       ..             ; Loop until zero terminator
     txa                                                               ; 8369: 8a          .              ; X=0 means no suffix wanted
@@ -1405,15 +1405,15 @@ lffff                                           = &ffff
 ; &8459 referenced 2 times by &844e, &8453
 .print_decimal_digit
     php                                                               ; 8459: 08          .              ; Save V flag (leading zero suppress)
-    stx zp_mem_ptr_h                                                  ; 845a: 86 b3       ..             ; Store divisor
+    stx zp_mem_ptr_hi                                                 ; 845a: 86 b3       ..             ; Store divisor
     ldx #&2f ; '/'                                                    ; 845c: a2 2f       ./             ; X='/': ASCII digit will be X+1
     sec                                                               ; 845e: 38          8              ; Set carry for subtraction
 ; &845f referenced 2 times by &8449, &8462
 .divide_loop
     inx                                                               ; 845f: e8          .              ; Increment quotient digit
-    sbc zp_mem_ptr_h                                                  ; 8460: e5 b3       ..             ; Subtract divisor
+    sbc zp_mem_ptr_hi                                                 ; 8460: e5 b3       ..             ; Subtract divisor
     bcs divide_loop                                                   ; 8462: b0 fb       ..             ; Loop while result >= 0
-    adc zp_mem_ptr_h                                                  ; 8464: 65 b3       e.             ; Add divisor back (went too far)
+    adc zp_mem_ptr_hi                                                 ; 8464: 65 b3       e.             ; Add divisor back (went too far)
     plp                                                               ; 8466: 28          (              ; Restore V flag
     pha                                                               ; 8467: 48          H              ; Save remainder
     txa                                                               ; 8468: 8a          .              ; Get ASCII digit
@@ -1537,7 +1537,7 @@ lffff                                           = &ffff
     inx                                                               ; 84c8: e8          .              ; Advance X by 3 (entry size)
     inx                                                               ; 84c9: e8          .              ; Advance X (2nd byte of entry)
     inx                                                               ; 84ca: e8          .              ; Advance X (3rd byte of entry)
-    stx zp_mem_ptr                                                    ; 84cb: 86 b2       ..             ; Save X for backtrack
+    stx zp_mem_ptr_lo                                                 ; 84cb: 86 b2       ..             ; Save X for backtrack
     ldy #2                                                            ; 84cd: a0 02       ..             ; Y=2: compare 3-byte address
 ; &84cf referenced 1 time by &84df
 .compare_fsm_addr_loop
@@ -1545,7 +1545,7 @@ lffff                                           = &ffff
     lda fsm_sector_0,x                                                ; 84d0: bd 00 0e    ...            ; Get FSM entry address byte
     cmp wksp_object_sector,y                                          ; 84d3: d9 34 10    .4.            ; Compare with object sector byte
     bcs check_exact_match                                             ; 84d6: b0 04       ..             ; FSM entry >= object? Found position
-    ldx zp_mem_ptr                                                    ; 84d8: a6 b2       ..             ; Restore X, try next entry
+    ldx zp_mem_ptr_lo                                                 ; 84d8: a6 b2       ..             ; Restore X, try next entry
     bne scan_fsm_entries_loop                                         ; 84da: d0 e7       ..             ; Try next FSM entry
 ; &84dc referenced 1 time by &84d6
 .check_exact_match
@@ -1554,11 +1554,11 @@ lffff                                           = &ffff
     bpl compare_fsm_addr_loop                                         ; 84df: 10 ee       ..             ; Continue comparing bytes
 ; &84e1 referenced 1 time by &84dc
 .found_insertion_point
-    ldx zp_mem_ptr                                                    ; 84e1: a6 b2       ..             ; Back to entry start
+    ldx zp_mem_ptr_lo                                                 ; 84e1: a6 b2       ..             ; Back to entry start
     dex                                                               ; 84e3: ca          .              ; Back up to entry start
     dex                                                               ; 84e4: ca          .              ; 2nd byte back
     dex                                                               ; 84e5: ca          .              ; 3rd byte back
-    stx zp_mem_ptr                                                    ; 84e6: 86 b2       ..             ; Save entry index for merge check
+    stx zp_mem_ptr_lo                                                 ; 84e6: 86 b2       ..             ; Save entry index for merge check
     clc                                                               ; 84e8: 18          .              ; C=0 for addition
     php                                                               ; 84e9: 08          .              ; Save carry for multi-byte add
     ldy #0                                                            ; 84ea: a0 00       ..             ; Y=0: compare 3 address bytes
@@ -1582,7 +1582,7 @@ lffff                                           = &ffff
     cpy #3                                                            ; 84ff: c0 03       ..             ; Compared all 3 bytes?
     bne check_adjacent_to_next_loop                                   ; 8501: d0 e9       ..             ; No, continue comparing
     plp                                                               ; 8503: 28          (              ; Restore carry from addition
-    ldx zp_mem_ptr                                                    ; 8504: a6 b2       ..             ; Get FSM entry index back
+    ldx zp_mem_ptr_lo                                                 ; 8504: a6 b2       ..             ; Get FSM entry index back
     beq add_size_to_existing_entry                                    ; 8506: f0 63       .c             ; Entry 0: no preceding entry to merge; Add released size to FSM entry
     clc                                                               ; 8508: 18          .              ; Clear carry for addition
     php                                                               ; 8509: 08          .              ; Save carry for multi-byte add
@@ -1595,7 +1595,7 @@ lffff                                           = &ffff
     php                                                               ; 8513: 08          .              ; Save carry
     cmp wksp_object_sector,y                                          ; 8514: d9 34 10    .4.            ; Compare prev+size with object sector
     beq adjacent_prev_byte                                            ; 8517: f0 06       ..             ; Match: prev is adjacent (merge back)
-    ldx zp_mem_ptr                                                    ; 8519: a6 b2       ..             ; No match: insert new entry
+    ldx zp_mem_ptr_lo                                                 ; 8519: a6 b2       ..             ; No match: insert new entry
     plp                                                               ; 851b: 28          (              ; Restore carry
     jmp add_size_to_existing_entry                                    ; 851c: 4c 6b 85    Lk.            ; Not adjacent: insert new entry; Add released size to FSM entry
 
@@ -1606,7 +1606,7 @@ lffff                                           = &ffff
     cpy #3                                                            ; 8521: c0 03       ..             ; Compared all 3 bytes?
     bne check_adjacent_to_prev_loop                                   ; 8523: d0 e7       ..             ; No, continue
     plp                                                               ; 8525: 28          (              ; Adjacent to prev: merge backward
-    ldx zp_mem_ptr                                                    ; 8526: a6 b2       ..             ; Restore FSM index
+    ldx zp_mem_ptr_lo                                                 ; 8526: a6 b2       ..             ; Restore FSM index
     ldy #0                                                            ; 8528: a0 00       ..             ; Y=0: add released size to prev length
     clc                                                               ; 852a: 18          .              ; Clear carry for addition
     php                                                               ; 852b: 08          .              ; Save carry
@@ -1623,7 +1623,7 @@ lffff                                           = &ffff
     bne merge_with_prev_loop                                          ; 853b: d0 ef       ..             ; No, continue adding
     plp                                                               ; 853d: 28          (              ; Restore carry
     ldy #2                                                            ; 853e: a0 02       ..             ; Y=2: check if merged entry is now
-    ldx zp_mem_ptr                                                    ; 8540: a6 b2       ..             ; adjacent to the NEXT entry too
+    ldx zp_mem_ptr_lo                                                 ; 8540: a6 b2       ..             ; adjacent to the NEXT entry too
     clc                                                               ; 8542: 18          .              ; Clear carry for addition
 ; &8543 referenced 1 time by &854e
 .check_triple_merge_loop
@@ -1682,7 +1682,7 @@ lffff                                           = &ffff
 
 ; &8588 referenced 1 time by &84fa
 .check_merge_with_prev
-    ldx zp_mem_ptr                                                    ; 8588: a6 b2       ..             ; Get FSM entry index
+    ldx zp_mem_ptr_lo                                                 ; 8588: a6 b2       ..             ; Get FSM entry index
     beq insert_new_entry                                              ; 858a: f0 35       .5             ; Entry 0: no predecessor, insert new; Insert new entry into FSM
     clc                                                               ; 858c: 18          .              ; Clear carry for addition
     php                                                               ; 858d: 08          .              ; Save carry for multi-byte add
@@ -1706,7 +1706,7 @@ lffff                                           = &ffff
     bne compare_prev_plus_size_loop                                   ; 85a5: d0 e9       ..             ; No, continue
     plp                                                               ; 85a7: 28          (              ; Restore carry (all matched)
     ldy #0                                                            ; 85a8: a0 00       ..             ; Y=0: add released size to prev
-    ldx zp_mem_ptr                                                    ; 85aa: a6 b2       ..             ; Get FSM entry index
+    ldx zp_mem_ptr_lo                                                 ; 85aa: a6 b2       ..             ; Get FSM entry index
     clc                                                               ; 85ac: 18          .              ; Clear carry for addition
     php                                                               ; 85ad: 08          .              ; Save carry for multi-byte add
 ; &85ae referenced 1 time by &85bd
@@ -1745,7 +1745,7 @@ lffff                                           = &ffff
     ldx fsm_s1_total_sectors_lo                                       ; 85d5: ae fe 0f    ...            ; Get end-of-list pointer
 ; &85d8 referenced 1 time by &85e9
 .shift_entries_up_loop
-    cpx zp_mem_ptr                                                    ; 85d8: e4 b2       ..             ; Reached insertion point?
+    cpx zp_mem_ptr_lo                                                 ; 85d8: e4 b2       ..             ; Reached insertion point?
     beq store_new_entry                                               ; 85da: f0 10       ..             ; Yes: insert here
     dex                                                               ; 85dc: ca          .              ; Shift entries up by 3 bytes
     lda fsm_sector_0,x                                                ; 85dd: bd 00 0e    ...            ; Get FSM address byte to shift
@@ -1819,13 +1819,13 @@ lffff                                           = &ffff
 ; &8632 referenced 3 times by &8f55, &9895, &af0b
 .allocate_disc_space
     ldx #&ff                                                          ; 8632: a2 ff       ..             ; X=&FF: no best-fit entry yet
-    stx zp_mem_ptr_h                                                  ; 8634: 86 b3       ..             ; Store as best-fit index
+    stx zp_mem_ptr_hi                                                 ; 8634: 86 b3       ..             ; Store as best-fit index
     inx                                                               ; 8636: e8          .              ; X=&00
 ; &8637 referenced 1 time by &8705
 .scan_for_best_fit
     cpx fsm_s1_total_sectors_lo                                       ; 8637: ec fe 0f    ...            ; Past end of FSM entries?
     bcc compare_entry_size                                            ; 863a: 90 7c       .|             ; No: check this entry
-    ldx zp_mem_ptr_h                                                  ; 863c: a6 b3       ..             ; Get best-fit index
+    ldx zp_mem_ptr_hi                                                 ; 863c: a6 b3       ..             ; Get best-fit index
     cpx #&ff                                                          ; 863e: e0 ff       ..             ; Still &FF (no fit found)?
     bne use_best_fit_entry                                            ; 8640: d0 3a       .:             ; Found a fit: use it
     jsr sum_free_space                                                ; 8642: 20 09 86     ..            ; No fit: sum all free space; Sum all free space in FSM
@@ -1863,7 +1863,7 @@ lffff                                           = &ffff
     dey                                                               ; 8685: 88          .              ; Next byte
     bpl copy_allocated_sector_loop                                    ; 8686: 10 f6       ..             ; Loop for 3 bytes
     iny                                                               ; 8688: c8          .              ; Y=1 (adjusted for carry)
-    ldx zp_mem_ptr_h                                                  ; 8689: a6 b3       ..             ; Restore best-fit index
+    ldx zp_mem_ptr_hi                                                 ; 8689: a6 b3       ..             ; Restore best-fit index
     clc                                                               ; 868b: 18          .              ; Clear carry for addition
     php                                                               ; 868c: 08          .              ; Save carry
 ; &868d referenced 1 time by &869c
@@ -1879,7 +1879,7 @@ lffff                                           = &ffff
     bne advance_entry_addr_loop                                       ; 869c: d0 ef       ..             ; No, continue
     plp                                                               ; 869e: 28          (              ; Restore carry
     ldy #0                                                            ; 869f: a0 00       ..             ; Y=0: subtract requested from length
-    ldx zp_mem_ptr_h                                                  ; 86a1: a6 b3       ..             ; Get best-fit index
+    ldx zp_mem_ptr_hi                                                 ; 86a1: a6 b3       ..             ; Get best-fit index
     sec                                                               ; 86a3: 38          8              ; Set carry for subtraction
     php                                                               ; 86a4: 08          .              ; Save carry
 ; &86a5 referenced 1 time by &86b4
@@ -1902,7 +1902,7 @@ lffff                                           = &ffff
     inx                                                               ; 86ba: e8          .              ; Advance X to entry+3
     inx                                                               ; 86bb: e8          .              ; 2nd byte
     inx                                                               ; 86bc: e8          .              ; 3rd byte
-    stx zp_mem_ptr                                                    ; 86bd: 86 b2       ..             ; Save entry end index
+    stx zp_mem_ptr_lo                                                 ; 86bd: 86 b2       ..             ; Save entry end index
 ; &86bf referenced 1 time by &86cb
 .compare_size_bytes_loop
     dex                                                               ; 86bf: ca          .              ; Back up one byte
@@ -1912,7 +1912,7 @@ lffff                                           = &ffff
     bne check_if_first_fit                                            ; 86c8: d0 30       .0             ; Not equal: entry is larger
     dey                                                               ; 86ca: 88          .              ; Next byte (decreasing Y)
     bpl compare_size_bytes_loop                                       ; 86cb: 10 f2       ..             ; Loop for 3 bytes
-    ldx zp_mem_ptr                                                    ; 86cd: a6 b2       ..             ; Exact match: use this entry
+    ldx zp_mem_ptr_lo                                                 ; 86cd: a6 b2       ..             ; Exact match: use this entry
     ldy #2                                                            ; 86cf: a0 02       ..             ; Y=2: copy entry address
 ; &86d1 referenced 1 time by &86d9
 .copy_exact_match_addr_loop
@@ -1921,7 +1921,7 @@ lffff                                           = &ffff
     sta wksp_103a,y                                                   ; 86d5: 99 3a 10    .:.            ; Store as allocated sector
     dey                                                               ; 86d8: 88          .              ; Next byte
     bpl copy_exact_match_addr_loop                                    ; 86d9: 10 f6       ..             ; Loop for 3 bytes
-    ldx zp_mem_ptr                                                    ; 86db: a6 b2       ..             ; Restore entry index
+    ldx zp_mem_ptr_lo                                                 ; 86db: a6 b2       ..             ; Restore entry index
 ; &86dd referenced 1 time by &86ef
 .remove_exact_entry_loop
     cpx fsm_s1_total_sectors_lo                                       ; 86dd: ec fe 0f    ...            ; Past end of entries?
@@ -1941,14 +1941,14 @@ lffff                                           = &ffff
 
 ; &86fa referenced 1 time by &86c8
 .check_if_first_fit
-    ldx zp_mem_ptr_h                                                  ; 86fa: a6 b3       ..             ; Get current best-fit
+    ldx zp_mem_ptr_hi                                                 ; 86fa: a6 b3       ..             ; Get current best-fit
     inx                                                               ; 86fc: e8          .              ; X+1: was &FF (no fit yet)?
     bne continue_scanning                                             ; 86fd: d0 04       ..             ; Non-zero: this entry is new best
-    lda zp_mem_ptr                                                    ; 86ff: a5 b2       ..             ; No previous fit: store this one
-    sta zp_mem_ptr_h                                                  ; 8701: 85 b3       ..             ; Store as best-fit index
+    lda zp_mem_ptr_lo                                                 ; 86ff: a5 b2       ..             ; No previous fit: store this one
+    sta zp_mem_ptr_hi                                                 ; 8701: 85 b3       ..             ; Store as best-fit index
 ; &8703 referenced 2 times by &86c6, &86fd
 .continue_scanning
-    ldx zp_mem_ptr                                                    ; 8703: a6 b2       ..             ; Restore entry index
+    ldx zp_mem_ptr_lo                                                 ; 8703: a6 b2       ..             ; Restore entry index
     jmp scan_for_best_fit                                             ; 8705: 4c 37 86    L7.            ; Continue scanning
 
 ; ***************************************************************************************
@@ -1960,9 +1960,9 @@ lffff                                           = &ffff
 ; ***************************************************************************************
 ; &8708 referenced 3 times by &885a, &8872, &88c1
 .advance_text_ptr
-    inc zp_text_ptr                                                   ; 8708: e6 b4       ..             ; Increment pointer low byte
+    inc zp_text_ptr_lo                                                ; 8708: e6 b4       ..             ; Increment pointer low byte
     bne return_8                                                      ; 870a: d0 02       ..             ; No page crossing: return
-    inc zp_text_ptr_h                                                 ; 870c: e6 b5       ..             ; Increment pointer high byte
+    inc zp_text_ptr_hi                                                ; 870c: e6 b5       ..             ; Increment pointer high byte
 ; &870e referenced 1 time by &870a
 .return_8
     rts                                                               ; 870e: 60          `              ; Return
@@ -1996,7 +1996,7 @@ lffff                                           = &ffff
 ; ***************************************************************************************
 ; &871a referenced 18 times by &872f, &8767, &8782, &8787, &879c, &8869, &88ba, &88c6, &88db, &893b, &8d70, &8d80, &8d9f, &8dab, &8dd6, &a4b9, &a534, &a867
 .check_char_is_terminator
-    lda (zp_text_ptr),y                                               ; 871a: b1 b4       ..             ; Get character, strip bit 7
+    lda (zp_text_ptr_lo),y                                            ; 871a: b1 b4       ..             ; Get character, strip bit 7
     and #&7f                                                          ; 871c: 29 7f       ).             ; Strip bit 7 of character
     cmp #&2e ; '.'                                                    ; 871e: c9 2e       ..             ; Is it '.'?
     beq set_terminator_flag                                           ; 8720: f0 08       ..             ; Yes, terminator
@@ -2040,7 +2040,7 @@ lffff                                           = &ffff
     ldy #9                                                            ; 8744: a0 09       ..             ; Y=9: copy 10 bytes of entry name
 ; &8746 referenced 1 time by &874e
 .copy_entry_name_loop
-    lda (zp_entry_ptr),y                                              ; 8746: b1 b6       ..             ; Get name byte from directory entry
+    lda (zp_entry_ptr_lo),y                                           ; 8746: b1 b6       ..             ; Get name byte from directory entry
     and #&7f                                                          ; 8748: 29 7f       ).             ; Strip bit 7 (access bit)
     sta wksp_object_name,y                                            ; 874a: 99 62 10    .b.            ; Store in object name workspace
     dey                                                               ; 874d: 88          .              ; Next byte in entry name
@@ -2190,7 +2190,7 @@ lffff                                           = &ffff
 .check_name_ended
     cpy #&0a                                                          ; 87cf: c0 0a       ..             ; Name ended: check pattern trail
     bcs star_match_succeeded                                          ; 87d1: b0 f8       ..             ; Y >= 10: both exhausted, match; Return successful wildcard match
-    lda (zp_text_ptr),y                                               ; 87d3: b1 b4       ..             ; Get pattern char
+    lda (zp_text_ptr_lo),y                                            ; 87d3: b1 b4       ..             ; Get pattern char
     cmp #&21 ; '!'                                                    ; 87d5: c9 21       .!             ; Control char: pattern ended too
     bcc star_match_succeeded                                          ; 87d7: 90 f2       ..             ; Pattern ended: match; Return successful wildcard match
     cmp #&2e ; '.'                                                    ; 87d9: c9 2e       ..             ; Is it '.'?
@@ -2209,16 +2209,16 @@ lffff                                           = &ffff
 ; &87f0 referenced 2 times by &8803, &8807
 .begin_dir_entry_search
     ldy #0                                                            ; 87f0: a0 00       ..             ; Y=0: start parsing pathname
-    lda (zp_entry_ptr),y                                              ; 87f2: b1 b6       ..             ; Get first byte of entry
+    lda (zp_entry_ptr_lo),y                                           ; 87f2: b1 b6       ..             ; Get first byte of entry
     beq end_of_dir_entries                                            ; 87f4: f0 13       ..             ; Zero: end of entries
     jsr check_filename_length                                         ; 87f6: 20 2d 87     -.            ; Check name length and compare; Check filename is within 10-character limit
     beq return_11                                                     ; 87f9: f0 10       ..             ; Z set: exact match found
     bcc return_11                                                     ; 87fb: 90 0e       ..             ; C clear: pattern < name, not found
-    lda zp_entry_ptr                                                  ; 87fd: a5 b6       ..             ; Get entry pointer low
+    lda zp_entry_ptr_lo                                               ; 87fd: a5 b6       ..             ; Get entry pointer low
     adc #&19                                                          ; 87ff: 69 19       i.             ; Add &19+C to advance past entry
-    sta zp_entry_ptr                                                  ; 8801: 85 b6       ..             ; Store updated pointer
+    sta zp_entry_ptr_lo                                               ; 8801: 85 b6       ..             ; Store updated pointer
     bcc begin_dir_entry_search                                        ; 8803: 90 eb       ..             ; No page crossing: continue
-    inc zp_entry_ptr_h                                                ; 8805: e6 b7       ..             ; Increment page
+    inc zp_entry_ptr_hi                                               ; 8805: e6 b7       ..             ; Increment page
     bne begin_dir_entry_search                                        ; 8807: d0 e7       ..             ; Continue searching
 ; &8809 referenced 1 time by &87f4
 .end_of_dir_entries
@@ -2429,9 +2429,9 @@ lffff                                           = &ffff
     lda #&0d                                                          ; 88ea: a9 0d       ..             ; CR padding
     sta l1063                                                         ; 88ec: 8d 63 10    .c.            ; Store CR after name
     lda #&cc                                                          ; 88ef: a9 cc       ..             ; Point to dummy dir entry at &94CC
-    sta zp_entry_ptr                                                  ; 88f1: 85 b6       ..             ; Store pointer low
+    sta zp_entry_ptr_lo                                               ; 88f1: 85 b6       ..             ; Store pointer low
     lda #&94                                                          ; 88f3: a9 94       ..             ; Pointer high = &94
-    sta zp_entry_ptr_h                                                ; 88f5: 85 b7       ..             ; Store pointer high
+    sta zp_entry_ptr_hi                                               ; 88f5: 85 b7       ..             ; Store pointer high
     lda #2                                                            ; 88f7: a9 02       ..             ; A=2: root sector number
     sta l10c0                                                         ; 88f9: 8d c0 10    ...            ; Store as found sector
     lda #0                                                            ; 88fc: a9 00       ..             ; A=0: success (Z set)
@@ -2455,29 +2455,29 @@ lffff                                           = &ffff
 ; ***************************************************************************************
 ; &8905 referenced 2 times by &8940, &8944
 .save_text_ptr_after_match
-    lda zp_text_ptr                                                   ; 8905: a5 b4       ..             ; Save current text pointer
+    lda zp_text_ptr_lo                                                ; 8905: a5 b4       ..             ; Save current text pointer
     pha                                                               ; 8907: 48          H              ; Push low byte
-    lda zp_text_ptr_h                                                 ; 8908: a5 b5       ..             ; Get high byte
+    lda zp_text_ptr_hi                                                ; 8908: a5 b5       ..             ; Get high byte
     pha                                                               ; 890a: 48          H              ; Push high byte
     tya                                                               ; 890b: 98          .              ; Transfer Y to A (matched length)
     clc                                                               ; 890c: 18          .              ; Clear carry for addition
-    adc zp_text_ptr                                                   ; 890d: 65 b4       e.             ; Add matched length to text pointer
-    sta zp_text_ptr                                                   ; 890f: 85 b4       ..             ; Store updated text pointer low
+    adc zp_text_ptr_lo                                                ; 890d: 65 b4       e.             ; Add matched length to text pointer
+    sta zp_text_ptr_lo                                                ; 890f: 85 b4       ..             ; Store updated text pointer low
     lda #0                                                            ; 8911: a9 00       ..             ; A=0 for carry propagation
-    adc zp_text_ptr_h                                                 ; 8913: 65 b5       e.             ; Add carry to high byte
-    sta zp_text_ptr_h                                                 ; 8915: 85 b5       ..             ; Store updated text pointer high
+    adc zp_text_ptr_hi                                                ; 8913: 65 b5       e.             ; Add carry to high byte
+    sta zp_text_ptr_hi                                                ; 8915: 85 b5       ..             ; Store updated text pointer high
     jsr skip_spaces                                                   ; 8917: 20 cf a4     ..            ; Skip spaces after path component; Skip leading spaces in command argument
-    lda zp_text_ptr                                                   ; 891a: a5 b4       ..             ; Save remaining text pointer
+    lda zp_text_ptr_lo                                                ; 891a: a5 b4       ..             ; Save remaining text pointer
     sta l10d6                                                         ; 891c: 8d d6 10    ...            ; Store for later use
-    lda zp_text_ptr_h                                                 ; 891f: a5 b5       ..             ; Get high byte
+    lda zp_text_ptr_hi                                                ; 891f: a5 b5       ..             ; Get high byte
     sta wksp_shadow_save                                              ; 8921: 8d d7 10    ...            ; Store high byte
     pla                                                               ; 8924: 68          h              ; Restore original text pointer
-    sta zp_text_ptr_h                                                 ; 8925: 85 b5       ..             ; Store high byte
+    sta zp_text_ptr_hi                                                ; 8925: 85 b5       ..             ; Store high byte
     pla                                                               ; 8927: 68          h              ; Restore low byte
-    sta zp_text_ptr                                                   ; 8928: 85 b4       ..             ; Store low byte
+    sta zp_text_ptr_lo                                                ; 8928: 85 b4       ..             ; Store low byte
     ldx #1                                                            ; 892a: a2 01       ..             ; X=1: object type (file)
     ldy #3                                                            ; 892c: a0 03       ..             ; Y=3: check access byte
-    lda (zp_entry_ptr),y                                              ; 892e: b1 b6       ..             ; Get access/attribute byte
+    lda (zp_entry_ptr_lo),y                                           ; 892e: b1 b6       ..             ; Get access/attribute byte
     bpl scan_for_component_end                                        ; 8930: 10 01       ..             ; Bit 7 clear: not a directory
     inx                                                               ; 8932: e8          .              ; Bit 7 set: X=2 (directory); X=&02
 ; &8933 referenced 1 time by &8930
@@ -2506,7 +2506,7 @@ lffff                                           = &ffff
 ; &8950 referenced 1 time by &8959
 .check_access_is_dir_loop
     ldy #3                                                            ; 8950: a0 03       ..             ; Y=3: check if entry is directory
-    lda (zp_entry_ptr),y                                              ; 8952: b1 b6       ..             ; Get access byte
+    lda (zp_entry_ptr_lo),y                                           ; 8952: b1 b6       ..             ; Get access byte
     bmi descend_into_subdir                                           ; 8954: 30 1f       0.             ; Bit 7: is a directory
     jsr advance_dir_entry_ptr                                         ; 8956: 20 5e 89     ^.            ; Not dir: advance to next entry; Advance to next matching directory entry
     beq check_access_is_dir_loop                                      ; 8959: f0 f5       ..             ; Found next entry: retry match
@@ -2529,15 +2529,15 @@ lffff                                           = &ffff
 ; &895e referenced 8 times by &8956, &8972, &8bba, &948a, &94f2, &99be, &9c4e, &a88c
 .advance_dir_entry_ptr
     clc                                                               ; 895e: 18          .              ; Clear carry for addition
-    lda zp_entry_ptr                                                  ; 895f: a5 b6       ..             ; Get entry pointer low
+    lda zp_entry_ptr_lo                                               ; 895f: a5 b6       ..             ; Get entry pointer low
     adc #&1a                                                          ; 8961: 69 1a       i.             ; Add &1A (26 bytes per entry)
-    sta zp_entry_ptr                                                  ; 8963: 85 b6       ..             ; Store updated pointer
+    sta zp_entry_ptr_lo                                               ; 8963: 85 b6       ..             ; Store updated pointer
     bcc compare_next_dir_entry                                        ; 8965: 90 02       ..             ; No page crossing
-    inc zp_entry_ptr_h                                                ; 8967: e6 b7       ..             ; Increment page on overflow
+    inc zp_entry_ptr_hi                                               ; 8967: e6 b7       ..             ; Increment page on overflow
 ; &8969 referenced 1 time by &8965
 .compare_next_dir_entry
     ldy #0                                                            ; 8969: a0 00       ..             ; Y=0: check first byte
-    lda (zp_entry_ptr),y                                              ; 896b: b1 b6       ..             ; Get first byte of next entry
+    lda (zp_entry_ptr_lo),y                                           ; 896b: b1 b6       ..             ; Get first byte of next entry
     beq next_entry_not_found                                          ; 896d: f0 ec       ..             ; Zero: end of entries (not found)
     jsr check_filename_length                                         ; 896f: 20 2d 87     -.            ; Compare against pattern; Check filename is within 10-character limit
     bne advance_dir_entry_ptr                                         ; 8972: d0 ea       ..             ; No match: try next entry; Advance to next matching directory entry
@@ -2546,10 +2546,10 @@ lffff                                           = &ffff
 ; &8975 referenced 1 time by &8954
 .descend_into_subdir
     ldy #9                                                            ; 8975: a0 09       ..             ; Y=9: check last name byte
-    lda (zp_entry_ptr),y                                              ; 8977: b1 b6       ..             ; Get name byte 9
+    lda (zp_entry_ptr_lo),y                                           ; 8977: b1 b6       ..             ; Get name byte 9
     bpl advance_text_past_component                                   ; 8979: 10 16       ..             ; Bit 7 clear: normal descent
     and #&7f                                                          ; 897b: 29 7f       ).             ; Bit 7 set: clear it (bad rename?)
-    sta (zp_entry_ptr),y                                              ; 897d: 91 b6       ..             ; Store cleaned name byte
+    sta (zp_entry_ptr_lo),y                                           ; 897d: 91 b6       ..             ; Store cleaned name byte
     jsr write_dir_and_validate                                        ; 897f: 20 86 8f     ..            ; Write directory back to disc; Write directory and FSM back to disc
 ; &8982 referenced 1 time by &a500
 .clean_dir_rename_bit
@@ -2561,10 +2561,10 @@ lffff                                           = &ffff
 .advance_text_past_component
     lda l10a2                                                         ; 8991: ad a2 10    ...            ; Get matched component length
     sec                                                               ; 8994: 38          8              ; Set carry (add 1 for separator)
-    adc zp_text_ptr                                                   ; 8995: 65 b4       e.             ; Add to text pointer
-    sta zp_text_ptr                                                   ; 8997: 85 b4       ..             ; Store updated pointer low
+    adc zp_text_ptr_lo                                                ; 8995: 65 b4       e.             ; Add to text pointer
+    sta zp_text_ptr_lo                                                ; 8997: 85 b4       ..             ; Store updated pointer low
     bcc check_alt_workspace_set                                       ; 8999: 90 02       ..             ; No page crossing
-    inc zp_text_ptr_h                                                 ; 899b: e6 b5       ..             ; Increment page
+    inc zp_text_ptr_hi                                                ; 899b: e6 b5       ..             ; Increment page
 ; &899d referenced 1 time by &8999
 .check_alt_workspace_set
     lda l102e                                                         ; 899d: ad 2e 10    ...            ; Check if alt workspace is set
@@ -2590,7 +2590,7 @@ lffff                                           = &ffff
     ldy #&16                                                          ; 89bc: a0 16       ..             ; Y=&16: start sector in entry
 ; &89be referenced 1 time by &89c8
 .copy_subdir_sector_loop
-    lda (zp_entry_ptr),y                                              ; 89be: b1 b6       ..             ; Get sector byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 89be: b1 b6       ..             ; Get sector byte from entry
     sta wksp_disc_op_sector,x                                         ; 89c0: 9d 1b 10    ...            ; Store in disc op sector field
     sta l10fe,y                                                       ; 89c3: 99 fe 10    ...            ; Also store in CSD info
     iny                                                               ; 89c6: c8          .              ; Next entry byte
@@ -2665,14 +2665,14 @@ lffff                                           = &ffff
 ; &8a27 referenced 1 time by &8a2d
 .save_wksp_page_loop
     lda wksp_csd_name,y                                               ; 8a27: b9 00 11    ...            ; Get workspace byte
-    sta (zp_wksp_ptr),y                                               ; 8a2a: 91 ba       ..             ; Store in saved workspace
+    sta (zp_wksp_ptr_lo),y                                            ; 8a2a: 91 ba       ..             ; Store in saved workspace
     dey                                                               ; 8a2c: 88          .              ; Next byte
     bne save_wksp_page_loop                                           ; 8a2d: d0 f8       ..             ; Loop until Y=0
     lda wksp_csd_name                                                 ; 8a2f: ad 00 11    ...            ; Get byte at Y=0 too
-    sta (zp_wksp_ptr),y                                               ; 8a32: 91 ba       ..             ; Store in saved workspace
+    sta (zp_wksp_ptr_lo),y                                            ; 8a32: 91 ba       ..             ; Store in saved workspace
     jsr store_wksp_checksum_ba_y                                      ; 8a34: 20 2b a7     +.            ; Update workspace checksum; Calculate and store workspace checksum
-    ldx zp_osfile_ptr                                                 ; 8a37: a6 b8       ..             ; Restore X from (&B8)
-    ldy zp_osfile_ptr_h                                               ; 8a39: a4 b9       ..             ; Restore Y from (&B9)
+    ldx zp_osfile_ptr_lo                                              ; 8a37: a6 b8       ..             ; Restore X from (&B8)
+    ldy zp_osfile_ptr_hi                                              ; 8a39: a4 b9       ..             ; Restore Y from (&B9)
     pla                                                               ; 8a3b: 68          h              ; Restore object type from stack
 ; &8a3c referenced 1 time by &8a40
 .return_13
@@ -2817,8 +2817,8 @@ lffff                                           = &ffff
 .set_transfer_length
     ldx #&15                                                          ; 8b04: a2 15       ..             ; X=&15: disc op block offset
     ldy #&10                                                          ; 8b06: a0 10       ..             ; Y=&10: disc op block page
-    stx zp_ctrl_blk                                                   ; 8b08: 86 b0       ..             ; Store in (&B0)
-    sty zp_ctrl_blk_h                                                 ; 8b0a: 84 b1       ..             ; Store page in (&B1)
+    stx zp_ctrl_blk_lo                                                ; 8b08: 86 b0       ..             ; Store in (&B0)
+    sty zp_ctrl_blk_hi                                                ; 8b0a: 84 b1       ..             ; Store page in (&B1)
     lda wksp_current_drive                                            ; 8b0c: ad 17 11    ...            ; Get current drive
     ora wksp_disc_op_sector                                           ; 8b0f: 0d 1b 10    ...            ; OR into sector high byte
     sta wksp_disc_op_sector                                           ; 8b12: 8d 1b 10    ...            ; Store updated sector+drive
@@ -2863,9 +2863,9 @@ lffff                                           = &ffff
     bmi floppy_partial_sector                                         ; 8b44: 30 d8       0.             ; Bit 5 clear: floppy, use floppy path; Floppy disc partial sector transfer
     jsr scsi_start_command                                            ; 8b46: 20 65 80     e.            ; Select SCSI target; SCSI bus selection and command phase
     lda wksp_disc_op_mem_addr                                         ; 8b49: ad 16 10    ...            ; Get transfer address low from blk
-    sta zp_mem_ptr                                                    ; 8b4c: 85 b2       ..             ; Store in (&B2)
+    sta zp_mem_ptr_lo                                                 ; 8b4c: 85 b2       ..             ; Store in (&B2)
     lda l1017                                                         ; 8b4e: ad 17 10    ...            ; Get transfer address mid
-    sta zp_mem_ptr_h                                                  ; 8b51: 85 b3       ..             ; Store in (&B3)
+    sta zp_mem_ptr_hi                                                 ; 8b51: 85 b3       ..             ; Store in (&B3)
     lda l1018                                                         ; 8b53: ad 18 10    ...            ; Get transfer address high
     cmp #&fe                                                          ; 8b56: c9 fe       ..             ; Address >= &FE00?
     bcc check_partial_sector_needed                                   ; 8b58: 90 07       ..             ; Below: might need Tube claim
@@ -2918,7 +2918,7 @@ lffff                                           = &ffff
     bvs partial_write_to_disc                                         ; 8ba8: 70 02       p.             ; Always branch (V always set here)
 ; &8baa referenced 1 time by &8ba0
 .check_write_or_read
-    sta (zp_mem_ptr),y                                                ; 8baa: 91 b2       ..             ; Store byte in memory buffer
+    sta (zp_mem_ptr_lo),y                                             ; 8baa: 91 b2       ..             ; Store byte in memory buffer
 ; &8bac referenced 1 time by &8ba8
 .partial_write_to_disc
     dex                                                               ; 8bac: ca          .              ; Decrement remaining byte count
@@ -2954,7 +2954,7 @@ lffff                                           = &ffff
 ; &8bbf referenced 1 time by &8bb6
 .complete_partial_op
     ldy #3                                                            ; 8bbf: a0 03       ..             ; Y=3: check access byte
-    lda (zp_entry_ptr),y                                              ; 8bc1: b1 b6       ..             ; Get access byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 8bc1: b1 b6       ..             ; Get access byte from entry
     bmi copy_partial_read_loop                                        ; 8bc3: 30 f5       0.             ; Bit 7: is a directory, skip it
 ; &8bc5 referenced 1 time by &8bee
 .check_partial_sectors_done
@@ -2973,7 +2973,7 @@ lffff                                           = &ffff
 ; &8bc8 referenced 6 times by &8c08, &8cf6, &94ec, &9942, &a514, &a834
 .not_found_error
     ldy #0                                                            ; 8bc8: a0 00       ..             ; Y=0: get first path char
-    lda (zp_text_ptr),y                                               ; 8bca: b1 b4       ..             ; Get first character
+    lda (zp_text_ptr_lo),y                                            ; 8bca: b1 b4       ..             ; Get first character
     cmp #&5e ; '^'                                                    ; 8bcc: c9 5e       .^             ; Is it '^' (parent)?
     bne file_is_locked_error                                          ; 8bce: d0 03       ..             ; No, check '@'
 ; &8bd0 referenced 1 time by &8bd5
@@ -2995,7 +2995,7 @@ lffff                                           = &ffff
     jsr find_first_matching_entry                                     ; 8be5: 20 df 8f     ..            ; Search for file; Find first matching directory entry
     bne return_15                                                     ; 8be8: d0 dd       ..             ; Not found: return
     ldy #4                                                            ; 8bea: a0 04       ..             ; Y=4: check E attribute byte
-    lda (zp_entry_ptr),y                                              ; 8bec: b1 b6       ..             ; Get access/E byte
+    lda (zp_entry_ptr_lo),y                                           ; 8bec: b1 b6       ..             ; Get access/E byte
     bpl check_partial_sectors_done                                    ; 8bee: 10 d5       ..             ; Bit 7 clear: not E, return found
 ; &8bf0 referenced 4 times by &8c0e, &a41b, &b256, &b2f8
 .validate_found_entry
@@ -3021,17 +3021,17 @@ lffff                                           = &ffff
     jsr exec_disc_and_check_error                                     ; 8c05: 20 b3 8b     ..            ; Search for matching non-directory file; Search for non-directory file
     bne not_found_error                                               ; 8c08: d0 be       ..             ; Not found: report Not found error; Generate Not found error
     ldy #0                                                            ; 8c0a: a0 00       ..             ; Y=0: check first entry name byte
-    lda (zp_entry_ptr),y                                              ; 8c0c: b1 b6       ..             ; Get first byte of found entry
+    lda (zp_entry_ptr_lo),y                                           ; 8c0c: b1 b6       ..             ; Get first byte of found entry
     bpl validate_found_entry                                          ; 8c0e: 10 e0       ..             ; Bit 7 clear: no read access, error
 ; &8c10 referenced 1 time by &a41e
 .create_new_dir_entry
     ldy #6                                                            ; 8c10: a0 06       ..             ; Y=6: check control block byte 6
-    lda (zp_osfile_ptr),y                                             ; 8c12: b1 b8       ..             ; Get byte 6
+    lda (zp_osfile_ptr_lo),y                                          ; 8c12: b1 b8       ..             ; Get byte 6
     bne allocate_space_for_file                                       ; 8c14: d0 0d       ..             ; Non-zero: use entry's load address
     dey                                                               ; 8c16: 88          .              ; Y=5: copy bytes 2-5 from block; Y=&05
 ; &8c17 referenced 1 time by &8c1f
 .clear_osfile_block_loop
-    lda (zp_osfile_ptr),y                                             ; 8c17: b1 b8       ..             ; Get control block byte
+    lda (zp_osfile_ptr_lo),y                                          ; 8c17: b1 b8       ..             ; Get control block byte
     sta wksp_1014,y                                                   ; 8c19: 99 14 10    ...            ; Store in disc op workspace
     dey                                                               ; 8c1c: 88          .              ; Next byte
     cpy #1                                                            ; 8c1d: c0 01       ..             ; Past byte 1?
@@ -3044,7 +3044,7 @@ lffff                                           = &ffff
     ldy #&0d                                                          ; 8c25: a0 0d       ..             ; Y=&0D: entry offset for load addr
 ; &8c27 referenced 1 time by &8c2e
 .copy_alloc_sector_loop
-    lda (zp_entry_ptr),y                                              ; 8c27: b1 b6       ..             ; Get byte from directory entry
+    lda (zp_entry_ptr_lo),y                                           ; 8c27: b1 b6       ..             ; Get byte from directory entry
     sta wksp_disc_op_result,x                                         ; 8c29: 9d 15 10    ...            ; Store in disc op workspace
     dey                                                               ; 8c2c: 88          .              ; Next entry byte
     dex                                                               ; 8c2d: ca          .              ; Next workspace byte
@@ -3061,7 +3061,7 @@ lffff                                           = &ffff
     ldx #3                                                            ; 8c41: a2 03       ..             ; X=3: copy 3+1 sector bytes
 ; &8c43 referenced 1 time by &8c4a
 .copy_name_byte_loop
-    lda (zp_entry_ptr),y                                              ; 8c43: b1 b6       ..             ; Get sector byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 8c43: b1 b6       ..             ; Get sector byte from entry
     sta wksp_disc_op_command,x                                        ; 8c45: 9d 1a 10    ...            ; Store in disc op command block
     iny                                                               ; 8c48: c8          .              ; Next entry byte
     dex                                                               ; 8c49: ca          .              ; Next command byte
@@ -3070,7 +3070,7 @@ lffff                                           = &ffff
     ldx #4                                                            ; 8c4e: a2 04       ..             ; X=4: copy length bytes
 ; &8c50 referenced 1 time by &8c57
 .set_access_bits_loop
-    lda (zp_entry_ptr),y                                              ; 8c50: b1 b6       ..             ; Get length byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 8c50: b1 b6       ..             ; Get length byte from entry
     sta wksp_disc_op_control,x                                        ; 8c52: 9d 1f 10    ...            ; Store in control field
     dey                                                               ; 8c55: 88          .              ; Next byte
     dex                                                               ; 8c56: ca          .              ; Next control byte
@@ -3097,7 +3097,7 @@ lffff                                           = &ffff
     ldx #&0b                                                          ; 8c67: a2 0b       ..             ; X=&0B: copy 12 bytes to workspace
 ; &8c69 referenced 1 time by &8c70
 .scan_dir_entries_loop
-    lda (zp_entry_ptr),y                                              ; 8c69: b1 b6       ..             ; Get entry data byte
+    lda (zp_entry_ptr_lo),y                                           ; 8c69: b1 b6       ..             ; Get entry data byte
     sta wksp_disc_op_result,x                                         ; 8c6b: 9d 15 10    ...            ; Store in disc op workspace
     dey                                                               ; 8c6e: 88          .              ; Next entry byte (decreasing)
     dex                                                               ; 8c6f: ca          .              ; Next workspace byte (decreasing)
@@ -3107,7 +3107,7 @@ lffff                                           = &ffff
 ; &8c76 referenced 1 time by &8c7d
 .compare_entry_names_loop
     lda wksp_disc_op_result,x                                         ; 8c76: bd 15 10    ...            ; Get byte from workspace
-    sta (zp_osfile_ptr),y                                             ; 8c79: 91 b8       ..             ; Store in OSFILE control block
+    sta (zp_osfile_ptr_lo),y                                          ; 8c79: 91 b8       ..             ; Store in OSFILE control block
     dey                                                               ; 8c7b: 88          .              ; Next control block byte
     dex                                                               ; 8c7c: ca          .              ; Next workspace byte
     bpl compare_entry_names_loop                                      ; 8c7d: 10 f7       ..             ; Loop for 12 bytes
@@ -3116,7 +3116,7 @@ lffff                                           = &ffff
     ldy #2                                                            ; 8c84: a0 02       ..             ; Y=2: process 3 name bytes (R,W,L)
 ; &8c86 referenced 1 time by &8c8d
 .build_filename_loop
-    lda (zp_entry_ptr),y                                              ; 8c86: b1 b6       ..             ; Get name byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 8c86: b1 b6       ..             ; Get name byte from entry
     asl a                                                             ; 8c88: 0a          .              ; Shift bit 7 (attribute) into carry
     rol wksp_102b                                                     ; 8c89: 2e 2b 10    .+.            ; Rotate into access accumulator
     dey                                                               ; 8c8c: 88          .              ; Next name byte
@@ -3136,20 +3136,20 @@ lffff                                           = &ffff
     lsr a                                                             ; 8c9f: 4a          J              ; Fourth shift
     ora wksp_102b                                                     ; 8ca0: 0d 2b 10    .+.            ; OR with saved bits
     ldy #&0e                                                          ; 8ca3: a0 0e       ..             ; Y=&0E: OSFILE access byte position
-    sta (zp_osfile_ptr),y                                             ; 8ca5: 91 b8       ..             ; Store access byte in control block
+    sta (zp_osfile_ptr_lo),y                                          ; 8ca5: 91 b8       ..             ; Store access byte in control block
     rts                                                               ; 8ca7: 60          `              ; Return
 
 .osfile_save_handler
     ldy #0                                                            ; 8ca8: a0 00       ..             ; Y=0: get filename addr from block
-    lda (zp_osfile_ptr),y                                             ; 8caa: b1 b8       ..             ; Get filename address low
-    sta zp_text_ptr                                                   ; 8cac: 85 b4       ..             ; Store in (&B4)
+    lda (zp_osfile_ptr_lo),y                                          ; 8caa: b1 b8       ..             ; Get filename address low
+    sta zp_text_ptr_lo                                                ; 8cac: 85 b4       ..             ; Store in (&B4)
     iny                                                               ; 8cae: c8          .              ; Y=&01
-    lda (zp_osfile_ptr),y                                             ; 8caf: b1 b8       ..             ; Get filename address high
-    sta zp_text_ptr_h                                                 ; 8cb1: 85 b5       ..             ; Store in (&B5)
+    lda (zp_osfile_ptr_lo),y                                          ; 8caf: b1 b8       ..             ; Get filename address high
+    sta zp_text_ptr_hi                                                ; 8cb1: 85 b5       ..             ; Store in (&B5)
     jsr find_first_matching_entry                                     ; 8cb3: 20 df 8f     ..            ; Search for file in directory; Find first matching directory entry
     bne delete_existing_before_save                                   ; 8cb6: d0 0e       ..             ; Found? Copy catalogue info
     ldy #4                                                            ; 8cb8: a0 04       ..             ; Y=4: check E attribute
-    lda (zp_entry_ptr),y                                              ; 8cba: b1 b6       ..             ; Get E attribute byte
+    lda (zp_entry_ptr_lo),y                                           ; 8cba: b1 b6       ..             ; Get E attribute byte
     bpl check_existing_for_save                                       ; 8cbc: 10 05       ..             ; Bit 7 clear: not E, copy info; Check for existing file before save
     lda #&ff                                                          ; 8cbe: a9 ff       ..             ; E attribute: return A=&FF
     jmp save_wksp_and_return                                          ; 8cc0: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
@@ -3182,11 +3182,11 @@ lffff                                           = &ffff
 ; &8cc9 referenced 3 times by &8ce2, &8ce9, &911e
 .setup_disc_write
     ldy #0                                                            ; 8cc9: a0 00       ..             ; Y=0: get filename from block
-    lda (zp_osfile_ptr),y                                             ; 8ccb: b1 b8       ..             ; Get filename address low
-    sta zp_text_ptr                                                   ; 8ccd: 85 b4       ..             ; Store in (&B4)
+    lda (zp_osfile_ptr_lo),y                                          ; 8ccb: b1 b8       ..             ; Get filename address low
+    sta zp_text_ptr_lo                                                ; 8ccd: 85 b4       ..             ; Store in (&B4)
     iny                                                               ; 8ccf: c8          .              ; Y=&01
-    lda (zp_osfile_ptr),y                                             ; 8cd0: b1 b8       ..             ; Get filename address high
-    sta zp_text_ptr_h                                                 ; 8cd2: 85 b5       ..             ; Store in (&B5)
+    lda (zp_osfile_ptr_lo),y                                          ; 8cd0: b1 b8       ..             ; Get filename address high
+    sta zp_text_ptr_hi                                                ; 8cd2: 85 b5       ..             ; Store in (&B5)
     jsr set_up_gsinit_path                                            ; 8cd4: 20 bd 8d     ..            ; Parse path and set up directory
     jsr find_first_matching_entry                                     ; 8cd7: 20 df 8f     ..            ; Search for file; Find first matching directory entry
     beq return_16                                                     ; 8cda: f0 05       ..             ; Found: return Z set
@@ -3211,7 +3211,7 @@ lffff                                           = &ffff
     ldy #0                                                            ; 8cee: a0 00       ..             ; Y=0: check remaining path
 ; &8cf0 referenced 1 time by &8d02
 .copy_3byte_addrs_loop
-    lda (zp_text_ptr),y                                               ; 8cf0: b1 b4       ..             ; Get next path character
+    lda (zp_text_ptr_lo),y                                            ; 8cf0: b1 b4       ..             ; Get next path character
     cmp #&2e ; '.'                                                    ; 8cf2: c9 2e       ..             ; Is it '.' (path separator)?
     bne copy_4byte_addrs_loop                                         ; 8cf4: d0 03       ..             ; Yes: check for ^ or @ error
 ; &8cf6 referenced 1 time by &8cdf
@@ -3234,7 +3234,7 @@ lffff                                           = &ffff
 ; &8d07 referenced 1 time by &8cec
 .write_entry_metadata
     ldy #3                                                            ; 8d07: a0 03       ..             ; Y=3: check if it's a directory
-    lda (zp_entry_ptr),y                                              ; 8d09: b1 b6       ..             ; Get access byte
+    lda (zp_entry_ptr_lo),y                                           ; 8d09: b1 b6       ..             ; Get access byte
     bpl check_file_not_open                                           ; 8d0b: 10 03       ..             ; Bit 7 clear: not dir, create file; Check file is not locked or open
     jmp already_exists_error2                                         ; 8d0d: 4c a4 95    L..            ; Directory: Already exists error
 
@@ -3249,7 +3249,7 @@ lffff                                           = &ffff
 ; &8d10 referenced 5 times by &8ce5, &8d0b, &9128, &a589, &b306
 .check_file_not_open
     ldy #2                                                            ; 8d10: a0 02       ..             ; Y=2: check file access
-    lda (zp_entry_ptr),y                                              ; 8d12: b1 b6       ..             ; Get access byte 2 (L attribute)
+    lda (zp_entry_ptr_lo),y                                           ; 8d12: b1 b6       ..             ; Get access byte 2 (L attribute)
     bpl check_open                                                    ; 8d14: 10 0b       ..             ; Check if file is open
     jsr reload_fsm_and_dir_then_brk                                   ; 8d16: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &c3                                                          ; 8d19: c3          .              ; Error &C3: Locked
@@ -3283,7 +3283,7 @@ lffff                                           = &ffff
     cmp l1116                                                         ; 8d45: cd 16 11    ...            ; With target sector high
     bne no_open_files_on_drive                                        ; 8d48: d0 1f       ..             ; No match? Skip; No open file conflict found
     ldy #&19                                                          ; 8d4a: a0 19       ..             ; Y=&19: compare sequence number
-    lda (zp_entry_ptr),y                                              ; 8d4c: b1 b6       ..             ; Get entry sequence from dir
+    lda (zp_entry_ptr_lo),y                                           ; 8d4c: b1 b6       ..             ; Get entry sequence from dir
     cmp l11f2,x                                                       ; 8d4e: dd f2 11    ...            ; Compare with channel's sequence
     bne no_open_files_on_drive                                        ; 8d51: d0 16       ..             ; Mismatch: not the same file; No open file conflict found
 ; &8d53 referenced 1 time by &b24a
@@ -3378,7 +3378,7 @@ lffff                                           = &ffff
     jsr set_up_directory_search                                       ; 8dbd: 20 6e 8d     n.            ; Save text pointer low; Validate path and check for wildcards; Push on stack
 ; &8dc0 referenced 1 time by &8dd3
 .gsinit_scan_loop
-    lda (zp_text_ptr),y                                               ; 8dc0: b1 b4       ..             ; Save text pointer high
+    lda (zp_text_ptr_lo),y                                            ; 8dc0: b1 b4       ..             ; Save text pointer high
     and #&7f                                                          ; 8dc2: 29 7f       ).             ; Push on stack; Get text pointer low
     cmp #&2a ; '*'                                                    ; 8dc4: c9 2a       .*             ; Store for GSINIT
     beq mark_saved_drive_unset                                        ; 8dc6: f0 16       ..             ; Raise Wild cards error; Get text pointer high
@@ -3455,13 +3455,13 @@ lffff                                           = &ffff
     bne no_empty_entry_found                                          ; 8df6: d0 21       .!             ; Ensure directory integrity
     ldx #2                                                            ; 8df8: a2 02       ..             ; Point (&B6) to first dir entry
     ldy #&12                                                          ; 8dfa: a0 12       ..             ; Y=&12: offset of first dir entry
-    lda (zp_entry_ptr),y                                              ; 8dfc: b1 b6       ..             ; Get first byte of entry
+    lda (zp_entry_ptr_lo),y                                           ; 8dfc: b1 b6       ..             ; Get first byte of entry
     cmp #1                                                            ; 8dfe: c9 01       ..             ; Zero: found empty slot
 ; &8e00 referenced 1 time by &8e09
 .scan_entry_bytes_loop
     iny                                                               ; 8e00: c8          .              ; Next entry byte
     lda #0                                                            ; 8e01: a9 00       ..             ; Get name and compare
-    adc (zp_entry_ptr),y                                              ; 8e03: 71 b6       q.             ; Match: file already exists
+    adc (zp_entry_ptr_lo),y                                           ; 8e03: 71 b6       q.             ; Match: file already exists
     sta wksp_1024,y                                                   ; 8e05: 99 24 10    .$.            ; Advance to next entry (+&1A)
     dex                                                               ; 8e08: ca          .              ; Clear carry for addition
     bpl scan_entry_bytes_loop                                         ; 8e09: 10 f5       ..             ; Add 26 bytes
@@ -3469,7 +3469,7 @@ lffff                                           = &ffff
     ldx #2                                                            ; 8e0d: a2 02       ..             ; No page crossing
 ; &8e0f referenced 1 time by &8e16
 .find_empty_entry_loop
-    lda (zp_entry_ptr),y                                              ; 8e0f: b1 b6       ..             ; Increment page
+    lda (zp_entry_ptr_lo),y                                           ; 8e0f: b1 b6       ..             ; Increment page
     sta wksp_object_sector,x                                          ; 8e11: 9d 34 10    .4.            ; Continue searching; Check if directory full
     dey                                                               ; 8e14: 88          .              ; Back up one entry position
     dex                                                               ; 8e15: ca          .              ; Compare pointer with &16B1
@@ -3486,14 +3486,14 @@ lffff                                           = &ffff
 
 ; &8e2b referenced 1 time by &8e1c
 .check_name_already_exists
-    lda zp_text_ptr                                                   ; 8e2b: a5 b4       ..             ; Save text pointer low
+    lda zp_text_ptr_lo                                                ; 8e2b: a5 b4       ..             ; Save text pointer low
     sta wksp_tube_transfer_addr_1                                     ; 8e2d: 8d 27 10    .'.            ; Store in workspace
-    lda zp_text_ptr_h                                                 ; 8e30: a5 b5       ..             ; Save text pointer high
+    lda zp_text_ptr_hi                                                ; 8e30: a5 b5       ..             ; Save text pointer high
     sta wksp_1028                                                     ; 8e32: 8d 28 10    .(.            ; Store in workspace
     lda #&b1                                                          ; 8e35: a9 b1       ..             ; Point to end of entries (&16B1)
-    sta zp_text_ptr                                                   ; 8e37: 85 b4       ..             ; Store pointer low
+    sta zp_text_ptr_lo                                                ; 8e37: 85 b4       ..             ; Store pointer low
     lda #&16                                                          ; 8e39: a9 16       ..             ; Page &16
-    sta zp_text_ptr_h                                                 ; 8e3b: 85 b5       ..             ; Store pointer high
+    sta zp_text_ptr_hi                                                ; 8e3b: 85 b5       ..             ; Store pointer high
     ldy #&1a                                                          ; 8e3d: a0 1a       ..             ; Y=&1A: offset for source entry
     ldx #6                                                            ; 8e3f: a2 06       ..             ; X=6: clear 7 bytes of new entry
     lda #0                                                            ; 8e41: a9 00       ..             ; A=0: zero fill
@@ -3504,30 +3504,30 @@ lffff                                           = &ffff
     bne compare_names_loop                                            ; 8e47: d0 fa       ..             ; Loop for 7 bytes
 ; &8e49 referenced 1 time by &8e61
 .copy_entry_data_loop
-    lda (zp_text_ptr,x)                                               ; 8e49: a1 b4       ..             ; Get source entry byte
-    sta (zp_text_ptr),y                                               ; 8e4b: 91 b4       ..             ; Copy to destination (shift up)
-    lda zp_text_ptr                                                   ; 8e4d: a5 b4       ..             ; Check if at target position
-    cmp zp_entry_ptr                                                  ; 8e4f: c5 b6       ..             ; Compare low byte
+    lda (zp_text_ptr_lo,x)                                            ; 8e49: a1 b4       ..             ; Get source entry byte
+    sta (zp_text_ptr_lo),y                                            ; 8e4b: 91 b4       ..             ; Copy to destination (shift up)
+    lda zp_text_ptr_lo                                                ; 8e4d: a5 b4       ..             ; Check if at target position
+    cmp zp_entry_ptr_lo                                               ; 8e4f: c5 b6       ..             ; Compare low byte
     bne write_entry_to_dir                                            ; 8e51: d0 06       ..             ; Not there yet
-    lda zp_text_ptr_h                                                 ; 8e53: a5 b5       ..             ; Compare high byte
-    cmp zp_entry_ptr_h                                                ; 8e55: c5 b7       ..             ; Match: target reached
+    lda zp_text_ptr_hi                                                ; 8e53: a5 b5       ..             ; Compare high byte
+    cmp zp_entry_ptr_hi                                               ; 8e55: c5 b7       ..             ; Match: target reached
     beq mark_directory_modified                                       ; 8e57: f0 0b       ..             ; Done shifting
 ; &8e59 referenced 1 time by &8e51
 .write_entry_to_dir
-    lda zp_text_ptr                                                   ; 8e59: a5 b4       ..             ; Decrement source pointer
+    lda zp_text_ptr_lo                                                ; 8e59: a5 b4       ..             ; Decrement source pointer
     bne mark_entry_created                                            ; 8e5b: d0 02       ..             ; Low byte non-zero
-    dec zp_text_ptr_h                                                 ; 8e5d: c6 b5       ..             ; Zero: decrement high byte
+    dec zp_text_ptr_hi                                                ; 8e5d: c6 b5       ..             ; Zero: decrement high byte
 ; &8e5f referenced 1 time by &8e5b
 .mark_entry_created
-    dec zp_text_ptr                                                   ; 8e5f: c6 b4       ..             ; Decrement low byte
+    dec zp_text_ptr_lo                                                ; 8e5f: c6 b4       ..             ; Decrement low byte
     jmp copy_entry_data_loop                                          ; 8e61: 4c 49 8e    LI.            ; Continue shifting loop
 
 ; &8e64 referenced 1 time by &8e57
 .mark_directory_modified
     lda wksp_tube_transfer_addr_1                                     ; 8e64: ad 27 10    .'.            ; Restore text pointer low
-    sta zp_text_ptr                                                   ; 8e67: 85 b4       ..             ; Store back in (&B4)
+    sta zp_text_ptr_lo                                                ; 8e67: 85 b4       ..             ; Store back in (&B4)
     lda wksp_1028                                                     ; 8e69: ad 28 10    .(.            ; Restore text pointer high
-    sta zp_text_ptr_h                                                 ; 8e6c: 85 b5       ..             ; Store back in (&B5)
+    sta zp_text_ptr_hi                                                ; 8e6c: 85 b5       ..             ; Store back in (&B5)
     rts                                                               ; 8e6e: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -3543,7 +3543,7 @@ lffff                                           = &ffff
     ldy #9                                                            ; 8e6f: a0 09       ..             ; Get OSFILE block pointer low
 ; &8e71 referenced 1 time by &8e88
 .copy_alloc_request_loop
-    lda (zp_text_ptr),y                                               ; 8e71: b1 b4       ..             ; Store in (&B8)
+    lda (zp_text_ptr_lo),y                                            ; 8e71: b1 b4       ..             ; Store in (&B8)
     and #&7f                                                          ; 8e73: 29 7f       ).             ; Get OSFILE block pointer high
     cmp #&21 ; '!'                                                    ; 8e75: c9 21       .!             ; Store in (&B9)
     bcc store_allocated_sector                                        ; 8e77: 90 04       ..             ; Y=2: copy 3-byte start sector
@@ -3559,7 +3559,7 @@ lffff                                           = &ffff
     ora #&80                                                          ; 8e83: 09 80       ..             ; Set bit 7 for D attribute
 ; &8e85 referenced 1 time by &8e81
 .reduce_alloc_to_available
-    sta (zp_entry_ptr),y                                              ; 8e85: 91 b6       ..             ; Compare with 1 (round up sectors)
+    sta (zp_entry_ptr_lo),y                                           ; 8e85: 91 b6       ..             ; Compare with 1 (round up sectors)
     dey                                                               ; 8e87: 88          .              ; Next byte
     bpl copy_alloc_request_loop                                       ; 8e88: 10 e7       ..             ; Loop for all name bytes
     rts                                                               ; 8e8a: 60          `              ; Return
@@ -3576,7 +3576,7 @@ lffff                                           = &ffff
     ldy #&11                                                          ; 8e8b: a0 11       ..             ; Y=&11: copy filename and attributes
 ; &8e8d referenced 1 time by &8e93
 .copy_name_to_entry_loop
-    lda (zp_osfile_ptr),y                                             ; 8e8d: b1 b8       ..             ; Get name byte from workspace
+    lda (zp_osfile_ptr_lo),y                                          ; 8e8d: b1 b8       ..             ; Get name byte from workspace
     sta wksp_disc_op_result,y                                         ; 8e8f: 99 15 10    ...            ; Store in directory entry
     dey                                                               ; 8e92: 88          .              ; Next byte
     bpl copy_name_to_entry_loop                                       ; 8e93: 10 f8       ..             ; Loop for 10 bytes
@@ -3587,7 +3587,7 @@ lffff                                           = &ffff
 .copy_access_byte_loop
     lda wksp_1011,y                                                   ; 8e9a: b9 11 10    ...            ; Also store in footer
     sbc wksp_100d,y                                                   ; 8e9d: f9 0d 10    ...            ; Y=&19: store in entry
-    sta (zp_entry_ptr),y                                              ; 8ea0: 91 b6       ..             ; Store sequence in entry
+    sta (zp_entry_ptr_lo),y                                           ; 8ea0: 91 b6       ..             ; Store sequence in entry
     iny                                                               ; 8ea2: c8          .              ; Next byte
     dex                                                               ; 8ea3: ca          .              ; Decrement counter
     bpl copy_access_byte_loop                                         ; 8ea4: 10 f4       ..             ; Loop for required bytes
@@ -3595,35 +3595,35 @@ lffff                                           = &ffff
 ; &8ea8 referenced 1 time by &8eb0
 .store_entry_lengths_loop
     lda wksp_100d,y                                                   ; 8ea8: b9 0d 10    ...            ; Get OSFILE data byte
-    sta (zp_entry_ptr),y                                              ; 8eab: 91 b6       ..             ; Store in directory entry
+    sta (zp_entry_ptr_lo),y                                           ; 8eab: 91 b6       ..             ; Store in directory entry
     iny                                                               ; 8ead: c8          .              ; Next byte
     cpy #&12                                                          ; 8eae: c0 12       ..             ; Past length field (Y=&12)?
     bne store_entry_lengths_loop                                      ; 8eb0: d0 f6       ..             ; No: continue copying
-    lda zp_entry_ptr                                                  ; 8eb2: a5 b6       ..             ; Save (&B6) for entry shifting
+    lda zp_entry_ptr_lo                                               ; 8eb2: a5 b6       ..             ; Save (&B6) for entry shifting
     pha                                                               ; 8eb4: 48          H              ; Push on stack
-    lda zp_entry_ptr_h                                                ; 8eb5: a5 b7       ..             ; Save (&B7)
+    lda zp_entry_ptr_hi                                               ; 8eb5: a5 b7       ..             ; Save (&B7)
     pha                                                               ; 8eb7: 48          H              ; Push on stack
 ; &8eb8 referenced 1 time by &8eea
 .store_entry_3byte_sector
     lda #5                                                            ; 8eb8: a9 05       ..             ; Point to first dir entry (&1205)
-    sta zp_entry_ptr                                                  ; 8eba: 85 b6       ..             ; Store pointer low
+    sta zp_entry_ptr_lo                                               ; 8eba: 85 b6       ..             ; Store pointer low
     lda #&12                                                          ; 8ebc: a9 12       ..             ; Page &12
-    sta zp_entry_ptr_h                                                ; 8ebe: 85 b7       ..             ; Store pointer high
+    sta zp_entry_ptr_hi                                               ; 8ebe: 85 b7       ..             ; Store pointer high
 ; &8ec0 referenced 2 times by &8ed6, &8eda
 .store_entry_4byte_sector
     ldy #0                                                            ; 8ec0: a0 00       ..             ; Y=0: check entry
-    lda (zp_entry_ptr),y                                              ; 8ec2: b1 b6       ..             ; Get first byte
+    lda (zp_entry_ptr_lo),y                                           ; 8ec2: b1 b6       ..             ; Get first byte
     beq copy_osfile_to_entry_loop                                     ; 8ec4: f0 27       .'             ; Zero: end of entries, done
     ldy #&19                                                          ; 8ec6: a0 19       ..             ; Y=&19: check sequence number
-    lda (zp_entry_ptr),y                                              ; 8ec8: b1 b6       ..             ; Get entry sequence
+    lda (zp_entry_ptr_lo),y                                           ; 8ec8: b1 b6       ..             ; Get entry sequence
     cmp dir_master_sequence                                           ; 8eca: cd fa 16    ...            ; Compare with dir master sequence
     beq update_entry_access                                           ; 8ecd: f0 0d       ..             ; Match: needs incrementing
     clc                                                               ; 8ecf: 18          .              ; Clear carry for entry advance
-    lda zp_entry_ptr                                                  ; 8ed0: a5 b6       ..             ; Get pointer low
+    lda zp_entry_ptr_lo                                               ; 8ed0: a5 b6       ..             ; Get pointer low
     adc #&1a                                                          ; 8ed2: 69 1a       i.             ; Add 26 bytes per entry
-    sta zp_entry_ptr                                                  ; 8ed4: 85 b6       ..             ; Store updated pointer
+    sta zp_entry_ptr_lo                                               ; 8ed4: 85 b6       ..             ; Store updated pointer
     bcc store_entry_4byte_sector                                      ; 8ed6: 90 e8       ..             ; No page crossing: continue
-    inc zp_entry_ptr_h                                                ; 8ed8: e6 b7       ..             ; Increment page
+    inc zp_entry_ptr_hi                                               ; 8ed8: e6 b7       ..             ; Increment page
     bcs store_entry_4byte_sector                                      ; 8eda: b0 e4       ..             ; ALWAYS branch
 
 ; &8edc referenced 1 time by &8ecd
@@ -3640,12 +3640,12 @@ lffff                                           = &ffff
 ; &8eed referenced 1 time by &8ec4
 .copy_osfile_to_entry_loop
     pla                                                               ; 8eed: 68          h              ; Restore (&B7) from stack
-    sta zp_entry_ptr_h                                                ; 8eee: 85 b7       ..             ; Store back
+    sta zp_entry_ptr_hi                                               ; 8eee: 85 b7       ..             ; Store back
     pla                                                               ; 8ef0: 68          h              ; Restore (&B6) from stack
-    sta zp_entry_ptr                                                  ; 8ef1: 85 b6       ..             ; Store back
+    sta zp_entry_ptr_lo                                               ; 8ef1: 85 b6       ..             ; Store back
     ldy #&19                                                          ; 8ef3: a0 19       ..             ; Y=&19: store new sequence in entry
     lda dir_master_sequence                                           ; 8ef5: ad fa 16    ...            ; Get current master sequence
-    sta (zp_entry_ptr),y                                              ; 8ef8: 91 b6       ..             ; Store in the new entry
+    sta (zp_entry_ptr_lo),y                                           ; 8ef8: 91 b6       ..             ; Store in the new entry
     lda #1                                                            ; 8efa: a9 01       ..             ; Result = 1 (file created)
     sta wksp_disc_op_result                                           ; 8efc: 8d 15 10    ...            ; Store result code
     ldx #4                                                            ; 8eff: a2 04       ..             ; X=4: copy 4 transfer length bytes
@@ -3664,20 +3664,20 @@ lffff                                           = &ffff
     ldy #&12                                                          ; 8f19: a0 12       ..             ; Y=&12: copy 4 length bytes to entry
 ; &8f1b referenced 1 time by &8f23
 .copy_exec_addr_to_entry_loop
-    lda (zp_entry_ptr),y                                              ; 8f1b: b1 b6       ..             ; Get length byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 8f1b: b1 b6       ..             ; Get length byte from entry
     sta wksp_100e,y                                                   ; 8f1d: 99 0e 10    ...            ; Copy to workspace
     iny                                                               ; 8f20: c8          .              ; Next byte
     cpy #&16                                                          ; 8f21: c0 16       ..             ; Past length field (Y=&16)?
     bne copy_exec_addr_to_entry_loop                                  ; 8f23: d0 f6       ..             ; No: continue
     ldy #&12                                                          ; 8f25: a0 12       ..             ; Y=&12: calculate sector count
-    lda (zp_entry_ptr),y                                              ; 8f27: b1 b6       ..             ; Get length low from entry
+    lda (zp_entry_ptr_lo),y                                           ; 8f27: b1 b6       ..             ; Get length low from entry
     cmp #1                                                            ; 8f29: c9 01       ..             ; Compare with 1 (round up)
     ldx #2                                                            ; 8f2b: a2 02       ..             ; X=2: process 3 sector bytes
 ; &8f2d referenced 1 time by &8f36
 .check_if_updating_length
     lda #0                                                            ; 8f2d: a9 00       ..             ; A=0: zero for carry propagation
     iny                                                               ; 8f2f: c8          .              ; Next length byte
-    adc (zp_entry_ptr),y                                              ; 8f30: 71 b6       q.             ; Add with carry from comparison
+    adc (zp_entry_ptr_lo),y                                           ; 8f30: 71 b6       q.             ; Add with carry from comparison
     sta wksp_102a,y                                                   ; 8f32: 99 2a 10    .*.            ; Store in sector workspace
     dex                                                               ; 8f35: ca          .              ; Next byte
     bpl check_if_updating_length                                      ; 8f36: 10 f5       ..             ; Loop for 3 bytes
@@ -3688,11 +3688,11 @@ lffff                                           = &ffff
 .update_length_and_access
     ldy #&16                                                          ; 8f3d: a0 16       ..             ; Y=&16: mark entry sector as &FF
     lda #&ff                                                          ; 8f3f: a9 ff       ..             ; A=&FF: temporary marker
-    sta (zp_entry_ptr),y                                              ; 8f41: 91 b6       ..             ; Store &FF in sector low
+    sta (zp_entry_ptr_lo),y                                           ; 8f41: 91 b6       ..             ; Store &FF in sector low
     iny                                                               ; 8f43: c8          .              ; Y=&17
-    sta (zp_entry_ptr),y                                              ; 8f44: 91 b6       ..             ; Store &FF in sector mid
+    sta (zp_entry_ptr_lo),y                                           ; 8f44: 91 b6       ..             ; Store &FF in sector mid
     iny                                                               ; 8f46: c8          .              ; Y=&18
-    sta (zp_entry_ptr),y                                              ; 8f47: 91 b6       ..             ; Store &FF in sector high
+    sta (zp_entry_ptr_lo),y                                           ; 8f47: 91 b6       ..             ; Store &FF in sector high
     jmp release_disc_space                                            ; 8f49: 4c b5 84    L..            ; Release disc space back to free space map
 
 ; ***************************************************************************************
@@ -3718,7 +3718,7 @@ lffff                                           = &ffff
 ; &8f5c referenced 1 time by &8f63
 .copy_3byte_length_loop
     lda wksp_103a,x                                                   ; 8f5c: bd 3a 10    .:.            ; Store in disc op workspace
-    sta (zp_entry_ptr),y                                              ; 8f5f: 91 b6       ..             ; Store in directory entry
+    sta (zp_entry_ptr_lo),y                                           ; 8f5f: 91 b6       ..             ; Store in directory entry
     dey                                                               ; 8f61: 88          .              ; Next entry byte (decreasing)
     dex                                                               ; 8f62: ca          .              ; Next workspace byte
     bpl copy_3byte_length_loop                                        ; 8f63: 10 f7       ..             ; Next OSFILE byte (decreasing); Next workspace byte
@@ -3974,7 +3974,7 @@ lffff                                           = &ffff
     ldx #3                                                            ; 9090: a2 03       ..             ; X=3: copy 4 bytes
 ; &9092 referenced 1 time by &9099
 .copy_load_to_entry_loop
-    lda (zp_osfile_ptr),y                                             ; 9092: b1 b8       ..             ; Get OSFILE block byte
+    lda (zp_osfile_ptr_lo),y                                          ; 9092: b1 b8       ..             ; Get OSFILE block byte
     sta wksp_disc_op_result,x                                         ; 9094: 9d 15 10    ...            ; Store in workspace
     dey                                                               ; 9097: 88          .              ; Next OSFILE byte
     dex                                                               ; 9098: ca          .              ; Next workspace byte
@@ -3984,7 +3984,7 @@ lffff                                           = &ffff
 ; &909f referenced 1 time by &90a6
 .copy_exec_to_entry_loop
     lda wksp_disc_op_result,x                                         ; 909f: bd 15 10    ...            ; Get from workspace
-    sta (zp_entry_ptr),y                                              ; 90a2: 91 b6       ..             ; Store in directory entry
+    sta (zp_entry_ptr_lo),y                                           ; 90a2: 91 b6       ..             ; Store in directory entry
     dey                                                               ; 90a4: 88          .              ; Next entry byte
     dex                                                               ; 90a5: ca          .              ; Next workspace byte
     bpl copy_exec_to_entry_loop                                       ; 90a6: 10 f7       ..             ; Loop for 4 bytes
@@ -3997,7 +3997,7 @@ lffff                                           = &ffff
     ldx #3                                                            ; 90b1: a2 03       ..             ; X=3: copy 4 bytes
 ; &90b3 referenced 1 time by &90ba
 .update_cat_info_loop
-    lda (zp_osfile_ptr),y                                             ; 90b3: b1 b8       ..             ; Get OSFILE block byte
+    lda (zp_osfile_ptr_lo),y                                          ; 90b3: b1 b8       ..             ; Get OSFILE block byte
     sta wksp_disc_op_result,x                                         ; 90b5: 9d 15 10    ...            ; Store in workspace
     dey                                                               ; 90b8: 88          .              ; Next OSFILE byte
     dex                                                               ; 90b9: ca          .              ; Next workspace byte
@@ -4007,7 +4007,7 @@ lffff                                           = &ffff
 ; &90c0 referenced 1 time by &90c7
 .copy_cat_info_to_entry_loop
     lda wksp_disc_op_result,x                                         ; 90c0: bd 15 10    ...            ; Get from workspace
-    sta (zp_entry_ptr),y                                              ; 90c3: 91 b6       ..             ; Store in directory entry
+    sta (zp_entry_ptr_lo),y                                           ; 90c3: 91 b6       ..             ; Store in directory entry
     dey                                                               ; 90c5: 88          .              ; Next entry byte
     dex                                                               ; 90c6: ca          .              ; Next workspace byte
     bpl copy_cat_info_to_entry_loop                                   ; 90c7: 10 f7       ..             ; Loop for 4 bytes
@@ -4017,10 +4017,10 @@ lffff                                           = &ffff
 ; &90cf referenced 1 time by &9104
 .set_entry_access_from_osfile
     ldy #&0e                                                          ; 90cf: a0 0e       ..             ; Y=&0E: get access byte from OSFILE
-    lda (zp_osfile_ptr),y                                             ; 90d1: b1 b8       ..             ; Get access byte from block
+    lda (zp_osfile_ptr_lo),y                                          ; 90d1: b1 b8       ..             ; Get access byte from block
     sta wksp_102b                                                     ; 90d3: 8d 2b 10    .+.            ; Store in workspace
     ldy #3                                                            ; 90d6: a0 03       ..             ; Y=3: apply access to name bytes
-    lda (zp_entry_ptr),y                                              ; 90d8: b1 b6       ..             ; Get name byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 90d8: b1 b6       ..             ; Get name byte from entry
     bpl access_bit_clear                                              ; 90da: 10 0d       ..             ; Bit 7 set: directory, different fmt
     lsr wksp_102b                                                     ; 90dc: 4e 2b 10    N+.            ; Shift access right for R bit
     lsr wksp_102b                                                     ; 90df: 4e 2b 10    N+.            ; Shift right for W bit
@@ -4035,11 +4035,11 @@ lffff                                           = &ffff
     ldy #0                                                            ; 90e9: a0 00       ..             ; Y=0: start with byte 0
 ; &90eb referenced 2 times by &90e7, &90f7
 .advance_access_bit
-    lda (zp_entry_ptr),y                                              ; 90eb: b1 b6       ..             ; Get name byte
+    lda (zp_entry_ptr_lo),y                                           ; 90eb: b1 b6       ..             ; Get name byte
     asl a                                                             ; 90ed: 0a          .              ; Shift out bit 7 (old attribute)
     lsr wksp_102b                                                     ; 90ee: 4e 2b 10    N+.            ; Shift access bit into carry
     ror a                                                             ; 90f1: 6a          j              ; Shift carry into name bit 7
-    sta (zp_entry_ptr),y                                              ; 90f2: 91 b6       ..             ; Store updated name byte
+    sta (zp_entry_ptr_lo),y                                           ; 90f2: 91 b6       ..             ; Store updated name byte
     iny                                                               ; 90f4: c8          .              ; Next byte
     cpy #2                                                            ; 90f5: c0 02       ..             ; Past byte 2?
     bcc advance_access_bit                                            ; 90f7: 90 f2       ..             ; Below 2: continue
@@ -4065,14 +4065,14 @@ lffff                                           = &ffff
 ; &9109 referenced 1 time by &a0bb
 .star_remove
     jsr skip_spaces                                                   ; 9109: 20 cf a4     ..            ; Skip leading spaces in filename; Skip leading spaces in command argument
-    lda zp_text_ptr                                                   ; 910c: a5 b4       ..             ; Save filename address in OSFILE blk
+    lda zp_text_ptr_lo                                                ; 910c: a5 b4       ..             ; Save filename address in OSFILE blk
     sta wksp_osfile_block                                             ; 910e: 8d 40 10    .@.            ; Store filename addr in OSFILE block
-    lda zp_text_ptr_h                                                 ; 9111: a5 b5       ..             ; Get filename pointer high
+    lda zp_text_ptr_hi                                                ; 9111: a5 b5       ..             ; Get filename pointer high
     sta l1041                                                         ; 9113: 8d 41 10    .A.            ; Store in OSFILE block+1
     lda #&40 ; '@'                                                    ; 9116: a9 40       .@             ; Point (&B8) to OSFILE control block
-    sta zp_osfile_ptr                                                 ; 9118: 85 b8       ..             ; Store control block pointer low
+    sta zp_osfile_ptr_lo                                              ; 9118: 85 b8       ..             ; Store control block pointer low
     lda #&10                                                          ; 911a: a9 10       ..             ; Control block page = &10
-    sta zp_osfile_ptr_h                                               ; 911c: 85 b9       ..             ; Store control block pointer high
+    sta zp_osfile_ptr_hi                                              ; 911c: 85 b9       ..             ; Store control block pointer high
 .search_and_delete_entry
     jsr setup_disc_write                                              ; 911e: 20 c9 8c     ..            ; Search directory for the file; Parse filename from OSFILE block and search
     beq check_and_delete_found                                        ; 9121: f0 05       ..             ; Found? Proceed to delete; Validate and delete a directory entry
@@ -4090,7 +4090,7 @@ lffff                                           = &ffff
 .check_and_delete_found
     jsr check_file_not_open                                           ; 9128: 20 10 8d     ..            ; Check if file has open channels; Check file is not locked or open
     ldy #3                                                            ; 912b: a0 03       ..             ; Y=3: check access byte
-    lda (zp_entry_ptr),y                                              ; 912d: b1 b6       ..             ; Get access/attribute byte
+    lda (zp_entry_ptr_lo),y                                           ; 912d: b1 b6       ..             ; Get access/attribute byte
     bpl proceed_with_delete                                           ; 912f: 10 3d       .=             ; Bit 7 clear: regular file, skip
     ldy #3                                                            ; 9131: a0 03       ..             ; Directory: check if empty
 ; &9133 referenced 1 time by &913a
@@ -4123,13 +4123,13 @@ lffff                                           = &ffff
 .proceed_with_delete
     ldy #&12                                                          ; 916e: a0 12       ..             ; Get file size from directory entry
     ldx #2                                                            ; 9170: a2 02       ..             ; X=2: 3 bytes of length to process
-    lda (zp_entry_ptr),y                                              ; 9172: b1 b6       ..             ; Y=&12: length bytes offset
+    lda (zp_entry_ptr_lo),y                                           ; 9172: b1 b6       ..             ; Y=&12: length bytes offset
     cmp #1                                                            ; 9174: c9 01       ..             ; Calculate number of sectors
 ; &9176 referenced 1 time by &917f
 .copy_locked_name_loop
     iny                                                               ; 9176: c8          .              ; Next length byte
     lda #0                                                            ; 9177: a9 00       ..             ; Add carry from previous byte
-    adc (zp_entry_ptr),y                                              ; 9179: 71 b6       q.             ; Add entry length byte
+    adc (zp_entry_ptr_lo),y                                           ; 9179: 71 b6       q.             ; Add entry length byte
     sta wksp_1024,y                                                   ; 917b: 99 24 10    .$.            ; Store sector count in workspace
     dex                                                               ; 917e: ca          .              ; Next length byte
     bpl copy_locked_name_loop                                         ; 917f: 10 f5       ..             ; Loop for 3 bytes
@@ -4137,13 +4137,13 @@ lffff                                           = &ffff
     ldx #2                                                            ; 9183: a2 02       ..             ; X=2: copy 3 sector address bytes
 ; &9185 referenced 1 time by &918c
 .check_locked_attr_loop
-    lda (zp_entry_ptr),y                                              ; 9185: b1 b6       ..             ; Copy start sector to workspace
+    lda (zp_entry_ptr_lo),y                                           ; 9185: b1 b6       ..             ; Copy start sector to workspace
     sta wksp_object_sector,x                                          ; 9187: 9d 34 10    .4.            ; Store sector address byte
     dey                                                               ; 918a: 88          .              ; Next entry byte (decreasing)
     dex                                                               ; 918b: ca          .              ; Next workspace byte (decreasing)
     bpl check_locked_attr_loop                                        ; 918c: 10 f7       ..             ; Loop for 3 bytes
     ldy #3                                                            ; 918e: a0 03       ..             ; Y=3: check access byte for dir flag
-    lda (zp_entry_ptr),y                                              ; 9190: b1 b6       ..             ; Check access byte for directory
+    lda (zp_entry_ptr_lo),y                                           ; 9190: b1 b6       ..             ; Check access byte for directory
     bpl write_dir_and_release                                         ; 9192: 10 7e       .~             ; Not a directory: skip to delete
     ldx wksp_saved_drive                                              ; 9194: ae 2f 10    ./.            ; Get saved drive
     cpx #&ff                                                          ; 9197: e0 ff       ..             ; Saved drive = &FF (not set)?
@@ -4202,7 +4202,7 @@ lffff                                           = &ffff
 ; &9212 referenced 4 times by &9192, &91f6, &9200, &a67f
 .write_dir_and_release
     ldy #4                                                            ; 9212: a0 04       ..             ; Remove entry from directory
-    lda (zp_entry_ptr),y                                              ; 9214: b1 b6       ..             ; Y=4: check lock bit
+    lda (zp_entry_ptr_lo),y                                           ; 9214: b1 b6       ..             ; Y=4: check lock bit
     bmi check_csd_deleted                                             ; 9216: 30 03       0.             ; Bit 7 set: directory, skip lock chk
     jsr search_dir_with_wildcards                                     ; 9218: 20 65 8c     e.            ; Check file is not locked
 ; &921b referenced 1 time by &9216
@@ -4211,17 +4211,17 @@ lffff                                           = &ffff
     ldx #0                                                            ; 921d: a2 00       ..             ; X=0: for indirect store via (&B6,X)
 ; &921f referenced 2 times by &922d, &9233
 .check_lib_deleted
-    lda (zp_entry_ptr),y                                              ; 921f: b1 b6       ..             ; Copy next entry over this one
-    sta (zp_entry_ptr,x)                                              ; 9221: 81 b6       ..             ; Store in current position
-    inc zp_entry_ptr                                                  ; 9223: e6 b6       ..             ; Advance pointer
+    lda (zp_entry_ptr_lo),y                                           ; 921f: b1 b6       ..             ; Copy next entry over this one
+    sta (zp_entry_ptr_lo,x)                                           ; 9221: 81 b6       ..             ; Store in current position
+    inc zp_entry_ptr_lo                                               ; 9223: e6 b6       ..             ; Advance pointer
     bne check_prev_dir_deleted                                        ; 9225: d0 02       ..             ; No page crossing
-    inc zp_entry_ptr_h                                                ; 9227: e6 b7       ..             ; Increment pointer high byte
+    inc zp_entry_ptr_hi                                               ; 9227: e6 b7       ..             ; Increment pointer high byte
 ; &9229 referenced 1 time by &9225
 .check_prev_dir_deleted
-    lda zp_entry_ptr                                                  ; 9229: a5 b6       ..             ; Check if past end of entries
+    lda zp_entry_ptr_lo                                               ; 9229: a5 b6       ..             ; Check if past end of entries
     cmp #&bb                                                          ; 922b: c9 bb       ..             ; Low byte = &BB? (dir footer boundary)
     bne check_lib_deleted                                             ; 922d: d0 f0       ..             ; Low byte not at boundary, continue
-    lda zp_entry_ptr_h                                                ; 922f: a5 b7       ..             ; Check if past end of entries (&16xx)
+    lda zp_entry_ptr_hi                                               ; 922f: a5 b7       ..             ; Check if past end of entries (&16xx)
     cmp #&16                                                          ; 9231: c9 16       ..             ; High byte should be &16
     bne check_lib_deleted                                             ; 9233: d0 ea       ..             ; Not past end: continue copying
     jsr release_disc_space                                            ; 9235: 20 b5 84     ..            ; Release the file's disc space; Release disc space back to free space map
@@ -4236,8 +4236,8 @@ lffff                                           = &ffff
 ; 
 ; ***************************************************************************************
 .my_osfile
-    stx zp_osfile_ptr                                                 ; 923e: 86 b8       ..             ; Save control block address low
-    sty zp_osfile_ptr_h                                               ; 9240: 84 b9       ..             ; Save control block address high
+    stx zp_osfile_ptr_lo                                              ; 923e: 86 b8       ..             ; Save control block address low
+    sty zp_osfile_ptr_hi                                              ; 9240: 84 b9       ..             ; Save control block address high
     tay                                                               ; 9242: a8          .              ; Transfer function code to Y
     ldx #0                                                            ; 9243: a2 00       ..             ; Clear current channel
     stx wksp_cur_channel                                              ; 9245: 8e d5 10    ...            ; Clear current channel
@@ -4255,11 +4255,11 @@ lffff                                           = &ffff
     tya                                                               ; 925a: 98          .              ; Restore function code to A
     pha                                                               ; 925b: 48          H              ; Save function code on stack
     ldy #0                                                            ; 925c: a0 00       ..             ; Y=0: read filename pointer from block
-    lda (zp_osfile_ptr),y                                             ; 925e: b1 b8       ..             ; Filename address low byte
-    sta zp_text_ptr                                                   ; 9260: 85 b4       ..             ; Store in (&B4)
+    lda (zp_osfile_ptr_lo),y                                          ; 925e: b1 b8       ..             ; Filename address low byte
+    sta zp_text_ptr_lo                                                ; 9260: 85 b4       ..             ; Store in (&B4)
     iny                                                               ; 9262: c8          .              ; Y=&01
-    lda (zp_osfile_ptr),y                                             ; 9263: b1 b8       ..             ; Filename address high byte
-    sta zp_text_ptr_h                                                 ; 9265: 85 b5       ..             ; Store in (&B5)
+    lda (zp_osfile_ptr_lo),y                                          ; 9263: b1 b8       ..             ; Filename address high byte
+    sta zp_text_ptr_hi                                                ; 9265: 85 b5       ..             ; Store in (&B5)
     pla                                                               ; 9267: 68          h              ; Restore function code
 ; &9268 referenced 2 times by &924c, &9250
 .return_19
@@ -4301,16 +4301,16 @@ lffff                                           = &ffff
 .setup_entry_name_ptr
     tax                                                               ; 927b: aa          .              ; Transfer index to X
     lda #&9f                                                          ; 927c: a9 9f       ..             ; Set up (&B6) to point to pathname
-    sta zp_entry_ptr_h                                                ; 927e: 85 b7       ..             ; Set pointer high byte
+    sta zp_entry_ptr_hi                                               ; 927e: 85 b7       ..             ; Set pointer high byte
     lda l9e48,x                                                       ; 9280: bd 48 9e    .H.            ; Get pathname format byte
-    sta zp_entry_ptr                                                  ; 9283: 85 b6       ..             ; Store as pointer low byte
+    sta zp_entry_ptr_lo                                               ; 9283: 85 b6       ..             ; Store as pointer low byte
     ldx #&0c                                                          ; 9285: a2 0c       ..             ; X=&0C: max 12 characters
 ; &9287 referenced 6 times by &92e0, &9337, &9366, &938c, &93a3, &93bd
 .print_padded_name
     ldy #0                                                            ; 9287: a0 00       ..             ; Y=0: start of entry name
 ; &9289 referenced 1 time by &9296
 .print_name_char_loop
-    lda (zp_entry_ptr),y                                              ; 9289: b1 b6       ..             ; Get character from entry
+    lda (zp_entry_ptr_lo),y                                           ; 9289: b1 b6       ..             ; Get character from entry
     and #&7f                                                          ; 928b: 29 7f       ).             ; Strip bit 7 (access bit)
     cmp #&20 ; ' '                                                    ; 928d: c9 20       .              ; Is it a printable character?
     bcc pad_with_spaces                                               ; 928f: 90 08       ..             ; No, pad rest with spaces
@@ -4340,13 +4340,13 @@ lffff                                           = &ffff
 ; &92a0 referenced 18 times by &933a, &9345, &9369, &9379, &938f, &93a6, &93c0, &99fd, &9b78, &9da7, &9dc9, &9e12, &a021, &a041, &a04a, &a077, &a0a0, &a1d8
 .print_inline_string
     pla                                                               ; 92a0: 68          h              ; Pop return addr low (inline data)
-    sta zp_entry_ptr                                                  ; 92a1: 85 b6       ..             ; Store as string pointer low
+    sta zp_entry_ptr_lo                                               ; 92a1: 85 b6       ..             ; Store as string pointer low
     pla                                                               ; 92a3: 68          h              ; Pop return addr high
-    sta zp_entry_ptr_h                                                ; 92a4: 85 b7       ..             ; Store as string pointer high
+    sta zp_entry_ptr_hi                                               ; 92a4: 85 b7       ..             ; Store as string pointer high
     ldy #1                                                            ; 92a6: a0 01       ..             ; Y=1: start past JSR return addr
 ; &92a8 referenced 1 time by &92b0
 .print_char_loop
-    lda (zp_entry_ptr),y                                              ; 92a8: b1 b6       ..             ; Get next string character
+    lda (zp_entry_ptr_lo),y                                           ; 92a8: b1 b6       ..             ; Get next string character
     bmi last_char_reached                                             ; 92aa: 30 06       0.             ; Bit 7 set: last character
     jsr print_via_osasci                                              ; 92ac: 20 c4 92     ..            ; Print character via OSASCI; Print character preserving registers
     iny                                                               ; 92af: c8          .              ; Next character
@@ -4357,10 +4357,10 @@ lffff                                           = &ffff
     jsr print_via_osasci                                              ; 92b4: 20 c4 92     ..            ; Print last character; Print character preserving registers
     tya                                                               ; 92b7: 98          .              ; Y = string length + 1
     clc                                                               ; 92b8: 18          .              ; Clear carry for address calc
-    adc zp_entry_ptr                                                  ; 92b9: 65 b6       e.             ; Add string length to pointer
+    adc zp_entry_ptr_lo                                               ; 92b9: 65 b6       e.             ; Add string length to pointer
     tay                                                               ; 92bb: a8          .              ; Transfer low result to Y
     lda #0                                                            ; 92bc: a9 00       ..             ; A=0: add carry only
-    adc zp_entry_ptr_h                                                ; 92be: 65 b7       e.             ; Add carry to high byte
+    adc zp_entry_ptr_hi                                               ; 92be: 65 b7       e.             ; Add carry to high byte
     pha                                                               ; 92c0: 48          H              ; Push updated return addr high
     tya                                                               ; 92c1: 98          .              ; Transfer low to A
     pha                                                               ; 92c2: 48          H              ; Push updated return addr low
@@ -4378,17 +4378,17 @@ lffff                                           = &ffff
     pha                                                               ; 92c4: 48          H              ; Save character to print
     txa                                                               ; 92c5: 8a          .              ; Save X
     pha                                                               ; 92c6: 48          H              ; Save X on stack
-    lda zp_entry_ptr                                                  ; 92c7: a5 b6       ..             ; Save (&B6) low
+    lda zp_entry_ptr_lo                                               ; 92c7: a5 b6       ..             ; Save (&B6) low
     pha                                                               ; 92c9: 48          H              ; Push on stack
-    lda zp_entry_ptr_h                                                ; 92ca: a5 b7       ..             ; Save (&B6) high
+    lda zp_entry_ptr_hi                                               ; 92ca: a5 b7       ..             ; Save (&B6) high
     pha                                                               ; 92cc: 48          H              ; Push on stack
     tsx                                                               ; 92cd: ba          .              ; Get stack pointer
     lda l0104,x                                                       ; 92ce: bd 04 01    ...            ; Get character from stack+4
     jsr osasci                                                        ; 92d1: 20 e3 ff     ..            ; Write character
     pla                                                               ; 92d4: 68          h              ; Restore (&B6) high
-    sta zp_entry_ptr_h                                                ; 92d5: 85 b7       ..             ; Store back
+    sta zp_entry_ptr_hi                                               ; 92d5: 85 b7       ..             ; Store back
     pla                                                               ; 92d7: 68          h              ; Restore (&B6) low
-    sta zp_entry_ptr                                                  ; 92d8: 85 b6       ..             ; Store back
+    sta zp_entry_ptr_lo                                               ; 92d8: 85 b6       ..             ; Store back
     pla                                                               ; 92da: 68          h              ; Restore X
     tax                                                               ; 92db: aa          .              ; Transfer to X
     pla                                                               ; 92dc: 68          h              ; Restore character (was printed)
@@ -4410,7 +4410,7 @@ lffff                                           = &ffff
     ldx #3                                                            ; 92e8: a2 03       ..             ; X=3: print RWLD attribute chars
 ; &92ea referenced 1 time by &92f7
 .print_entry_char_loop
-    lda (zp_entry_ptr),y                                              ; 92ea: b1 b6       ..             ; Get entry byte (name byte Y)
+    lda (zp_entry_ptr_lo),y                                           ; 92ea: b1 b6       ..             ; Get entry byte (name byte Y)
     rol a                                                             ; 92ec: 2a          *              ; Rotate bit 7 (attribute) into carry
     bcc print_access_space                                            ; 92ed: 90 07       ..             ; C=0: attribute not set
     lda l9316,y                                                       ; 92ef: b9 16 93    ...            ; C=1: get attribute letter
@@ -4432,7 +4432,7 @@ lffff                                           = &ffff
     lda #&28 ; '('                                                    ; 9302: a9 28       .(             ; Print '(' before sequence number
     jsr oswrch                                                        ; 9304: 20 ee ff     ..            ; Write character 40
     ldy #&19                                                          ; 9307: a0 19       ..             ; Y=&19: offset to sequence number
-    lda (zp_entry_ptr),y                                              ; 9309: b1 b6       ..             ; Get sequence number byte
+    lda (zp_entry_ptr_lo),y                                           ; 9309: b1 b6       ..             ; Get sequence number byte
     jsr print_hex_byte                                                ; 930b: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     lda #&29 ; ')'                                                    ; 930e: a9 29       .)             ; Print ')' after sequence number
     jsr oswrch                                                        ; 9310: 20 ee ff     ..            ; Write character 41
@@ -4482,9 +4482,9 @@ lffff                                           = &ffff
 .verify_dir_and_list
     jsr verify_dir_integrity                                          ; 932a: 20 de a6     ..            ; Verify directory buffer integrity
     lda #&d9                                                          ; 932d: a9 d9       ..             ; Point to dir title at &16D9
-    sta zp_entry_ptr                                                  ; 932f: 85 b6       ..             ; Store low byte
+    sta zp_entry_ptr_lo                                               ; 932f: 85 b6       ..             ; Store low byte
     lda #&16                                                          ; 9331: a9 16       ..             ; Page &16
-    sta zp_entry_ptr_h                                                ; 9333: 85 b7       ..             ; Store high byte
+    sta zp_entry_ptr_hi                                               ; 9333: 85 b7       ..             ; Store high byte
     ldx #&13                                                          ; 9335: a2 13       ..             ; X=&13: print 19 chars of title
     jsr print_padded_name                                             ; 9337: 20 87 92     ..            ; Print title characters
     jsr print_inline_string                                           ; 933a: 20 a0 92     ..            ; Print bit-7-terminated inline string
@@ -4505,9 +4505,9 @@ lffff                                           = &ffff
     adc #&30 ; '0'                                                    ; 9357: 69 30       i0             ; Convert to ASCII digit
     jsr oswrch                                                        ; 9359: 20 ee ff     ..            ; Write character
     lda #&5f ; '_'                                                    ; 935c: a9 5f       ._             ; Point to CSD path string in ROM
-    sta zp_entry_ptr                                                  ; 935e: 85 b6       ..             ; Store pointer low
+    sta zp_entry_ptr_lo                                               ; 935e: 85 b6       ..             ; Store pointer low
     lda #&9a                                                          ; 9360: a9 9a       ..             ; Page &9A
-    sta zp_entry_ptr_h                                                ; 9362: 85 b7       ..             ; Store pointer high
+    sta zp_entry_ptr_hi                                               ; 9362: 85 b7       ..             ; Store pointer high
     ldx #&0d                                                          ; 9364: a2 0d       ..             ; X=&0D: print CSD path
     jsr print_padded_name                                             ; 9366: 20 87 92     ..            ; Print path characters
     jsr print_inline_string                                           ; 9369: 20 a0 92     ..            ; Print bit-7-terminated inline string
@@ -4522,29 +4522,29 @@ lffff                                           = &ffff
     tay                                                               ; 937d: a8          .              ; Transfer boot option to Y for lookup
     ldx fsm_s1_boot_option                                            ; 937e: ae fd 0f    ...            ; Get boot option again for table index
     lda l941f,x                                                       ; 9381: bd 1f 94    ...            ; Look up option name string address
-    sta zp_entry_ptr                                                  ; 9384: 85 b6       ..             ; Set entry ptr to option name string
+    sta zp_entry_ptr_lo                                               ; 9384: 85 b6       ..             ; Set entry ptr to option name string
     lda #&94                                                          ; 9386: a9 94       ..
-    sta zp_entry_ptr_h                                                ; 9388: 85 b7       ..
+    sta zp_entry_ptr_hi                                               ; 9388: 85 b7       ..
     ldx #4                                                            ; 938a: a2 04       ..             ; X=4: print 4-char option name
     jsr print_padded_name                                             ; 938c: 20 87 92     ..            ; Print boot option name (Off/Load/Run/Exec)
     jsr print_inline_string                                           ; 938f: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs ")", &0d, "Dir."                                             ; 9392: 29 0d 44... ).D            ; ")" + CR + "Dir." + space: option close + dir label
     equb &a0                                                          ; 9398: a0          .              ; ' ' + bit 7: end of inline string
 
-    lda #0                                                            ; 9399: a9 00       ..             ; Point to CSD name at &1100
-    sta zp_entry_ptr                                                  ; 939b: 85 b6       ..
-    lda #&11                                                          ; 939d: a9 11       ..
-    sta zp_entry_ptr_h                                                ; 939f: 85 b7       ..
+    lda #0                                                            ; 9399: a9 00       ..             ; A=&00: CSD name low (wksp_csd_name)
+    sta zp_entry_ptr_lo                                               ; 939b: 85 b6       ..             ; Store pointer low byte
+    lda #&11                                                          ; 939d: a9 11       ..             ; A=&11: CSD name high (&1100)
+    sta zp_entry_ptr_hi                                               ; 939f: 85 b7       ..             ; Store pointer high byte
     ldx #&0a                                                          ; 93a1: a2 0a       ..             ; X=&0A: print 10-char directory name
     jsr print_padded_name                                             ; 93a3: 20 87 92     ..            ; Print CSD directory name
     jsr print_inline_string                                           ; 93a6: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs "     Lib."                                                  ; 93a9: 20 20 20...
     equb &a0                                                          ; 93b2: a0          .              ; ' ' + bit 7: end of inline string
 
-    lda #&0a                                                          ; 93b3: a9 0a       ..             ; Point to library name at &110A
-    sta zp_entry_ptr                                                  ; 93b5: 85 b6       ..
-    lda #&11                                                          ; 93b7: a9 11       ..
-    sta zp_entry_ptr_h                                                ; 93b9: 85 b7       ..
+    lda #&0a                                                          ; 93b3: a9 0a       ..             ; A=&0A: library name low (wksp_lib_name)
+    sta zp_entry_ptr_lo                                               ; 93b5: 85 b6       ..             ; Store pointer low byte
+    lda #&11                                                          ; 93b7: a9 11       ..             ; A=&11: library name high (&110A)
+    sta zp_entry_ptr_hi                                               ; 93b9: 85 b7       ..             ; Store pointer high byte
     ldx #&0a                                                          ; 93bb: a2 0a       ..             ; X=&0A: print 10-char library name
     jsr print_padded_name                                             ; 93bd: 20 87 92     ..            ; Print library directory name
     jsr print_inline_string                                           ; 93c0: 20 a0 92     ..            ; Print bit-7-terminated inline string
@@ -4554,9 +4554,9 @@ lffff                                           = &ffff
 ; &93c5 referenced 3 times by &87ea, &97be, &98da
 .print_catalogue_header
     lda #5                                                            ; 93c5: a9 05       ..             ; Point to first dir entry at &1205
-    sta zp_entry_ptr                                                  ; 93c7: 85 b6       ..             ; Store pointer low = &05
+    sta zp_entry_ptr_lo                                               ; 93c7: 85 b6       ..             ; Store pointer low = &05
     lda #&12                                                          ; 93c9: a9 12       ..             ; Page &12
-    sta zp_entry_ptr_h                                                ; 93cb: 85 b7       ..             ; Store pointer high
+    sta zp_entry_ptr_hi                                               ; 93cb: 85 b7       ..             ; Store pointer high
     rts                                                               ; 93cd: 60          `              ; Return
 
 .print_catalogue_entries
@@ -4570,7 +4570,7 @@ lffff                                           = &ffff
 ; &93dc referenced 2 times by &93ff, &9403
 .print_cat_entry_loop
     ldy #0                                                            ; 93dc: a0 00       ..             ; Y=0: check first byte of entry
-    lda (zp_entry_ptr),y                                              ; 93de: b1 b6       ..             ; Get first byte
+    lda (zp_entry_ptr_lo),y                                           ; 93de: b1 b6       ..             ; Get first byte
     beq print_cat_pair_second                                         ; 93e0: f0 23       .#             ; Zero: end of entries
     jsr print_entry_name_and_access                                   ; 93e2: 20 de 92     ..            ; Print entry name with access; Print entry name and access string
     dec wksp_102b                                                     ; 93e5: ce 2b 10    .+.            ; Decrement column counter
@@ -4586,11 +4586,11 @@ lffff                                           = &ffff
 ; &93f8 referenced 1 time by &93f2
 .print_cat_pair
     clc                                                               ; 93f8: 18          .              ; Clear carry for pointer advance
-    lda zp_entry_ptr                                                  ; 93f9: a5 b6       ..             ; Get entry pointer low
+    lda zp_entry_ptr_lo                                               ; 93f9: a5 b6       ..             ; Get entry pointer low
     adc #&1a                                                          ; 93fb: 69 1a       i.             ; Add &1A (26 bytes per entry)
-    sta zp_entry_ptr                                                  ; 93fd: 85 b6       ..             ; Store updated pointer
+    sta zp_entry_ptr_lo                                               ; 93fd: 85 b6       ..             ; Store updated pointer
     bcc print_cat_entry_loop                                          ; 93ff: 90 db       ..             ; No page crossing: continue
-    inc zp_entry_ptr_h                                                ; 9401: e6 b7       ..             ; Increment page
+    inc zp_entry_ptr_hi                                               ; 9401: e6 b7       ..             ; Increment page
     bcs print_cat_entry_loop                                          ; 9403: b0 d7       ..             ; ALWAYS branch
 
 ; &9405 referenced 1 time by &93e0
@@ -4631,15 +4631,15 @@ lffff                                           = &ffff
 ; &9439 referenced 2 times by &9449, &944d
 .print_next_entry_loop
     ldy #0                                                            ; 9439: a0 00       ..             ; Y=0: check first byte of entry
-    lda (zp_entry_ptr),y                                              ; 943b: b1 b6       ..             ; Get first byte of entry name
+    lda (zp_entry_ptr_lo),y                                           ; 943b: b1 b6       ..             ; Get first byte of entry name
     beq print_cat_done                                                ; 943d: f0 dd       ..             ; Zero: end of entries, done
     jsr print_entry_info                                              ; 943f: 20 01 95     ..            ; Print this entry's full info; Print full catalogue info for one directory entry
     clc                                                               ; 9442: 18          .              ; Clear carry for addition
-    lda zp_entry_ptr                                                  ; 9443: a5 b6       ..             ; Advance (&B6) by 26 to next entry
+    lda zp_entry_ptr_lo                                               ; 9443: a5 b6       ..             ; Advance (&B6) by 26 to next entry
     adc #&1a                                                          ; 9445: 69 1a       i.             ; Add &1A (26 bytes per entry)
-    sta zp_entry_ptr                                                  ; 9447: 85 b6       ..             ; Store low byte
+    sta zp_entry_ptr_lo                                               ; 9447: 85 b6       ..             ; Store low byte
     bcc print_next_entry_loop                                         ; 9449: 90 ee       ..             ; No page crossing, continue loop
-    inc zp_entry_ptr_h                                                ; 944b: e6 b7       ..             ; Page crossed: increment high byte
+    inc zp_entry_ptr_hi                                               ; 944b: e6 b7       ..             ; Page crossed: increment high byte
     bcs print_next_entry_loop                                         ; 944d: b0 ea       ..             ; Continue loop (always branches); ALWAYS branch
 
 ; ***************************************************************************************
@@ -4657,14 +4657,14 @@ lffff                                           = &ffff
 ; &944f referenced 3 times by &88d2, &8cdc, &9492
 .check_special_dir_char
     ldy #0                                                            ; 944f: a0 00       ..             ; Y=0: get first argument char
-    lda (zp_text_ptr),y                                               ; 9451: b1 b4       ..             ; Get first argument char
+    lda (zp_text_ptr_lo),y                                            ; 9451: b1 b4       ..             ; Get first argument char
     and #&7f                                                          ; 9453: 29 7f       ).             ; Strip bit 7
     cmp #&5e ; '^'                                                    ; 9455: c9 5e       .^             ; Is it '^' (parent directory)?
     bne check_at_sign                                                 ; 9457: d0 0a       ..             ; No, check for '@'
     lda #&c0                                                          ; 9459: a9 c0       ..             ; '^': point to dir parent sector
-    sta zp_entry_ptr                                                  ; 945b: 85 b6       ..             ; Set (&B6) low to &C0
+    sta zp_entry_ptr_lo                                               ; 945b: 85 b6       ..             ; Set (&B6) low to &C0
     lda #&16                                                          ; 945d: a9 16       ..             ; Set (&B6) high to &16 (dir footer)
-    sta zp_entry_ptr_h                                                ; 945f: 85 b7       ..             ; Store high byte
+    sta zp_entry_ptr_hi                                               ; 945f: 85 b7       ..             ; Store high byte
     bne set_matched_flag                                              ; 9461: d0 0c       ..             ; Set Z flag (matched); ALWAYS branch
 
 ; &9463 referenced 1 time by &9457
@@ -4672,9 +4672,9 @@ lffff                                           = &ffff
     cmp #&40 ; '@'                                                    ; 9463: c9 40       .@             ; Is it '@' (current directory)?
     bne return_20                                                     ; 9465: d0 09       ..             ; No, return Z clear (no match)
     lda #&fe                                                          ; 9467: a9 fe       ..             ; '@': point to workspace at &10FE
-    sta zp_entry_ptr                                                  ; 9469: 85 b6       ..             ; Set (&B6) low to &FE
+    sta zp_entry_ptr_lo                                               ; 9469: 85 b6       ..             ; Set (&B6) low to &FE
     lda #&10                                                          ; 946b: a9 10       ..             ; Set (&B6) high to &10 (workspace)
-    sta zp_entry_ptr_h                                                ; 946d: 85 b7       ..             ; Store high byte
+    sta zp_entry_ptr_hi                                               ; 946d: 85 b7       ..             ; Store high byte
 ; &946f referenced 1 time by &9461
 .set_matched_flag
     tya                                                               ; 946f: 98          .              ; Transfer Y=0 to A, setting Z flag
@@ -4695,7 +4695,7 @@ lffff                                           = &ffff
 ; &9471 referenced 2 times by &93d1, &9433
 .parse_dir_argument
     ldy #0                                                            ; 9471: a0 00       ..             ; Y=0: check for argument
-    lda (zp_text_ptr),y                                               ; 9473: b1 b4       ..             ; Get first char of argument
+    lda (zp_text_ptr_lo),y                                            ; 9473: b1 b4       ..             ; Get first char of argument
     cmp #&21 ; '!'                                                    ; 9475: c9 21       .!             ; Is it a printable char?
     bcs parse_path_and_load                                           ; 9477: b0 06       ..             ; Yes, parse the path; Parse path and load target directory
     ldx wksp_current_drive                                            ; 9479: ae 17 11    ...            ; No arg: check drive is initialised
@@ -4716,7 +4716,7 @@ lffff                                           = &ffff
 ; &9484 referenced 1 time by &948d
 .search_for_dir_entry
     ldy #3                                                            ; 9484: a0 03       ..             ; Y=3: check entry access byte
-    lda (zp_entry_ptr),y                                              ; 9486: b1 b6       ..             ; Get access/attribute byte
+    lda (zp_entry_ptr_lo),y                                           ; 9486: b1 b6       ..             ; Get access/attribute byte
     bmi prepare_dir_read                                              ; 9488: 30 0d       0.             ; Bit 7 set: is a directory, found it
     jsr advance_dir_entry_ptr                                         ; 948a: 20 5e 89     ^.            ; Not a directory, search deeper; Advance to next matching directory entry
     beq search_for_dir_entry                                          ; 948d: f0 f5       ..             ; Found directory: loop complete
@@ -4753,13 +4753,13 @@ lffff                                           = &ffff
     ldy #&16                                                          ; 94b5: a0 16       ..             ; Y=&16: offset of start sector in entry
 ; &94b7 referenced 1 time by &94c1
 .copy_entry_sector_loop
-    lda (zp_entry_ptr),y                                              ; 94b7: b1 b6       ..             ; Get sector byte from directory entry
+    lda (zp_entry_ptr_lo),y                                           ; 94b7: b1 b6       ..             ; Get sector byte from directory entry
     sta wksp_disc_op_sector,x                                         ; 94b9: 9d 1b 10    ...            ; Store in disc op control block
     sta l10fe,y                                                       ; 94bc: 99 fe 10    ...            ; Also store in workspace
     iny                                                               ; 94bf: c8          .              ; Next sector address byte
     dex                                                               ; 94c0: ca          .              ; Decrement counter
     bpl copy_entry_sector_loop                                        ; 94c1: 10 f4       ..             ; Loop for 3 bytes
-    lda zp_entry_ptr_h                                                ; 94c3: a5 b7       ..             ; Check if this is an *INFO call
+    lda zp_entry_ptr_hi                                               ; 94c3: a5 b7       ..             ; Check if this is an *INFO call
     cmp #&94                                                          ; 94c5: c9 94       ..             ; zp_b7 = &94 means *INFO context
     beq return_21                                                     ; 94c7: f0 37       .7             ; Yes, return without reading dir
     jmp exec_disc_op_from_wksp                                        ; 94c9: 4c 87 82    L..            ; Execute disc read to load directory; Execute disc command from workspace control block
@@ -4819,10 +4819,10 @@ lffff                                           = &ffff
     jsr print_entry_name_and_access                                   ; 9501: 20 de 92     ..            ; Print filename and access string; Print entry name and access string
     jsr oswrch                                                        ; 9504: 20 ee ff     ..            ; Print space after access string; Write character
     ldy #4                                                            ; 9507: a0 04       ..             ; Y=4: check first access nibble byte
-    lda (zp_entry_ptr),y                                              ; 9509: b1 b6       ..             ; Get access/attribute byte
+    lda (zp_entry_ptr_lo),y                                           ; 9509: b1 b6       ..             ; Get access/attribute byte
     bmi print_newline_return                                          ; 950b: 30 2f       0/             ; Bit 7 (E attribute): suppress info
     dey                                                               ; 950d: 88          .              ; Y=3: get access byte for format; Y=&03
-    lda (zp_entry_ptr),y                                              ; 950e: b1 b6       ..             ; Get access byte
+    lda (zp_entry_ptr_lo),y                                           ; 950e: b1 b6       ..             ; Get access byte
     rol a                                                             ; 9510: 2a          *              ; Shift bit 7 into C (directory flag)
     ldx #&0a                                                          ; 9511: a2 0a       ..             ; X=&0A: start offset (3-byte addrs)
     ldy #&0d                                                          ; 9513: a0 0d       ..             ; Y=&0D: end offset for 3-byte format
@@ -4833,7 +4833,7 @@ lffff                                           = &ffff
 .print_entry_field_loop
     cpx #&16                                                          ; 951b: e0 16       ..             ; Skip sector field boundary?
     beq check_field_boundary                                          ; 951d: f0 05       ..             ; Yes, skip the sector field gap
-    lda (zp_entry_ptr),y                                              ; 951f: b1 b6       ..             ; Get byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 951f: b1 b6       ..             ; Get byte from entry
     jsr print_hex_byte                                                ; 9521: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
 ; &9524 referenced 1 time by &951d
 .check_field_boundary
@@ -4912,14 +4912,14 @@ lffff                                           = &ffff
     sta l1042,x                                                       ; 957c: 9d 42 10    .B.            ; Copy template to workspace
     dex                                                               ; 957f: ca          .              ; Next byte
     bpl check_dir_exists_loop                                         ; 9580: 10 f7       ..             ; Loop for 16 bytes
-    lda zp_text_ptr                                                   ; 9582: a5 b4       ..             ; Store filename pointer in OSFILE blk
+    lda zp_text_ptr_lo                                                ; 9582: a5 b4       ..             ; Store filename pointer in OSFILE blk
     sta wksp_osfile_block                                             ; 9584: 8d 40 10    .@.            ; Store filename in OSFILE block
-    lda zp_text_ptr_h                                                 ; 9587: a5 b5       ..             ; Get filename high byte
+    lda zp_text_ptr_hi                                                ; 9587: a5 b5       ..             ; Get filename high byte
     sta l1041                                                         ; 9589: 8d 41 10    .A.            ; Store in OSFILE block
     lda #&40 ; '@'                                                    ; 958c: a9 40       .@             ; Point (&B8) to workspace OSFILE blk
-    sta zp_osfile_ptr                                                 ; 958e: 85 b8       ..             ; Store block pointer low
+    sta zp_osfile_ptr_lo                                              ; 958e: 85 b8       ..             ; Store block pointer low
     lda #&10                                                          ; 9590: a9 10       ..             ; Block page = &10
-    sta zp_osfile_ptr_h                                               ; 9592: 85 b9       ..             ; Store block pointer high
+    sta zp_osfile_ptr_hi                                              ; 9592: 85 b9       ..             ; Store block pointer high
     jsr check_file_not_open2                                          ; 9594: 20 f3 8d     ..            ; Search for existing entry; Copy OSFILE addresses and search for empty entry
     ldy #9                                                            ; 9597: a0 09       ..             ; Y=9: check if entry has size > 0
     lda l1037                                                         ; 9599: ad 37 10    .7.            ; Check size bytes for non-zero
@@ -4934,7 +4934,7 @@ lffff                                           = &ffff
 
 ; &95b7 referenced 2 times by &95a2, &95c8
 .cdir_name_validated
-    lda (zp_text_ptr),y                                               ; 95b7: b1 b4       ..             ; Copy filename to dir entry, max 10
+    lda (zp_text_ptr_lo),y                                            ; 95b7: b1 b4       ..             ; Copy filename to dir entry, max 10
     and #&7f                                                          ; 95b9: 29 7f       ).             ; Strip bit 7
     cmp #&22 ; '"'                                                    ; 95bb: c9 22       ."             ; Quote terminates name
     beq check_root_or_special                                         ; 95bd: f0 04       ..             ; Quote: pad with CR
@@ -4945,23 +4945,23 @@ lffff                                           = &ffff
     lda #&0d                                                          ; 95c3: a9 0d       ..             ; Pad with CR
 ; &95c5 referenced 1 time by &95c1
 .not_root_or_special
-    sta (zp_entry_ptr),y                                              ; 95c5: 91 b6       ..             ; Store character in entry
+    sta (zp_entry_ptr_lo),y                                           ; 95c5: 91 b6       ..             ; Store character in entry
     dey                                                               ; 95c7: 88          .              ; Next name byte (decreasing)
     bpl cdir_name_validated                                           ; 95c8: 10 ed       ..             ; Loop for 10 bytes
     jsr write_entry_sector_info                                       ; 95ca: 20 52 8f     R.            ; Allocate disc space for new dir
     ldy #3                                                            ; 95cd: a0 03       ..             ; Y=3: set directory attribute
 ; &95cf referenced 1 time by &95d8
 .copy_cdir_sector_loop
-    lda (zp_entry_ptr),y                                              ; 95cf: b1 b6       ..             ; Get entry byte
+    lda (zp_entry_ptr_lo),y                                           ; 95cf: b1 b6       ..             ; Get entry byte
     ora #&80                                                          ; 95d1: 09 80       ..             ; Set bit 7 (D attribute on all)
-    sta (zp_entry_ptr),y                                              ; 95d3: 91 b6       ..             ; Store back
+    sta (zp_entry_ptr_lo),y                                           ; 95d3: 91 b6       ..             ; Store back
     dey                                                               ; 95d5: 88          .              ; Next byte down
     cpy #1                                                            ; 95d6: c0 01       ..             ; Past byte 1? (byte 0 is special)
     bne copy_cdir_sector_loop                                         ; 95d8: d0 f5       ..             ; No: continue setting attributes
     dey                                                               ; 95da: 88          .              ; Y=0: set D attribute on byte 0
-    lda (zp_entry_ptr),y                                              ; 95db: b1 b6       ..             ; Get name byte 0
+    lda (zp_entry_ptr_lo),y                                           ; 95db: b1 b6       ..             ; Get name byte 0
     ora #&80                                                          ; 95dd: 09 80       ..             ; Set bit 7 (D attribute)
-    sta (zp_entry_ptr),y                                              ; 95df: 91 b6       ..             ; Store back
+    sta (zp_entry_ptr_lo),y                                           ; 95df: 91 b6       ..             ; Store back
     lda #0                                                            ; 95e1: a9 00       ..             ; A=0: zero-fill all 5 dir pages
     tax                                                               ; 95e3: aa          .              ; X=&00
     tay                                                               ; 95e4: a8          .              ; Y=&00
@@ -4987,7 +4987,7 @@ lffff                                           = &ffff
     ldx #0                                                            ; 960b: a2 00       ..             ; X=0: copy name as title and name
 ; &960d referenced 1 time by &9625
 .zero_dir_entries_loop
-    lda (zp_text_ptr),y                                               ; 960d: b1 b4       ..             ; Get name character from argument
+    lda (zp_text_ptr_lo),y                                            ; 960d: b1 b4       ..             ; Get name character from argument
     and #&7f                                                          ; 960f: 29 7f       ).             ; Strip bit 7
     cmp #&22 ; '"'                                                    ; 9611: c9 22       ."             ; Is it double-quote?
     beq write_new_dir_to_disc                                         ; 9613: f0 04       ..             ; Yes: pad with CR
@@ -5224,7 +5224,7 @@ lffff                                           = &ffff
 ; &97c1 referenced 2 times by &9813, &9817
 .init_fsm_zeros_loop
     ldy #0                                                            ; 97c1: a0 00       ..             ; Y=0: check entry first byte
-    lda (zp_entry_ptr),y                                              ; 97c3: b1 b6       ..             ; Get first byte
+    lda (zp_entry_ptr_lo),y                                           ; 97c3: b1 b6       ..             ; Get first byte
     bne init_fsm_total_sectors                                        ; 97c5: d0 10       ..             ; Non-zero: valid entry
     lda l10a2                                                         ; 97c7: ad a2 10    ...            ; End of entries: check if any found
     and l10a3                                                         ; 97ca: 2d a3 10    -..            ; AND all source sector bytes
@@ -5241,7 +5241,7 @@ lffff                                           = &ffff
 ; &97dc referenced 1 time by &97e3
 .init_fsm_sector_loop
     lda l1095,y                                                       ; 97dc: b9 95 10    ...            ; Get workspace sector byte
-    sbc (zp_entry_ptr),y                                              ; 97df: f1 b6       ..             ; Subtract entry sector byte
+    sbc (zp_entry_ptr_lo),y                                           ; 97df: f1 b6       ..             ; Subtract entry sector byte
     iny                                                               ; 97e1: c8          .              ; Next byte
     dex                                                               ; 97e2: ca          .              ; Next workspace byte
     bpl init_fsm_sector_loop                                          ; 97e3: 10 f7       ..             ; Loop for 3 bytes
@@ -5252,7 +5252,7 @@ lffff                                           = &ffff
 ; &97ec referenced 1 time by &97f3
 .write_fsm_to_disc_loop
     lda l108c,y                                                       ; 97ec: b9 8c 10    ...            ; Get other workspace byte
-    sbc (zp_entry_ptr),y                                              ; 97ef: f1 b6       ..             ; Subtract entry sector byte
+    sbc (zp_entry_ptr_lo),y                                           ; 97ef: f1 b6       ..             ; Subtract entry sector byte
     iny                                                               ; 97f1: c8          .              ; Next byte
     dex                                                               ; 97f2: ca          .              ; Next workspace byte
     bpl write_fsm_to_disc_loop                                        ; 97f3: 10 f7       ..             ; Loop for 3 bytes
@@ -5261,31 +5261,31 @@ lffff                                           = &ffff
     ldx #2                                                            ; 97f9: a2 02       ..             ; X=2: 3 bytes
 ; &97fb referenced 1 time by &9802
 .create_root_dir
-    lda (zp_entry_ptr),y                                              ; 97fb: b1 b6       ..             ; Get entry sector byte
+    lda (zp_entry_ptr_lo),y                                           ; 97fb: b1 b6       ..             ; Get entry sector byte
     sta l108c,y                                                       ; 97fd: 99 8c 10    ...            ; Store as best entry sector
     iny                                                               ; 9800: c8          .              ; Next byte
     dex                                                               ; 9801: ca          .              ; Next workspace byte
     bpl create_root_dir                                               ; 9802: 10 f7       ..             ; Loop for 3 bytes
-    lda zp_entry_ptr                                                  ; 9804: a5 b6       ..             ; Save entry pointer
-    sta zp_text_ptr                                                   ; 9806: 85 b4       ..             ; Store as best entry pointer low
-    lda zp_entry_ptr_h                                                ; 9808: a5 b7       ..             ; Get pointer high
-    sta zp_text_ptr_h                                                 ; 980a: 85 b5       ..             ; Store as best entry pointer high
+    lda zp_entry_ptr_lo                                               ; 9804: a5 b6       ..             ; Save entry pointer
+    sta zp_text_ptr_lo                                                ; 9806: 85 b4       ..             ; Store as best entry pointer low
+    lda zp_entry_ptr_hi                                               ; 9808: a5 b7       ..             ; Get pointer high
+    sta zp_text_ptr_hi                                                ; 980a: 85 b5       ..             ; Store as best entry pointer high
 ; &980c referenced 2 times by &97e5, &97f5
 .init_root_dir_entries
-    lda zp_entry_ptr                                                  ; 980c: a5 b6       ..             ; Advance to next dir entry
+    lda zp_entry_ptr_lo                                               ; 980c: a5 b6       ..             ; Advance to next dir entry
     clc                                                               ; 980e: 18          .              ; Clear carry for addition
     adc #&1a                                                          ; 980f: 69 1a       i.             ; Add 26 bytes per entry
-    sta zp_entry_ptr                                                  ; 9811: 85 b6       ..             ; Store updated pointer
+    sta zp_entry_ptr_lo                                               ; 9811: 85 b6       ..             ; Store updated pointer
     bcc init_fsm_zeros_loop                                           ; 9813: 90 ac       ..             ; No page crossing: continue search
-    inc zp_entry_ptr_h                                                ; 9815: e6 b7       ..             ; Increment page
+    inc zp_entry_ptr_hi                                               ; 9815: e6 b7       ..             ; Increment page
     bcs init_fsm_zeros_loop                                           ; 9817: b0 a8       ..             ; ALWAYS branch
 
 ; &9819 referenced 1 time by &97d2
 .init_root_dir_name
-    lda zp_text_ptr                                                   ; 9819: a5 b4       ..             ; Restore best entry pointer
-    sta zp_entry_ptr                                                  ; 981b: 85 b6       ..             ; Store in (&B6)
-    lda zp_text_ptr_h                                                 ; 981d: a5 b5       ..             ; Get high byte
-    sta zp_entry_ptr_h                                                ; 981f: 85 b7       ..             ; Store in (&B7)
+    lda zp_text_ptr_lo                                                ; 9819: a5 b4       ..             ; Restore best entry pointer
+    sta zp_entry_ptr_lo                                               ; 981b: 85 b6       ..             ; Store in (&B6)
+    lda zp_text_ptr_hi                                                ; 981d: a5 b5       ..             ; Get high byte
+    sta zp_entry_ptr_hi                                               ; 981f: 85 b7       ..             ; Store in (&B7)
     ldy #2                                                            ; 9821: a0 02       ..             ; Y=2: copy 3 source sector bytes
 ; &9823 referenced 1 time by &982a
 .fill_root_name_loop
@@ -5294,7 +5294,7 @@ lffff                                           = &ffff
     dey                                                               ; 9829: 88          .              ; Next byte
     bpl fill_root_name_loop                                           ; 982a: 10 f7       ..             ; Loop for 3 bytes
     ldx #0                                                            ; 982c: a2 00       ..             ; X=0: start scanning FSM
-    stx zp_mem_ptr                                                    ; 982e: 86 b2       ..             ; Store scan position
+    stx zp_mem_ptr_lo                                                 ; 982e: 86 b2       ..             ; Store scan position
 ; &9830 referenced 1 time by &984a
 .set_root_identity_loop
     cpx fsm_s1_total_sectors_lo                                       ; 9830: ec fe 0f    ...            ; Past end of FSM?
@@ -5306,7 +5306,7 @@ lffff                                           = &ffff
     inx                                                               ; 9838: e8          .              ; Advance X by 3
     inx                                                               ; 9839: e8          .              ; Continue advancing
     inx                                                               ; 983a: e8          .              ; 3rd byte
-    stx zp_mem_ptr                                                    ; 983b: 86 b2       ..             ; Save position
+    stx zp_mem_ptr_lo                                                 ; 983b: 86 b2       ..             ; Save position
     ldy #2                                                            ; 983d: a0 02       ..             ; Y=2: compare sector bytes
 ; &983f referenced 1 time by &984f
 .write_root_sectors_loop
@@ -5314,7 +5314,7 @@ lffff                                           = &ffff
     lda fsm_sector_0,x                                                ; 9840: bd 00 0e    ...            ; Get FSM address byte
     cmp l10a2,y                                                       ; 9843: d9 a2 10    ...            ; Compare with source sector
     bcs set_root_as_csd                                               ; 9846: b0 04       ..             ; FSM >= source: possible match
-    ldx zp_mem_ptr                                                    ; 9848: a6 b2       ..             ; Restore X, try next
+    ldx zp_mem_ptr_lo                                                 ; 9848: a6 b2       ..             ; Restore X, try next
     bne set_root_identity_loop                                        ; 984a: d0 e4       ..             ; Loop (X != 0)
 ; &984c referenced 1 time by &9846
 .set_root_as_csd
@@ -5323,7 +5323,7 @@ lffff                                           = &ffff
     bpl write_root_sectors_loop                                       ; 984f: 10 ee       ..             ; Loop for 3 bytes
 ; &9851 referenced 1 time by &984c
 .copy_root_sector_loop
-    ldx zp_mem_ptr                                                    ; 9851: a6 b2       ..             ; Restore entry position
+    ldx zp_mem_ptr_lo                                                 ; 9851: a6 b2       ..             ; Restore entry position
     cpx #6                                                            ; 9853: e0 06       ..             ; Need at least 2 entries (>= 6)
     bcc set_format_drive                                              ; 9855: 90 12       ..             ; Not enough entries: reinit
     ldy #0                                                            ; 9857: a0 00       ..             ; Check if entry is adjacent
@@ -5351,12 +5351,12 @@ lffff                                           = &ffff
     plp                                                               ; 9872: 28          (              ; Restore carry
     ldx #2                                                            ; 9873: a2 02       ..             ; X=2: copy sector address
     ldy #&12                                                          ; 9875: a0 12       ..             ; Y=&12: entry length offset
-    lda (zp_entry_ptr),y                                              ; 9877: b1 b6       ..             ; Get entry length byte
+    lda (zp_entry_ptr_lo),y                                           ; 9877: b1 b6       ..             ; Get entry length byte
     cmp #1                                                            ; 9879: c9 01       ..             ; Compare with 1 (min sector)
 ; &987b referenced 1 time by &9890
 .format_write_sectors_loop
     iny                                                               ; 987b: c8          .              ; Next length byte
-    lda (zp_entry_ptr),y                                              ; 987c: b1 b6       ..             ; Get next byte
+    lda (zp_entry_ptr_lo),y                                           ; 987c: b1 b6       ..             ; Get next byte
     adc #0                                                            ; 987e: 69 00       i.             ; Add carry from compare
     sta l1092,y                                                       ; 9880: 99 92 10    ...            ; Store sector count
     sta wksp_102a,y                                                   ; 9883: 99 2a 10    .*.            ; Store in alt workspace
@@ -5372,7 +5372,7 @@ lffff                                           = &ffff
 ; &989c referenced 1 time by &98a6
 .verify_formatted_sectors
     lda wksp_103a,x                                                   ; 989c: bd 3a 10    .:.            ; Get new sector byte
-    sta (zp_entry_ptr),y                                              ; 989f: 91 b6       ..             ; Store in directory entry
+    sta (zp_entry_ptr_lo),y                                           ; 989f: 91 b6       ..             ; Store in directory entry
     sta l10a8,x                                                       ; 98a1: 9d a8 10    ...            ; Store as dest sector
     dey                                                               ; 98a4: 88          .              ; Next entry byte (decreasing)
     dex                                                               ; 98a5: ca          .              ; Next workspace byte
@@ -5383,17 +5383,17 @@ lffff                                           = &ffff
 ; &98ae referenced 1 time by &a350
 .calculate_total_sectors
     lda #0                                                            ; 98ae: a9 00       ..             ; A=0: init recursion stack pointer
-    sta zp_name_ptr                                                   ; 98b0: 85 c0       ..             ; Store in workspace
+    sta zp_name_ptr_lo                                                ; 98b0: 85 c0       ..             ; Store in workspace
     sta l1053                                                         ; 98b2: 8d 53 10    .S.            ; Clear root sector low
     sta l1054                                                         ; 98b5: 8d 54 10    .T.            ; Clear root sector mid
     lda #2                                                            ; 98b8: a9 02       ..             ; Root sector = 2
     sta l1052                                                         ; 98ba: 8d 52 10    .R.            ; Store root sector low
     lda #&1b                                                          ; 98bd: a9 1b       ..             ; Set up path ':0.$' for root
-    sta zp_name_ptr_h                                                 ; 98bf: 85 c1       ..             ; Store in workspace
+    sta zp_name_ptr_hi                                                ; 98bf: 85 c1       ..             ; Store in workspace
     lda #&3c ; '<'                                                    ; 98c1: a9 3c       .<             ; Path string address low
-    sta zp_text_ptr                                                   ; 98c3: 85 b4       ..             ; Store in (&B4)
+    sta zp_text_ptr_lo                                                ; 98c3: 85 b4       ..             ; Store in (&B4)
     lda #&99                                                          ; 98c5: a9 99       ..             ; Path string page &99
-    sta zp_text_ptr_h                                                 ; 98c7: 85 b5       ..             ; Store in (&B5)
+    sta zp_text_ptr_hi                                                ; 98c7: 85 b5       ..             ; Store in (&B5)
 ; &98c9 referenced 1 time by &990c
 .prepare_cdir_directory
     jsr parse_path_and_load                                           ; 98c9: 20 7f 94     ..            ; Load root directory; Parse path and load target directory
@@ -5409,23 +5409,23 @@ lffff                                           = &ffff
 ; &98dd referenced 2 times by &9932, &9936
 .setup_cdir_dir_entry
     ldy #0                                                            ; 98dd: a0 00       ..             ; Y=0: check entry
-    lda (zp_entry_ptr),y                                              ; 98df: b1 b6       ..             ; Get first byte
+    lda (zp_entry_ptr_lo),y                                           ; 98df: b1 b6       ..             ; Get first byte
     beq set_cdir_parent_sector                                        ; 98e1: f0 2b       .+             ; Zero: end of entries in this dir
     ldy #3                                                            ; 98e3: a0 03       ..             ; Y=3: check access byte
-    lda (zp_entry_ptr),y                                              ; 98e5: b1 b6       ..             ; Get access byte
+    lda (zp_entry_ptr_lo),y                                           ; 98e5: b1 b6       ..             ; Get access byte
     bpl write_cdir_directory                                          ; 98e7: 10 42       .B             ; Bit 7 clear: regular file
-    lda zp_name_ptr                                                   ; 98e9: a5 c0       ..             ; Directory: check stack depth
+    lda zp_name_ptr_lo                                                ; 98e9: a5 c0       ..             ; Directory: check stack depth
     cmp #&fe                                                          ; 98eb: c9 fe       ..             ; Compare with &FE (max depth)
     beq set_cdir_parent_sector                                        ; 98ed: f0 1f       ..             ; At max depth: skip this subdir
     ldy #0                                                            ; 98ef: a0 00       ..             ; Push subdir entry address on stack
-    lda zp_entry_ptr                                                  ; 98f1: a5 b6       ..             ; Get entry pointer low
-    sta zp_text_ptr                                                   ; 98f3: 85 b4       ..             ; Store in (&B4)
-    sta (zp_name_ptr),y                                               ; 98f5: 91 c0       ..             ; Store on recursion stack
-    inc zp_name_ptr                                                   ; 98f7: e6 c0       ..             ; Advance stack pointer
-    lda zp_entry_ptr_h                                                ; 98f9: a5 b7       ..             ; Get entry pointer high
-    sta zp_text_ptr_h                                                 ; 98fb: 85 b5       ..             ; Store in (&B5)
-    sta (zp_name_ptr),y                                               ; 98fd: 91 c0       ..             ; Store on recursion stack
-    inc zp_name_ptr                                                   ; 98ff: e6 c0       ..             ; Advance stack pointer
+    lda zp_entry_ptr_lo                                               ; 98f1: a5 b6       ..             ; Get entry pointer low
+    sta zp_text_ptr_lo                                                ; 98f3: 85 b4       ..             ; Store in (&B4)
+    sta (zp_name_ptr_lo),y                                            ; 98f5: 91 c0       ..             ; Store on recursion stack
+    inc zp_name_ptr_lo                                                ; 98f7: e6 c0       ..             ; Advance stack pointer
+    lda zp_entry_ptr_hi                                               ; 98f9: a5 b7       ..             ; Get entry pointer high
+    sta zp_text_ptr_hi                                                ; 98fb: 85 b5       ..             ; Store in (&B5)
+    sta (zp_name_ptr_lo),y                                            ; 98fd: 91 c0       ..             ; Store on recursion stack
+    inc zp_name_ptr_lo                                                ; 98ff: e6 c0       ..             ; Advance stack pointer
     ldx #2                                                            ; 9901: a2 02       ..             ; X=2: save parent dir sector
 ; &9903 referenced 1 time by &990a
 .copy_name_to_cdir_loop
@@ -5437,28 +5437,28 @@ lffff                                           = &ffff
 
 ; &990e referenced 2 times by &98e1, &98ed
 .set_cdir_parent_sector
-    lda zp_name_ptr                                                   ; 990e: a5 c0       ..             ; Check recursion stack
+    lda zp_name_ptr_lo                                                ; 990e: a5 c0       ..             ; Check recursion stack
     beq finalise_cdir                                                 ; 9910: f0 26       .&             ; Stack empty: compaction done
     lda #&3b ; ';'                                                    ; 9912: a9 3b       .;             ; Set up path for parent return
-    sta zp_text_ptr                                                   ; 9914: 85 b4       ..             ; Store path address low
+    sta zp_text_ptr_lo                                                ; 9914: 85 b4       ..             ; Store path address low
     lda #&99                                                          ; 9916: a9 99       ..             ; Path page &99
-    sta zp_text_ptr_h                                                 ; 9918: 85 b5       ..             ; Store path address high
+    sta zp_text_ptr_hi                                                ; 9918: 85 b5       ..             ; Store path address high
     jsr parse_path_and_load                                           ; 991a: 20 7f 94     ..            ; Load parent directory; Parse path and load target directory
     ldy #0                                                            ; 991d: a0 00       ..             ; Y=0: pop entry address from stack
-    dec zp_name_ptr                                                   ; 991f: c6 c0       ..             ; Decrement stack pointer
-    lda (zp_name_ptr),y                                               ; 9921: b1 c0       ..             ; Get entry pointer high
-    sta zp_entry_ptr_h                                                ; 9923: 85 b7       ..             ; Restore (&B7)
-    dec zp_name_ptr                                                   ; 9925: c6 c0       ..             ; Decrement stack pointer
-    lda (zp_name_ptr),y                                               ; 9927: b1 c0       ..             ; Get entry pointer low
-    sta zp_entry_ptr                                                  ; 9929: 85 b6       ..             ; Restore (&B6)
+    dec zp_name_ptr_lo                                                ; 991f: c6 c0       ..             ; Decrement stack pointer
+    lda (zp_name_ptr_lo),y                                            ; 9921: b1 c0       ..             ; Get entry pointer high
+    sta zp_entry_ptr_hi                                               ; 9923: 85 b7       ..             ; Restore (&B7)
+    dec zp_name_ptr_lo                                                ; 9925: c6 c0       ..             ; Decrement stack pointer
+    lda (zp_name_ptr_lo),y                                            ; 9927: b1 c0       ..             ; Get entry pointer low
+    sta zp_entry_ptr_lo                                               ; 9929: 85 b6       ..             ; Restore (&B6)
 ; &992b referenced 1 time by &98e7
 .write_cdir_directory
     clc                                                               ; 992b: 18          .              ; Advance to next entry
-    lda zp_entry_ptr                                                  ; 992c: a5 b6       ..             ; Get entry pointer low
+    lda zp_entry_ptr_lo                                               ; 992c: a5 b6       ..             ; Get entry pointer low
     adc #&1a                                                          ; 992e: 69 1a       i.             ; Add 26 bytes per entry
-    sta zp_entry_ptr                                                  ; 9930: 85 b6       ..             ; Store updated pointer
+    sta zp_entry_ptr_lo                                               ; 9930: 85 b6       ..             ; Store updated pointer
     bcc setup_cdir_dir_entry                                          ; 9932: 90 a9       ..             ; No page crossing: continue scan
-    inc zp_entry_ptr_h                                                ; 9934: e6 b7       ..             ; Increment page
+    inc zp_entry_ptr_hi                                               ; 9934: e6 b7       ..             ; Increment page
     bcs setup_cdir_dir_entry                                          ; 9936: b0 a5       ..             ; ALWAYS branch
 
 ; &9938 referenced 1 time by &9910
@@ -5492,9 +5492,9 @@ lffff                                           = &ffff
     ldy #2                                                            ; 9945: a0 02       ..             ; Y=2: clear R,W,L attribute bits
 ; &9947 referenced 1 time by &994e
 .clear_attr_bits_loop
-    lda (zp_entry_ptr),y                                              ; 9947: b1 b6       ..             ; Get name byte
+    lda (zp_entry_ptr_lo),y                                           ; 9947: b1 b6       ..             ; Get name byte
     and #&7f                                                          ; 9949: 29 7f       ).             ; Strip bit 7 (clear attribute)
-    sta (zp_entry_ptr),y                                              ; 994b: 91 b6       ..             ; Store back
+    sta (zp_entry_ptr_lo),y                                           ; 994b: 91 b6       ..             ; Store back
     dey                                                               ; 994d: 88          .              ; Next name byte
     bpl clear_attr_bits_loop                                          ; 994e: 10 f7       ..             ; Loop for 3 bytes
     rts                                                               ; 9950: 60          `              ; Return (attributes cleared)
@@ -5510,21 +5510,21 @@ lffff                                           = &ffff
 .set_file_attributes
     jsr clear_rwl_attributes                                          ; 9951: 20 45 99     E.            ; Clear existing R,W,L attributes; Clear R, W, L attribute bits in entry
     ldy #4                                                            ; 9954: a0 04       ..             ; Y=4: check E attribute byte
-    lda (zp_entry_ptr),y                                              ; 9956: b1 b6       ..             ; Get byte 4
+    lda (zp_entry_ptr_lo),y                                           ; 9956: b1 b6       ..             ; Get byte 4
     bmi save_e_attribute_state                                        ; 9958: 30 0b       0.             ; Bit 7 set: E attribute, skip
     dey                                                               ; 995a: 88          .              ; Y=3: get D attribute byte; Y=&03
-    lda (zp_entry_ptr),y                                              ; 995b: b1 b6       ..             ; Get byte 3
+    lda (zp_entry_ptr_lo),y                                           ; 995b: b1 b6       ..             ; Get byte 3
     and #&80                                                          ; 995d: 29 80       ).             ; Keep only bit 7 (D flag)
     ldy #0                                                            ; 995f: a0 00       ..             ; Y=0: get first name byte
-    ora (zp_entry_ptr),y                                              ; 9961: 11 b6       ..             ; OR D flag into name byte 0
-    sta (zp_entry_ptr),y                                              ; 9963: 91 b6       ..             ; Store back
+    ora (zp_entry_ptr_lo),y                                           ; 9961: 11 b6       ..             ; OR D flag into name byte 0
+    sta (zp_entry_ptr_lo),y                                           ; 9963: 91 b6       ..             ; Store back
 ; &9965 referenced 1 time by &9958
 .save_e_attribute_state
     sta wksp_102b                                                     ; 9965: 8d 2b 10    .+.            ; Save for E attribute check
     ldy #0                                                            ; 9968: a0 00       ..             ; Y=0: scan for attribute string
 ; &996a referenced 1 time by &9977
 .skip_filename_loop
-    lda (zp_text_ptr),y                                               ; 996a: b1 b4       ..             ; Skip filename characters
+    lda (zp_text_ptr_lo),y                                            ; 996a: b1 b4       ..             ; Skip filename characters
     cmp #&20 ; ' '                                                    ; 996c: c9 20       .              ; Compare with space
     bcc display_and_find_next                                         ; 996e: 90 4b       .K             ; Control char: end of command
     beq skip_spaces_before_attrs                                      ; 9970: f0 07       ..             ; Space: skip to attributes
@@ -5534,7 +5534,7 @@ lffff                                           = &ffff
     bne skip_filename_loop                                            ; 9977: d0 f1       ..             ; Loop scanning filename
 ; &9979 referenced 3 times by &9970, &9974, &9986
 .skip_spaces_before_attrs
-    lda (zp_text_ptr),y                                               ; 9979: b1 b4       ..             ; Skip spaces between name and attrs
+    lda (zp_text_ptr_lo),y                                            ; 9979: b1 b4       ..             ; Skip spaces between name and attrs
     cmp #&20 ; ' '                                                    ; 997b: c9 20       .              ; Is it a space?
     bcc display_and_find_next                                         ; 997d: 90 3c       .<             ; Control char: no attributes given
     beq skip_space_or_quote                                           ; 997f: f0 04       ..             ; Space: keep skipping
@@ -5546,7 +5546,7 @@ lffff                                           = &ffff
     bne skip_spaces_before_attrs                                      ; 9986: d0 f1       ..             ; Continue skipping spaces
 ; &9988 referenced 2 times by &9983, &99b9
 .parse_attr_char
-    lda (zp_text_ptr),y                                               ; 9988: b1 b4       ..             ; Parse attribute character
+    lda (zp_text_ptr_lo),y                                            ; 9988: b1 b4       ..             ; Parse attribute character
     and #&df                                                          ; 998a: 29 df       ).             ; Convert to uppercase
     bit wksp_102b                                                     ; 998c: 2c 2b 10    ,+.            ; Check if E attribute already set
     bmi check_rwl_char                                                ; 998f: 30 14       0.             ; E set: only L attribute allowed
@@ -5554,9 +5554,9 @@ lffff                                           = &ffff
     bne check_rwl_char                                                ; 9993: d0 10       ..             ; No, check R/W/L
     jsr clear_rwl_attributes                                          ; 9995: 20 45 99     E.            ; E: clear R,W,L first; Clear R, W, L attribute bits in entry
     ldy #4                                                            ; 9998: a0 04       ..             ; Y=4: set bit 7 of byte 4
-    lda (zp_entry_ptr),y                                              ; 999a: b1 b6       ..             ; Get entry byte at attribute pos
+    lda (zp_entry_ptr_lo),y                                           ; 999a: b1 b6       ..             ; Get entry byte at attribute pos
     ora #&80                                                          ; 999c: 09 80       ..             ; Set E attribute
-    sta (zp_entry_ptr),y                                              ; 999e: 91 b6       ..             ; Store with E bit set
+    sta (zp_entry_ptr_lo),y                                           ; 999e: 91 b6       ..             ; Store with E bit set
     sta wksp_102b                                                     ; 99a0: 8d 2b 10    .+.            ; Save E flag for later checks
     bmi next_attr_char                                                ; 99a3: 30 13       0.             ; ALWAYS branch
 
@@ -5593,9 +5593,9 @@ lffff                                           = &ffff
     pha                                                               ; 99ca: 48          H              ; Save Y (text position) on stack
     txa                                                               ; 99cb: 8a          .              ; X = index into R/W/L (0,1,2)
     tay                                                               ; 99cc: a8          .              ; Use as Y index into entry
-    lda (zp_entry_ptr),y                                              ; 99cd: b1 b6       ..             ; Get name byte at that position
+    lda (zp_entry_ptr_lo),y                                           ; 99cd: b1 b6       ..             ; Get name byte at that position
     ora #&80                                                          ; 99cf: 09 80       ..             ; Set bit 7 (attribute flag)
-    sta (zp_entry_ptr),y                                              ; 99d1: 91 b6       ..             ; Store back
+    sta (zp_entry_ptr_lo),y                                           ; 99d1: 91 b6       ..             ; Store back
     pla                                                               ; 99d3: 68          h              ; Restore text pointer
     tay                                                               ; 99d4: a8          .              ; Restore Y
     bne next_attr_char                                                ; 99d5: d0 e1       ..             ; Continue parsing attributes
@@ -5614,19 +5614,19 @@ lffff                                           = &ffff
 ; 
 ; ***************************************************************************************
 .star_destroy
-    lda zp_text_ptr                                                   ; 99e6: a5 b4       ..             ; Save filename pointer low
+    lda zp_text_ptr_lo                                                ; 99e6: a5 b4       ..             ; Save filename pointer low
     pha                                                               ; 99e8: 48          H              ; Push low byte
-    lda zp_text_ptr_h                                                 ; 99e9: a5 b5       ..             ; Save filename pointer high
+    lda zp_text_ptr_hi                                                ; 99e9: a5 b5       ..             ; Save filename pointer high
     pha                                                               ; 99eb: 48          H              ; Push high byte
     lda #&40 ; '@'                                                    ; 99ec: a9 40       .@             ; Set up workspace for *INFO call
-    sta zp_osfile_ptr                                                 ; 99ee: 85 b8       ..             ; Store in control block pointer low
+    sta zp_osfile_ptr_lo                                              ; 99ee: 85 b8       ..             ; Store in control block pointer low
     lda #&10                                                          ; 99f0: a9 10       ..             ; Control block page = &10
-    sta zp_osfile_ptr_h                                               ; 99f2: 85 b9       ..             ; Store in control block pointer high
+    sta zp_osfile_ptr_hi                                              ; 99f2: 85 b9       ..             ; Store in control block pointer high
     jsr star_info                                                     ; 99f4: 20 e7 94     ..            ; List matching files via *INFO; *INFO command handler
     pla                                                               ; 99f7: 68          h              ; Restore filename pointer high
-    sta zp_text_ptr_h                                                 ; 99f8: 85 b5       ..             ; Store in (&B5)
+    sta zp_text_ptr_hi                                                ; 99f8: 85 b5       ..             ; Store in (&B5)
     pla                                                               ; 99fa: 68          h              ; Restore filename pointer low
-    sta zp_text_ptr                                                   ; 99fb: 85 b4       ..             ; Store in (&B4)
+    sta zp_text_ptr_lo                                                ; 99fb: 85 b4       ..             ; Store in (&B4)
     jsr print_inline_string                                           ; 99fd: 20 a0 92     ..            ; Print "Destroy ? "; Print bit-7-terminated inline string
     equs "Destroy ?"                                                  ; 9a00: 44 65 73... Des
     equb &a0                                                          ; 9a09: a0          .
@@ -5650,17 +5650,17 @@ lffff                                           = &ffff
     stx wksp_cur_channel                                              ; 9a24: 8e d5 10    ...            ; Store in current channel workspace
 ; &9a27 referenced 1 time by &9a3b
 .delete_matching_files_loop
-    lda zp_text_ptr                                                   ; 9a27: a5 b4       ..             ; Deletion loop: save filename low
+    lda zp_text_ptr_lo                                                ; 9a27: a5 b4       ..             ; Deletion loop: save filename low
     pha                                                               ; 9a29: 48          H              ; Push low byte
-    lda zp_text_ptr_h                                                 ; 9a2a: a5 b5       ..             ; Save filename pointer high
+    lda zp_text_ptr_hi                                                ; 9a2a: a5 b5       ..             ; Save filename pointer high
     pha                                                               ; 9a2c: 48          H              ; Push high byte
     jsr find_first_matching_entry                                     ; 9a2d: 20 df 8f     ..            ; Find next matching file; Find first matching directory entry
     bne all_files_deleted                                             ; 9a30: d0 0c       ..             ; Not found: all deleted, finish
     jsr check_and_delete_found                                        ; 9a32: 20 28 91     (.            ; Delete this file; Validate and delete a directory entry
     pla                                                               ; 9a35: 68          h              ; Restore filename pointer high
-    sta zp_text_ptr_h                                                 ; 9a36: 85 b5       ..             ; Store in (&B5)
+    sta zp_text_ptr_hi                                                ; 9a36: 85 b5       ..             ; Store in (&B5)
     pla                                                               ; 9a38: 68          h              ; Restore filename pointer low
-    sta zp_text_ptr                                                   ; 9a39: 85 b4       ..             ; Store in (&B4)
+    sta zp_text_ptr_lo                                                ; 9a39: 85 b4       ..             ; Store in (&B4)
     jmp delete_matching_files_loop                                    ; 9a3b: 4c 27 9a    L'.            ; Loop to delete next match
 
 ; &9a3e referenced 1 time by &9a30
@@ -5883,7 +5883,7 @@ lffff                                           = &ffff
     lda #0                                                            ; 9b06: a9 00       ..             ; A=0: zero for unused workspace
 ; &9b08 referenced 1 time by &9b04
 .check_workspace_initialised
-    sta (zp_wksp_ptr),y                                               ; 9b08: 91 ba       ..             ; Store byte in workspace
+    sta (zp_wksp_ptr_lo),y                                            ; 9b08: 91 ba       ..             ; Store byte in workspace
     iny                                                               ; 9b0a: c8          .              ; Next byte
     bne copy_default_workspace_loop                                   ; 9b0b: d0 f2       ..             ; Loop for all 256 workspace bytes
     jsr store_wksp_checksum_ba_y                                      ; 9b0d: 20 2b a7     +.            ; Store workspace checksum; Calculate and store workspace checksum
@@ -5891,7 +5891,7 @@ lffff                                           = &ffff
 .verify_workspace_checksum
     jsr check_wksp_checksum                                           ; 9b10: 20 31 a7     1.            ; Verify workspace checksum
     iny                                                               ; 9b13: c8          .              ; Y=next byte in workspace
-    lda (zp_wksp_ptr),y                                               ; 9b14: b1 ba       ..             ; Read stored workspace byte
+    lda (zp_wksp_ptr_lo),y                                            ; 9b14: b1 ba       ..             ; Read stored workspace byte
     cmp #&ff                                                          ; 9b16: c9 ff       ..             ; Is it &FF (uninitialised)?
     bne claim_filing_system                                           ; 9b18: d0 08       ..             ; No, workspace valid from soft break
     ror zp_adfs_flags                                                 ; 9b1a: 66 cd       f.             ; Clear Tube-present flag (bit 7)
@@ -5995,8 +5995,8 @@ boot_run_option = sub_c9b86+1
     bpl copy_boot_command_loop                                        ; 9ba3: 10 f7       ..             ; Loop for 14 bytes
     lda #&a8                                                          ; 9ba5: a9 a8       ..             ; OSBYTE &A8: read ROM pointer table
     jsr osbyte_y_ff_x_00                                              ; 9ba7: 20 a0 84     ..            ; Read current value; Call OSBYTE to read current value
-    stx zp_text_ptr                                                   ; 9baa: 86 b4       ..             ; Store extended vector base low
-    sty zp_text_ptr_h                                                 ; 9bac: 84 b5       ..             ; Store extended vector base high
+    stx zp_text_ptr_lo                                                ; 9baa: 86 b4       ..             ; Store extended vector base low
+    sty zp_text_ptr_hi                                                ; 9bac: 84 b5       ..             ; Store extended vector base high
     ldy #&2f ; '/'                                                    ; 9bae: a0 2f       ./             ; Y=&2F: offset into ext vector table
     ldx #&14                                                          ; 9bb0: a2 14       ..             ; X=&14: 21 bytes of ext vectors
 ; &9bb2 referenced 1 time by &9bbf
@@ -6007,7 +6007,7 @@ boot_run_option = sub_c9b86+1
     lda romsel_copy                                                   ; 9bb9: a5 f4       ..             ; Replace &FF with our ROM number
 ; &9bbb referenced 1 time by &9bb7
 .set_default_csd
-    sta (zp_text_ptr),y                                               ; 9bbb: 91 b4       ..             ; Store in extended vector table
+    sta (zp_text_ptr_lo),y                                            ; 9bbb: 91 b4       ..             ; Store in extended vector table
     dey                                                               ; 9bbd: 88          .              ; Next vector byte
     dex                                                               ; 9bbe: ca          .              ; Next ROM table byte
     bpl copy_csd_name_loop                                            ; 9bbf: 10 f1       ..             ; Loop for 21 bytes
@@ -6027,11 +6027,11 @@ boot_run_option = sub_c9b86+1
     ldy #&fb                                                          ; 9be2: a0 fb       ..             ; Y=&FB: copy 252 bytes from saved ws
 ; &9be4 referenced 1 time by &9bea
 .restore_boot_workspace_loop
-    lda (zp_wksp_ptr),y                                               ; 9be4: b1 ba       ..             ; Get byte from saved workspace
+    lda (zp_wksp_ptr_lo),y                                            ; 9be4: b1 ba       ..             ; Get byte from saved workspace
     sta wksp_csd_name,y                                               ; 9be6: 99 00 11    ...            ; Copy to CSD name area
     dey                                                               ; 9be9: 88          .              ; Next byte
     bne restore_boot_workspace_loop                                   ; 9bea: d0 f8       ..             ; Loop until Y=0
-    lda (zp_wksp_ptr),y                                               ; 9bec: b1 ba       ..             ; Copy byte at Y=0 too
+    lda (zp_wksp_ptr_lo),y                                            ; 9bec: b1 ba       ..             ; Copy byte at Y=0 too
     sta wksp_csd_name,y                                               ; 9bee: 99 00 11    ...            ; Store in CSD name byte 0
     lda wksp_flags_save                                               ; 9bf1: ad 20 11    . .            ; Get saved flags from workspace
     and #4                                                            ; 9bf4: 29 04       ).             ; Keep only *OPT1 bit
@@ -6046,7 +6046,7 @@ boot_run_option = sub_c9b86+1
 .boot_load_from_disc
     dey                                                               ; 9c06: 88          .              ; Y=-1 (will be &FF after DEY)
     tya                                                               ; 9c07: 98          .              ; Transfer to A
-    sta (zp_wksp_ptr),y                                               ; 9c08: 91 ba       ..             ; Store &FF in workspace (marking done)
+    sta (zp_wksp_ptr_lo),y                                            ; 9c08: 91 ba       ..             ; Store &FF in workspace (marking done)
     pla                                                               ; 9c0a: 68          h              ; Retrieve key code from stack
     cmp #&43 ; 'C'                                                    ; 9c0b: c9 43       .C             ; Was it Ctrl+Break (key C = &43)?
     bne boot_set_page                                                 ; 9c0d: d0 03       ..             ; No, do normal boot sequence
@@ -6073,15 +6073,15 @@ boot_run_option = sub_c9b86+1
     ora l111b                                                         ; 9c36: 0d 1b 11    ...            ; OR with high byte
     bne init_channel_complete                                         ; 9c39: d0 39       .9             ; Non-zero: lib sector is set
     lda #&ab                                                          ; 9c3b: a9 ab       ..             ; Set up path ':0.LIB*'
-    sta zp_text_ptr                                                   ; 9c3d: 85 b4       ..             ; Store path address low
+    sta zp_text_ptr_lo                                                ; 9c3d: 85 b4       ..             ; Store path address low
     lda #&9c                                                          ; 9c3f: a9 9c       ..             ; Path in this ROM page
-    sta zp_text_ptr_h                                                 ; 9c41: 85 b5       ..             ; Store path address high
+    sta zp_text_ptr_hi                                                ; 9c41: 85 b5       ..             ; Store path address high
     jsr find_first_matching_entry                                     ; 9c43: 20 df 8f     ..            ; Search for LIB directory; Find first matching directory entry
     bne init_channel_complete                                         ; 9c46: d0 2c       .,             ; Not found: leave lib as default
 ; &9c48 referenced 1 time by &9c53
 .copy_drive_info_loop
     ldy #3                                                            ; 9c48: a0 03       ..             ; Y=3: check access byte
-    lda (zp_entry_ptr),y                                              ; 9c4a: b1 b6       ..             ; Get access byte
+    lda (zp_entry_ptr_lo),y                                           ; 9c4a: b1 b6       ..             ; Get access byte
     bmi set_workspace_drive                                           ; 9c4c: 30 07       0.             ; Bit 7: is it a directory?
     jsr advance_dir_entry_ptr                                         ; 9c4e: 20 5e 89     ^.            ; Not a dir: try next match; Advance to next matching directory entry
     bne init_channel_complete                                         ; 9c51: d0 21       .!             ; No more matches: leave default
@@ -6093,7 +6093,7 @@ boot_run_option = sub_c9b86+1
     ldy #&18                                                          ; 9c57: a0 18       ..             ; Y=&18: start sector in entry
 ; &9c59 referenced 1 time by &9c60
 .init_channel_flags_loop
-    lda (zp_entry_ptr),y                                              ; 9c59: b1 b6       ..             ; Get sector byte
+    lda (zp_entry_ptr_lo),y                                           ; 9c59: b1 b6       ..             ; Get sector byte
     sta wksp_lib_sector,x                                             ; 9c5b: 9d 18 11    ...            ; Store as library sector
     dey                                                               ; 9c5e: 88          .              ; Next entry byte (decreasing Y)
     dex                                                               ; 9c5f: ca          .              ; Next workspace byte (decreasing X)
@@ -6103,7 +6103,7 @@ boot_run_option = sub_c9b86+1
     ldy #9                                                            ; 9c68: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &9c6a referenced 1 time by &9c72
 .init_per_channel_loop
-    lda (zp_entry_ptr),y                                              ; 9c6a: b1 b6       ..             ; Get name byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 9c6a: b1 b6       ..             ; Get name byte from entry
     and #&7f                                                          ; 9c6c: 29 7f       ).             ; Strip bit 7 (access flag)
     sta wksp_lib_name,y                                               ; 9c6e: 99 0a 11    ...            ; Store as library name
     dey                                                               ; 9c71: 88          .              ; Next byte
@@ -6276,13 +6276,13 @@ boot_run_option = sub_c9b86+1
     cmp #&72 ; 'r'                                                    ; 9d27: c9 72       .r             ; Is it OSWORD &72 (disc access)?
     bne check_transfer_complete                                       ; 9d29: d0 46       .F             ; No, check other OSWORD numbers
     lda l00f0                                                         ; 9d2b: a5 f0       ..             ; Get control block address from &F0
-    sta zp_wksp_ptr                                                   ; 9d2d: 85 ba       ..             ; Store in (&BA) for access
+    sta zp_wksp_ptr_lo                                                ; 9d2d: 85 ba       ..             ; Store in (&BA) for access
     lda l00f1                                                         ; 9d2f: a5 f1       ..             ; Get control block high byte
-    sta zp_wksp_ptr_h                                                 ; 9d31: 85 bb       ..             ; Store in (&BB)
+    sta zp_wksp_ptr_hi                                                ; 9d31: 85 bb       ..             ; Store in (&BB)
     ldy #&0f                                                          ; 9d33: a0 0f       ..             ; Y=&0F: copy 16 bytes of ctrl block
 ; &9d35 referenced 1 time by &9d3b
 .match_osword_block_loop
-    lda (zp_wksp_ptr),y                                               ; 9d35: b1 ba       ..             ; Copy control block to workspace
+    lda (zp_wksp_ptr_lo),y                                            ; 9d35: b1 ba       ..             ; Copy control block to workspace
     sta wksp_disc_op_result,y                                         ; 9d37: 99 15 10    ...            ; Copy control block to workspace
     dey                                                               ; 9d3a: 88          .              ; Next byte
     bpl match_osword_block_loop                                       ; 9d3b: 10 f8       ..             ; Loop for 16 bytes
@@ -6309,7 +6309,7 @@ boot_run_option = sub_c9b86+1
 ; &9d5f referenced 1 time by &9d55
 .copy_result_sector_loop
     ldy #0                                                            ; 9d5f: a0 00       ..             ; Y=0: store result at block+0
-    sta (zp_wksp_ptr),y                                               ; 9d61: 91 ba       ..             ; Write result back to control block
+    sta (zp_wksp_ptr_lo),y                                            ; 9d61: 91 ba       ..             ; Write result back to control block
 ; &9d63 referenced 4 times by &9d7f, &9d91, &9da5, &aba2
 .set_result_error_code
     ldx romsel_copy                                                   ; 9d63: a6 f4       ..             ; Restore ROM number
@@ -6504,8 +6504,8 @@ l9dd3 = check_help_adfs_keyword+1
 ; 
 ; ***************************************************************************************
 .my_fscv
-    stx zp_text_ptr                                                   ; 9e50: 86 b4       ..             ; Save text pointer in (&B4)
-    sty zp_text_ptr_h                                                 ; 9e52: 84 b5       ..             ; Store text pointer high
+    stx zp_text_ptr_lo                                                ; 9e50: 86 b4       ..             ; Save text pointer in (&B4)
+    sty zp_text_ptr_hi                                                ; 9e52: 84 b5       ..             ; Store text pointer high
     tax                                                               ; 9e54: aa          .              ; Transfer FSC code to X
     bmi return_26                                                     ; 9e55: 30 15       0.             ; FSC >= &80? Not for us
     cmp #9                                                            ; 9e57: c9 09       ..             ; FSC >= 9? Not for us
@@ -6516,8 +6516,8 @@ l9dd3 = check_help_adfs_keyword+1
     pha                                                               ; 9e63: 48          H              ; Push dispatch high byte
     lda fscv_dispatch_lo,x                                            ; 9e64: bd 6d 9e    .m.            ; Get dispatch address low byte
     pha                                                               ; 9e67: 48          H              ; Push dispatch low byte
-    ldx zp_text_ptr                                                   ; 9e68: a6 b4       ..             ; Restore X (text pointer low)
-    ldy zp_text_ptr_h                                                 ; 9e6a: a4 b5       ..             ; Restore Y (text pointer high)
+    ldx zp_text_ptr_lo                                                ; 9e68: a6 b4       ..             ; Restore X (text pointer low)
+    ldy zp_text_ptr_hi                                                ; 9e6a: a4 b5       ..             ; Restore Y (text pointer high)
 ; &9e6c referenced 2 times by &9e55, &9e59
 .return_26
     rts                                                               ; 9e6c: 60          `              ; RTS-dispatch to handler
@@ -6567,9 +6567,9 @@ l9dd3 = check_help_adfs_keyword+1
 .star_cmd
     jsr wait_ensuring                                                 ; 9e7f: 20 05 83     ..            ; Wait if files being ensured; Wait while files are being ensured
     lda #&a2                                                          ; 9e82: a9 a2       ..             ; Set up workspace pointer
-    sta zp_osfile_ptr                                                 ; 9e84: 85 b8       ..             ; Store workspace pointer low
+    sta zp_osfile_ptr_lo                                              ; 9e84: 85 b8       ..             ; Store workspace pointer low
     lda #&10                                                          ; 9e86: a9 10       ..             ; Workspace page = &10
-    sta zp_osfile_ptr_h                                               ; 9e88: 85 b9       ..             ; Store workspace pointer high
+    sta zp_osfile_ptr_hi                                              ; 9e88: 85 b9       ..             ; Store workspace pointer high
     jsr skip_spaces                                                   ; 9e8a: 20 cf a4     ..            ; Skip leading spaces in command; Skip leading spaces in command argument
     ldx #&fd                                                          ; 9e8d: a2 fd       ..             ; X=&FD: start before first table entry
 ; &9e8f referenced 2 times by &9eaf, &9ec1
@@ -6583,10 +6583,10 @@ l9dd3 = check_help_adfs_keyword+1
     iny                                                               ; 9e94: c8          .              ; Next argument character
     lda tbl_commands,x                                                ; 9e95: bd e3 9e    ...            ; Get byte from command table
     bmi end_of_table_name                                             ; 9e98: 30 1a       0.             ; Bit 7 set: end of command name
-    cmp (zp_text_ptr),y                                               ; 9e9a: d1 b4       ..             ; Compare with input character
+    cmp (zp_text_ptr_lo),y                                            ; 9e9a: d1 b4       ..             ; Compare with input character
     beq match_command_char                                            ; 9e9c: f0 f5       ..             ; Match, continue
     ora #&20 ; ' '                                                    ; 9e9e: 09 20       .              ; Try case-insensitive (OR &20)
-    cmp (zp_text_ptr),y                                               ; 9ea0: d1 b4       ..             ; Compare again
+    cmp (zp_text_ptr_lo),y                                            ; 9ea0: d1 b4       ..             ; Compare again
     beq match_command_char                                            ; 9ea2: f0 ef       ..             ; Match, continue
     dex                                                               ; 9ea4: ca          .              ; Back up table pointer
 ; &9ea5 referenced 1 time by &9ea9
@@ -6594,7 +6594,7 @@ l9dd3 = check_help_adfs_keyword+1
     inx                                                               ; 9ea5: e8          .              ; Skip to next table entry
     lda tbl_commands,x                                                ; 9ea6: bd e3 9e    ...            ; Read table byte
     bpl skip_to_end_of_name                                           ; 9ea9: 10 fa       ..             ; Loop until bit 7 set (end marker)
-    lda (zp_text_ptr),y                                               ; 9eab: b1 b4       ..             ; Check if input has abbreviation dot
+    lda (zp_text_ptr_lo),y                                            ; 9eab: b1 b4       ..             ; Check if input has abbreviation dot
     cmp #&2e ; '.'                                                    ; 9ead: c9 2e       ..             ; Is it a dot?
     bne next_command_entry                                            ; 9eaf: d0 de       ..             ; No, try next command
     iny                                                               ; 9eb1: c8          .              ; Skip past the dot
@@ -6603,7 +6603,7 @@ l9dd3 = check_help_adfs_keyword+1
 .end_of_table_name
     tya                                                               ; 9eb4: 98          .              ; Y=0: no chars matched at all?
     beq dispatch_command                                              ; 9eb5: f0 23       .#             ; Yes, unknown command
-    lda (zp_text_ptr),y                                               ; 9eb7: b1 b4       ..             ; Check if next input char is alpha
+    lda (zp_text_ptr_lo),y                                            ; 9eb7: b1 b4       ..             ; Check if next input char is alpha
     and #&5f ; '_'                                                    ; 9eb9: 29 5f       )_             ; Mask to uppercase
     cmp #&41 ; 'A'                                                    ; 9ebb: c9 41       .A             ; Below 'A'? Not alpha, command done
     bcc advance_past_command                                          ; 9ebd: 90 04       ..             ; Not alpha: command name complete
@@ -6613,16 +6613,16 @@ l9dd3 = check_help_adfs_keyword+1
 .advance_past_command
     tya                                                               ; 9ec3: 98          .              ; Advance text pointer past matched chars
     clc                                                               ; 9ec4: 18          .              ; Clear carry for pointer advance
-    adc zp_text_ptr                                                   ; 9ec5: 65 b4       e.             ; Add matched length to pointer
-    sta zp_text_ptr                                                   ; 9ec7: 85 b4       ..             ; Store updated pointer low
+    adc zp_text_ptr_lo                                                ; 9ec5: 65 b4       e.             ; Add matched length to pointer
+    sta zp_text_ptr_lo                                                ; 9ec7: 85 b4       ..             ; Store updated pointer low
     bcc skip_spaces_before_args                                       ; 9ec9: 90 02       ..             ; No page crossing
-    inc zp_text_ptr_h                                                 ; 9ecb: e6 b5       ..             ; Increment pointer high page
+    inc zp_text_ptr_hi                                                ; 9ecb: e6 b5       ..             ; Increment pointer high page
 ; &9ecd referenced 1 time by &9ec9
 .skip_spaces_before_args
     jsr skip_spaces                                                   ; 9ecd: 20 cf a4     ..            ; Skip spaces after command; Skip leading spaces in command argument
-    lda zp_text_ptr                                                   ; 9ed0: a5 b4       ..             ; Save text pointer for command handler
+    lda zp_text_ptr_lo                                                ; 9ed0: a5 b4       ..             ; Save text pointer for command handler
     sta l10d6                                                         ; 9ed2: 8d d6 10    ...            ; Save text pointer low for handler
-    lda zp_text_ptr_h                                                 ; 9ed5: a5 b5       ..             ; Get text pointer high
+    lda zp_text_ptr_hi                                                ; 9ed5: a5 b5       ..             ; Get text pointer high
     sta wksp_shadow_save                                              ; 9ed7: 8d d7 10    ...            ; Save for handler
 ; &9eda referenced 1 time by &9eb5
 .dispatch_command
@@ -6715,7 +6715,7 @@ l9ee4 = tbl_commands+1
     rts                                                               ; 9fdc: 60          `              ; Return to FSC dispatcher
 
 .sub_c9fdd
-    ldx zp_text_ptr                                                   ; 9fdd: a6 b4       ..             ; Get *OPT first parameter
+    ldx zp_text_ptr_lo                                                ; 9fdd: a6 b4       ..             ; Get *OPT first parameter
     beq c9fed                                                         ; 9fdf: f0 0c       ..             ; Param=0: *OPT 0 (clear OPT1)
     dex                                                               ; 9fe1: ca          .              ; Param-1: check for *OPT 1
     bne c9ff6                                                         ; 9fe2: d0 12       ..             ; Not *OPT 1: check *OPT 4
@@ -6740,7 +6740,7 @@ l9ee4 = tbl_commands+1
     bne ca00a                                                         ; 9ff8: d0 10       ..             ; Not *OPT 4: bad opt error
     jsr mark_directory_dirty                                          ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified; Validate FSM checksums and mark directory dirty
     jsr check_drive_and_reload_fsm                                    ; 9ffd: 20 f5 b4     ..            ; Ensure dir loaded and writable; Check disc changed and reload FSM if needed
-    lda zp_text_ptr_h                                                 ; a000: a5 b5       ..             ; Get boot option value (second param)
+    lda zp_text_ptr_hi                                                ; a000: a5 b5       ..             ; Get boot option value (second param)
     and #3                                                            ; a002: 29 03       ).             ; Mask to 2 bits (options 0-3)
     sta fsm_s1_boot_option                                            ; a004: 8d fd 0f    ...            ; Store in FSM boot option byte
     jmp write_dir_and_validate                                        ; a007: 4c 86 8f    L..            ; Write FSM back to disc; Write directory and FSM back to disc
@@ -6817,7 +6817,7 @@ l9ee4 = tbl_commands+1
     inx                                                               ; a066: e8          .              ; Advance X to entry+3
     inx                                                               ; a067: e8          .              ; Advance X: 2nd byte of 3-byte entry
     inx                                                               ; a068: e8          .              ; Advance X: 3rd byte of 3-byte entry
-    stx zp_gspb_ptr                                                   ; a069: 86 c6       ..             ; Save FSM index for next iteration
+    stx zp_gspb_ptr_lo                                                ; a069: 86 c6       ..             ; Save FSM index for next iteration
     ldy #2                                                            ; a06b: a0 02       ..             ; Y=2: print 3 address bytes
 ; &a06d referenced 1 time by &a075
 .print_fsm_entries_loop
@@ -6830,7 +6830,7 @@ l9ee4 = tbl_commands+1
     equs "  : "                                                       ; a07a: 20 20 3a...   :
     equb &a0                                                          ; a07e: a0          .
 
-    ldx zp_gspb_ptr                                                   ; a07f: a6 c6       ..             ; Restore FSM index
+    ldx zp_gspb_ptr_lo                                                ; a07f: a6 c6       ..             ; Restore FSM index
     ldy #2                                                            ; a081: a0 02       ..             ; Y=2: print 3 length bytes
 ; &a083 referenced 1 time by &a08b
 .print_entry_hex_loop
@@ -6840,7 +6840,7 @@ l9ee4 = tbl_commands+1
     dey                                                               ; a08a: 88          .              ; Next byte
     bpl print_entry_hex_loop                                          ; a08b: 10 f6       ..             ; Loop for 3 bytes (high to low)
     jsr osnewl                                                        ; a08d: 20 e7 ff     ..            ; Print newline after each entry; Write newline (characters 10 and 13)
-    ldx zp_gspb_ptr                                                   ; a090: a6 c6       ..             ; Restore FSM index for next entry
+    ldx zp_gspb_ptr_lo                                                ; a090: a6 c6       ..             ; Restore FSM index for next entry
     bne print_map_header                                              ; a092: d0 cd       ..             ; Loop if more entries
 ; ***************************************************************************************
 ; Check if disc compaction is recommended
@@ -6925,7 +6925,7 @@ l9ee4 = tbl_commands+1
 .store_default_drive
     sty l106f                                                         ; a0ff: 8c 6f 10    .o.            ; Store default drive number
     ldy #0                                                            ; a102: a0 00       ..             ; Y=0: check for argument
-    lda (zp_text_ptr),y                                               ; a104: b1 b4       ..             ; Get first argument char
+    lda (zp_text_ptr_lo),y                                            ; a104: b1 b4       ..             ; Get first argument char
     cmp #&20 ; ' '                                                    ; a106: c9 20       .              ; Is it a printable char?
     bcc return_28                                                     ; a108: 90 06       ..             ; No argument: use default drive
     jsr parse_drive_from_ascii                                        ; a10a: 20 22 88     ".            ; Parse drive number from argument; Parse drive number from ASCII character
@@ -7018,9 +7018,9 @@ la154 = sub_ca153+1
     ldy #&a1                                                          ; a169: a0 a1       ..             ; Y=&A1: control block page
     jsr command_exec_xy                                               ; a16b: 20 89 80     ..            ; Send unpark command to drive; Execute disc command with control block at (X,Y)
     lda #&aa                                                          ; a16e: a9 aa       ..             ; Point to root directory path
-    sta zp_text_ptr                                                   ; a170: 85 b4       ..             ; Point to root dir path '$'
+    sta zp_text_ptr_lo                                                ; a170: 85 b4       ..             ; Point to root dir path '$'
     lda #&a2                                                          ; a172: a9 a2       ..             ; Path string is in this page
-    sta zp_text_ptr_h                                                 ; a174: 85 b5       ..             ; Store path high byte
+    sta zp_text_ptr_hi                                                ; a174: 85 b5       ..             ; Store path high byte
     jsr star_dir                                                      ; a176: 20 3f 95     ?.            ; Set root as CSD via *DIR; *DIR command handler
 ; &a179 referenced 2 times by &a138, &a147
 .mount_read_root_dir
@@ -7124,7 +7124,7 @@ la154 = sub_ca153+1
     ldy #0                                                            ; a25b: a0 00       ..             ; Y=0: index into title string
 ; &a25d referenced 1 time by &a271
 .copy_title_loop
-    lda (zp_text_ptr),y                                               ; a25d: b1 b4       ..             ; Get next character
+    lda (zp_text_ptr_lo),y                                            ; a25d: b1 b4       ..             ; Get next character
     and #&7f                                                          ; a25f: 29 7f       ).             ; Strip bit 7
     cmp #&22 ; '"'                                                    ; a261: c9 22       ."             ; Double-quote terminates title
     beq pad_title_with_cr                                             ; a263: f0 04       ..             ; Yes, pad with CR
@@ -7152,7 +7152,7 @@ la154 = sub_ca153+1
 .star_compact
     jsr skip_spaces                                                   ; a276: 20 cf a4     ..            ; Skip leading spaces; Skip leading spaces in command argument
     ldy #0                                                            ; a279: a0 00       ..             ; Y=0: check for argument
-    lda (zp_text_ptr),y                                               ; a27b: b1 b4       ..             ; Get first char
+    lda (zp_text_ptr_lo),y                                            ; a27b: b1 b4       ..             ; Get first char
     cmp #&21 ; '!'                                                    ; a27d: c9 21       .!             ; Printable char? Parse SP and LP
     bcs parse_compact_start_page                                      ; a27f: b0 2a       .*             ; Yes, parse hex SP LP arguments
     lda #osbyte_read_himem                                            ; a281: a9 84       ..             ; OSBYTE &84: read top of user memory
@@ -7184,10 +7184,10 @@ la154 = sub_ca153+1
 .parse_compact_start_page
     sta wksp_disc_op_result                                           ; a2ab: 8d 15 10    ...            ; Store first hex digit
     iny                                                               ; a2ae: c8          .              ; Next argument character
-    lda (zp_text_ptr),y                                               ; a2af: b1 b4       ..             ; Get second hex digit
+    lda (zp_text_ptr_lo),y                                            ; a2af: b1 b4       ..             ; Get second hex digit
     sta wksp_disc_op_mem_addr                                         ; a2b1: 8d 16 10    ...            ; Store as second digit
     iny                                                               ; a2b4: c8          .              ; Next character
-    lda (zp_text_ptr),y                                               ; a2b5: b1 b4       ..             ; Get separator/terminator
+    lda (zp_text_ptr_lo),y                                            ; a2b5: b1 b4       ..             ; Get separator/terminator
     cmp #&20 ; ' '                                                    ; a2b7: c9 20       .              ; Is it a space?
     beq skip_separator_spaces                                         ; a2b9: f0 04       ..             ; Yes, skip to length parameter
     cmp #&2c ; ','                                                    ; a2bb: c9 2c       .,             ; Is it a comma?
@@ -7195,12 +7195,12 @@ la154 = sub_ca153+1
 ; &a2bf referenced 2 times by &a2b9, &a2c4
 .skip_separator_spaces
     iny                                                               ; a2bf: c8          .              ; Skip spaces/commas
-    lda (zp_text_ptr),y                                               ; a2c0: b1 b4       ..             ; Get length first digit
+    lda (zp_text_ptr_lo),y                                            ; a2c0: b1 b4       ..             ; Get length first digit
     cmp #&20 ; ' '                                                    ; a2c2: c9 20       .              ; Is it a space?
     beq skip_separator_spaces                                         ; a2c4: f0 f9       ..             ; Yes, skip more spaces
     sta l1017                                                         ; a2c6: 8d 17 10    ...            ; Store length first digit
     iny                                                               ; a2c9: c8          .              ; Next character
-    lda (zp_text_ptr),y                                               ; a2ca: b1 b4       ..             ; Get length second digit
+    lda (zp_text_ptr_lo),y                                            ; a2ca: b1 b4       ..             ; Get length second digit
     sta l1018                                                         ; a2cc: 8d 18 10    ...            ; Store length second digit
     cmp #&21 ; '!'                                                    ; a2cf: c9 21       .!             ; Is second digit printable?
     bcs skip_trailing_spaces                                          ; a2d1: b0 0c       ..             ; Yes, both digits present
@@ -7212,7 +7212,7 @@ la154 = sub_ca153+1
 ; &a2df referenced 2 times by &a2d1, &a2e4
 .skip_trailing_spaces
     iny                                                               ; a2df: c8          .              ; Skip past length argument
-    lda (zp_text_ptr),y                                               ; a2e0: b1 b4       ..             ; Get next character
+    lda (zp_text_ptr_lo),y                                            ; a2e0: b1 b4       ..             ; Get next character
     cmp #&20 ; ' '                                                    ; a2e2: c9 20       .              ; Is it a space?
     beq skip_trailing_spaces                                          ; a2e4: f0 f9       ..             ; Yes, skip spaces
     bcs bad_compact_error                                             ; a2e6: b0 b3       ..             ; Printable after length: bad compact; Raise Bad compact error
@@ -7313,20 +7313,20 @@ la154 = sub_ca153+1
 ; &a365 referenced 4 times by &a544, &a5a1, &a62e, &a864
 .parse_second_filename
     jsr skip_filename                                                 ; a365: 20 b7 a4     ..            ; Skip past filename in command string
-    lda zp_text_ptr_h                                                 ; a368: a5 b5       ..             ; Save text pointer high
+    lda zp_text_ptr_hi                                                ; a368: a5 b5       ..             ; Save text pointer high
     pha                                                               ; a36a: 48          H              ; Push on stack
-    lda zp_text_ptr                                                   ; a36b: a5 b4       ..             ; Save text pointer low
+    lda zp_text_ptr_lo                                                ; a36b: a5 b4       ..             ; Save text pointer low
     pha                                                               ; a36d: 48          H              ; Push on stack
     jsr skip_filename                                                 ; a36e: 20 b7 a4     ..            ; Skip past filename in command string
     ldy #0                                                            ; a371: a0 00       ..             ; Y=0: check for argument
-    lda (zp_text_ptr),y                                               ; a373: b1 b4       ..             ; Get first char
+    lda (zp_text_ptr_lo),y                                            ; a373: b1 b4       ..             ; Get first char
     cmp #&20 ; ' '                                                    ; a375: c9 20       .              ; Is it printable?
     bcs bad_command_error                                             ; a377: b0 10       ..             ; No: end of command
     pla                                                               ; a379: 68          h              ; Restore text pointer low
-    sta zp_text_ptr                                                   ; a37a: 85 b4       ..             ; Store in (&B4)
+    sta zp_text_ptr_lo                                                ; a37a: 85 b4       ..             ; Store in (&B4)
     sta wksp_osfile_block                                             ; a37c: 8d 40 10    .@.            ; Also in OSFILE block
     pla                                                               ; a37f: 68          h              ; Restore text pointer high
-    sta zp_text_ptr_h                                                 ; a380: 85 b5       ..             ; Store in (&B5)
+    sta zp_text_ptr_hi                                                ; a380: 85 b5       ..             ; Store in (&B5)
     sta l1041                                                         ; a382: 8d 41 10    .A.            ; Also in OSFILE block+1
     rts                                                               ; a385: 60          `              ; Return
 
@@ -7347,40 +7347,40 @@ la154 = sub_ca153+1
 ; 
 ; ***************************************************************************************
 .star_run
-    lda zp_text_ptr                                                   ; a399: a5 b4       ..             ; Save filename pointer for retry
-    sta zp_name_ptr                                                   ; a39b: 85 c0       ..             ; Store in save area low
-    lda zp_text_ptr_h                                                 ; a39d: a5 b5       ..             ; Get filename high byte
-    sta zp_name_ptr_h                                                 ; a39f: 85 c1       ..             ; Store in save area high
+    lda zp_text_ptr_lo                                                ; a399: a5 b4       ..             ; Save filename pointer for retry
+    sta zp_name_ptr_lo                                                ; a39b: 85 c0       ..             ; Store in save area low
+    lda zp_text_ptr_hi                                                ; a39d: a5 b5       ..             ; Get filename high byte
+    sta zp_name_ptr_hi                                                ; a39f: 85 c1       ..             ; Store in save area high
     jsr exec_disc_and_check_error                                     ; a3a1: 20 b3 8b     ..            ; Try to find file in CSD; Search for non-directory file
     beq search_lib_for_command                                        ; a3a4: f0 16       ..             ; Found in CSD, proceed to load
     jsr save_wksp_and_return                                          ; a3a6: 20 d3 89     ..            ; Not found: save workspace state; Save workspace state and return result
-    lda zp_name_ptr                                                   ; a3a9: a5 c0       ..             ; Restore filename pointer
-    sta zp_text_ptr                                                   ; a3ab: 85 b4       ..             ; Restore filename low
-    lda zp_name_ptr_h                                                 ; a3ad: a5 c1       ..             ; Get saved high byte
-    sta zp_text_ptr_h                                                 ; a3af: 85 b5       ..             ; Restore filename high
+    lda zp_name_ptr_lo                                                ; a3a9: a5 c0       ..             ; Restore filename pointer
+    sta zp_text_ptr_lo                                                ; a3ab: 85 b4       ..             ; Restore filename low
+    lda zp_name_ptr_hi                                                ; a3ad: a5 c1       ..             ; Get saved high byte
+    sta zp_text_ptr_hi                                                ; a3af: 85 b5       ..             ; Restore filename high
     jsr switch_to_library                                             ; a3b1: 20 60 a4     `.            ; Switch CSD to library directory; Switch CSD to library directory
     jsr exec_disc_and_check_error                                     ; a3b4: 20 b3 8b     ..            ; Try to find file in library; Search for non-directory file
     bne restore_csd_and_error                                         ; a3b7: d0 cd       ..             ; Not in library either: Not found
     jsr restore_csd                                                   ; a3b9: 20 73 a4     s.            ; Restore CSD after library search; Restore CSD sector from saved copy
 ; &a3bc referenced 1 time by &a3a4
 .search_lib_for_command
-    lda zp_text_ptr                                                   ; a3bc: a5 b4       ..             ; Save filename address for OSFILE
+    lda zp_text_ptr_lo                                                ; a3bc: a5 b4       ..             ; Save filename address for OSFILE
     sta l10a2                                                         ; a3be: 8d a2 10    ...            ; Store filename addr for OSFILE
-    lda zp_text_ptr_h                                                 ; a3c1: a5 b5       ..             ; Get filename pointer high
+    lda zp_text_ptr_hi                                                ; a3c1: a5 b5       ..             ; Get filename pointer high
     sta l10a3                                                         ; a3c3: 8d a3 10    ...            ; Store in OSFILE block
     ldy #&0e                                                          ; a3c6: a0 0e       ..             ; Y=&0E: check exec address bytes
-    lda (zp_entry_ptr),y                                              ; a3c8: b1 b6       ..             ; Get exec addr byte 0
+    lda (zp_entry_ptr_lo),y                                           ; a3c8: b1 b6       ..             ; Get exec addr byte 0
     ldx #2                                                            ; a3ca: a2 02       ..             ; X=2: AND with bytes 1 and 2
 ; &a3cc referenced 1 time by &a3d0
 .copy_run_params_loop
     iny                                                               ; a3cc: c8          .              ; AND exec addr bytes together
-    and (zp_entry_ptr),y                                              ; a3cd: 31 b6       1.             ; AND exec addr bytes together
+    and (zp_entry_ptr_lo),y                                           ; a3cd: 31 b6       1.             ; AND exec addr bytes together
     dex                                                               ; a3cf: ca          .              ; Next byte
     bpl copy_run_params_loop                                          ; a3d0: 10 fa       ..             ; Loop for 3 bytes
     cmp #&ff                                                          ; a3d2: c9 ff       ..             ; All &FF? Exec addr = &FFFFFFFF
     bne execute_loaded_file                                           ; a3d4: d0 13       ..             ; No, check load address
-    ldx zp_entry_ptr                                                  ; a3d6: a6 b6       ..             ; Exec = &FFFFFFFF: open with OSFIND
-    ldy zp_entry_ptr_h                                                ; a3d8: a4 b7       ..             ; Get directory entry pointer high
+    ldx zp_entry_ptr_lo                                               ; a3d6: a6 b6       ..             ; Exec = &FFFFFFFF: open with OSFIND
+    ldy zp_entry_ptr_hi                                               ; a3d8: a4 b7       ..             ; Get directory entry pointer high
     lda #&40 ; '@'                                                    ; a3da: a9 40       .@             ; A=&40: open for reading
     jsr my_osfind                                                     ; a3dc: 20 b6 b1     ..            ; Open the file; OSFIND handler
     sta wksp_1132                                                     ; a3df: 8d 32 11    .2.            ; Save handle for *EXEC
@@ -7391,11 +7391,11 @@ la154 = sub_ca153+1
 ; &a3e9 referenced 1 time by &a3d4
 .execute_loaded_file
     ldy #&0b                                                          ; a3e9: a0 0b       ..             ; Y=&0B: check load addr bytes
-    lda (zp_entry_ptr),y                                              ; a3eb: b1 b6       ..             ; Get load addr byte 1
+    lda (zp_entry_ptr_lo),y                                           ; a3eb: b1 b6       ..             ; Get load addr byte 1
     iny                                                               ; a3ed: c8          .              ; Y=&0c
-    and (zp_entry_ptr),y                                              ; a3ee: 31 b6       1.             ; AND with byte 2
+    and (zp_entry_ptr_lo),y                                           ; a3ee: 31 b6       1.             ; AND with byte 2
     iny                                                               ; a3f0: c8          .              ; Y=&0d
-    and (zp_entry_ptr),y                                              ; a3f1: 31 b6       1.             ; AND with byte 3
+    and (zp_entry_ptr_lo),y                                           ; a3f1: 31 b6       1.             ; AND with byte 3
     cmp #&ff                                                          ; a3f3: c9 ff       ..             ; All &FF? Load addr = &FFFFFFFF
     bne run_tube_transfer                                             ; a3f5: d0 0a       ..             ; No, proceed with load and execute
     jsr reload_fsm_and_dir_then_brk                                   ; a3f7: 20 48 83     H.            ; Reload FSM and directory then raise error
@@ -7408,13 +7408,13 @@ la154 = sub_ca153+1
     sta l10a8                                                         ; a403: 8d a8 10    ...            ; Store exec addr for later JMP
     ldx #&a2                                                          ; a406: a2 a2       ..             ; X=&A2: OSFILE block offset
     ldy #&10                                                          ; a408: a0 10       ..             ; Y=&10: OSFILE block page
-    stx zp_osfile_ptr                                                 ; a40a: 86 b8       ..             ; Store block pointer low
-    sty zp_osfile_ptr_h                                               ; a40c: 84 b9       ..             ; Store block pointer high
+    stx zp_osfile_ptr_lo                                              ; a40a: 86 b8       ..             ; Store block pointer low
+    sty zp_osfile_ptr_hi                                              ; a40c: 84 b9       ..             ; Store block pointer high
     jsr exec_disc_and_check_error                                     ; a40e: 20 b3 8b     ..            ; Load the file; Search for non-directory file
     ldy #4                                                            ; a411: a0 04       ..             ; Y=4: check if Tube/IO address
-    lda (zp_entry_ptr),y                                              ; a413: b1 b6       ..             ; Get exec addr high byte
+    lda (zp_entry_ptr_lo),y                                           ; a413: b1 b6       ..             ; Get exec addr high byte
     ldy #0                                                            ; a415: a0 00       ..             ; Y=0: check low byte of exec addr
-    ora (zp_entry_ptr),y                                              ; a417: 11 b6       ..             ; OR with lowest byte
+    ora (zp_entry_ptr_lo),y                                           ; a417: 11 b6       ..             ; OR with lowest byte
     bmi run_set_exec_addr                                             ; a419: 30 03       0.             ; Bit 7 set: I/O or Tube address
     jmp validate_found_entry                                          ; a41b: 4c f0 8b    L..            ; Host address: jump directly
 
@@ -7584,10 +7584,10 @@ la154 = sub_ca153+1
     beq advance_past_char                                             ; a4c3: f0 f9       ..             ; Yes, skip dot and continue
     tya                                                               ; a4c5: 98          .              ; Y = number of chars scanned
     clc                                                               ; a4c6: 18          .              ; Clear carry for addition
-    adc zp_text_ptr                                                   ; a4c7: 65 b4       e.             ; Add to (&B4) to advance pointer
-    sta zp_text_ptr                                                   ; a4c9: 85 b4       ..             ; Store updated pointer low
+    adc zp_text_ptr_lo                                                ; a4c7: 65 b4       e.             ; Add to (&B4) to advance pointer
+    sta zp_text_ptr_lo                                                ; a4c9: 85 b4       ..             ; Store updated pointer low
     bcc skip_spaces                                                   ; a4cb: 90 02       ..             ; Skip leading spaces in command argument
-    inc zp_text_ptr_h                                                 ; a4cd: e6 b5       ..             ; Increment pointer high on overflow
+    inc zp_text_ptr_hi                                                ; a4cd: e6 b5       ..             ; Increment pointer high on overflow
 ; ***************************************************************************************
 ; Skip leading spaces in command argument
 ; 
@@ -7605,7 +7605,7 @@ la154 = sub_ca153+1
     php                                                               ; a4d2: 08          .              ; Save quote tracking flag
 ; &a4d3 referenced 1 time by &a4e8
 .scan_spaces_loop
-    lda (zp_text_ptr),y                                               ; a4d3: b1 b4       ..             ; Get character from command line
+    lda (zp_text_ptr_lo),y                                            ; a4d3: b1 b4       ..             ; Get character from command line
     cmp #&20 ; ' '                                                    ; a4d5: c9 20       .              ; Compare with space
     bcc end_of_spaces                                                 ; a4d7: 90 11       ..             ; Control char: end of argument
     beq advance_and_continue                                          ; a4d9: f0 0c       ..             ; Space: skip it
@@ -7628,10 +7628,10 @@ la154 = sub_ca153+1
     tya                                                               ; a4ea: 98          .              ; Y = number of chars to skip
     plp                                                               ; a4eb: 28          (              ; Restore quote flag
     clc                                                               ; a4ec: 18          .              ; Clear carry for addition
-    adc zp_text_ptr                                                   ; a4ed: 65 b4       e.             ; Add to (&B4) to advance pointer
-    sta zp_text_ptr                                                   ; a4ef: 85 b4       ..             ; Store updated pointer low
+    adc zp_text_ptr_lo                                                ; a4ed: 65 b4       e.             ; Add to (&B4) to advance pointer
+    sta zp_text_ptr_lo                                                ; a4ef: 85 b4       ..             ; Store updated pointer low
     bcc return_30                                                     ; a4f1: 90 02       ..             ; No overflow, return
-    inc zp_text_ptr_h                                                 ; a4f3: e6 b5       ..             ; Increment pointer high on overflow
+    inc zp_text_ptr_hi                                                ; a4f3: e6 b5       ..             ; Increment pointer high on overflow
 ; &a4f5 referenced 2 times by &a4f1, &a4fe
 .return_30
     rts                                                               ; a4f5: 60          `              ; Return
@@ -7650,7 +7650,7 @@ la154 = sub_ca153+1
 ; &a4f6 referenced 2 times by &a509, &a547
 .check_drive_colon
     ldy #0                                                            ; a4f6: a0 00       ..             ; Y=0
-    lda (zp_text_ptr),y                                               ; a4f8: b1 b4       ..             ; Get next character
+    lda (zp_text_ptr_lo),y                                            ; a4f8: b1 b4       ..             ; Get next character
     and #&7f                                                          ; a4fa: 29 7f       ).             ; Strip bit 7
     cmp #&3a ; ':'                                                    ; a4fc: c9 3a       .:             ; Is it ':'?
     bne return_30                                                     ; a4fe: d0 f5       ..             ; No, return
@@ -7666,9 +7666,9 @@ la154 = sub_ca153+1
 ; 
 ; ***************************************************************************************
 .star_rename
-    lda zp_text_ptr                                                   ; a503: a5 b4       ..             ; Save first argument pointer
+    lda zp_text_ptr_lo                                                ; a503: a5 b4       ..             ; Save first argument pointer
     pha                                                               ; a505: 48          H              ; Save first arg pointer low
-    lda zp_text_ptr_h                                                 ; a506: a5 b5       ..             ; Get first arg pointer high
+    lda zp_text_ptr_hi                                                ; a506: a5 b5       ..             ; Get first arg pointer high
     pha                                                               ; a508: 48          H              ; Save on stack
     jsr check_drive_colon                                             ; a509: 20 f6 a4     ..            ; Check for drive specifier; Check for drive specifier colon
     jsr set_up_gsinit_path                                            ; a50c: 20 bd 8d     ..            ; Parse and validate destination path
@@ -7679,19 +7679,19 @@ la154 = sub_ca153+1
 ; &a517 referenced 1 time by &a512
 .source_is_found
     ldy #3                                                            ; a517: a0 03       ..             ; Y=3: check if source is directory
-    lda (zp_entry_ptr),y                                              ; a519: b1 b6       ..             ; Get source entry access byte
+    lda (zp_entry_ptr_lo),y                                           ; a519: b1 b6       ..             ; Get source entry access byte
     jsr save_wksp_and_return                                          ; a51b: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     bpl parse_destination_name                                        ; a51e: 10 24       .$             ; Not a directory: skip self-ref check
     pla                                                               ; a520: 68          h              ; Restore first argument pointer
     tax                                                               ; a521: aa          .              ; Transfer to X for save
     pla                                                               ; a522: 68          h              ; Restore first arg low from stack
-    sta zp_text_ptr                                                   ; a523: 85 b4       ..             ; Store in (&B4)
+    sta zp_text_ptr_lo                                                ; a523: 85 b4       ..             ; Store in (&B4)
     pha                                                               ; a525: 48          H              ; Re-save on stack
     txa                                                               ; a526: 8a          .              ; Get saved high byte from X
-    sta zp_text_ptr_h                                                 ; a527: 85 b5       ..             ; Store in (&B5)
+    sta zp_text_ptr_hi                                                ; a527: 85 b5       ..             ; Store in (&B5)
     pha                                                               ; a529: 48          H              ; Save on stack
     ldy #0                                                            ; a52a: a0 00       ..             ; Y=0: check path for $ root ref
-    lda (zp_text_ptr),y                                               ; a52c: b1 b4       ..             ; Check for '$' (root specifier)
+    lda (zp_text_ptr_lo),y                                            ; a52c: b1 b4       ..             ; Check for '$' (root specifier)
     and #&7d ; '}'                                                    ; a52e: 29 7d       )}             ; Mask to ignore L and D bits
     cmp #&24 ; '$'                                                    ; a530: c9 24       .$             ; Is it '$'?
     beq parse_drive_specifier                                         ; a532: f0 cc       ..             ; Root: Bad rename error
@@ -7714,15 +7714,15 @@ la154 = sub_ca153+1
     jsr parse_second_filename                                         ; a544: 20 65 a3     e.            ; Parse second arg (destination); Parse second filename from command line
     jsr check_drive_colon                                             ; a547: 20 f6 a4     ..            ; Check for drive specifier colon
     lda #&40 ; '@'                                                    ; a54a: a9 40       .@             ; Set up OSFILE block pointer
-    sta zp_osfile_ptr                                                 ; a54c: 85 b8       ..             ; Store low byte
+    sta zp_osfile_ptr_lo                                              ; a54c: 85 b8       ..             ; Store low byte
     lda #&10                                                          ; a54e: a9 10       ..             ; Block page = &10
-    sta zp_osfile_ptr_h                                               ; a550: 85 b9       ..             ; Store high byte
+    sta zp_osfile_ptr_hi                                              ; a550: 85 b9       ..             ; Store high byte
     jsr build_osfile_control_block                                    ; a552: 20 e2 8c     ..            ; Search for dest filename
     php                                                               ; a555: 08          .              ; Save search result flags
     jsr search_dir_for_new_entry                                      ; a556: 20 f6 8d     ..            ; Check directory state
     plp                                                               ; a559: 28          (              ; Restore flags
     bne check_alt_workspace                                           ; a55a: d0 0d       ..             ; Dest not found: good for rename
-    lda zp_entry_ptr                                                  ; a55c: a5 b6       ..             ; Dest exists: save entry pointer
+    lda zp_entry_ptr_lo                                               ; a55c: a5 b6       ..             ; Dest exists: save entry pointer
     ldy #3                                                            ; a55e: a0 03       ..             ; Y=3: copy sector+entry info
 ; &a560 referenced 1 time by &a567
 .save_dest_dir_info_loop
@@ -7745,17 +7745,17 @@ la154 = sub_ca153+1
 .reload_and_parse_source
     jsr save_wksp_and_return                                          ; a579: 20 d3 89     ..            ; Save workspace and reload dir; Save workspace state and return result
     pla                                                               ; a57c: 68          h              ; Restore second arg pointer
-    sta zp_text_ptr_h                                                 ; a57d: 85 b5       ..             ; Store in (&B5)
+    sta zp_text_ptr_hi                                                ; a57d: 85 b5       ..             ; Store in (&B5)
     tax                                                               ; a57f: aa          .              ; Save in X
     pla                                                               ; a580: 68          h              ; Restore first arg pointer
-    sta zp_text_ptr                                                   ; a581: 85 b4       ..             ; Store in (&B4)
+    sta zp_text_ptr_lo                                                ; a581: 85 b4       ..             ; Store in (&B4)
     pha                                                               ; a583: 48          H              ; Re-save for later
     txa                                                               ; a584: 8a          .              ; Get high byte from X
     pha                                                               ; a585: 48          H              ; Re-save
     jsr find_first_matching_entry                                     ; a586: 20 df 8f     ..            ; Search source in original dir; Find first matching directory entry
     jsr check_file_not_open                                           ; a589: 20 10 8d     ..            ; Check if file is open; Check file is not locked or open
     ldy #3                                                            ; a58c: a0 03       ..             ; Y=3: compare directories
-    lda zp_entry_ptr                                                  ; a58e: a5 b6       ..             ; Get source entry pointer
+    lda zp_entry_ptr_lo                                               ; a58e: a5 b6       ..             ; Get source entry pointer
 ; &a590 referenced 1 time by &a599
 .compare_src_dest_dir_loop
     cmp wksp_object_sector,y                                          ; a590: d9 34 10    .4.            ; Compare with dest dir sector
@@ -7764,16 +7764,16 @@ la154 = sub_ca153+1
     dey                                                               ; a598: 88          .              ; Next byte
     bpl compare_src_dest_dir_loop                                     ; a599: 10 f5       ..             ; Loop for 4 bytes
     pla                                                               ; a59b: 68          h              ; Same dir: restore dest name ptr
-    sta zp_text_ptr_h                                                 ; a59c: 85 b5       ..             ; Store in (&B5)
+    sta zp_text_ptr_hi                                                ; a59c: 85 b5       ..             ; Store in (&B5)
     pla                                                               ; a59e: 68          h              ; Restore first arg low
-    sta zp_text_ptr                                                   ; a59f: 85 b4       ..             ; Store in (&B4)
+    sta zp_text_ptr_lo                                                ; a59f: 85 b4       ..             ; Store in (&B4)
     jsr parse_second_filename                                         ; a5a1: 20 65 a3     e.            ; Parse last component of dest path; Parse second filename from command line
 ; &a5a4 referenced 2 times by &a5ba, &a5be
 .find_last_path_component
     ldy #0                                                            ; a5a4: a0 00       ..             ; Y=0: scan for end of path component
 ; &a5a6 referenced 1 time by &a5b3
 .scan_component_chars
-    lda (zp_text_ptr),y                                               ; a5a6: b1 b4       ..             ; Get next character
+    lda (zp_text_ptr_lo),y                                            ; a5a6: b1 b4       ..             ; Get next character
     cmp #&2e ; '.'                                                    ; a5a8: c9 2e       ..             ; Is it '.' separator?
     beq advance_past_component                                        ; a5aa: f0 09       ..             ; Yes: advance past component
     and #&7d ; '}'                                                    ; a5ac: 29 7d       )}             ; Strip to printable range
@@ -7784,20 +7784,20 @@ la154 = sub_ca153+1
 ; &a5b5 referenced 1 time by &a5aa
 .advance_past_component
     tya                                                               ; a5b5: 98          .              ; Advance pointer past component
-    adc zp_text_ptr                                                   ; a5b6: 65 b4       e.             ; Add Y to pointer
-    sta zp_text_ptr                                                   ; a5b8: 85 b4       ..             ; Store updated pointer
+    adc zp_text_ptr_lo                                                ; a5b6: 65 b4       e.             ; Add Y to pointer
+    sta zp_text_ptr_lo                                                ; a5b8: 85 b4       ..             ; Store updated pointer
     bcc find_last_path_component                                      ; a5ba: 90 e8       ..             ; No carry: scan next component
-    inc zp_text_ptr_h                                                 ; a5bc: e6 b5       ..             ; Increment high byte on overflow
+    inc zp_text_ptr_hi                                                ; a5bc: e6 b5       ..             ; Increment high byte on overflow
     bne find_last_path_component                                      ; a5be: d0 e4       ..             ; Always branch back to scan
 ; &a5c0 referenced 1 time by &a5b0
 .copy_new_name_to_entry
     ldy #9                                                            ; a5c0: a0 09       ..             ; Y=9: copy 10-byte new name
 ; &a5c2 referenced 1 time by &a5dd
 .merge_name_attributes_loop
-    lda (zp_entry_ptr),y                                              ; a5c2: b1 b6       ..             ; Get old name byte (with attributes)
+    lda (zp_entry_ptr_lo),y                                           ; a5c2: b1 b6       ..             ; Get old name byte (with attributes)
     and #&80                                                          ; a5c4: 29 80       ).             ; Keep only bit 7 (attribute flag)
     sta wksp_102b                                                     ; a5c6: 8d 2b 10    .+.            ; Save attribute bit
-    lda (zp_text_ptr),y                                               ; a5c9: b1 b4       ..             ; Get new name character
+    lda (zp_text_ptr_lo),y                                            ; a5c9: b1 b4       ..             ; Get new name character
     and #&7f                                                          ; a5cb: 29 7f       ).             ; Strip bit 7
     cmp #&22 ; '"'                                                    ; a5cd: c9 22       ."             ; Is it '"'?
     beq pad_with_cr                                                   ; a5cf: f0 04       ..             ; Yes: pad with CR
@@ -7809,7 +7809,7 @@ la154 = sub_ca153+1
 ; &a5d7 referenced 1 time by &a5d3
 .store_merged_name_byte
     ora wksp_102b                                                     ; a5d7: 0d 2b 10    .+.            ; Merge attribute bit with new char
-    sta (zp_entry_ptr),y                                              ; a5da: 91 b6       ..             ; Store renamed byte in entry
+    sta (zp_entry_ptr_lo),y                                           ; a5da: 91 b6       ..             ; Store renamed byte in entry
     dey                                                               ; a5dc: 88          .              ; Next byte
     bpl merge_name_attributes_loop                                    ; a5dd: 10 e3       ..             ; Loop for 10 bytes
     jsr write_dir_and_validate                                        ; a5df: 20 86 8f     ..            ; Write directory back to disc; Write directory and FSM back to disc
@@ -7825,15 +7825,15 @@ la154 = sub_ca153+1
     lda l1037                                                         ; a5eb: ad 37 10    .7.            ; Check if dest has zero size
     bne already_exists_error                                          ; a5ee: d0 f8       ..             ; Non-zero: Already exists error
     ldy #9                                                            ; a5f0: a0 09       ..             ; Y=9: mark old entry as deleted
-    lda (zp_entry_ptr),y                                              ; a5f2: b1 b6       ..             ; Get last name byte
+    lda (zp_entry_ptr_lo),y                                           ; a5f2: b1 b6       ..             ; Get last name byte
     ora #&80                                                          ; a5f4: 09 80       ..             ; Set bit 7 (mark as directory?)
-    sta (zp_entry_ptr),y                                              ; a5f6: 91 b6       ..             ; Store back
+    sta (zp_entry_ptr_lo),y                                           ; a5f6: 91 b6       ..             ; Store back
     jsr write_dir_and_validate                                        ; a5f8: 20 86 8f     ..            ; Write source directory; Write directory and FSM back to disc
     ldy #&0a                                                          ; a5fb: a0 0a       ..             ; Y=&0A: copy entry data to workspace
     ldx #7                                                            ; a5fd: a2 07       ..             ; X=7: 8 bytes of entry metadata
 ; &a5ff referenced 1 time by &a606
 .copy_entry_metadata_loop
-    lda (zp_entry_ptr),y                                              ; a5ff: b1 b6       ..             ; Get entry data byte
+    lda (zp_entry_ptr_lo),y                                           ; a5ff: b1 b6       ..             ; Get entry data byte
     sta wksp_1038,y                                                   ; a601: 99 38 10    .8.            ; Store in workspace for dest entry
     iny                                                               ; a604: c8          .              ; Next byte
     dex                                                               ; a605: ca          .              ; Decrement counter
@@ -7846,7 +7846,7 @@ la154 = sub_ca153+1
     ldx #3                                                            ; a616: a2 03       ..             ; X=3: copy 3+1 start sector bytes
 ; &a618 referenced 1 time by &a61f
 .copy_entry_sector_loop2
-    lda (zp_entry_ptr),y                                              ; a618: b1 b6       ..             ; Get sector byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; a618: b1 b6       ..             ; Get sector byte from entry
     sta l103c,y                                                       ; a61a: 99 3c 10    .<.            ; Store in workspace
     iny                                                               ; a61d: c8          .              ; Next byte
     dex                                                               ; a61e: ca          .              ; Decrement counter
@@ -7854,7 +7854,7 @@ la154 = sub_ca153+1
     ldy #0                                                            ; a621: a0 00       ..             ; Y=0: build access byte from entry
 ; &a623 referenced 1 time by &a62c
 .build_access_byte_loop
-    lda (zp_entry_ptr),y                                              ; a623: b1 b6       ..             ; Get name byte
+    lda (zp_entry_ptr_lo),y                                           ; a623: b1 b6       ..             ; Get name byte
     rol a                                                             ; a625: 2a          *              ; Shift bit 7 into carry
     rol wksp_105d                                                     ; a626: 2e 5d 10    .].            ; Rotate into access accumulator
     iny                                                               ; a629: c8          .              ; Next name byte
@@ -7865,26 +7865,26 @@ la154 = sub_ca153+1
     ldx #2                                                            ; a633: a2 02       ..             ; X=2: copy 3 sector bytes
 ; &a635 referenced 1 time by &a63c
 .copy_start_sector_loop
-    lda (zp_entry_ptr),y                                              ; a635: b1 b6       ..             ; Get start sector byte
+    lda (zp_entry_ptr_lo),y                                           ; a635: b1 b6       ..             ; Get start sector byte
     sta wksp_103a,x                                                   ; a637: 9d 3a 10    .:.            ; Store in workspace
     dey                                                               ; a63a: 88          .              ; Next byte (decreasing)
     dex                                                               ; a63b: ca          .              ; Next workspace byte
     bpl copy_start_sector_loop                                        ; a63c: 10 f7       ..             ; Loop for 3 bytes
     jsr save_wksp_and_return                                          ; a63e: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     lda #&40 ; '@'                                                    ; a641: a9 40       .@             ; Set up OSFILE block for create
-    sta zp_osfile_ptr                                                 ; a643: 85 b8       ..             ; Store block pointer low
+    sta zp_osfile_ptr_lo                                              ; a643: 85 b8       ..             ; Store block pointer low
     lda #&10                                                          ; a645: a9 10       ..             ; Block page = &10
-    sta zp_osfile_ptr_h                                               ; a647: 85 b9       ..             ; Store block pointer high
+    sta zp_osfile_ptr_hi                                              ; a647: 85 b9       ..             ; Store block pointer high
     jsr check_file_not_open2                                          ; a649: 20 f3 8d     ..            ; Create entry in dest directory; Copy OSFILE addresses and search for empty entry
     jsr allocate_disc_space_for_file                                  ; a64c: 20 6f 8e     o.            ; Allocate disc space; Allocate disc space and store in entry
     ldy #3                                                            ; a64f: a0 03       ..             ; Y=3: copy attributes back to entry
 ; &a651 referenced 1 time by &a65b
 .restore_attributes_loop
-    lda (zp_entry_ptr),y                                              ; a651: b1 b6       ..             ; Get new entry access byte
+    lda (zp_entry_ptr_lo),y                                           ; a651: b1 b6       ..             ; Get new entry access byte
     asl a                                                             ; a653: 0a          .              ; Shift attribute bit to position
     ror wksp_105d                                                     ; a654: 6e 5d 10    n].            ; Rotate into access accumulator
     ror a                                                             ; a657: 6a          j              ; Shift back
-    sta (zp_entry_ptr),y                                              ; a658: 91 b6       ..             ; Store in entry name byte
+    sta (zp_entry_ptr_lo),y                                           ; a658: 91 b6       ..             ; Store in entry name byte
     dey                                                               ; a65a: 88          .              ; Next byte
     bpl restore_attributes_loop                                       ; a65b: 10 f4       ..             ; Loop for 4 bytes
     jsr copy_entry_from_template                                      ; a65d: 20 8b 8e     ..            ; Write entry metadata; Copy OSFILE template into directory entry
@@ -7893,9 +7893,9 @@ la154 = sub_ca153+1
     jsr update_moved_dir_parent                                       ; a666: 20 85 a6     ..            ; Update moved dir's parent pointer
     jsr save_wksp_and_return                                          ; a669: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     pla                                                               ; a66c: 68          h              ; Restore source name pointer
-    sta zp_text_ptr_h                                                 ; a66d: 85 b5       ..             ; Store high byte
+    sta zp_text_ptr_hi                                                ; a66d: 85 b5       ..             ; Store high byte
     pla                                                               ; a66f: 68          h              ; Restore low byte
-    sta zp_text_ptr                                                   ; a670: 85 b4       ..             ; Store low byte
+    sta zp_text_ptr_lo                                                ; a670: 85 b4       ..             ; Store low byte
     jsr find_first_matching_entry                                     ; a672: 20 df 8f     ..            ; Find source entry again; Find first matching directory entry
     ldx #5                                                            ; a675: a2 05       ..             ; X=5: clear 6 bytes of sector info
     lda #0                                                            ; a677: a9 00       ..             ; A=0: zero fill
@@ -7910,7 +7910,7 @@ la154 = sub_ca153+1
 ; &a685 referenced 2 times by &a5e2, &a666
 .update_moved_dir_parent
     ldy #3                                                            ; a685: a0 03       ..             ; Y=3: check if entry is directory
-    lda (zp_entry_ptr),y                                              ; a687: b1 b6       ..             ; Get access byte
+    lda (zp_entry_ptr_lo),y                                           ; a687: b1 b6       ..             ; Get access byte
     bmi update_parent_sector                                          ; a689: 30 01       0.             ; Bit 7: is a directory
     rts                                                               ; a68b: 60          `              ; Not a dir: nothing to update
 
@@ -7926,15 +7926,15 @@ la154 = sub_ca153+1
     ldy #9                                                            ; a697: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &a699 referenced 1 time by &a6a1
 .copy_dir_name_from_entry
-    lda (zp_entry_ptr),y                                              ; a699: b1 b6       ..             ; Get name byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; a699: b1 b6       ..             ; Get name byte from entry
     and #&7f                                                          ; a69b: 29 7f       ).             ; Strip bit 7 (attribute)
     sta l1074,y                                                       ; a69d: 99 74 10    .t.            ; Store as directory name
     dey                                                               ; a6a0: 88          .              ; Next byte
     bpl copy_dir_name_from_entry                                      ; a6a1: 10 f6       ..             ; Loop for 10 bytes
     lda #&74 ; 't'                                                    ; a6a3: a9 74       .t             ; Point to workspace name buffer
-    sta zp_text_ptr                                                   ; a6a5: 85 b4       ..             ; Low byte = &74
+    sta zp_text_ptr_lo                                                ; a6a5: 85 b4       ..             ; Low byte = &74
     lda #&10                                                          ; a6a7: a9 10       ..             ; Page = &10
-    sta zp_text_ptr_h                                                 ; a6a9: 85 b5       ..             ; High byte
+    sta zp_text_ptr_hi                                                ; a6a9: 85 b5       ..             ; High byte
     jsr parse_path_and_load                                           ; a6ab: 20 7f 94     ..            ; Load the moved directory; Parse path and load target directory
     ldy #9                                                            ; a6ae: a0 09       ..             ; Y=9: copy name to dir header
 ; &a6b0 referenced 1 time by &a6b7
@@ -8019,9 +8019,9 @@ la154 = sub_ca153+1
 .get_wksp_addr_ba
     ldx romsel_copy                                                   ; a70e: a6 f4       ..             ; Get our ROM number
     lda nmi_0df0,x                                                    ; a710: bd f0 0d    ...            ; Read workspace page from ROM table
-    sta zp_wksp_ptr_h                                                 ; a713: 85 bb       ..             ; Store as high byte of (&BA)
+    sta zp_wksp_ptr_hi                                                ; a713: 85 bb       ..             ; Store as high byte of (&BA)
     lda #0                                                            ; a715: a9 00       ..             ; Low byte = 0 (page-aligned)
-    sta zp_wksp_ptr                                                   ; a717: 85 ba       ..             ; Store low byte
+    sta zp_wksp_ptr_lo                                                ; a717: 85 ba       ..             ; Store low byte
     rts                                                               ; a719: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -8039,10 +8039,10 @@ la154 = sub_ca153+1
     clc                                                               ; a720: 18          .              ; Clear carry for addition
 ; &a721 referenced 1 time by &a724
 .sum_workspace_loop
-    adc (zp_wksp_ptr),y                                               ; a721: 71 ba       q.             ; Add workspace byte to checksum
+    adc (zp_wksp_ptr_lo),y                                            ; a721: 71 ba       q.             ; Add workspace byte to checksum
     dey                                                               ; a723: 88          .              ; Next byte down
     bne sum_workspace_loop                                            ; a724: d0 fb       ..             ; Loop until Y wraps to 0
-    adc (zp_wksp_ptr),y                                               ; a726: 71 ba       q.             ; Add byte 0
+    adc (zp_wksp_ptr_lo),y                                            ; a726: 71 ba       q.             ; Add byte 0
     ldy #&fe                                                          ; a728: a0 fe       ..             ; Y=&FE: index of checksum byte
     rts                                                               ; a72a: 60          `              ; Return
 
@@ -8055,7 +8055,7 @@ la154 = sub_ca153+1
 ; &a72b referenced 2 times by &8a34, &9b0d
 .store_wksp_checksum_ba_y
     jsr calc_wksp_checksum                                            ; a72b: 20 1a a7     ..            ; Calculate checksum; Calculate workspace checksum
-    sta (zp_wksp_ptr),y                                               ; a72e: 91 ba       ..             ; Store at (&BA)+&FE
+    sta (zp_wksp_ptr_lo),y                                            ; a72e: 91 ba       ..             ; Store at (&BA)+&FE
 ; &a730 referenced 1 time by &a736
 .return_32
     rts                                                               ; a730: 60          `              ; Return
@@ -8070,7 +8070,7 @@ la154 = sub_ca153+1
 ; &a731 referenced 2 times by &9b10, &9bcd
 .check_wksp_checksum
     jsr calc_wksp_checksum                                            ; a731: 20 1a a7     ..            ; Calculate actual checksum; Calculate workspace checksum
-    cmp (zp_wksp_ptr),y                                               ; a734: d1 ba       ..             ; Compare with stored checksum
+    cmp (zp_wksp_ptr_lo),y                                            ; a734: d1 ba       ..             ; Compare with stored checksum
     beq return_32                                                     ; a736: f0 f8       ..             ; Match: workspace is valid
 ; &a738 referenced 7 times by &a752, &a761, &a765, &a76d, &a775, &ace6, &ae32
 .bad_checksum_error
@@ -8193,13 +8193,13 @@ la154 = sub_ca153+1
 ; &a7c0 referenced 2 times by &a880, &a936
 .setup_disc_read_for_dir
     lda l1091                                                         ; a7c0: ad 91 10    ...            ; Get saved filename pointer low
-    sta zp_text_ptr                                                   ; a7c3: 85 b4       ..             ; Store in (&B4)
+    sta zp_text_ptr_lo                                                ; a7c3: 85 b4       ..             ; Store in (&B4)
     lda l1092                                                         ; a7c5: ad 92 10    ...            ; Get saved filename pointer high
-    sta zp_text_ptr_h                                                 ; a7c8: 85 b5       ..             ; Store in (&B5)
+    sta zp_text_ptr_hi                                                ; a7c8: 85 b5       ..             ; Store in (&B5)
     lda l1094                                                         ; a7ca: ad 94 10    ...            ; Get saved dir entry high
-    sta zp_entry_ptr_h                                                ; a7cd: 85 b7       ..             ; Store in (&B7)
+    sta zp_entry_ptr_hi                                               ; a7cd: 85 b7       ..             ; Store in (&B7)
     lda l1093                                                         ; a7cf: ad 93 10    ...            ; Get saved dir entry low
-    sta zp_entry_ptr                                                  ; a7d2: 85 b6       ..             ; Store in (&B6)
+    sta zp_entry_ptr_lo                                               ; a7d2: 85 b6       ..             ; Store in (&B6)
     ldx #&0b                                                          ; a7d4: a2 0b       ..             ; X=&0B: copy 12-byte disc op template
 ; &a7d6 referenced 1 time by &a7dd
 .copy_disc_op_template_loop
@@ -8266,9 +8266,9 @@ la154 = sub_ca153+1
 ; ***************************************************************************************
 .star_copy
     lda #&7f                                                          ; a81d: a9 7f       ..             ; Set up control block pointers
-    sta zp_osfile_ptr                                                 ; a81f: 85 b8       ..             ; Store control block pointer low
+    sta zp_osfile_ptr_lo                                              ; a81f: 85 b8       ..             ; Store control block pointer low
     lda #&10                                                          ; a821: a9 10       ..             ; Control block page = &10
-    sta zp_osfile_ptr_h                                               ; a823: 85 b9       ..             ; Store control block pointer high
+    sta zp_osfile_ptr_hi                                              ; a823: 85 b9       ..             ; Store control block pointer high
     lda #&74 ; 't'                                                    ; a825: a9 74       .t             ; Store source name offset
     sta l107f                                                         ; a827: 8d 7f 10    ...            ; Store source name offset
     lda #&10                                                          ; a82a: a9 10       ..             ; Source name page = &10
@@ -8279,13 +8279,13 @@ la154 = sub_ca153+1
 
 ; &a837 referenced 1 time by &a832
 .source_file_found
-    lda zp_entry_ptr                                                  ; a837: a5 b6       ..             ; Save directory entry pointer
+    lda zp_entry_ptr_lo                                               ; a837: a5 b6       ..             ; Save directory entry pointer
     sta l1093                                                         ; a839: 8d 93 10    ...            ; Save dir entry pointer low
-    lda zp_entry_ptr_h                                                ; a83c: a5 b7       ..             ; Get dir entry pointer high
+    lda zp_entry_ptr_hi                                               ; a83c: a5 b7       ..             ; Get dir entry pointer high
     sta l1094                                                         ; a83e: 8d 94 10    ...            ; Save dir entry pointer high
-    lda zp_text_ptr                                                   ; a841: a5 b4       ..             ; Save filename pointer
+    lda zp_text_ptr_lo                                                ; a841: a5 b4       ..             ; Save filename pointer
     sta l1091                                                         ; a843: 8d 91 10    ...            ; Save filename pointer low
-    lda zp_text_ptr_h                                                 ; a846: a5 b5       ..             ; Get filename pointer high
+    lda zp_text_ptr_hi                                                ; a846: a5 b5       ..             ; Get filename pointer high
     sta l1092                                                         ; a848: 8d 92 10    ...            ; Save filename pointer high
     ldy #3                                                            ; a84b: a0 03       ..             ; Y=3: save current directory sector
 ; &a84d referenced 1 time by &a854
@@ -8325,9 +8325,9 @@ la868 = check_dest_terminator+1
 ; &a883 referenced 1 time by &a88f
 .scan_source_entries_loop
     ldy #4                                                            ; a883: a0 04       ..             ; Y=4: check entry access byte
-    lda (zp_entry_ptr),y                                              ; a885: b1 b6       ..             ; Get access byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; a885: b1 b6       ..             ; Get access byte from entry
     dey                                                               ; a887: 88          .              ; Y=&03
-    ora (zp_entry_ptr),y                                              ; a888: 11 b6       ..             ; OR with first name byte
+    ora (zp_entry_ptr_lo),y                                           ; a888: 11 b6       ..             ; OR with first name byte
     bpl copy_file_entry                                               ; a88a: 10 08       ..             ; Bit 7 clear: regular file, copy it
 ; &a88c referenced 1 time by &a939
 .skip_dir_entry_or_done
@@ -8337,19 +8337,19 @@ la868 = check_dest_terminator+1
 
 ; &a894 referenced 1 time by &a88a
 .copy_file_entry
-    lda zp_entry_ptr                                                  ; a894: a5 b6       ..             ; Save source entry pointer
+    lda zp_entry_ptr_lo                                               ; a894: a5 b6       ..             ; Save source entry pointer
     sta l1093                                                         ; a896: 8d 93 10    ...            ; Store entry pointer low
-    lda zp_entry_ptr_h                                                ; a899: a5 b7       ..             ; Get entry pointer high
+    lda zp_entry_ptr_hi                                               ; a899: a5 b7       ..             ; Get entry pointer high
     sta l1094                                                         ; a89b: 8d 94 10    ...            ; Store entry pointer high
     jsr search_dir_for_file                                           ; a89e: 20 62 8c     b.            ; Check if file already exists at dest; Search directory for matching file
     ldy #&16                                                          ; a8a1: a0 16       ..             ; Y=&16: get source start sector
-    lda (zp_entry_ptr),y                                              ; a8a3: b1 b6       ..             ; Get sector low byte
+    lda (zp_entry_ptr_lo),y                                           ; a8a3: b1 b6       ..             ; Get sector low byte
     sta l10a2                                                         ; a8a5: 8d a2 10    ...            ; Store in load address workspace
     iny                                                               ; a8a8: c8          .              ; Y=&17
-    lda (zp_entry_ptr),y                                              ; a8a9: b1 b6       ..             ; Get sector mid byte
+    lda (zp_entry_ptr_lo),y                                           ; a8a9: b1 b6       ..             ; Get sector mid byte
     sta l10a3                                                         ; a8ab: 8d a3 10    ...            ; Store in load address workspace
     iny                                                               ; a8ae: c8          .              ; Y=&18
-    lda (zp_entry_ptr),y                                              ; a8af: b1 b6       ..             ; Get sector high byte
+    lda (zp_entry_ptr_lo),y                                           ; a8af: b1 b6       ..             ; Get sector high byte
     ora wksp_current_drive                                            ; a8b1: 0d 17 11    ...            ; OR with drive number
     sta l10a4                                                         ; a8b4: 8d a4 10    ...            ; Store in load address workspace
     ldx #0                                                            ; a8b7: a2 00       ..             ; X=0: clear length bytes
@@ -8365,7 +8365,7 @@ la868 = check_dest_terminator+1
     ldy #9                                                            ; a8c8: a0 09       ..             ; Y=9: copy 10-byte filename
 ; &a8ca referenced 1 time by &a8d2
 .copy_source_name_loop
-    lda (zp_entry_ptr),y                                              ; a8ca: b1 b6       ..             ; Get filename byte from source
+    lda (zp_entry_ptr_lo),y                                           ; a8ca: b1 b6       ..             ; Get filename byte from source
     and #&7f                                                          ; a8cc: 29 7f       ).             ; Strip bit 7 (access flag)
     sta l1074,y                                                       ; a8ce: 99 74 10    .t.            ; Store in dest name workspace
     dey                                                               ; a8d1: 88          .              ; Next byte
@@ -8426,7 +8426,7 @@ la868 = check_dest_terminator+1
 .fsc6_new_filing_system
     jsr get_wksp_addr_ba                                              ; a93c: 20 0e a7     ..            ; Get workspace page address; Get workspace address into &BA
     ldy #&ff                                                          ; a93f: a0 ff       ..             ; Y=&FF: store at byte 255
-    sta (zp_wksp_ptr),y                                               ; a941: 91 ba       ..             ; Mark workspace as needing save
+    sta (zp_wksp_ptr_lo),y                                            ; a941: 91 ba       ..             ; Mark workspace as needing save
     ldx wksp_current_drive                                            ; a943: ae 17 11    ...            ; Check if drive is initialised
     inx                                                               ; a946: e8          .              ; Drive = &FF (uninitialised)?
     beq return_33                                                     ; a947: f0 15       ..             ; Yes, nothing more to do
@@ -8708,9 +8708,9 @@ la868 = check_dest_terminator+1
     lsr a                                                             ; aafe: 4a          J              ; Divide by 4 for channel number
     lsr a                                                             ; aaff: 4a          J              ; Second shift
     adc #&17                                                          ; ab00: 69 17       i.             ; Add &17 for buffer page base
-    sta zp_buf_src_h                                                  ; ab02: 85 bd       ..             ; Store as buffer high byte
+    sta zp_buf_src_hi                                                 ; ab02: 85 bd       ..             ; Store as buffer high byte
     lda #0                                                            ; ab04: a9 00       ..             ; Buffer low byte = 0
-    sta zp_buf_src                                                    ; ab06: 85 bc       ..             ; Store buffer low byte
+    sta zp_buf_src_lo                                                 ; ab06: 85 bc       ..             ; Store buffer low byte
     lda wksp_1004,x                                                   ; ab08: bd 04 10    ...            ; Get channel state
     and #&bf                                                          ; ab0b: 29 bf       ).             ; Clear bit 6 (dirty flag)
     sta wksp_1004,x                                                   ; ab0d: 9d 04 10    ...            ; Store cleared state
@@ -8726,7 +8726,7 @@ la868 = check_dest_terminator+1
     sta l10d2                                                         ; ab27: 8d d2 10    ...            ; Store in error sector high
     jsr set_drive_from_channel                                        ; ab2a: 20 1c b5     ..            ; Flush channel if dirty; Set current drive from channel's drive
     jsr command_set_retries                                           ; ab2d: 20 80 80     ..            ; Set retry count for disc operation
-    stx zp_name_ptr_h                                                 ; ab30: 86 c1       ..             ; Save channel index
+    stx zp_name_ptr_hi                                                ; ab30: 86 c1       ..             ; Save channel index
     lda zp_adfs_flags                                                 ; ab32: a5 cd       ..             ; Check for hard drive
     and #&20 ; ' '                                                    ; ab34: 29 20       )              ; Bit 5: hard drive present?
     beq write_dirty_sector_to_disc                                    ; ab36: f0 05       ..             ; No HD: use floppy
@@ -8734,7 +8734,7 @@ la868 = check_dest_terminator+1
     bpl hd_bput_write_sector                                          ; ab3b: 10 0e       ..             ; Bit 7 clear: use SCSI hard drive
 ; &ab3d referenced 2 times by &ab36, &ab46
 .write_dirty_sector_to_disc
-    ldx zp_name_ptr_h                                                 ; ab3d: a6 c1       ..             ; Restore channel index for floppy
+    ldx zp_name_ptr_hi                                                ; ab3d: a6 c1       ..             ; Restore channel index for floppy
     jsr exec_floppy_write_bput_sector_ind                             ; ab3f: 20 06 ba     ..            ; Execute floppy write sector
     beq write_buffer_to_scsi_loop                                     ; ab42: f0 31       .1             ; Success? Done
     dec zp_retry_count                                                ; ab44: c6 ce       ..             ; Decrement retry counter
@@ -8743,7 +8743,7 @@ la868 = check_dest_terminator+1
 
 ; &ab4b referenced 2 times by &ab3b, &ab5e
 .hd_bput_write_sector
-    ldx zp_name_ptr_h                                                 ; ab4b: a6 c1       ..             ; Restore channel index for SCSI
+    ldx zp_name_ptr_hi                                                ; ab4b: a6 c1       ..             ; Restore channel index for SCSI
     lda #&0a                                                          ; ab4d: a9 0a       ..             ; A=&0A: SCSI write command
     jsr hd_command_bget_bput_sector                                   ; ab4f: 20 c6 aa     ..            ; Hard drive single sector for BGET/BPUT
     ldy #0                                                            ; ab52: a0 00       ..             ; Y=0: data transfer index
@@ -8763,7 +8763,7 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &ab63 referenced 2 times by &ab57, &ab69
 .wait_write_data_phase
-    lda (zp_buf_src),y                                                ; ab63: b1 bc       ..             ; Get byte from buffer
+    lda (zp_buf_src_lo),y                                             ; ab63: b1 bc       ..             ; Get byte from buffer
     sta fred_hard_drive_0                                             ; ab65: 8d 40 fc    .@.            ; Write to SCSI data bus
     iny                                                               ; ab68: c8          .              ; Next byte
     bne wait_write_data_phase                                         ; ab69: d0 f8       ..             ; Loop for 256 bytes; Write 256 bytes to SCSI bus
@@ -8774,7 +8774,7 @@ la868 = check_dest_terminator+1
     sty fred_hard_drive_3                                             ; ab72: 8c 43 fc    .C.            ; Write to SCSI IRQ enable register
 ; &ab75 referenced 1 time by &ab42
 .write_buffer_to_scsi_loop
-    ldx zp_name_ptr_h                                                 ; ab75: a6 c1       ..             ; Restore channel index
+    ldx zp_name_ptr_hi                                                ; ab75: a6 c1       ..             ; Restore channel index
 ; &ab77 referenced 1 time by &aafb
 .return_34
     rts                                                               ; ab77: 60          `              ; Return (success)
@@ -8825,9 +8825,9 @@ la868 = check_dest_terminator+1
     lsr a                                                             ; abcd: 4a          J              ; Divide by 4 for channel number
     lsr a                                                             ; abce: 4a          J              ; Second shift
     adc #&17                                                          ; abcf: 69 17       i.             ; Add &17 for buffer page base
-    sta zp_buf_dest_h                                                 ; abd1: 85 bf       ..             ; Store as buffer high byte
+    sta zp_buf_dest_hi                                                ; abd1: 85 bf       ..             ; Store as buffer high byte
     lda #0                                                            ; abd3: a9 00       ..             ; Buffer low = 0 (page-aligned)
-    sta zp_buf_dest                                                   ; abd5: 85 be       ..             ; Store buffer low
+    sta zp_buf_dest_lo                                                ; abd5: 85 be       ..             ; Store buffer low
 ; &abd7 referenced 1 time by &aba8
 .return_35
     rts                                                               ; abd7: 60          `              ; Return
@@ -8957,12 +8957,12 @@ la868 = check_dest_terminator+1
     jsr calc_buffer_address                                           ; ac89: 20 c9 ab     ..            ; Calculate buffer page for channel
     lda l1098                                                         ; ac8c: ad 98 10    ...            ; Get drive+sector high for read
     jsr set_drive_from_channel                                        ; ac8f: 20 1c b5     ..            ; Set up disc read control block; Set current drive from channel's drive
-    sty zp_ctrl_blk_h                                                 ; ac92: 84 b1       ..             ; Save Y (buffer high)
-    stx zp_ctrl_blk                                                   ; ac94: 86 b0       ..             ; Save X (buffer low)
+    sty zp_ctrl_blk_hi                                                ; ac92: 84 b1       ..             ; Save Y (buffer high)
+    stx zp_ctrl_blk_lo                                                ; ac94: 86 b0       ..             ; Save X (buffer low)
     jsr command_set_retries                                           ; ac96: 20 80 80     ..            ; Set retry count for disc operation
 ; &ac99 referenced 1 time by &acad
 .read_scsi_to_buffer_loop
-    ldx zp_ctrl_blk                                                   ; ac99: a6 b0       ..             ; Restore buffer pointer
+    ldx zp_ctrl_blk_lo                                                ; ac99: a6 b0       ..             ; Restore buffer pointer
     lda zp_adfs_flags                                                 ; ac9b: a5 cd       ..             ; Check for hard drive
     and #&20 ; ' '                                                    ; ac9d: 29 20       )              ; Bit 5: hard drive present?
     beq advance_read_page                                             ; ac9f: f0 05       ..             ; No: use floppy
@@ -8988,7 +8988,7 @@ la868 = check_dest_terminator+1
 ; &acbe referenced 1 time by &acc4
 .read_complete_check
     lda fred_hard_drive_0                                             ; acbe: ad 40 fc    .@.            ; Read byte from SCSI data bus
-    sta (zp_buf_dest),y                                               ; acc1: 91 be       ..             ; Store in buffer
+    sta (zp_buf_dest_lo),y                                            ; acc1: 91 be       ..             ; Store in buffer
     iny                                                               ; acc3: c8          .              ; Next byte
     bne read_complete_check                                           ; acc4: d0 f8       ..             ; Loop for 256 bytes
 ; &acc6 referenced 1 time by &acba
@@ -8997,8 +8997,8 @@ la868 = check_dest_terminator+1
     bne read_hd_256_complete                                          ; acc9: d0 e0       ..             ; Error: retry
 ; &accb referenced 1 time by &aca9
 .check_read_error
-    ldx zp_ctrl_blk                                                   ; accb: a6 b0       ..             ; Restore buffer pointer X
-    ldy zp_ctrl_blk_h                                                 ; accd: a4 b1       ..             ; Restore buffer pointer Y
+    ldx zp_ctrl_blk_lo                                                ; accb: a6 b0       ..             ; Restore buffer pointer X
+    ldy zp_ctrl_blk_hi                                                ; accd: a4 b1       ..             ; Restore buffer pointer Y
     lda #&81                                                          ; accf: a9 81       ..             ; A=&81: buffer valid + dirty
     sta wksp_1004,x                                                   ; acd1: 9d 04 10    ...            ; Store as channel state
     jmp allocate_new_buffer_slot                                      ; acd4: 4c 08 ac    L..            ; Jump to set up buffer access
@@ -9103,7 +9103,7 @@ la868 = check_dest_terminator+1
     rts                                                               ; ad39: 60          `              ; Return (EXT == PTR: C clear)
 
 .check_eof_for_handle
-    ldy zp_text_ptr                                                   ; ad3a: a4 b4       ..             ; Get file handle from (&B4)
+    ldy zp_text_ptr_lo                                                ; ad3a: a4 b4       ..             ; Get file handle from (&B4)
     jsr check_set_channel_y                                           ; ad3c: 20 fe ac     ..            ; Validate and set channel number from Y
     ror a                                                             ; ad3f: 6a          j              ; Rotate flags bit 0 into carry
     bcs return_eof_status                                             ; ad40: b0 09       ..             ; Carry set: skip flush
@@ -9117,7 +9117,7 @@ la868 = check_dest_terminator+1
     dex                                                               ; ad4f: ca          .              ; X=&ff
 ; &ad50 referenced 1 time by &ad4d
 .return_eof_result
-    ldy zp_text_ptr_h                                                 ; ad50: a4 b5       ..             ; Restore Y from (&B5)
+    ldy zp_text_ptr_hi                                                ; ad50: a4 b5       ..             ; Restore Y from (&B5)
     rts                                                               ; ad52: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -9190,7 +9190,7 @@ la868 = check_dest_terminator+1
     lda #0                                                            ; adb5: a9 00       ..             ; A=0: clear modification flag
     sta l10cf                                                         ; adb7: 8d cf 10    ...            ; Store zero mod flag
     jsr increment_ptr_after_write                                     ; adba: 20 23 b1     #.            ; Advance PTR and update flags; Increment PTR after byte write
-    lda (zp_buf_dest),y                                               ; adbd: b1 be       ..             ; Read byte from buffer at PTR offset
+    lda (zp_buf_dest_lo),y                                            ; adbd: b1 be       ..             ; Read byte from buffer at PTR offset
     ldy zp_save_y                                                     ; adbf: a4 c2       ..             ; Restore Y
     ldx zp_save_x                                                     ; adc1: a6 c3       ..             ; Restore X
     clc                                                               ; adc3: 18          .              ; Clear carry: C=0 means success
@@ -9244,14 +9244,14 @@ la868 = check_dest_terminator+1
     and #&1f                                                          ; ae1a: 29 1f       ).             ; Mask to sector bits only
     sta l1036                                                         ; ae1c: 8d 36 10    .6.            ; Store sector high
     lda #5                                                            ; ae1f: a9 05       ..             ; Set (&B8) to dir entry at &1205
-    sta zp_osfile_ptr                                                 ; ae21: 85 b8       ..             ; Store low byte
+    sta zp_osfile_ptr_lo                                              ; ae21: 85 b8       ..             ; Store low byte
     lda #&12                                                          ; ae23: a9 12       ..             ; Page &12
-    sta zp_osfile_ptr_h                                               ; ae25: 85 b9       ..             ; Store high byte
+    sta zp_osfile_ptr_hi                                              ; ae25: 85 b9       ..             ; Store high byte
     ldx zp_channel_offset                                             ; ae27: a6 cf       ..             ; Get channel index
 ; &ae29 referenced 2 times by &ae53, &ae57
 .search_dir_for_channel
     ldy #0                                                            ; ae29: a0 00       ..             ; Y=0: check first dir entry byte
-    lda (zp_osfile_ptr),y                                             ; ae2b: b1 b8       ..             ; Get first byte
+    lda (zp_osfile_ptr_lo),y                                          ; ae2b: b1 b8       ..             ; Get first byte
     bne compare_entry_sequence                                        ; ae2d: d0 06       ..             ; Non-zero: valid entry
     sta wksp_ch_flags,x                                               ; ae2f: 9d ac 11    ...            ; Zero: channel invalid, clear flags
     jmp bad_checksum_error                                            ; ae32: 4c 38 a7    L8.            ; Bad checksum error
@@ -9259,13 +9259,13 @@ la868 = check_dest_terminator+1
 ; &ae35 referenced 1 time by &ae2d
 .compare_entry_sequence
     ldy #&19                                                          ; ae35: a0 19       ..             ; Y=&19: check entry sequence number
-    lda (zp_osfile_ptr),y                                             ; ae37: b1 b8       ..             ; Get sequence number from entry
+    lda (zp_osfile_ptr_lo),y                                          ; ae37: b1 b8       ..             ; Get sequence number from entry
     cmp l11f2,x                                                       ; ae39: dd f2 11    ...            ; Compare with channel's saved seq
     bne advance_to_next_dir_entry                                     ; ae3c: d0 0e       ..             ; Mismatch: different entry; Advance directory scan pointer
     dey                                                               ; ae3e: 88          .              ; Y=&18
 ; &ae3f referenced 1 time by &ae49
 .compare_entry_sector_loop
-    lda (zp_osfile_ptr),y                                             ; ae3f: b1 b8       ..             ; Check next entry field
+    lda (zp_osfile_ptr_lo),y                                          ; ae3f: b1 b8       ..             ; Check next entry field
     cmp wksp_disc_op_sector_count,y                                   ; ae41: d9 1e 10    ...            ; Compare sector field with channel
     bne advance_to_next_dir_entry                                     ; ae44: d0 06       ..             ; Mismatch: try next entry; Advance directory scan pointer
     dey                                                               ; ae46: 88          .              ; Next byte (decreasing Y)
@@ -9282,12 +9282,12 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &ae4c referenced 2 times by &ae3c, &ae44
 .advance_to_next_dir_entry
-    lda zp_osfile_ptr                                                 ; ae4c: a5 b8       ..             ; Advance to next dir entry (+&1A)
+    lda zp_osfile_ptr_lo                                              ; ae4c: a5 b8       ..             ; Advance to next dir entry (+&1A)
     clc                                                               ; ae4e: 18          .              ; Clear carry
     adc #&1a                                                          ; ae4f: 69 1a       i.             ; Add 26 bytes per entry
-    sta zp_osfile_ptr                                                 ; ae51: 85 b8       ..             ; Store updated pointer
+    sta zp_osfile_ptr_lo                                              ; ae51: 85 b8       ..             ; Store updated pointer
     bcc search_dir_for_channel                                        ; ae53: 90 d4       ..             ; No page crossing: continue search
-    inc zp_osfile_ptr_h                                               ; ae55: e6 b9       ..             ; Increment page
+    inc zp_osfile_ptr_hi                                              ; ae55: e6 b9       ..             ; Increment page
     bcs search_dir_for_channel                                        ; ae57: b0 d0       ..             ; ALWAYS branch
 
 ; &ae59 referenced 3 times by &a9e5, &aa83, &b0eb
@@ -9388,30 +9388,30 @@ la868 = check_dest_terminator+1
     ldy #&12                                                          ; af0e: a0 12       ..             ; Y=&12: update dir entry length
     lda #0                                                            ; af10: a9 00       ..             ; A=0: clear length low byte
     ldx zp_channel_offset                                             ; af12: a6 cf       ..             ; Get channel index
-    sta (zp_osfile_ptr),y                                             ; af14: 91 b8       ..             ; Store zero in entry length low
+    sta (zp_osfile_ptr_lo),y                                          ; af14: 91 b8       ..             ; Store zero in entry length low
     sta l11a2,x                                                       ; af16: 9d a2 11    ...            ; Update channel alloc low
     iny                                                               ; af19: c8          .              ; Y=&13
-    sta (zp_osfile_ptr),y                                             ; af1a: 91 b8       ..             ; Store in dir entry
+    sta (zp_osfile_ptr_lo),y                                          ; af1a: 91 b8       ..             ; Store in dir entry
     sta l1198,x                                                       ; af1c: 9d 98 11    ...            ; Update channel alloc mid-low
     lda l109e                                                         ; af1f: ad 9e 10    ...            ; Get new alloc mid
     iny                                                               ; af22: c8          .              ; Y=&14
-    sta (zp_osfile_ptr),y                                             ; af23: 91 b8       ..             ; Store in dir entry
+    sta (zp_osfile_ptr_lo),y                                          ; af23: 91 b8       ..             ; Store in dir entry
     sta l118e,x                                                       ; af25: 9d 8e 11    ...            ; Update channel alloc mid-high
     lda l109f                                                         ; af28: ad 9f 10    ...            ; Get new alloc high
     iny                                                               ; af2b: c8          .              ; Y=&15
-    sta (zp_osfile_ptr),y                                             ; af2c: 91 b8       ..             ; Store in dir entry
+    sta (zp_osfile_ptr_lo),y                                          ; af2c: 91 b8       ..             ; Store in dir entry
     sta l1184,x                                                       ; af2e: 9d 84 11    ...            ; Update channel alloc high
     lda wksp_103a                                                     ; af31: ad 3a 10    .:.            ; Get new start sector low
     iny                                                               ; af34: c8          .              ; Y=&16
-    sta (zp_osfile_ptr),y                                             ; af35: 91 b8       ..             ; Store in dir entry start sector
+    sta (zp_osfile_ptr_lo),y                                          ; af35: 91 b8       ..             ; Store in dir entry start sector
     sta l11ca,x                                                       ; af37: 9d ca 11    ...            ; Update channel start sector low
     lda l103b                                                         ; af3a: ad 3b 10    .;.            ; Get new start sector mid
     iny                                                               ; af3d: c8          .              ; Y=&17
-    sta (zp_osfile_ptr),y                                             ; af3e: 91 b8       ..             ; Store in dir entry
+    sta (zp_osfile_ptr_lo),y                                          ; af3e: 91 b8       ..             ; Store in dir entry
     sta l11c0,x                                                       ; af40: 9d c0 11    ...            ; Update channel start sector mid
     lda l103c                                                         ; af43: ad 3c 10    .<.            ; Get new start sector high
     iny                                                               ; af46: c8          .              ; Y=&18
-    sta (zp_osfile_ptr),y                                             ; af47: 91 b8       ..             ; Store in dir entry
+    sta (zp_osfile_ptr_lo),y                                          ; af47: 91 b8       ..             ; Store in dir entry
     ora wksp_current_drive                                            ; af49: 0d 17 11    ...            ; OR with drive number for channel
     sta l11b6,x                                                       ; af4c: 9d b6 11    ...            ; Update channel start sector+drive
     jsr write_dir_and_validate                                        ; af4f: 20 86 8f     ..            ; Write directory back to disc; Write directory and FSM back to disc
@@ -9468,7 +9468,7 @@ la868 = check_dest_terminator+1
     lda #0                                                            ; afb7: a9 00       ..             ; A=0: zero fill
 ; &afb9 referenced 1 time by &afbc
 .zero_fill_sector_loop
-    sta (zp_buf_dest),y                                               ; afb9: 91 be       ..             ; Write zero to buffer
+    sta (zp_buf_dest_lo),y                                            ; afb9: 91 be       ..             ; Write zero to buffer
     iny                                                               ; afbb: c8          .              ; Next byte
     bne zero_fill_sector_loop                                         ; afbc: d0 fb       ..             ; Loop for rest of sector
     lda l109b                                                         ; afbe: ad 9b 10    ...            ; Get new PTR mid-low
@@ -9523,7 +9523,7 @@ la868 = check_dest_terminator+1
     tya                                                               ; b024: 98          .              ; A=&00
 ; &b025 referenced 1 time by &b028
 .zero_entire_sector_loop
-    sta (zp_buf_dest),y                                               ; b025: 91 be       ..             ; Write zero to buffer
+    sta (zp_buf_dest_lo),y                                            ; b025: 91 be       ..             ; Write zero to buffer
     iny                                                               ; b027: c8          .              ; Next byte
     bne zero_entire_sector_loop                                       ; b028: d0 fb       ..             ; Loop for 256 bytes
 ; &b02a referenced 3 times by &b053, &b058, &b05d
@@ -9647,7 +9647,7 @@ la868 = check_dest_terminator+1
     ldx zp_channel_offset                                             ; b111: a6 cf       ..             ; Get channel index
     ldy wksp_ch_ptr_l,x                                               ; b113: bc 7a 11    .z.            ; Get PTR low as buffer offset
     pla                                                               ; b116: 68          h              ; Restore byte to write
-    sta (zp_buf_dest),y                                               ; b117: 91 be       ..             ; Write byte into buffer at PTR
+    sta (zp_buf_dest_lo),y                                            ; b117: 91 be       ..             ; Write byte into buffer at PTR
     pha                                                               ; b119: 48          H              ; Save byte again
     jsr increment_ptr_after_write                                     ; b11a: 20 23 b1     #.            ; Advance PTR and update flags; Increment PTR after byte write
     pla                                                               ; b11d: 68          h              ; Restore written byte
@@ -9775,11 +9775,11 @@ la868 = check_dest_terminator+1
 .my_osfind
     jsr save_workspace_state                                          ; b1b6: 20 49 a7     I.            ; Save registers for later restore; Save all registers and workspace
     stx wksp_osfile_block                                             ; b1b9: 8e 40 10    .@.            ; Save X in OSFILE block as filename
-    stx zp_text_ptr                                                   ; b1bc: 86 b4       ..             ; Filename pointer low = X
+    stx zp_text_ptr_lo                                                ; b1bc: 86 b4       ..             ; Filename pointer low = X
     stx zp_osfind_x                                                   ; b1be: 86 c5       ..             ; Save Y for close channel
     sty zp_osfind_y                                                   ; b1c0: 84 c4       ..             ; Y also to OSFILE block + filename hi
     sty l1041                                                         ; b1c2: 8c 41 10    .A.            ; Store filename high in OSFILE blk
-    sty zp_text_ptr_h                                                 ; b1c5: 84 b5       ..             ; Filename pointer high = Y
+    sty zp_text_ptr_hi                                                ; b1c5: 84 b5       ..             ; Filename pointer high = Y
     and #&c0                                                          ; b1c7: 29 c0       ).             ; Isolate open mode (bits 6-7)
     ldy #0                                                            ; b1c9: a0 00       ..             ; Y=0: clear current channel
     sty wksp_cur_channel                                              ; b1cb: 8c d5 10    ...            ; Clear current channel for errors
@@ -9793,7 +9793,7 @@ la868 = check_dest_terminator+1
     beq store_exec_handle                                             ; b1d7: f0 08       ..             ; No stored handle: normal open
     ldy #0                                                            ; b1d9: a0 00       ..             ; Clear stored EXEC handle
     sty wksp_1132                                                     ; b1db: 8c 32 11    .2.            ; Clear stored EXEC handle
-    ldy zp_text_ptr_h                                                 ; b1de: a4 b5       ..             ; Return with stored handle in Y
+    ldy zp_text_ptr_hi                                                ; b1de: a4 b5       ..             ; Return with stored handle in Y
     rts                                                               ; b1e0: 60          `              ; Return with stored handle
 
 ; &b1e1 referenced 1 time by &b1d7
@@ -9845,7 +9845,7 @@ la868 = check_dest_terminator+1
     cmp l1116                                                         ; b23c: cd 16 11    ...            ; Match?
     bne next_conflict_check                                           ; b23f: d0 0c       ..             ; No match: no conflict; Continue open-channel conflict scan
     ldy #&19                                                          ; b241: a0 19       ..             ; Y=&19: compare sequence number
-    lda (zp_entry_ptr),y                                              ; b243: b1 b6       ..             ; Get entry's sequence number
+    lda (zp_entry_ptr_lo),y                                           ; b243: b1 b6       ..             ; Get entry's sequence number
     cmp l11f2,x                                                       ; b245: dd f2 11    ...            ; Compare with channel's sequence
     bne next_conflict_check                                           ; b248: d0 03       ..             ; Mismatch: not the same file; Continue open-channel conflict scan
     jmp channel_on_same_drive                                         ; b24a: 4c 53 8d    LS.            ; Match: Already open error
@@ -9862,7 +9862,7 @@ la868 = check_dest_terminator+1
     dex                                                               ; b24d: ca          .              ; Next channel
     bpl check_open_conflict_loop                                      ; b24e: 10 ca       ..             ; Loop for all 10 channels
     ldy #0                                                            ; b250: a0 00       ..             ; Y=0: check entry first byte
-    lda (zp_entry_ptr),y                                              ; b252: b1 b6       ..             ; Get first name byte
+    lda (zp_entry_ptr_lo),y                                           ; b252: b1 b6       ..             ; Get first name byte
     bmi copy_ext_from_entry                                           ; b254: 30 03       0.             ; Bit 7 set: has attributes, open it
     jmp validate_found_entry                                          ; b256: 4c f0 8b    L..            ; No attributes: access violation
 
@@ -9870,44 +9870,44 @@ la868 = check_dest_terminator+1
 .copy_ext_from_entry
     ldy #&12                                                          ; b259: a0 12       ..             ; Y=&12: entry length (4 bytes)
     ldx zp_channel_offset                                             ; b25b: a6 cf       ..             ; Get channel index
-    lda (zp_entry_ptr),y                                              ; b25d: b1 b6       ..             ; Get length low from entry
+    lda (zp_entry_ptr_lo),y                                           ; b25d: b1 b6       ..             ; Get length low from entry
     sta wksp_ch_ext_l,x                                               ; b25f: 9d 52 11    .R.            ; Store as channel EXT low
     iny                                                               ; b262: c8          .              ; Y=&13: length mid-low; Y=&13
-    lda (zp_entry_ptr),y                                              ; b263: b1 b6       ..             ; Get length mid-low
+    lda (zp_entry_ptr_lo),y                                           ; b263: b1 b6       ..             ; Get length mid-low
     sta wksp_ch_ext_ml,x                                              ; b265: 9d 48 11    .H.            ; Store as channel EXT mid-low
     iny                                                               ; b268: c8          .              ; Y=&14: length mid-high; Y=&14
-    lda (zp_entry_ptr),y                                              ; b269: b1 b6       ..             ; Get length mid-high
+    lda (zp_entry_ptr_lo),y                                           ; b269: b1 b6       ..             ; Get length mid-high
     sta wksp_ch_ext_mh,x                                              ; b26b: 9d 3e 11    .>.            ; Store as channel EXT mid-high
     iny                                                               ; b26e: c8          .              ; Y=&15: length high; Y=&15
-    lda (zp_entry_ptr),y                                              ; b26f: b1 b6       ..             ; Get length high
+    lda (zp_entry_ptr_lo),y                                           ; b26f: b1 b6       ..             ; Get length high
     sta wksp_ch_ext_h,x                                               ; b271: 9d 34 11    .4.            ; Store as channel EXT high
 ; &b274 referenced 1 time by &b380
 .copy_allocation_from_entry
     ldy #&12                                                          ; b274: a0 12       ..             ; Y=&12: allocation size (4 bytes)
     ldx zp_channel_offset                                             ; b276: a6 cf       ..             ; Get channel index
-    lda (zp_entry_ptr),y                                              ; b278: b1 b6       ..             ; Get allocation low from entry
+    lda (zp_entry_ptr_lo),y                                           ; b278: b1 b6       ..             ; Get allocation low from entry
     sta l11a2,x                                                       ; b27a: 9d a2 11    ...            ; Store as channel allocation low
     iny                                                               ; b27d: c8          .              ; Y=&13
-    lda (zp_entry_ptr),y                                              ; b27e: b1 b6       ..             ; Get allocation mid-low
+    lda (zp_entry_ptr_lo),y                                           ; b27e: b1 b6       ..             ; Get allocation mid-low
     sta l1198,x                                                       ; b280: 9d 98 11    ...            ; Store as channel alloc mid-low
     iny                                                               ; b283: c8          .              ; Y=&14
-    lda (zp_entry_ptr),y                                              ; b284: b1 b6       ..             ; Get allocation mid-high
+    lda (zp_entry_ptr_lo),y                                           ; b284: b1 b6       ..             ; Get allocation mid-high
     sta l118e,x                                                       ; b286: 9d 8e 11    ...            ; Store as channel alloc mid-high
     iny                                                               ; b289: c8          .              ; Y=&15
-    lda (zp_entry_ptr),y                                              ; b28a: b1 b6       ..             ; Get allocation high
+    lda (zp_entry_ptr_lo),y                                           ; b28a: b1 b6       ..             ; Get allocation high
     sta l1184,x                                                       ; b28c: 9d 84 11    ...            ; Store as channel alloc high
     iny                                                               ; b28f: c8          .              ; Y=&16: start sector (3 bytes); Y=&16
-    lda (zp_entry_ptr),y                                              ; b290: b1 b6       ..             ; Get start sector low
+    lda (zp_entry_ptr_lo),y                                           ; b290: b1 b6       ..             ; Get start sector low
     sta l11ca,x                                                       ; b292: 9d ca 11    ...            ; Store as channel start sector low
     iny                                                               ; b295: c8          .              ; Y=&17: start sector mid; Y=&17
-    lda (zp_entry_ptr),y                                              ; b296: b1 b6       ..             ; Get start sector mid
+    lda (zp_entry_ptr_lo),y                                           ; b296: b1 b6       ..             ; Get start sector mid
     sta l11c0,x                                                       ; b298: 9d c0 11    ...            ; Store as channel start sector mid
     iny                                                               ; b29b: c8          .              ; Y=&18: start sector high; Y=&18
-    lda (zp_entry_ptr),y                                              ; b29c: b1 b6       ..             ; Get start sector high from entry
+    lda (zp_entry_ptr_lo),y                                           ; b29c: b1 b6       ..             ; Get start sector high from entry
     ora wksp_current_drive                                            ; b29e: 0d 17 11    ...            ; OR with current drive number
     sta l11b6,x                                                       ; b2a1: 9d b6 11    ...            ; Store as channel start+drive
     iny                                                               ; b2a4: c8          .              ; Y=&19: sequence number; Y=&19
-    lda (zp_entry_ptr),y                                              ; b2a5: b1 b6       ..             ; Get sequence number
+    lda (zp_entry_ptr_lo),y                                           ; b2a5: b1 b6       ..             ; Get sequence number
     sta l11f2,x                                                       ; b2a7: 9d f2 11    ...            ; Store for channel
     lda l1114                                                         ; b2aa: ad 14 11    ...            ; Get parent dir sector low
     sta l11e8,x                                                       ; b2ad: 9d e8 11    ...            ; Store for channel
@@ -9946,7 +9946,7 @@ la868 = check_dest_terminator+1
     bne save_and_return_handle                                        ; b2ed: d0 ea       ..             ; Not found: return A=0
     jsr check_open                                                    ; b2ef: 20 21 8d     !.            ; Check if file is open
     ldy #1                                                            ; b2f2: a0 01       ..             ; Y=1: check first name byte
-    lda (zp_entry_ptr),y                                              ; b2f4: b1 b6       ..             ; Get name byte
+    lda (zp_entry_ptr_lo),y                                           ; b2f4: b1 b6       ..             ; Get name byte
     bmi open_for_random_access                                        ; b2f6: 30 03       0.             ; Bit 7 set: has attributes
 ; &b2f8 referenced 1 time by &b30d
 .check_random_access_attr
@@ -9963,7 +9963,7 @@ la868 = check_dest_terminator+1
     bne clear_new_file_osfile                                         ; b304: d0 0c       ..             ; Not found: create new
     jsr check_file_not_open                                           ; b306: 20 10 8d     ..            ; Found: check it's not open; Check file is not locked or open
     ldy #1                                                            ; b309: a0 01       ..             ; Y=1: check access byte
-    lda (zp_entry_ptr),y                                              ; b30b: b1 b6       ..             ; Get first name byte
+    lda (zp_entry_ptr_lo),y                                           ; b30b: b1 b6       ..             ; Get first name byte
     bpl check_random_access_attr                                      ; b30d: 10 e9       ..             ; Bit 7 clear: access violation
     jmp set_ext_zero_for_new                                          ; b30f: 4c 70 b3    Lp.            ; Jump to open with existing entry
 
@@ -10005,17 +10005,17 @@ la868 = check_dest_terminator+1
     sta l1048                                                         ; b349: 8d 48 10    .H.            ; Third byte
     sta l1049                                                         ; b34c: 8d 49 10    .I.            ; Fourth byte
     ldx #&40 ; '@'                                                    ; b34f: a2 40       .@             ; X=&40: OSFILE block offset
-    stx zp_osfile_ptr                                                 ; b351: 86 b8       ..             ; Store block pointer low
+    stx zp_osfile_ptr_lo                                              ; b351: 86 b8       ..             ; Store block pointer low
     ldy #&10                                                          ; b353: a0 10       ..             ; Y=&10: OSFILE block page
-    sty zp_osfile_ptr_h                                               ; b355: 84 b9       ..             ; Store block pointer high
+    sty zp_osfile_ptr_hi                                              ; b355: 84 b9       ..             ; Store block pointer high
     jsr save_wksp_and_return                                          ; b357: 20 d3 89     ..            ; Save workspace; Save workspace state and return result
     jsr validate_not_locked                                           ; b35a: 20 4c 8f     L.            ; Create directory entry for new file; Validate file is not locked then create entry
     jsr write_dir_and_validate                                        ; b35d: 20 86 8f     ..            ; Write directory to disc; Write directory and FSM back to disc
     jsr get_object_type_result                                        ; b360: 20 d0 89     ..            ; Save workspace after dir write; Load object type and save workspace
     lda wksp_osfile_block                                             ; b363: ad 40 10    .@.            ; Restore original filename pointer
-    sta zp_text_ptr                                                   ; b366: 85 b4       ..             ; Store in (&B4)
+    sta zp_text_ptr_lo                                                ; b366: 85 b4       ..             ; Store in (&B4)
     lda l1041                                                         ; b368: ad 41 10    .A.            ; Get filename high byte
-    sta zp_text_ptr_h                                                 ; b36b: 85 b5       ..             ; Store in (&B5)
+    sta zp_text_ptr_hi                                                ; b36b: 85 b5       ..             ; Store in (&B5)
     jsr find_first_matching_entry                                     ; b36d: 20 df 8f     ..            ; Search for newly created entry; Find first matching directory entry
 ; &b370 referenced 1 time by &b30f
 .set_ext_zero_for_new
@@ -10057,7 +10057,7 @@ la868 = check_dest_terminator+1
     txa                                                               ; b3a4: 8a          .              ; Channel is open: get file handle
     clc                                                               ; b3a5: 18          .              ; Clear carry for addition
     adc #&30 ; '0'                                                    ; b3a6: 69 30       i0             ; Add &30 to get handle
-    sta zp_text_ptr_h                                                 ; b3a8: 85 b5       ..             ; Store handle
+    sta zp_text_ptr_hi                                                ; b3a8: 85 b5       ..             ; Store handle
     stx zp_channel_offset                                             ; b3aa: 86 cf       ..             ; Store channel index
     jsr close_and_update_dir                                          ; b3ac: 20 b6 b3     ..            ; Close this channel
     ldx zp_channel_offset                                             ; b3af: a6 cf       ..             ; Restore channel index
@@ -10138,16 +10138,16 @@ la868 = check_dest_terminator+1
 .update_entry_length
     lda wksp_ch_ext_l,x                                               ; b446: bd 52 11    .R.            ; Update dir entry with actual length
     ldy #&12                                                          ; b449: a0 12       ..             ; Y=&12: length field in entry
-    sta (zp_osfile_ptr),y                                             ; b44b: 91 b8       ..             ; Store EXT low in entry
+    sta (zp_osfile_ptr_lo),y                                          ; b44b: 91 b8       ..             ; Store EXT low in entry
     lda wksp_ch_ext_ml,x                                              ; b44d: bd 48 11    .H.            ; Get EXT mid-low
     iny                                                               ; b450: c8          .              ; Y=&13
-    sta (zp_osfile_ptr),y                                             ; b451: 91 b8       ..             ; Store in entry
+    sta (zp_osfile_ptr_lo),y                                          ; b451: 91 b8       ..             ; Store in entry
     lda wksp_ch_ext_mh,x                                              ; b453: bd 3e 11    .>.            ; Get EXT mid-high
     iny                                                               ; b456: c8          .              ; Y=&14
-    sta (zp_osfile_ptr),y                                             ; b457: 91 b8       ..             ; Store in entry
+    sta (zp_osfile_ptr_lo),y                                          ; b457: 91 b8       ..             ; Store in entry
     lda wksp_ch_ext_h,x                                               ; b459: bd 34 11    .4.            ; Get EXT high
     iny                                                               ; b45c: c8          .              ; Y=&15
-    sta (zp_osfile_ptr),y                                             ; b45d: 91 b8       ..             ; Store in entry
+    sta (zp_osfile_ptr_lo),y                                          ; b45d: 91 b8       ..             ; Store in entry
     jsr release_disc_space                                            ; b45f: 20 b5 84     ..            ; Release disc space back to free space map
     jsr write_dir_and_validate                                        ; b462: 20 86 8f     ..            ; Write updated directory to disc; Write directory and FSM back to disc
     jmp close_read_only                                               ; b465: 4c e4 b3    L..            ; Jump to release space and return
@@ -10357,13 +10357,13 @@ la868 = check_dest_terminator+1
     jsr save_workspace_state                                          ; b57f: 20 49 a7     I.            ; Save registers for restore; Save all registers and workspace
     sta l10b4                                                         ; b582: 8d b4 10    ...            ; Store OSGBPB function code
     sta l10b5                                                         ; b585: 8d b5 10    ...            ; Store mode flag copy
-    sty zp_gspb_ptr_h                                                 ; b588: 84 c7       ..             ; Save control block pointer
-    stx zp_gspb_ptr                                                   ; b58a: 86 c6       ..             ; Store control block pointer low
+    sty zp_gspb_ptr_hi                                                ; b588: 84 c7       ..             ; Save control block pointer
+    stx zp_gspb_ptr_lo                                                ; b58a: 86 c6       ..             ; Store control block pointer low
     ldy #1                                                            ; b58c: a0 01       ..             ; Y=1: copy 4 bytes of memory addr
     ldx #3                                                            ; b58e: a2 03       ..             ; X=3: 4 bytes to copy
 ; &b590 referenced 1 time by &b597
 .copy_data_addr_loop
-    lda (zp_gspb_ptr),y                                               ; b590: b1 c6       ..             ; Copy data address from control blk
+    lda (zp_gspb_ptr_lo),y                                            ; b590: b1 c6       ..             ; Copy data address from control blk
     sta l10b7,y                                                       ; b592: 99 b7 10    ...            ; Store in workspace
     iny                                                               ; b595: c8          .              ; Next byte
     dex                                                               ; b596: ca          .              ; Decrement counter
@@ -10382,7 +10382,7 @@ la868 = check_dest_terminator+1
     tay                                                               ; b5a4: a8          .              ; Transfer function to Y
     beq return_41                                                     ; b5a5: f0 fc       ..             ; Function 0: do nothing
     ldy #0                                                            ; b5a7: a0 00       ..             ; Y=0: get file handle from block
-    lda (zp_gspb_ptr),y                                               ; b5a9: b1 c6       ..             ; Read channel number from block+0
+    lda (zp_gspb_ptr_lo),y                                            ; b5a9: b1 c6       ..             ; Read channel number from block+0
     tay                                                               ; b5ab: a8          .              ; Transfer function to Y
     jsr check_set_channel_y                                           ; b5ac: 20 fe ac     ..            ; Validate file handle; Validate and set channel number from Y
     php                                                               ; b5af: 08          .              ; Save flags for write check
@@ -10406,7 +10406,7 @@ la868 = check_dest_terminator+1
     ldx #3                                                            ; b5d1: a2 03       ..             ; X=3: 4 PTR bytes
 ; &b5d3 referenced 1 time by &b5d9
 .copy_new_ptr_loop
-    lda (zp_gspb_ptr),y                                               ; b5d3: b1 c6       ..             ; Get PTR byte from control block
+    lda (zp_gspb_ptr_lo),y                                            ; b5d3: b1 c6       ..             ; Get PTR byte from control block
     sta zp_temp_ptr,x                                                 ; b5d5: 95 c8       ..             ; Store in zp_c8-cb (temp PTR)
     dey                                                               ; b5d7: 88          .              ; Next block byte (decreasing)
     dex                                                               ; b5d8: ca          .              ; Next ZP byte (decreasing)
@@ -10422,7 +10422,7 @@ la868 = check_dest_terminator+1
     ldy #5                                                            ; b5e7: a0 05       ..             ; Y=5: byte count in control block
 ; &b5e9 referenced 1 time by &b5f3
 .calc_end_position_loop
-    lda (zp_gspb_ptr),y                                               ; b5e9: b1 c6       ..             ; Get byte count byte
+    lda (zp_gspb_ptr_lo),y                                            ; b5e9: b1 c6       ..             ; Get byte count byte
     adc zp_save_x,y                                                   ; b5eb: 79 c3 00    y..            ; Add to start PTR byte
     sta l1095,y                                                       ; b5ee: 99 95 10    ...            ; Store end position
     iny                                                               ; b5f1: c8          .              ; Next byte
@@ -10439,19 +10439,19 @@ la868 = check_dest_terminator+1
     ldx zp_channel_offset                                             ; b604: a6 cf       ..             ; Get channel index
     lda l109a                                                         ; b606: ad 9a 10    ...            ; Get new PTR low from workspace
     sta wksp_ch_ptr_l,x                                               ; b609: 9d 7a 11    .z.            ; Store in channel PTR low
-    sta (zp_gspb_ptr),y                                               ; b60c: 91 c6       ..             ; Store in control block too
+    sta (zp_gspb_ptr_lo),y                                            ; b60c: 91 c6       ..             ; Store in control block too
     iny                                                               ; b60e: c8          .              ; Y=&0A: next byte; Y=&0a
     lda l109b                                                         ; b60f: ad 9b 10    ...            ; Get PTR mid-low
     sta wksp_ch_ptr_ml,x                                              ; b612: 9d 70 11    .p.            ; Store in channel
-    sta (zp_gspb_ptr),y                                               ; b615: 91 c6       ..             ; Store in control block
+    sta (zp_gspb_ptr_lo),y                                            ; b615: 91 c6       ..             ; Store in control block
     iny                                                               ; b617: c8          .              ; Y=&0B; Y=&0b
     lda l109c                                                         ; b618: ad 9c 10    ...            ; Get PTR mid-high
     sta wksp_ch_ptr_mh,x                                              ; b61b: 9d 66 11    .f.            ; Store in channel
-    sta (zp_gspb_ptr),y                                               ; b61e: 91 c6       ..             ; Store in control block
+    sta (zp_gspb_ptr_lo),y                                            ; b61e: 91 c6       ..             ; Store in control block
     iny                                                               ; b620: c8          .              ; Y=&0C; Y=&0c
     lda l109d                                                         ; b621: ad 9d 10    ...            ; Get PTR high
     sta wksp_ch_ptr_h,x                                               ; b624: 9d 5c 11    .\.            ; Store in channel
-    sta (zp_gspb_ptr),y                                               ; b627: 91 c6       ..             ; Store in control block
+    sta (zp_gspb_ptr_lo),y                                            ; b627: 91 c6       ..             ; Store in control block
     lda l10b4                                                         ; b629: ad b4 10    ...            ; Get function code
     cmp #3                                                            ; b62c: c9 03       ..             ; A >= 3 (read)?
     bcs compare_ext_with_ptr                                          ; b62e: b0 14       ..             ; Yes: skip to byte transfer
@@ -10461,10 +10461,10 @@ la868 = check_dest_terminator+1
     ldy #5                                                            ; b632: a0 05       ..             ; Y=5: byte count in block
 ; &b634 referenced 1 time by &b63f
 .save_and_clear_count_loop
-    lda (zp_gspb_ptr),y                                               ; b634: b1 c6       ..             ; Get byte count from block
+    lda (zp_gspb_ptr_lo),y                                            ; b634: b1 c6       ..             ; Get byte count from block
     sta l103b,y                                                       ; b636: 99 3b 10    .;.            ; Save in workspace
     lda #0                                                            ; b639: a9 00       ..             ; A=0: clear byte count in block
-    sta (zp_gspb_ptr),y                                               ; b63b: 91 c6       ..             ; Store zero in block
+    sta (zp_gspb_ptr_lo),y                                            ; b63b: 91 c6       ..             ; Store zero in block
     iny                                                               ; b63d: c8          .              ; Next byte
     dex                                                               ; b63e: ca          .              ; Decrement counter
     bpl save_and_clear_count_loop                                     ; b63f: 10 f3       ..             ; Loop for 4 bytes
@@ -10496,9 +10496,9 @@ la868 = check_dest_terminator+1
     sec                                                               ; b677: 38          8              ; Set carry for subtraction
 ; &b678 referenced 1 time by &b681
 .reduce_count_to_available_loop
-    lda (zp_gspb_ptr),y                                               ; b678: b1 c6       ..             ; Get requested count byte
+    lda (zp_gspb_ptr_lo),y                                            ; b678: b1 c6       ..             ; Get requested count byte
     sbc l103b,y                                                       ; b67a: f9 3b 10    .;.            ; Subtract saved count byte
-    sta (zp_gspb_ptr),y                                               ; b67d: 91 c6       ..             ; Store reduced count in block
+    sta (zp_gspb_ptr_lo),y                                            ; b67d: 91 c6       ..             ; Store reduced count in block
     iny                                                               ; b67f: c8          .              ; Next byte
     dex                                                               ; b680: ca          .              ; Next count byte
     bpl reduce_count_to_available_loop                                ; b681: 10 f5       ..             ; Loop for 4 bytes
@@ -10506,22 +10506,22 @@ la868 = check_dest_terminator+1
     lda wksp_ch_ext_l,x                                               ; b685: bd 52 11    .R.            ; Get EXT low
     sta l109a                                                         ; b688: 8d 9a 10    ...            ; Store as new PTR low
     sta wksp_ch_ptr_l,x                                               ; b68b: 9d 7a 11    .z.            ; Update channel PTR low
-    sta (zp_gspb_ptr),y                                               ; b68e: 91 c6       ..             ; Store in control block
+    sta (zp_gspb_ptr_lo),y                                            ; b68e: 91 c6       ..             ; Store in control block
     iny                                                               ; b690: c8          .              ; Y=next byte
     lda wksp_ch_ext_ml,x                                              ; b691: bd 48 11    .H.            ; Get EXT mid-low
     sta l109b                                                         ; b694: 8d 9b 10    ...            ; Store as new PTR mid-low
     sta wksp_ch_ptr_ml,x                                              ; b697: 9d 70 11    .p.            ; Update channel PTR mid-low
-    sta (zp_gspb_ptr),y                                               ; b69a: 91 c6       ..             ; Store in control block
+    sta (zp_gspb_ptr_lo),y                                            ; b69a: 91 c6       ..             ; Store in control block
     iny                                                               ; b69c: c8          .              ; Y=next byte
     lda wksp_ch_ext_mh,x                                              ; b69d: bd 3e 11    .>.            ; Get EXT mid-high
     sta l109c                                                         ; b6a0: 8d 9c 10    ...            ; Store as new PTR mid-high
     sta wksp_ch_ptr_mh,x                                              ; b6a3: 9d 66 11    .f.            ; Update channel PTR mid-high
-    sta (zp_gspb_ptr),y                                               ; b6a6: 91 c6       ..             ; Store in control block
+    sta (zp_gspb_ptr_lo),y                                            ; b6a6: 91 c6       ..             ; Store in control block
     iny                                                               ; b6a8: c8          .              ; Y=next byte
     lda wksp_ch_ext_h,x                                               ; b6a9: bd 34 11    .4.            ; Get EXT high
     sta l109d                                                         ; b6ac: 8d 9d 10    ...            ; Store as new PTR high
     sta wksp_ch_ptr_h,x                                               ; b6af: 9d 5c 11    .\.            ; Update channel PTR high
-    sta (zp_gspb_ptr),y                                               ; b6b2: 91 c6       ..             ; Store in control block
+    sta (zp_gspb_ptr_lo),y                                            ; b6b2: 91 c6       ..             ; Store in control block
 ; &b6b4 referenced 1 time by &b641
 .setup_disc_transfer
     ldy #1                                                            ; b6b4: a0 01       ..             ; Y=1: memory address in control block
@@ -10530,8 +10530,8 @@ la868 = check_dest_terminator+1
 ; &b6b9 referenced 1 time by &b6c2
 .update_control_block_addr_loop
     lda l103f,y                                                       ; b6b9: b9 3f 10    .?.            ; Get transferred bytes count; Add to control block memory address
-    adc (zp_gspb_ptr),y                                               ; b6bc: 71 c6       q.
-    sta (zp_gspb_ptr),y                                               ; b6be: 91 c6       ..             ; Store updated memory address
+    adc (zp_gspb_ptr_lo),y                                            ; b6bc: 71 c6       q.
+    sta (zp_gspb_ptr_lo),y                                            ; b6be: 91 c6       ..             ; Store updated memory address
     iny                                                               ; b6c0: c8          .              ; Next address byte
     dex                                                               ; b6c1: ca          .              ; Next count byte
     bpl update_control_block_addr_loop                                ; b6c2: 10 f5       ..             ; Loop for 4 address bytes
@@ -10580,8 +10580,8 @@ la868 = check_dest_terminator+1
 .prepare_osgbpb_return
     lda #0                                                            ; b716: a9 00       ..             ; A=0: prepare return status
     cmp l10b5                                                         ; b718: cd b5 10    ...            ; Compare against mode flag for C
-    ldx zp_gspb_ptr                                                   ; b71b: a6 c6       ..             ; Restore control block pointer low
-    ldy zp_gspb_ptr_h                                                 ; b71d: a4 c7       ..             ; Restore control block pointer high
+    ldx zp_gspb_ptr_lo                                                ; b71b: a6 c6       ..             ; Restore control block pointer low
+    ldy zp_gspb_ptr_hi                                                ; b71d: a4 c7       ..             ; Restore control block pointer high
     rts                                                               ; b71f: 60          `              ; Return to OSGBPB caller
 
 ; &b720 referenced 1 time by &b702
@@ -10746,11 +10746,11 @@ la868 = check_dest_terminator+1
 ; &b84c referenced 2 times by &b827, &b835
 .setup_output_pointer
     lda #0                                                            ; b84c: a9 00       ..             ; A=0: clear output byte counter
-    sta zp_buf_src_h                                                  ; b84e: 85 bd       ..             ; Store zero in output byte counter
+    sta zp_buf_src_hi                                                 ; b84e: 85 bd       ..             ; Store zero in output byte counter
     lda l10b8                                                         ; b850: ad b8 10    ...            ; Get output address low byte
-    sta zp_mem_ptr                                                    ; b853: 85 b2       ..             ; Store in output pointer low
+    sta zp_mem_ptr_lo                                                 ; b853: 85 b2       ..             ; Store in output pointer low
     lda l10b9                                                         ; b855: ad b9 10    ...            ; Get output address high byte
-    sta zp_mem_ptr_h                                                  ; b858: 85 b3       ..             ; Store in output pointer high
+    sta zp_mem_ptr_hi                                                 ; b858: 85 b3       ..             ; Store in output pointer high
     rts                                                               ; b85a: 60          `              ; Return (buffer ready)
 
 ; ***************************************************************************************
@@ -10770,15 +10770,15 @@ la868 = check_dest_terminator+1
 
 ; &b863 referenced 1 time by &b85d
 .output_byte_direct
-    sty zp_buf_src                                                    ; b863: 84 bc       ..             ; Save Y (caller's index)
-    ldy zp_buf_src_h                                                  ; b865: a4 bd       ..             ; Get output byte counter as offset
-    sta (zp_mem_ptr),y                                                ; b867: 91 b2       ..             ; Store byte at (zp_b2)+offset
-    inc zp_buf_src_h                                                  ; b869: e6 bd       ..             ; Increment output byte counter
+    sty zp_buf_src_lo                                                 ; b863: 84 bc       ..             ; Save Y (caller's index)
+    ldy zp_buf_src_hi                                                 ; b865: a4 bd       ..             ; Get output byte counter as offset
+    sta (zp_mem_ptr_lo),y                                             ; b867: 91 b2       ..             ; Store byte at (zp_b2)+offset
+    inc zp_buf_src_hi                                                 ; b869: e6 bd       ..             ; Increment output byte counter
     bne restore_caller_y                                              ; b86b: d0 02       ..             ; No page crossing: restore Y
-    inc zp_mem_ptr_h                                                  ; b86d: e6 b3       ..             ; Page crossed: increment pointer high
+    inc zp_mem_ptr_hi                                                 ; b86d: e6 b3       ..             ; Page crossed: increment pointer high
 ; &b86f referenced 1 time by &b86b
 .restore_caller_y
-    ldy zp_buf_src                                                    ; b86f: a4 bc       ..             ; Restore Y (caller's index)
+    ldy zp_buf_src_lo                                                 ; b86f: a4 bc       ..             ; Restore Y (caller's index)
     rts                                                               ; b871: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -10799,7 +10799,7 @@ la868 = check_dest_terminator+1
 .output_name_char_loop
     iny                                                               ; b87c: c8          .              ; Next name byte position
     bcc output_printable_char                                         ; b87d: 90 0a       ..             ; C clear from prev: skip fetch
-    lda (zp_text_ptr),y                                               ; b87f: b1 b4       ..             ; Get name byte from entry
+    lda (zp_text_ptr_lo),y                                            ; b87f: b1 b4       ..             ; Get name byte from entry
     and #&7f                                                          ; b881: 29 7f       ).             ; Strip bit 7 (attribute flags)
     cmp #&21 ; '!'                                                    ; b883: c9 21       .!             ; Printable character (>= '!')?
     bcs output_printable_char                                         ; b885: b0 02       ..             ; Yes: output as-is
@@ -10875,9 +10875,9 @@ la868 = check_dest_terminator+1
     lda wksp_current_drive                                            ; b8e9: ad 17 11    ...            ; Get current drive number
     jsr drive_to_ascii_digit                                          ; b8ec: 20 fc b8     ..            ; Convert drive to ASCII digit
     lda #0                                                            ; b8ef: a9 00       ..             ; A=0: CSD name starts at offset 0
-    sta zp_text_ptr                                                   ; b8f1: 85 b4       ..             ; Store CSD name pointer low
+    sta zp_text_ptr_lo                                                ; b8f1: 85 b4       ..             ; Store CSD name pointer low
     lda #&11                                                          ; b8f3: a9 11       ..             ; A=&11: CSD name is at &1100
-    sta zp_text_ptr_h                                                 ; b8f5: 85 b5       ..             ; Store CSD name pointer high
+    sta zp_text_ptr_hi                                                ; b8f5: 85 b5       ..             ; Store CSD name pointer high
     jsr output_dir_entry_name                                         ; b8f7: 20 72 b8     r.            ; Output 10-byte CSD directory name; Output 10-byte directory entry name
     bmi release_tube_and_return                                       ; b8fa: 30 df       0.             ; Exit via cleanup
 ; &b8fc referenced 2 times by &b8ec, &b910
@@ -10897,9 +10897,9 @@ la868 = check_dest_terminator+1
     lda l111b                                                         ; b90d: ad 1b 11    ...            ; Get library drive number
     jsr drive_to_ascii_digit                                          ; b910: 20 fc b8     ..            ; Convert drive to ASCII digit
     lda #&0a                                                          ; b913: a9 0a       ..             ; A=&0A: library name at offset &0A
-    sta zp_text_ptr                                                   ; b915: 85 b4       ..             ; Store library name pointer low
+    sta zp_text_ptr_lo                                                ; b915: 85 b4       ..             ; Store library name pointer low
     lda #&11                                                          ; b917: a9 11       ..             ; A=&11: library name is at &110A
-    sta zp_text_ptr_h                                                 ; b919: 85 b5       ..             ; Store library name pointer high
+    sta zp_text_ptr_hi                                                ; b919: 85 b5       ..             ; Store library name pointer high
     jsr output_dir_entry_name                                         ; b91b: 20 72 b8     r.            ; Output 10-byte library dir name; Output 10-byte directory entry name
     bmi release_tube_and_return                                       ; b91e: 30 bb       0.             ; Exit via cleanup
 ; &b920 referenced 1 time by &b89e
@@ -10908,14 +10908,14 @@ la868 = check_dest_terminator+1
     ldy #0                                                            ; b923: a0 00       ..             ; Y=0: clear result counter
     sty l10b5                                                         ; b925: 8c b5 10    ...            ; Clear result file count
     lda dir_master_sequence                                           ; b928: ad fa 16    ...            ; Get directory sequence number
-    sta (zp_gspb_ptr),y                                               ; b92b: 91 c6       ..             ; Store in control block byte 0
+    sta (zp_gspb_ptr_lo),y                                            ; b92b: 91 c6       ..             ; Store in control block byte 0
     ldy #5                                                            ; b92d: a0 05       ..             ; Y=5: get requested count from block
-    lda (zp_gspb_ptr),y                                               ; b92f: b1 c6       ..             ; Get requested entry count
-    sta zp_ctrl_blk                                                   ; b931: 85 b0       ..             ; Store as entries remaining
+    lda (zp_gspb_ptr_lo),y                                            ; b92f: b1 c6       ..             ; Get requested entry count
+    sta zp_ctrl_blk_lo                                                ; b931: 85 b0       ..             ; Store as entries remaining
     beq release_tube_and_return                                       ; b933: f0 a6       ..             ; Zero entries requested: done
     ldy #9                                                            ; b935: a0 09       ..             ; Y=9: get start index from block
-    lda (zp_gspb_ptr),y                                               ; b937: b1 c6       ..             ; Get starting entry index
-    sta zp_ctrl_blk_h                                                 ; b939: 85 b1       ..             ; Store as current entry counter
+    lda (zp_gspb_ptr_lo),y                                            ; b937: b1 c6       ..             ; Get starting entry index
+    sta zp_ctrl_blk_hi                                                ; b939: 85 b1       ..             ; Store as current entry counter
     cmp #&2f ; '/'                                                    ; b93b: c9 2f       ./             ; Index >= 47? Past max entries
     bcs release_tube_and_return                                       ; b93d: b0 9c       ..             ; Yes: exit (no more entries)
     tax                                                               ; b93f: aa          .              ; Transfer index to X for loop
@@ -10934,34 +10934,34 @@ la868 = check_dest_terminator+1
 
 ; &b950 referenced 1 time by &b946
 .set_entry_pointer
-    sty zp_text_ptr_h                                                 ; b950: 84 b5       ..             ; Store entry pointer high
-    sta zp_text_ptr                                                   ; b952: 85 b4       ..             ; Store entry pointer low
+    sty zp_text_ptr_hi                                                ; b950: 84 b5       ..             ; Store entry pointer high
+    sta zp_text_ptr_lo                                                ; b952: 85 b4       ..             ; Store entry pointer low
 ; &b954 referenced 1 time by &b96f
 .output_entries_loop
     ldy #0                                                            ; b954: a0 00       ..             ; Y=0: check first byte of entry
-    lda (zp_text_ptr),y                                               ; b956: b1 b4       ..             ; Get entry name byte 0
+    lda (zp_text_ptr_lo),y                                            ; b956: b1 b4       ..             ; Get entry name byte 0
     sta l10b5                                                         ; b958: 8d b5 10    ...            ; Store as non-zero check for output
     beq store_remaining_count                                         ; b95b: f0 14       ..             ; Zero: end of directory entries
     jsr output_dir_entry_name                                         ; b95d: 20 72 b8     r.            ; Output 10-byte entry name; Output 10-byte directory entry name
-    lda zp_text_ptr                                                   ; b960: a5 b4       ..             ; Get entry pointer low
+    lda zp_text_ptr_lo                                                ; b960: a5 b4       ..             ; Get entry pointer low
     clc                                                               ; b962: 18          .              ; Clear carry for addition
     adc #&1a                                                          ; b963: 69 1a       i.             ; Add &1A to advance to next entry
-    sta zp_text_ptr                                                   ; b965: 85 b4       ..             ; Store updated entry pointer low
+    sta zp_text_ptr_lo                                                ; b965: 85 b4       ..             ; Store updated entry pointer low
     bcc advance_entry_index                                           ; b967: 90 02       ..             ; No page crossing
-    inc zp_text_ptr_h                                                 ; b969: e6 b5       ..             ; Page crossing: increment high byte
+    inc zp_text_ptr_hi                                                ; b969: e6 b5       ..             ; Page crossing: increment high byte
 ; &b96b referenced 1 time by &b967
 .advance_entry_index
-    inc zp_ctrl_blk_h                                                 ; b96b: e6 b1       ..             ; Increment current entry index
-    dec zp_ctrl_blk                                                   ; b96d: c6 b0       ..             ; Decrement remaining count
+    inc zp_ctrl_blk_hi                                                ; b96b: e6 b1       ..             ; Increment current entry index
+    dec zp_ctrl_blk_lo                                                ; b96d: c6 b0       ..             ; Decrement remaining count
     bne output_entries_loop                                           ; b96f: d0 e3       ..             ; More entries to read: continue
 ; &b971 referenced 1 time by &b95b
 .store_remaining_count
     ldy #5                                                            ; b971: a0 05       ..             ; Y=5: update remaining count in block
-    lda zp_ctrl_blk                                                   ; b973: a5 b0       ..             ; Get remaining entries count
-    sta (zp_gspb_ptr),y                                               ; b975: 91 c6       ..             ; Store in control block byte 5
+    lda zp_ctrl_blk_lo                                                ; b973: a5 b0       ..             ; Get remaining entries count
+    sta (zp_gspb_ptr_lo),y                                            ; b975: 91 c6       ..             ; Store in control block byte 5
     ldy #9                                                            ; b977: a0 09       ..             ; Y=9: update current index in block
-    lda zp_ctrl_blk_h                                                 ; b979: a5 b1       ..             ; Get current entry index
-    sta (zp_gspb_ptr),y                                               ; b97b: 91 c6       ..             ; Store in control block byte 9
+    lda zp_ctrl_blk_hi                                                ; b979: a5 b1       ..             ; Get current entry index
+    sta (zp_gspb_ptr_lo),y                                            ; b97b: 91 c6       ..             ; Store in control block byte 9
     jmp release_tube_and_return                                       ; b97d: 4c db b8    L..            ; Exit via cleanup and return
 
 ; ***************************************************************************************
@@ -11010,10 +11010,10 @@ la868 = check_dest_terminator+1
     lda l10b8                                                         ; b9b6: ad b8 10    ...            ; Get data address low
     sec                                                               ; b9b9: 38          8              ; Set carry for subtraction
     sbc l10b6                                                         ; b9ba: ed b6 10    ...            ; Subtract start offset for buffer ptr
-    sta zp_mem_ptr                                                    ; b9bd: 85 b2       ..             ; Store buffer pointer low
+    sta zp_mem_ptr_lo                                                 ; b9bd: 85 b2       ..             ; Store buffer pointer low
     lda l10b9                                                         ; b9bf: ad b9 10    ...            ; Get data address high
     sbc #0                                                            ; b9c2: e9 00       ..             ; Subtract borrow
-    sta zp_mem_ptr_h                                                  ; b9c4: 85 b3       ..             ; Store buffer pointer high
+    sta zp_mem_ptr_hi                                                 ; b9c4: 85 b3       ..             ; Store buffer pointer high
     lda l10b4                                                         ; b9c6: ad b4 10    ...            ; Get OSGBPB function code
     cmp #3                                                            ; b9c9: c9 03       ..             ; C set if A>=3 (read from file)
     ldy l10b6                                                         ; b9cb: ac b6 10    ...            ; Get start position as byte index
@@ -11024,27 +11024,27 @@ la868 = check_dest_terminator+1
     bit zp_adfs_flags                                                 ; b9d0: 24 cd       $.             ; Tube active (V flag)?
     bvs tube_byte_transfer                                            ; b9d2: 70 0e       p.             ; Yes: use Tube data path
     bcc write_byte_from_memory                                        ; b9d4: 90 06       ..             ; C set: reading from file to memory
-    lda (zp_buf_dest),y                                               ; b9d6: b1 be       ..             ; Read: get byte from sector buffer
-    sta (zp_mem_ptr),y                                                ; b9d8: 91 b2       ..             ; Write to user memory
+    lda (zp_buf_dest_lo),y                                            ; b9d6: b1 be       ..             ; Read: get byte from sector buffer
+    sta (zp_mem_ptr_lo),y                                             ; b9d8: 91 b2       ..             ; Write to user memory
     bcs advance_byte_position                                         ; b9da: b0 17       ..             ; Always branch to advance; ALWAYS branch
 
 ; &b9dc referenced 1 time by &b9d4
 .write_byte_from_memory
-    lda (zp_mem_ptr),y                                                ; b9dc: b1 b2       ..             ; Write: get byte from user memory
-    sta (zp_buf_dest),y                                               ; b9de: 91 be       ..             ; Store in sector buffer
+    lda (zp_mem_ptr_lo),y                                             ; b9dc: b1 b2       ..             ; Write: get byte from user memory
+    sta (zp_buf_dest_lo),y                                            ; b9de: 91 be       ..             ; Store in sector buffer
     bcc advance_byte_position                                         ; b9e0: 90 11       ..             ; Always branch to advance
 ; &b9e2 referenced 1 time by &b9d2
 .tube_byte_transfer
     jsr tube_delay2                                                   ; b9e2: 20 f8 81     ..            ; Tube: delay for synchronisation
     bcc read_byte_from_tube                                           ; b9e5: 90 07       ..             ; C clear: writing to file from Tube
-    lda (zp_buf_dest),y                                               ; b9e7: b1 be       ..             ; Read file: get byte from buffer
+    lda (zp_buf_dest_lo),y                                            ; b9e7: b1 be       ..             ; Read file: get byte from buffer
     sta tube_data_register_3                                          ; b9e9: 8d e5 fe    ...            ; Write to Tube R4
     bcs advance_byte_position                                         ; b9ec: b0 05       ..             ; Always branch to advance; ALWAYS branch
 
 ; &b9ee referenced 1 time by &b9e5
 .read_byte_from_tube
     lda tube_data_register_3                                          ; b9ee: ad e5 fe    ...            ; Write file: read byte from Tube R4
-    sta (zp_buf_dest),y                                               ; b9f1: 91 be       ..             ; Store in sector buffer
+    sta (zp_buf_dest_lo),y                                            ; b9f1: 91 be       ..             ; Store in sector buffer
 ; &b9f3 referenced 3 times by &b9da, &b9e0, &b9ec
 .advance_byte_position
     iny                                                               ; b9f3: c8          .              ; Next byte position
@@ -11130,16 +11130,16 @@ la868 = check_dest_terminator+1
     tax                                                               ; ba3c: aa          .              ; Transfer to X
     bit zp_floppy_control                                             ; ba3d: 24 a1       $.             ; Check read/write direction
     bmi set_buffer_addr_for_read                                      ; ba3f: 30 0c       0.             ; Reading: set up read buffer address
-    lda zp_buf_src                                                    ; ba41: a5 bc       ..             ; Writing: use zp_bc,bd as buffer
+    lda zp_buf_src_lo                                                 ; ba41: a5 bc       ..             ; Writing: use zp_bc,bd as buffer
     sta nmi_0d0b                                                      ; ba43: 8d 0b 0d    ...            ; Patch NMI handler buffer addr low
-    lda zp_buf_src_h                                                  ; ba46: a5 bd       ..             ; Buffer address high byte
+    lda zp_buf_src_hi                                                 ; ba46: a5 bd       ..             ; Buffer address high byte
     sta nmi_0d0c                                                      ; ba48: 8d 0c 0d    ...            ; Patch NMI handler buffer addr high
     bne get_sector_count                                              ; ba4b: d0 0a       ..             ; Always branch (high byte non-zero)
 ; &ba4d referenced 1 time by &ba3f
 .set_buffer_addr_for_read
-    lda zp_buf_dest                                                   ; ba4d: a5 be       ..             ; Reading: use zp_be,bf as buffer
+    lda zp_buf_dest_lo                                                ; ba4d: a5 be       ..             ; Reading: use zp_be,bf as buffer
     sta nmi_0d0e                                                      ; ba4f: 8d 0e 0d    ...            ; Patch NMI read buffer addr low
-    lda zp_buf_dest_h                                                 ; ba52: a5 bf       ..             ; Get read buffer addr high
+    lda zp_buf_dest_hi                                                ; ba52: a5 bf       ..             ; Get read buffer addr high
     sta nmi_0d0f                                                      ; ba54: 8d 0f 0d    ...            ; Patch NMI read buffer addr high
 ; &ba57 referenced 1 time by &ba4b
 .get_sector_count
@@ -11261,7 +11261,7 @@ la868 = check_dest_terminator+1
     bit zp_floppy_control                                             ; baf8: 24 a1       $.             ; Check transfer direction
     bvs return_floppy_result                                          ; bafa: 70 0a       p.             ; V set: multi-sector operation
     ldy #5                                                            ; bafc: a0 05       ..             ; Y=5: check command byte
-    lda (zp_ctrl_blk),y                                               ; bafe: b1 b0       ..             ; Get command from control block
+    lda (zp_ctrl_blk_lo),y                                            ; bafe: b1 b0       ..             ; Get command from control block
     cmp #&0b                                                          ; bb00: c9 0b       ..             ; Is it &0B (verify)?
     bne return_floppy_result                                          ; bb02: d0 02       ..             ; No, proceed with data transfer
     beq check_floppy_error_code                                       ; bb04: f0 eb       ..             ; ALWAYS branch
@@ -11309,9 +11309,9 @@ la868 = check_dest_terminator+1
     tsx                                                               ; bb28: ba          .              ; Save stack for error recovery
     stx wksp_stack_save                                               ; bb29: 8e e7 10    ...            ; Save stack for error recovery
     lda #&10                                                          ; bb2c: a9 10       ..             ; Workspace page for control block
-    sta zp_ctrl_blk_h                                                 ; bb2e: 85 b1       ..             ; Point (&B0) to workspace control blk
+    sta zp_ctrl_blk_hi                                                ; bb2e: 85 b1       ..             ; Point (&B0) to workspace control blk
     lda #&15                                                          ; bb30: a9 15       ..             ; Control block offset
-    sta zp_ctrl_blk                                                   ; bb32: 85 b0       ..             ; Store in (&B0)
+    sta zp_ctrl_blk_lo                                                ; bb32: 85 b0       ..             ; Store in (&B0)
     lda #0                                                            ; bb34: a9 00       ..             ; Clear transfer mode flags
     sta l10e0                                                         ; bb36: 8d e0 10    ...            ; Clear transfer mode for format
     jsr floppy_init_transfer                                          ; bb39: 20 42 bb     B.            ; Set up NMI handler; Initialise floppy disc transfer
@@ -11332,16 +11332,16 @@ la868 = check_dest_terminator+1
     lda #0                                                            ; bb42: a9 00       ..             ; Clear error number
     sta wksp_err_number                                               ; bb44: 8d e3 10    ...            ; Clear error number
     ldy #1                                                            ; bb47: a0 01       ..             ; Y=1: get transfer address from blk
-    lda (zp_ctrl_blk),y                                               ; bb49: b1 b0       ..             ; Transfer address low
-    sta zp_mem_ptr                                                    ; bb4b: 85 b2       ..             ; Store transfer addr low in (&B2)
+    lda (zp_ctrl_blk_lo),y                                            ; bb49: b1 b0       ..             ; Transfer address low
+    sta zp_mem_ptr_lo                                                 ; bb4b: 85 b2       ..             ; Store transfer addr low in (&B2)
     iny                                                               ; bb4d: c8          .              ; Y=&02
-    lda (zp_ctrl_blk),y                                               ; bb4e: b1 b0       ..             ; Transfer address high
-    sta zp_mem_ptr_h                                                  ; bb50: 85 b3       ..             ; Store transfer addr high in (&B3)
+    lda (zp_ctrl_blk_lo),y                                            ; bb4e: b1 b0       ..             ; Transfer address high
+    sta zp_mem_ptr_hi                                                 ; bb50: 85 b3       ..             ; Store transfer addr high in (&B3)
     iny                                                               ; bb52: c8          .              ; Y=&03
-    lda (zp_ctrl_blk),y                                               ; bb53: b1 b0       ..             ; Get control byte 3
+    lda (zp_ctrl_blk_lo),y                                            ; bb53: b1 b0       ..             ; Get control byte 3
     tax                                                               ; bb55: aa          .              ; Transfer to X
     iny                                                               ; bb56: c8          .              ; Y=&04
-    lda (zp_ctrl_blk),y                                               ; bb57: b1 b0       ..             ; Get control byte 4
+    lda (zp_ctrl_blk_lo),y                                            ; bb57: b1 b0       ..             ; Get control byte 4
     inx                                                               ; bb59: e8          .              ; Check X+1 for zero (was &FF)
     beq check_host_memory                                             ; bb5a: f0 03       ..             ; X was &FF: check A for &FF too
     inx                                                               ; bb5c: e8          .              ; Check X for zero (wrap from &FF)
@@ -11358,7 +11358,7 @@ la868 = check_dest_terminator+1
 ; &bb6a referenced 2 times by &bb61, &bb65
 .validate_disc_command
     ldy #5                                                            ; bb6a: a0 05       ..             ; Y=5: get command byte from block
-    lda (zp_ctrl_blk),y                                               ; bb6c: b1 b0       ..             ; Read command byte
+    lda (zp_ctrl_blk_lo),y                                            ; bb6c: b1 b0       ..             ; Read command byte
     cmp #8                                                            ; bb6e: c9 08       ..             ; Command 8 (read)?
     beq set_read_transfer_mode                                        ; bb70: f0 10       ..             ; Yes, valid command; Set read mode and initialise floppy
     cmp #&0a                                                          ; bb72: c9 0a       ..             ; Command &0A (write)?
@@ -11512,10 +11512,10 @@ la868 = check_dest_terminator+1
     dey                                                               ; bbf9: 88          .              ; Next byte (loop back)
     bpl copy_nmi_code_loop                                            ; bbfa: 10 f7       ..             ; Loop until all bytes copied
     ldy #1                                                            ; bbfc: a0 01       ..             ; Y=1: get memory address low from blk
-    lda (zp_ctrl_blk),y                                               ; bbfe: b1 b0       ..             ; Get transfer address low byte
+    lda (zp_ctrl_blk_lo),y                                            ; bbfe: b1 b0       ..             ; Get transfer address low byte
     sta nmi_0d0e                                                      ; bc00: 8d 0e 0d    ...            ; Patch NMI handler with address low
     iny                                                               ; bc03: c8          .              ; Y=&02
-    lda (zp_ctrl_blk),y                                               ; bc04: b1 b0       ..             ; Get transfer address high byte
+    lda (zp_ctrl_blk_lo),y                                            ; bc04: b1 b0       ..             ; Get transfer address high byte
     sta nmi_0d0f                                                      ; bc06: 8d 0f 0d    ...            ; Patch NMI handler with address high
     bit zp_floppy_control                                             ; bc09: 24 a1       $.             ; Check control flags
     bmi check_tube_for_nmi                                            ; bc0b: 30 05       0.             ; Bit 7 set: reading from disc
@@ -11588,10 +11588,10 @@ la868 = check_dest_terminator+1
     dey                                                               ; bc68: 88          .              ; Next byte
     bpl copy_write_nmi_loop                                           ; bc69: 10 f7       ..             ; Loop for 14 bytes
     ldy #1                                                            ; bc6b: a0 01       ..             ; Y=1: patch transfer address
-    lda (zp_ctrl_blk),y                                               ; bc6d: b1 b0       ..             ; Get transfer addr low from block
+    lda (zp_ctrl_blk_lo),y                                            ; bc6d: b1 b0       ..             ; Get transfer addr low from block
     sta nmi_0d0b                                                      ; bc6f: 8d 0b 0d    ...            ; Patch NMI handler with addr low
     iny                                                               ; bc72: c8          .              ; Y=&02
-    lda (zp_ctrl_blk),y                                               ; bc73: b1 b0       ..             ; Get transfer addr high from block
+    lda (zp_ctrl_blk_lo),y                                            ; bc73: b1 b0       ..             ; Get transfer addr high from block
     sta nmi_0d0c                                                      ; bc75: 8d 0c 0d    ...            ; Patch NMI handler with addr high
 ; &bc78 referenced 1 time by &bc5e
 .return_45
@@ -11874,13 +11874,13 @@ la868 = check_dest_terminator+1
     ora #&40 ; '@'                                                    ; bdab: 09 40       .@             ; Set bit 6 (multi-sector flag)
     sta zp_floppy_state                                               ; bdad: 85 a2       ..             ; Store updated state
     ldy #7                                                            ; bdaf: a0 07       ..             ; Y=7: get sector address from block
-    lda (zp_ctrl_blk),y                                               ; bdb1: b1 b0       ..             ; Get sector address mid byte
+    lda (zp_ctrl_blk_lo),y                                            ; bdb1: b1 b0       ..             ; Get sector address mid byte
     sta nmi_0d58                                                      ; bdb3: 8d 58 0d    .X.            ; Store in NMI workspace
     iny                                                               ; bdb6: c8          .              ; Y=8: sector address low; Y=&08
-    lda (zp_ctrl_blk),y                                               ; bdb7: b1 b0       ..             ; Get sector address low
+    lda (zp_ctrl_blk_lo),y                                            ; bdb7: b1 b0       ..             ; Get sector address low
     iny                                                               ; bdb9: c8          .              ; Y=9: sector count; Y=&09
     clc                                                               ; bdba: 18          .              ; Clear carry for addition
-    adc (zp_ctrl_blk),y                                               ; bdbb: 71 b0       q.             ; Add sector count to start sector
+    adc (zp_ctrl_blk_lo),y                                            ; bdbb: 71 b0       q.             ; Add sector count to start sector
     sta nmi_0d59                                                      ; bdbd: 8d 59 0d    .Y.            ; Store end sector in NMI workspace
     bcc wait_format_track_complete                                    ; bdc0: 90 03       ..             ; No carry: no wrap
     inc nmi_0d58                                                      ; bdc2: ee 58 0d    .X.            ; Increment mid byte on carry
@@ -11898,13 +11898,13 @@ la868 = check_dest_terminator+1
 .format_next_track
     ldy #9                                                            ; bdd7: a0 09       ..             ; Y=9: get sector count from block
     sec                                                               ; bdd9: 38          8              ; Set carry for subtraction
-    sbc (zp_ctrl_blk),y                                               ; bdda: f1 b0       ..             ; Subtract sector count
+    sbc (zp_ctrl_blk_lo),y                                            ; bdda: f1 b0       ..             ; Subtract sector count
     bcs format_double_sided                                           ; bddc: b0 1d       ..             ; Result >= 0: fits in remaining
     lda #&10                                                          ; bdde: a9 10       ..             ; Need to cross track boundary
     sec                                                               ; bde0: 38          8              ; Set carry for subtraction
     sbc zp_floppy_sector                                              ; bde1: e5 a4       ..             ; Subtract start sector position
     sta nmi_0d58                                                      ; bde3: 8d 58 0d    .X.            ; Store sectors remaining this track
-    lda (zp_ctrl_blk),y                                               ; bde6: b1 b0       ..             ; Get sector count from block
+    lda (zp_ctrl_blk_lo),y                                            ; bde6: b1 b0       ..             ; Get sector count from block
     sec                                                               ; bde8: 38          8              ; Set carry
     sbc nmi_0d58                                                      ; bde9: ed 58 0d    .X.            ; Subtract sectors done this track
     ldx #0                                                            ; bdec: a2 00       ..             ; X=0: init result
@@ -11916,7 +11916,7 @@ la868 = check_dest_terminator+1
 ; &bdfb referenced 1 time by &bddc
 .format_double_sided
     ldy #9                                                            ; bdfb: a0 09       ..             ; Y=9: get sector count
-    lda (zp_ctrl_blk),y                                               ; bdfd: b1 b0       ..             ; Get sector count from block
+    lda (zp_ctrl_blk_lo),y                                            ; bdfd: b1 b0       ..             ; Get sector count from block
     sta nmi_0d58                                                      ; bdff: 8d 58 0d    .X.            ; Store in NMI workspace
     lda #&ff                                                          ; be02: a9 ff       ..             ; A=&FF: no additional tracks
     sta nmi_0d57                                                      ; be04: 8d 57 0d    .W.            ; Store track count
@@ -12079,7 +12079,7 @@ la868 = check_dest_terminator+1
 ; &beff referenced 1 time by &bb8f
 .setup_track_for_rw
     ldy #6                                                            ; beff: a0 06       ..             ; Y=6: get drive+sector from block
-    lda (zp_ctrl_blk),y                                               ; bf01: b1 b0       ..             ; Get drive+sector byte
+    lda (zp_ctrl_blk_lo),y                                            ; bf01: b1 b0       ..             ; Get drive+sector byte
     ora wksp_current_drive                                            ; bf03: 0d 17 11    ...            ; OR with current drive
     sta zp_floppy_dest_page                                           ; bf06: 85 a6       ..             ; Store as drive control byte
     and #&1f                                                          ; bf08: 29 1f       ).             ; Isolate drive number bits
@@ -12146,12 +12146,12 @@ la868 = check_dest_terminator+1
 ; &bf55 referenced 1 time by &bf2f
 .floppy_calc_track_sector_from_block_check_range
     ldy #7                                                            ; bf55: a0 07       ..             ; Y=7: offset to sector mid byte
-    lda (zp_ctrl_blk),y                                               ; bf57: b1 b0       ..             ; Get sector address mid byte
+    lda (zp_ctrl_blk_lo),y                                            ; bf57: b1 b0       ..             ; Get sector address mid byte
     cmp #&0a                                                          ; bf59: c9 0a       ..             ; Sector mid >= &0A (2560 sectors)?
     bcc floppy_calc_track_sector_from_b0_block                        ; bf5b: 90 29       .)             ; Below limit, calculate track/sector; Calculate track/sector from block at &B0
     bne bad_address_error                                             ; bf5d: d0 07       ..             ; Above &0A: definitely out of range
     iny                                                               ; bf5f: c8          .              ; Exactly &0A: check low byte too; Y=&08
-    lda (zp_ctrl_blk),y                                               ; bf60: b1 b0       ..             ; Get sector address low byte
+    lda (zp_ctrl_blk_lo),y                                            ; bf60: b1 b0       ..             ; Get sector address low byte
     cmp #0                                                            ; bf62: c9 00       ..             ; Low byte < 0? (always false)
     bcc check_multi_sector_range                                      ; bf64: 90 06       ..             ; Compare always false (A >= 0)
 ; &bf66 referenced 3 times by &ba60, &bf0c, &bf5d
@@ -12167,10 +12167,10 @@ la868 = check_dest_terminator+1
     and #&10                                                          ; bf6e: 29 10       ).             ; Bit 4 set: sector count specified?
     beq floppy_calc_track_sector_from_b0_block                        ; bf70: f0 14       ..             ; No, just calculate track/sector; Calculate track/sector from block at &B0
     ldy #9                                                            ; bf72: a0 09       ..             ; Y=9: offset to sector count
-    lda (zp_ctrl_blk),y                                               ; bf74: b1 b0       ..             ; Get sector count
+    lda (zp_ctrl_blk_lo),y                                            ; bf74: b1 b0       ..             ; Get sector count
     dey                                                               ; bf76: 88          .              ; Y=8: back to sector low byte; Y=&08
     clc                                                               ; bf77: 18          .              ; Clear carry for addition
-    adc (zp_ctrl_blk),y                                               ; bf78: 71 b0       q.             ; Add sector count to start sector
+    adc (zp_ctrl_blk_lo),y                                            ; bf78: 71 b0       q.             ; Add sector count to start sector
     bcs volume_error                                                  ; bf7a: b0 04       ..             ; Carry set: overflow, error
     cmp #1                                                            ; bf7c: c9 01       ..             ; End sector < 1? (no sectors)
     bcc floppy_calc_track_sector_from_b0_block                        ; bf7e: 90 06       ..             ; OK, calculate track/sector; Calculate track/sector from block at &B0
@@ -12190,10 +12190,10 @@ la868 = check_dest_terminator+1
 ; &bf86 referenced 3 times by &bf5b, &bf70, &bf7e
 .floppy_calc_track_sector_from_b0_block
     ldy #7                                                            ; bf86: a0 07       ..             ; Y=7: offset to sector mid byte
-    lda (zp_ctrl_blk),y                                               ; bf88: b1 b0       ..             ; Get sector address mid byte (X)
+    lda (zp_ctrl_blk_lo),y                                            ; bf88: b1 b0       ..             ; Get sector address mid byte (X)
     tax                                                               ; bf8a: aa          .              ; Transfer low byte to X
     iny                                                               ; bf8b: c8          .              ; Y=8: offset to sector low byte; Y=&08
-    lda (zp_ctrl_blk),y                                               ; bf8c: b1 b0       ..             ; Get sector address low byte (A)
+    lda (zp_ctrl_blk_lo),y                                            ; bf8c: b1 b0       ..             ; Get sector address low byte (A)
 .floppy_calc_track_sector_from_xa
     ldy #&ff                                                          ; bf8e: a0 ff       ..             ; Y=&FF: init quotient to 0 (+1 later)
     jsr xa_div_16_to_ya                                               ; bf90: 20 a2 bf     ..            ; Divide X:A by 16 sectors/track; Divide X:A by 16, result in Y:A
@@ -12264,7 +12264,7 @@ la868 = check_dest_terminator+1
 ; &bfe0 referenced 1 time by &bfb7
 .release_tube_after_floppy
     jsr release_tube                                                  ; bfe0: 20 43 80     C.            ; Release Tube if in use; Release Tube if in use
-    ldx zp_ctrl_blk                                                   ; bfe3: a6 b0       ..             ; Restore control block ptr low
+    ldx zp_ctrl_blk_lo                                                ; bfe3: a6 b0       ..             ; Restore control block ptr low
     lda wksp_err_number                                               ; bfe5: ad e3 10    ...            ; Get error number
     beq return_error_code                                             ; bfe8: f0 07       ..             ; Zero = no error, return success
     ora #&40 ; '@'                                                    ; bfea: 09 40       .@             ; Set bit 6: disc error flag
@@ -12272,7 +12272,7 @@ la868 = check_dest_terminator+1
     sty l10e4                                                         ; bfee: 8c e4 10    ...            ; Mark transfer as incomplete
 ; &bff1 referenced 1 time by &bfe8
 .return_error_code
-    ldy zp_ctrl_blk_h                                                 ; bff1: a4 b1       ..             ; Restore control block ptr high
+    ldy zp_ctrl_blk_hi                                                ; bff1: a4 b1       ..             ; Restore control block ptr high
     and #&7f                                                          ; bff3: 29 7f       ).             ; Mask to 7-bit error code
     rts                                                               ; bff5: 60          `              ; Return
 
@@ -12335,18 +12335,18 @@ la868 = check_dest_terminator+1
 save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
-;     zp_entry_ptr:                                     173
-;     zp_text_ptr:                                      100
+;     zp_entry_ptr_lo:                                  173
+;     zp_text_ptr_lo:                                   100
 ;     zp_adfs_flags:                                     68
 ;     wksp_current_drive:                                61
-;     zp_text_ptr_h:                                     59
-;     zp_ctrl_blk:                                       48
-;     zp_osfile_ptr:                                     42
+;     zp_text_ptr_hi:                                    59
+;     zp_ctrl_blk_lo:                                    48
+;     zp_osfile_ptr_lo:                                  42
 ;     zp_channel_offset:                                 36
-;     zp_entry_ptr_h:                                    36
-;     zp_mem_ptr:                                        35
+;     zp_entry_ptr_hi:                                   36
+;     zp_mem_ptr_lo:                                     35
 ;     save_wksp_and_return:                              34
-;     zp_gspb_ptr:                                       28
+;     zp_gspb_ptr_lo:                                    28
 ;     wksp_1004:                                         27
 ;     wksp_disc_op_result:                               27
 ;     reload_fsm_and_dir_then_brk:                       26
@@ -12360,7 +12360,7 @@ save pydis_start, pydis_end
 ;     wksp_ch_flags:                                     20
 ;     zp_floppy_state:                                   20
 ;     fsm_s1_total_sectors_lo:                           19
-;     zp_mem_ptr_h:                                      19
+;     zp_mem_ptr_hi:                                     19
 ;     check_char_is_terminator:                          18
 ;     l10a2:                                             18
 ;     print_inline_string:                               18
@@ -12376,7 +12376,7 @@ save pydis_start, pydis_end
 ;     l11b6:                                             16
 ;     wksp_disc_op_sector_count:                         16
 ;     zp_floppy_control:                                 16
-;     zp_wksp_ptr:                                       16
+;     zp_wksp_ptr_lo:                                    16
 ;     scsi_wait_for_req:                                 15
 ;     fsm_s0_boot_option:                                14
 ;     wksp_disc_op_command:                              14
@@ -12387,8 +12387,8 @@ save pydis_start, pydis_end
 ;     wksp_ch_ptr_mh:                                    13
 ;     wksp_ch_ptr_ml:                                    13
 ;     wksp_disc_op_sector:                               13
-;     zp_name_ptr:                                       13
-;     zp_osfile_ptr_h:                                   13
+;     zp_name_ptr_lo:                                    13
+;     zp_osfile_ptr_hi:                                  13
 ;     l1017:                                             12
 ;     l102e:                                             12
 ;     l1037:                                             12
@@ -12404,14 +12404,14 @@ save pydis_start, pydis_end
 ;     l10a8:                                             11
 ;     l10b4:                                             11
 ;     skip_spaces:                                       11
-;     zp_buf_dest:                                       11
+;     zp_buf_dest_lo:                                    11
 ;     l1098:                                             10
 ;     l11c0:                                             10
 ;     l11ca:                                             10
 ;     wksp_103a:                                         10
 ;     wksp_cur_channel:                                  10
 ;     wksp_osfile_block:                                 10
-;     zp_ctrl_blk_h:                                     10
+;     zp_ctrl_blk_hi:                                    10
 ;     dir_master_sequence:                                9
 ;     l0000:                                              9
 ;     l0001:                                              9
@@ -12477,7 +12477,7 @@ save pydis_start, pydis_end
 ;     zp_floppy_error:                                    7
 ;     zp_floppy_sector:                                   7
 ;     zp_floppy_track_num:                                7
-;     zp_name_ptr_h:                                      7
+;     zp_name_ptr_hi:                                     7
 ;     bad_name_error:                                     6
 ;     check_set_channel_y:                                6
 ;     clear_transfer_complete:                            6
@@ -12533,8 +12533,8 @@ save pydis_start, pydis_end
 ;     tbl_commands:                                       5
 ;     update_channel_flags_for_ptr:                       5
 ;     wait_data_phase:                                    5
-;     zp_buf_src:                                         5
-;     zp_buf_src_h:                                       5
+;     zp_buf_src_hi:                                      5
+;     zp_buf_src_lo:                                      5
 ;     zp_osfind_x:                                        5
 ;     zp_temp_ptr:                                        5
 ;     adjust_for_partial_xfer:                            4
@@ -12925,9 +12925,9 @@ save pydis_start, pydis_end
 ;     wksp_lib_name:                                      2
 ;     write_dirty_sector_to_disc:                         2
 ;     write_entry_sector_info:                            2
-;     zp_buf_dest_h:                                      2
-;     zp_gspb_ptr_h:                                      2
-;     zp_wksp_ptr_h:                                      2
+;     zp_buf_dest_hi:                                     2
+;     zp_gspb_ptr_hi:                                     2
+;     zp_wksp_ptr_hi:                                     2
 ;     access_bit_clear:                                   1
 ;     add_sector_count_loop:                              1
 ;     add_size_to_prev_loop:                              1
