@@ -893,6 +893,9 @@ entry(0xAE4C)
 entry(0xAEBC)
 entry(0xB00D)
 entry(0xB060)
+entry(0x8BD7)
+entry(0x8BF0)
+entry(0xBA03)
 entry(0xB218)
 entry(0xB24D)
 entry(0xB3F1)
@@ -10323,6 +10326,261 @@ subroutine(0x81F0, "tube_start_xfer",
     description="""\
 Call the Tube host code at &0406 to initiate a data transfer.
 Followed by a delay for Tube synchronisation.
+""")
+
+# ---------------------------------------------------------------------------
+# Promoted routines: labels with high in-degree, come-from distance,
+# or preceded by terminal instructions that are clearly standalone.
+# ---------------------------------------------------------------------------
+
+subroutine(0x89D3, "save_wksp_and_return",
+    title="Save workspace state and return result",
+    description="""\
+Restore the original drive if changed, reload the FSM,
+restore alternative workspace if set, and save workspace
+with checksum. Return value passed via A on stack.
+""")
+
+subroutine(0x8F86, "write_dir_and_validate",
+    title="Write directory and FSM back to disc",
+    description="""\
+Verify directory integrity, validate the free space map
+checksums, then write the current directory and FSM
+sectors back to disc.
+""")
+
+subroutine(0x8FDF, "find_first_matching_entry",
+    title="Find first matching directory entry",
+    description="""\
+Parse a filename from the command line and search the
+current directory for the first entry matching the
+parsed filename pattern.
+
+On exit:
+  Z set if found, (&B6) points to matching entry
+  Z clear if not found
+""")
+
+subroutine(0x8287, "exec_disc_op_from_wksp",
+    title="Execute disc command from workspace control block",
+    description="""\
+Execute a disc command using the control block at &1015.
+Generates a BRK error if the command fails.
+""")
+
+subroutine(0x895E, "advance_dir_entry_ptr",
+    title="Advance to next matching directory entry",
+    description="""\
+Advance (&B6) by 26 bytes to the next directory entry,
+then check whether it matches the current search pattern.
+
+On exit:
+  Z set if match found, (&B6) points to it
+  Z clear if end of directory reached
+""")
+
+subroutine(0x931B, "print_hex_byte",
+    title="Print a byte as two hex digits",
+    description="""\
+Print the value in A as two hexadecimal ASCII digits
+via OSWRCH, high nibble first.
+""")
+
+subroutine(0x832B, "generate_disc_error",
+    title="Generate disc error with state recovery",
+    description="""\
+Save the current drive state, reload FSM and directory,
+then generate a BRK error. The inline error number and
+message string follow the JSR instruction.
+""")
+
+subroutine(0x8FEA, "mark_directory_dirty",
+    title="Validate FSM checksums and mark directory dirty",
+    description="""\
+Validate the in-memory free space map by checking both
+sector checksums. Generates a Bad FS map error if the
+checksums do not match.
+""")
+
+subroutine(0x8BC8, "not_found_error",
+    title="Generate Not found error",
+    description="""\
+Check for special directory characters in path and
+generate either Bad name or Not found error.
+""")
+
+subroutine(0x89D0, "get_object_type_result",
+    title="Load object type and save workspace",
+    description="""\
+Load object type from workspace and fall through to
+save_wksp_and_return.
+
+On exit:
+  A = object type (0=not found, 1=file, 2=directory)
+""")
+
+subroutine(0x8A3D, "multi_sector_disc_command",
+    title="Execute multi-sector disc command",
+    description="""\
+Set up sector count and execute a disc read or write
+command. Rounds up partial counts for writes.
+
+On exit:
+  Z set on success
+""")
+
+subroutine(0x8BB3, "exec_disc_and_check_error",
+    title="Search for non-directory file",
+    description="""\
+Parse a filename and search the current directory for
+a matching non-directory entry.
+
+On exit:
+  Z set if found, (&B6) points to entry
+  Z clear if not found
+""")
+
+subroutine(0x8D10, "check_file_not_open",
+    title="Check file is not locked or open",
+    description="""\
+Check the entry at (&B6) for the locked attribute and
+generate a Locked error if set. Then check whether any
+files on the current drive are open.
+""")
+
+subroutine(0x8632, "allocate_disc_space",
+    title="Allocate disc space from free space map",
+    description="""\
+Find the best-fit free entry for the requested size at
+&103D-&103F. Generates Disc full or Compaction required
+errors if allocation is not possible.
+""")
+
+subroutine(0x84A0, "osbyte_y_ff_x_00",
+    title="Call OSBYTE to read current value",
+    description="""\
+Call OSBYTE with Y=&FF and X=0 to read the current
+value of the variable specified in A.
+""")
+
+subroutine(0x8F4C, "validate_not_locked",
+    title="Validate file is not locked then create entry",
+    description="""\
+Check file is not locked or open, write the filename
+into the directory entry, allocate disc space, and copy
+the file length and sector address.
+""")
+
+subroutine(0x8708, "advance_text_ptr",
+    title="Advance text pointer by one character",
+    description="""\
+Increment the 16-bit text pointer at (&B4) by one,
+handling page crossing.
+""")
+
+subroutine(0x870F, "parse_and_setup_search",
+    title="Parse argument and set up directory search",
+    description="""\
+Skip leading spaces, set up directory search state,
+and clear the search result workspace.
+""")
+
+subroutine(0x8822, "parse_drive_from_ascii",
+    title="Parse drive number from ASCII character",
+    description="""\
+Convert ASCII drive character ('0'-'7' or 'A'-'H')
+to a 3-bit drive ID in bits 5-7 of A. Limits to
+drives 0-3 if no hard drive present.
+""")
+
+subroutine(0x884C, "parse_filename_from_cmdline",
+    title="Parse filename from command line",
+    description="""\
+Parse a filename from (&B4) including drive specifier,
+root, and parent directory references.
+
+On exit:
+  Z set if found, (&B6) points to entry
+  Z clear if not found
+""")
+
+subroutine(0x8905, "save_text_ptr_after_match",
+    title="Save text pointer and determine object type",
+    description="""\
+After a directory entry match, save the remaining text
+position and determine whether the entry is a file
+(type 1) or directory (type 2).
+""")
+
+subroutine(0x8CC9, "setup_disc_write",
+    title="Parse filename from OSFILE block and search",
+    description="""\
+Extract filename from the OSFILE control block, parse
+the path, and search the current directory.
+
+On exit:
+  Z set if found, (&B6) points to entry
+  Z clear if not found
+""")
+
+subroutine(0x8D6E, "set_up_directory_search",
+    title="Validate path and check for wildcards",
+    description="""\
+Scan the filename at (&B4) checking for invalid
+characters and wildcards. Generates Bad name or
+Wild cards errors for invalid patterns.
+""")
+
+subroutine(0x8E8B, "copy_entry_from_template",
+    title="Copy OSFILE template into directory entry",
+    description="""\
+Copy filename, attributes, and sector information from
+the OSFILE workspace into the directory entry at (&B6).
+""")
+
+subroutine(0x92C4, "print_via_osasci",
+    title="Print character preserving registers",
+    description="""\
+Write A via OSASCI while preserving A, X, and (&B6).
+Used during catalogue printing.
+""")
+
+subroutine(0x92DE, "print_entry_name_and_access",
+    title="Print entry name and access string",
+    description="""\
+Print the 10-character padded filename from (&B6)
+followed by the access attribute string (R, W, L, D).
+""")
+
+subroutine(0x932A, "verify_dir_and_list",
+    title="Verify directory and print catalogue header",
+    description="""\
+Verify directory integrity then print directory title,
+sequence number, drive number, and name as the header
+for a catalogue listing.
+""")
+
+subroutine(0x947F, "parse_path_and_load",
+    title="Parse path and load target directory",
+    description="""\
+Parse a full pathname and load the target directory
+into the buffer. Handles drive specifiers, root,
+parent, and current directory references.
+""")
+
+subroutine(0x8E6F, "allocate_disc_space_for_file",
+    title="Allocate disc space and store in entry",
+    description="""\
+Allocate disc space from the FSM for the requested
+file size, then store the allocated sector address
+in the directory entry at (&B6).
+""")
+
+subroutine(0x8DD6, "parse_and_search_dir",
+    title="Check next path character is terminator",
+    description="""\
+Read the character at (&B4),Y and generate a Bad name
+error if it is not a filename terminator.
 """)
 
 # ---------------------------------------------------------------------------

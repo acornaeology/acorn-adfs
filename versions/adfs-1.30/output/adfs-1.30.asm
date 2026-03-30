@@ -979,6 +979,13 @@ oscli                                           = &fff7
     lda #&ff                                                          ; 8282: a9 ff       ..             ; Unrecoverable SCSI error
     jmp mask_error_code                                               ; 8284: 4c b1 81    L..            ; Return &FF
 
+; ***************************************************************************************
+; Execute disc command from workspace control block
+; 
+; Execute a disc command using the control block at &1015.
+; Generates a BRK error if the command fails.
+; 
+; ***************************************************************************************
 ; &8287 referenced 8 times by &89ca, &8a1a, &8fae, &94c9, &9722, &973c, &a7f2, &a813
 .exec_disc_op_from_wksp
     ldx #&15                                                          ; 8287: a2 15       ..             ; Point to workspace disc op block
@@ -1030,7 +1037,7 @@ oscli                                           = &fff7
 .translate_scsi_error
     cmp #&40 ; '@'                                                    ; 82d1: c9 40       .@             ; Error code &40 = write protected?
     beq store_error_sector                                            ; 82d3: f0 13       ..             ; Yes, generate Disc protected error
-    jsr save_wksp_and_return                                          ; 82d5: 20 d3 89     ..            ; Convert SCSI error to disc error
+    jsr save_wksp_and_return                                          ; 82d5: 20 d3 89     ..            ; Convert SCSI error to disc error; Save workspace state and return result
     tax                                                               ; 82d8: aa          .              ; X = suffix control
     jsr generate_error_suffix_x                                       ; 82d9: 20 53 83     S.            ; Generate error with suffix control in X
     equb &c7                                                          ; 82dc: c7          .
@@ -1038,7 +1045,7 @@ oscli                                           = &fff7
 
 ; &82e8 referenced 1 time by &82d3
 .store_error_sector
-    jsr generate_disc_error                                           ; 82e8: 20 2b 83     +.            ; Write protected: save drive state
+    jsr generate_disc_error                                           ; 82e8: 20 2b 83     +.            ; Write protected: save drive state; Generate disc error with state recovery
     equb &c9                                                          ; 82eb: c9          .
     equs "Disc protected", 0                                          ; 82ec: 44 69 73... Dis
 
@@ -1121,6 +1128,14 @@ oscli                                           = &fff7
     pla                                                               ; 8327: 68          h              ; Pop one return address
     jmp command_done                                                  ; 8328: 4c 8a 81    L..            ; Jump to status/message phase handler; Complete SCSI command and read status
 
+; ***************************************************************************************
+; Generate disc error with state recovery
+; 
+; Save the current drive state, reload FSM and directory,
+; then generate a BRK error. The inline error number and
+; message string follow the JSR instruction.
+; 
+; ***************************************************************************************
 ; &832b referenced 6 times by &82e8, &85c8, &8656, &8664, &8ffa, &a6f9
 .generate_disc_error
     ldx wksp_saved_drive                                              ; 832b: ae 2f 10    ./.            ; Check if drive was already saved
@@ -1150,7 +1165,7 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 ; &8348 referenced 26 times by &82ae, &82bd, &832f, &8737, &8982, &8bd7, &8bf0, &8d16, &8d53, &8dde, &8e1e, &915c, &91ad, &91d7, &95a4, &99da, &a00a, &a29b, &a389, &a3f7, &aa35, &ace9, &ad5b, &b09d, &b1eb, &b4ae
 .reload_fsm_and_dir_then_brk
-    jsr save_wksp_and_return                                          ; 8348: 20 d3 89     ..            ; Ensure directory/FSM state is clean
+    jsr save_wksp_and_return                                          ; 8348: 20 d3 89     ..            ; Ensure directory/FSM state is clean; Save workspace state and return result
     lda zp_adfs_flags                                                 ; 834b: a5 cd       ..             ; Clear FSM-inconsistent flag (bit 4)
     and #&ef                                                          ; 834d: 29 ef       ).             ; Clear FSM inconsistent flag
     sta zp_adfs_flags                                                 ; 834f: 85 cd       ..             ; Store updated flags
@@ -1260,7 +1275,7 @@ oscli                                           = &fff7
     pha                                                               ; 83d4: 48          H              ; Push Y on stack
     lda #&c6                                                          ; 83d5: a9 c6       ..             ; Close SPOOL file if open
     sta l10d8                                                         ; 83d7: 8d d8 10    ...            ; Store SPOOL/EXEC flag
-    jsr osbyte_y_ff_x_00                                              ; 83da: 20 a0 84     ..            ; OSBYTE &C6: read/write EXEC handle
+    jsr osbyte_y_ff_x_00                                              ; 83da: 20 a0 84     ..            ; OSBYTE &C6: read/write EXEC handle; Call OSBYTE to read current value
     cpx wksp_cur_channel                                              ; 83dd: ec d5 10    ...            ; Is EXEC on this channel?
     php                                                               ; 83e0: 08          .              ; Save flags for comparison result
     ldx #&99                                                          ; 83e1: a2 99       ..             ; X=&99: EXEC string address
@@ -1427,6 +1442,13 @@ oscli                                           = &fff7
     equs "SP."                                                        ; 849c: 53 50 2e    SP.
     equb &0d                                                          ; 849f: 0d          .
 
+; ***************************************************************************************
+; Call OSBYTE to read current value
+; 
+; Call OSBYTE with Y=&FF and X=0 to read the current
+; value of the variable specified in A.
+; 
+; ***************************************************************************************
 ; &84a0 referenced 3 times by &83da, &9ba7, &9c79
 .osbyte_y_ff_x_00
     ldy #&ff                                                          ; 84a0: a0 ff       ..             ; Y=&FF: read current value
@@ -1665,7 +1687,7 @@ oscli                                           = &fff7
     lda fsm_s1_total_sectors_lo                                       ; 85c1: ad fe 0f    ...            ; Get end-of-list pointer
     cmp #&f6                                                          ; 85c4: c9 f6       ..             ; Room for new entry (< &F6)?
     bcc shift_entries_up_start                                        ; 85c6: 90 0d       ..             ; Yes: proceed with insert
-    jsr generate_disc_error                                           ; 85c8: 20 2b 83     +.            ; Save drive state and raise error
+    jsr generate_disc_error                                           ; 85c8: 20 2b 83     +.            ; Save drive state and raise error; Generate disc error with state recovery
     equb &99                                                          ; 85cb: 99          .
     equs "Map full", 0                                                ; 85cc: 4d 61 70... Map
 
@@ -1730,6 +1752,14 @@ oscli                                           = &fff7
     plp                                                               ; 862e: 28          (              ; Restore carry
     jmp sum_fsm_entries_loop                                          ; 862f: 4c 14 86    L..            ; Loop for next FSM entry
 
+; ***************************************************************************************
+; Allocate disc space from free space map
+; 
+; Find the best-fit free entry for the requested size at
+; &103D-&103F. Generates Disc full or Compaction required
+; errors if allocation is not possible.
+; 
+; ***************************************************************************************
 ; &8632 referenced 3 times by &8f55, &9895, &af0b
 .allocate_disc_space
     ldx #&ff                                                          ; 8632: a2 ff       ..             ; X=&FF: no best-fit entry yet
@@ -1756,13 +1786,13 @@ oscli                                           = &fff7
     bcs compaction_required_error                                     ; 8654: b0 0e       ..             ; Total >= requested: space exists
 ; &8656 referenced 2 times by &8f3a, &aed4
 .disc_full_error
-    jsr generate_disc_error                                           ; 8656: 20 2b 83     +.            ; Not enough: Disc full error
+    jsr generate_disc_error                                           ; 8656: 20 2b 83     +.            ; Not enough: Disc full error; Generate disc error with state recovery
     equb &c6                                                          ; 8659: c6          .
     equs "Disc full", 0                                               ; 865a: 44 69 73... Dis
 
 ; &8664 referenced 1 time by &8654
 .compaction_required_error
-    jsr generate_disc_error                                           ; 8664: 20 2b 83     +.            ; Compaction needed: error
+    jsr generate_disc_error                                           ; 8664: 20 2b 83     +.            ; Compaction needed: error; Generate disc error with state recovery
     equb &98                                                          ; 8667: 98          .
     equs "Compaction required", 0                                     ; 8668: 43 6f 6d... Com
 
@@ -1865,6 +1895,13 @@ oscli                                           = &fff7
     ldx zp_mem_ptr                                                    ; 8703: a6 b2       ..             ; Restore entry index
     jmp scan_for_best_fit                                             ; 8705: 4c 37 86    L7.            ; Continue scanning
 
+; ***************************************************************************************
+; Advance text pointer by one character
+; 
+; Increment the 16-bit text pointer at (&B4) by one,
+; handling page crossing.
+; 
+; ***************************************************************************************
 ; &8708 referenced 3 times by &885a, &8872, &88c1
 .advance_text_ptr
     inc zp_text_ptr                                                   ; 8708: e6 b4       ..             ; Increment pointer low byte
@@ -1874,10 +1911,17 @@ oscli                                           = &fff7
 .return_8
     rts                                                               ; 870e: 60          `              ; Return
 
+; ***************************************************************************************
+; Parse argument and set up directory search
+; 
+; Skip leading spaces, set up directory search state,
+; and clear the search result workspace.
+; 
+; ***************************************************************************************
 ; &870f referenced 2 times by &884c, &8851
 .parse_and_setup_search
     jsr skip_spaces                                                   ; 870f: 20 cf a4     ..            ; Skip leading spaces in command argument
-    jsr set_up_directory_search                                       ; 8712: 20 6e 8d     n.            ; Set up directory for search
+    jsr set_up_directory_search                                       ; 8712: 20 6e 8d     n.            ; Set up directory for search; Validate path and check for wildcards
     ldy #0                                                            ; 8715: a0 00       ..             ; Y=0: clear search flag
     sty l10c0                                                         ; 8717: 8c c0 10    ...            ; Store in workspace
 ; ***************************************************************************************
@@ -2108,6 +2152,14 @@ oscli                                           = &fff7
 .l8817
     equb 1, 0, &12, &ff, &ff, 8, 0, 0, 2, 5, 0                        ; 8817: 01 00 12... ...
 
+; ***************************************************************************************
+; Parse drive number from ASCII character
+; 
+; Convert ASCII drive character ('0'-'7' or 'A'-'H')
+; to a 3-bit drive ID in bits 5-7 of A. Limits to
+; drives 0-3 if no hard drive present.
+; 
+; ***************************************************************************************
 ; &8822 referenced 2 times by &886c, &a10a
 .parse_drive_from_ascii
     cmp #&30 ; '0'                                                    ; 8822: c9 30       .0             ; Character >= '0'?
@@ -2143,17 +2195,28 @@ oscli                                           = &fff7
 .bad_drive_name
     jmp bad_name_error                                                ; 8849: 4c 37 87    L7.            ; Invalid: Bad name error
 
+; ***************************************************************************************
+; Parse filename from command line
+; 
+; Parse a filename from (&B4) including drive specifier,
+; root, and parent directory references.
+; 
+; On exit:
+;   Z set if found, (&B6) points to entry
+;   Z clear if not found
+; 
+; ***************************************************************************************
 ; &884c referenced 2 times by &8bb3, &8fdf
 .parse_filename_from_cmdline
-    jsr parse_and_setup_search                                        ; 884c: 20 0f 87     ..            ; Get filename from (&B4)
+    jsr parse_and_setup_search                                        ; 884c: 20 0f 87     ..            ; Get filename from (&B4); Parse argument and set up directory search
     beq bad_drive_name                                                ; 884f: f0 f8       ..             ; Empty filename: bad name
 ; &8851 referenced 1 time by &947f
 .full_pathname_parser
-    jsr parse_and_setup_search                                        ; 8851: 20 0f 87     ..            ; Get first path character
+    jsr parse_and_setup_search                                        ; 8851: 20 0f 87     ..            ; Get first path character; Parse argument and set up directory search
     beq check_drive_initialised                                       ; 8854: f0 1f       ..             ; Empty: use current directory
     cmp #&3a ; ':'                                                    ; 8856: c9 3a       .:             ; Is it ':' (drive specifier)?
     bne check_root_specifier                                          ; 8858: d0 6a       .j             ; No colon: check for $ or path
-    jsr advance_text_ptr                                              ; 885a: 20 08 87     ..            ; Advance past ':'
+    jsr advance_text_ptr                                              ; 885a: 20 08 87     ..            ; Advance past ':'; Advance text pointer by one character
     ldx wksp_saved_drive                                              ; 885d: ae 2f 10    ./.            ; Check if drive already saved
     inx                                                               ; 8860: e8          .              ; Saved drive = &FF (not set)?
     bne get_first_path_char                                           ; 8861: d0 06       ..             ; Already set: keep it
@@ -2162,11 +2225,11 @@ oscli                                           = &fff7
 ; &8869 referenced 1 time by &8861
 .get_first_path_char
     jsr check_char_is_terminator                                      ; 8869: 20 1a 87     ..            ; Get drive character; Check if character is a filename terminator
-    jsr parse_drive_from_ascii                                        ; 886c: 20 22 88     ".            ; Parse drive number from ASCII
+    jsr parse_drive_from_ascii                                        ; 886c: 20 22 88     ".            ; Parse drive number from ASCII; Parse drive number from ASCII character
     sta wksp_current_drive                                            ; 886f: 8d 17 11    ...            ; Store as new current drive
 ; &8872 referenced 1 time by &88cd
 .advance_past_colon
-    jsr advance_text_ptr                                              ; 8872: 20 08 87     ..            ; Advance past drive number
+    jsr advance_text_ptr                                              ; 8872: 20 08 87     ..            ; Advance past drive number; Advance text pointer by one character
 ; &8875 referenced 1 time by &8854
 .check_drive_initialised
     ldx wksp_current_drive                                            ; 8875: ae 17 11    ...            ; Check drive is initialised
@@ -2208,7 +2271,7 @@ oscli                                           = &fff7
     jsr check_char_is_terminator                                      ; 88ba: 20 1a 87     ..            ; Get next character; Check if character is a filename terminator
     cmp #&2e ; '.'                                                    ; 88bd: c9 2e       ..             ; Is it '.' (path separator)?
     bne set_root_dir_entry                                            ; 88bf: d0 24       .$             ; No dot: this is the final component
-    jsr advance_text_ptr                                              ; 88c1: 20 08 87     ..            ; Skip past dot separator
+    jsr advance_text_ptr                                              ; 88c1: 20 08 87     ..            ; Skip past dot separator; Advance text pointer by one character
 ; &88c4 referenced 1 time by &8858
 .check_root_specifier
     ldy #0                                                            ; 88c4: a0 00       ..             ; Y=0: check for $ or path component
@@ -2251,6 +2314,14 @@ oscli                                           = &fff7
 .return_12
     rts                                                               ; 8904: 60          `              ; Return (not found)
 
+; ***************************************************************************************
+; Save text pointer and determine object type
+; 
+; After a directory entry match, save the remaining text
+; position and determine whether the entry is a file
+; (type 1) or directory (type 2).
+; 
+; ***************************************************************************************
 ; &8905 referenced 2 times by &8940, &8944
 .save_text_ptr_after_match
     lda zp_text_ptr                                                   ; 8905: a5 b4       ..             ; Save current text pointer
@@ -2291,9 +2362,9 @@ oscli                                           = &fff7
 .scan_component_chars_loop
     jsr check_char_is_terminator                                      ; 893b: 20 1a 87     ..            ; Check next character; Check if character is a filename terminator
     cmp #&21 ; '!'                                                    ; 893e: c9 21       .!             ; Control char? End of component
-    bcc save_text_ptr_after_match                                     ; 8940: 90 c3       ..             ; Yes: set up result
+    bcc save_text_ptr_after_match                                     ; 8940: 90 c3       ..             ; Yes: set up result; Save text pointer and determine object type
     cmp #&22 ; '"'                                                    ; 8942: c9 22       ."             ; Double-quote? End of component
-    beq save_text_ptr_after_match                                     ; 8944: f0 bf       ..             ; Yes: set up result
+    beq save_text_ptr_after_match                                     ; 8944: f0 bf       ..             ; Yes: set up result; Save text pointer and determine object type
     cmp #&2e ; '.'                                                    ; 8946: c9 2e       ..             ; Dot? Path separator
     beq save_component_length                                         ; 8948: f0 03       ..             ; Yes: descend into subdirectory
     iny                                                               ; 894a: c8          .              ; Next character
@@ -2306,13 +2377,24 @@ oscli                                           = &fff7
     ldy #3                                                            ; 8950: a0 03       ..             ; Y=3: check if entry is directory
     lda (zp_entry_ptr),y                                              ; 8952: b1 b6       ..             ; Get access byte
     bmi descend_into_subdir                                           ; 8954: 30 1f       0.             ; Bit 7: is a directory
-    jsr advance_dir_entry_ptr                                         ; 8956: 20 5e 89     ^.            ; Not dir: advance to next entry
+    jsr advance_dir_entry_ptr                                         ; 8956: 20 5e 89     ^.            ; Not dir: advance to next entry; Advance to next matching directory entry
     beq check_access_is_dir_loop                                      ; 8959: f0 f5       ..             ; Found next entry: retry match
 ; &895b referenced 1 time by &896d
 .next_entry_not_found
     lda #&ff                                                          ; 895b: a9 ff       ..             ; A=&FF: return not found
     rts                                                               ; 895d: 60          `              ; Return
 
+; ***************************************************************************************
+; Advance to next matching directory entry
+; 
+; Advance (&B6) by 26 bytes to the next directory entry,
+; then check whether it matches the current search pattern.
+; 
+; On exit:
+;   Z set if match found, (&B6) points to it
+;   Z clear if end of directory reached
+; 
+; ***************************************************************************************
 ; &895e referenced 8 times by &8956, &8972, &8bba, &948a, &94f2, &99be, &9c4e, &a88c
 .advance_dir_entry_ptr
     clc                                                               ; 895e: 18          .              ; Clear carry for addition
@@ -2327,7 +2409,7 @@ oscli                                           = &fff7
     lda (zp_entry_ptr),y                                              ; 896b: b1 b6       ..             ; Get first byte of next entry
     beq next_entry_not_found                                          ; 896d: f0 ec       ..             ; Zero: end of entries (not found)
     jsr check_filename_length                                         ; 896f: 20 2d 87     -.            ; Compare against pattern; Check filename is within 10-character limit
-    bne advance_dir_entry_ptr                                         ; 8972: d0 ea       ..             ; No match: try next entry
+    bne advance_dir_entry_ptr                                         ; 8972: d0 ea       ..             ; No match: try next entry; Advance to next matching directory entry
     rts                                                               ; 8974: 60          `              ; Match found: return
 
 ; &8975 referenced 1 time by &8954
@@ -2337,7 +2419,7 @@ oscli                                           = &fff7
     bpl advance_text_past_component                                   ; 8979: 10 16       ..             ; Bit 7 clear: normal descent
     and #&7f                                                          ; 897b: 29 7f       ).             ; Bit 7 set: clear it (bad rename?)
     sta (zp_entry_ptr),y                                              ; 897d: 91 b6       ..             ; Store cleaned name byte
-    jsr write_dir_and_validate                                        ; 897f: 20 86 8f     ..            ; Write directory back to disc
+    jsr write_dir_and_validate                                        ; 897f: 20 86 8f     ..            ; Write directory back to disc; Write directory and FSM back to disc
 ; &8982 referenced 1 time by &a500
 .clean_dir_rename_bit
     jsr reload_fsm_and_dir_then_brk                                   ; 8982: 20 48 83     H.            ; Reload FSM and directory then raise error
@@ -2383,12 +2465,30 @@ oscli                                           = &fff7
     iny                                                               ; 89c6: c8          .              ; Next entry byte
     dex                                                               ; 89c7: ca          .              ; Next sector byte
     bpl copy_subdir_sector_loop                                       ; 89c8: 10 f4       ..             ; Loop for 3 bytes
-    jsr exec_disc_op_from_wksp                                        ; 89ca: 20 87 82     ..            ; Execute disc read command
+    jsr exec_disc_op_from_wksp                                        ; 89ca: 20 87 82     ..            ; Execute disc read command; Execute disc command from workspace control block
     jmp check_special_dir_in_path                                     ; 89cd: 4c d2 88    L..            ; Continue parsing path
 
+; ***************************************************************************************
+; Load object type and save workspace
+; 
+; Load object type from workspace and fall through to
+; save_wksp_and_return.
+; 
+; On exit:
+;   A = object type (0=not found, 1=file, 2=directory)
+; 
+; ***************************************************************************************
 ; &89d0 referenced 4 times by &8c5f, &8cc6, &923b, &b360
 .get_object_type_result
     lda l10c0                                                         ; 89d0: ad c0 10    ...            ; Get object type result
+; ***************************************************************************************
+; Save workspace state and return result
+; 
+; Restore the original drive if changed, reload the FSM,
+; restore alternative workspace if set, and save workspace
+; with checksum. Return value passed via A on stack.
+; 
+; ***************************************************************************************
 ; &89d3 referenced 34 times by &82d5, &8348, &8cc0, &9125, &914b, &941c, &94f7, &956d, &9938, &99c6, &9a40, &9c1d, &9c74, &9ff3, &a3a6, &a45d, &a488, &a494, &a4a8, &a51b, &a579, &a5e5, &a63e, &a669, &a682, &a856, &a891, &a94e, &adf2, &b07a, &b2d9, &b357, &b3e7, &b710
 .save_wksp_and_return
     pha                                                               ; 89d3: 48          H              ; Save on stack
@@ -2424,7 +2524,7 @@ oscli                                           = &fff7
     sta l101d                                                         ; 8a12: 8d 1d 10    ...            ; Store in disc op low
     lda #&ff                                                          ; 8a15: a9 ff       ..             ; A=&FF: clear alt workspace
     sta l102e                                                         ; 8a17: 8d 2e 10    ...            ; Mark as unused
-    jsr exec_disc_op_from_wksp                                        ; 8a1a: 20 87 82     ..            ; Read directory from disc
+    jsr exec_disc_op_from_wksp                                        ; 8a1a: 20 87 82     ..            ; Read directory from disc; Execute disc command from workspace control block
 ; &8a1d referenced 1 time by &89ef
 .save_workspace_checksum
     lda zp_adfs_flags                                                 ; 8a1d: a5 cd       ..             ; Save flags to workspace
@@ -2447,6 +2547,16 @@ oscli                                           = &fff7
 .return_13
     rts                                                               ; 8a3c: 60          `              ; Return
 
+; ***************************************************************************************
+; Execute multi-sector disc command
+; 
+; Set up sector count and execute a disc read or write
+; command. Rounds up partial counts for writes.
+; 
+; On exit:
+;   Z set on success
+; 
+; ***************************************************************************************
 ; &8a3d referenced 4 times by &8c59, &8f77, &962c, &b7d2
 .multi_sector_disc_command
     jsr check_disc_command_type                                       ; 8a3d: 20 45 8a     E.            ; Set up sector count and execute
@@ -2675,15 +2785,26 @@ oscli                                           = &fff7
 .execute_partial_disc_op
     jmp command_done                                                  ; 8bb0: 4c 8a 81    L..            ; Status phase: get SCSI result; Complete SCSI command and read status
 
+; ***************************************************************************************
+; Search for non-directory file
+; 
+; Parse a filename and search the current directory for
+; a matching non-directory entry.
+; 
+; On exit:
+;   Z set if found, (&B6) points to entry
+;   Z clear if not found
+; 
+; ***************************************************************************************
 ; &8bb3 referenced 4 times by &a3a1, &a3b4, &a40e, &a82f
 .exec_disc_and_check_error
-    jsr parse_filename_from_cmdline                                   ; 8bb3: 20 4c 88     L.            ; Search for file in directory
+    jsr parse_filename_from_cmdline                                   ; 8bb3: 20 4c 88     L.            ; Search for file in directory; Parse filename from command line
     beq complete_partial_op                                           ; 8bb6: f0 07       ..             ; Found? Check if it's a directory
     bne return_15                                                     ; 8bb8: d0 0d       ..             ; Not found: return Z clear; ALWAYS branch
 
 ; &8bba referenced 1 time by &8bc3
 .copy_partial_read_loop
-    jsr advance_dir_entry_ptr                                         ; 8bba: 20 5e 89     ^.            ; Skip directory entries
+    jsr advance_dir_entry_ptr                                         ; 8bba: 20 5e 89     ^.            ; Skip directory entries; Advance to next matching directory entry
     bne return_15                                                     ; 8bbd: d0 08       ..             ; Not found after dirs: return Z clear
 ; &8bbf referenced 1 time by &8bb6
 .complete_partial_op
@@ -2697,6 +2818,13 @@ oscli                                           = &fff7
 .return_15
     rts                                                               ; 8bc7: 60          `              ; Return
 
+; ***************************************************************************************
+; Generate Not found error
+; 
+; Check for special directory characters in path and
+; generate either Bad name or Not found error.
+; 
+; ***************************************************************************************
 ; &8bc8 referenced 5 times by &8cf6, &94ec, &9942, &a514, &a834
 .not_found_error
     ldy #0                                                            ; 8bc8: a0 00       ..             ; Y=0: get first path char
@@ -2719,7 +2847,7 @@ oscli                                           = &fff7
 
 ; &8be5 referenced 3 times by &907f, &9101, &a50f
 .find_file_and_validate
-    jsr find_first_matching_entry                                     ; 8be5: 20 df 8f     ..            ; Search for file
+    jsr find_first_matching_entry                                     ; 8be5: 20 df 8f     ..            ; Search for file; Find first matching directory entry
     bne return_15                                                     ; 8be8: d0 dd       ..             ; Not found: return
     ldy #4                                                            ; 8bea: a0 04       ..             ; Y=4: check E attribute byte
     lda (zp_entry_ptr),y                                              ; 8bec: b1 b6       ..             ; Get access/E byte
@@ -2783,11 +2911,11 @@ oscli                                           = &fff7
     dey                                                               ; 8c55: 88          .              ; Next byte
     dex                                                               ; 8c56: ca          .              ; Next control byte
     bne set_access_bits_loop                                          ; 8c57: d0 f7       ..             ; Loop for 4 bytes
-    jsr multi_sector_disc_command                                     ; 8c59: 20 3d 8a     =.            ; Calculate sector count from length
+    jsr multi_sector_disc_command                                     ; 8c59: 20 3d 8a     =.            ; Calculate sector count from length; Execute multi-sector disc command
 ; &8c5c referenced 1 time by &8f83
 .store_length_and_sector
     jsr search_dir_for_file                                           ; 8c5c: 20 62 8c     b.            ; Validate checksum and flags
-    jmp get_object_type_result                                        ; 8c5f: 4c d0 89    L..            ; Save workspace and return
+    jmp get_object_type_result                                        ; 8c5f: 4c d0 89    L..            ; Save workspace and return; Load object type and save workspace
 
 ; &8c62 referenced 2 times by &8c5c, &a89e
 .search_dir_for_file
@@ -2847,21 +2975,32 @@ oscli                                           = &fff7
     iny                                                               ; 8cae: c8          .              ; Y=&01
     lda (zp_osfile_ptr),y                                             ; 8caf: b1 b8       ..             ; Get filename address high
     sta zp_text_ptr_h                                                 ; 8cb1: 85 b5       ..             ; Store in (&B5)
-    jsr find_first_matching_entry                                     ; 8cb3: 20 df 8f     ..            ; Search for file in directory
+    jsr find_first_matching_entry                                     ; 8cb3: 20 df 8f     ..            ; Search for file in directory; Find first matching directory entry
     bne delete_existing_before_save                                   ; 8cb6: d0 0e       ..             ; Found? Copy catalogue info
     ldy #4                                                            ; 8cb8: a0 04       ..             ; Y=4: check E attribute
     lda (zp_entry_ptr),y                                              ; 8cba: b1 b6       ..             ; Get E attribute byte
     bpl check_existing_for_save                                       ; 8cbc: 10 05       ..             ; Bit 7 clear: not E, copy info
     lda #&ff                                                          ; 8cbe: a9 ff       ..             ; E attribute: return A=&FF
-    jmp save_wksp_and_return                                          ; 8cc0: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; 8cc0: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; &8cc3 referenced 2 times by &8cbc, &90fe
 .check_existing_for_save
     jsr search_dir_with_wildcards                                     ; 8cc3: 20 65 8c     e.            ; Copy catalogue info to block
 ; &8cc6 referenced 1 time by &8cb6
 .delete_existing_before_save
-    jmp get_object_type_result                                        ; 8cc6: 4c d0 89    L..            ; Save workspace and return
+    jmp get_object_type_result                                        ; 8cc6: 4c d0 89    L..            ; Save workspace and return; Load object type and save workspace
 
+; ***************************************************************************************
+; Parse filename from OSFILE block and search
+; 
+; Extract filename from the OSFILE control block, parse
+; the path, and search the current directory.
+; 
+; On exit:
+;   Z set if found, (&B6) points to entry
+;   Z clear if not found
+; 
+; ***************************************************************************************
 ; &8cc9 referenced 3 times by &8ce2, &8ce9, &911e
 .setup_disc_write
     ldy #0                                                            ; 8cc9: a0 00       ..             ; Y=0: get filename from block
@@ -2871,7 +3010,7 @@ oscli                                           = &fff7
     lda (zp_osfile_ptr),y                                             ; 8cd0: b1 b8       ..             ; Get filename address high
     sta zp_text_ptr_h                                                 ; 8cd2: 85 b5       ..             ; Store in (&B5)
     jsr set_up_gsinit_path                                            ; 8cd4: 20 bd 8d     ..            ; Parse path and set up directory
-    jsr find_first_matching_entry                                     ; 8cd7: 20 df 8f     ..            ; Search for file
+    jsr find_first_matching_entry                                     ; 8cd7: 20 df 8f     ..            ; Search for file; Find first matching directory entry
     beq return_16                                                     ; 8cda: f0 05       ..             ; Found: return Z set
     jsr check_special_dir_char                                        ; 8cdc: 20 4f 94     O.            ; Check for ^ (parent) or @ (current) directory
     beq mark_entry_dirty                                              ; 8cdf: f0 15       ..             ; Z clear: check for create
@@ -2881,13 +3020,13 @@ oscli                                           = &fff7
 
 ; &8ce2 referenced 1 time by &a552
 .build_osfile_control_block
-    jsr setup_disc_write                                              ; 8ce2: 20 c9 8c     ..            ; Parse filename and search
-    beq check_file_not_open                                           ; 8ce5: f0 29       .)             ; Found: proceed to delete
+    jsr setup_disc_write                                              ; 8ce2: 20 c9 8c     ..            ; Parse filename and search; Parse filename from OSFILE block and search
+    beq check_file_not_open                                           ; 8ce5: f0 29       .)             ; Found: proceed to delete; Check file is not locked or open
     bne check_4byte_addrs                                             ; 8ce7: d0 05       ..             ; ALWAYS branch
 
 ; &8ce9 referenced 1 time by &8df3
 .copy_osfile_addrs
-    jsr setup_disc_write                                              ; 8ce9: 20 c9 8c     ..            ; Parse filename and search
+    jsr setup_disc_write                                              ; 8ce9: 20 c9 8c     ..            ; Parse filename and search; Parse filename from OSFILE block and search
     beq write_entry_metadata                                          ; 8cec: f0 19       ..             ; Found: check if directory
 ; &8cee referenced 1 time by &8ce7
 .check_4byte_addrs
@@ -2899,7 +3038,7 @@ oscli                                           = &fff7
     bne copy_4byte_addrs_loop                                         ; 8cf4: d0 03       ..             ; Yes: check for ^ or @ error
 ; &8cf6 referenced 1 time by &8cdf
 .mark_entry_dirty
-    jmp not_found_error                                               ; 8cf6: 4c c8 8b    L..            ; Check for ^ or @ prefix error
+    jmp not_found_error                                               ; 8cf6: 4c c8 8b    L..            ; Check for ^ or @ prefix error; Generate Not found error
 
 ; &8cf9 referenced 1 time by &8cf4
 .copy_4byte_addrs_loop
@@ -2918,9 +3057,17 @@ oscli                                           = &fff7
 .write_entry_metadata
     ldy #3                                                            ; 8d07: a0 03       ..             ; Y=3: check if it's a directory
     lda (zp_entry_ptr),y                                              ; 8d09: b1 b6       ..             ; Get access byte
-    bpl check_file_not_open                                           ; 8d0b: 10 03       ..             ; Bit 7 clear: not dir, create file
+    bpl check_file_not_open                                           ; 8d0b: 10 03       ..             ; Bit 7 clear: not dir, create file; Check file is not locked or open
     jmp already_exists_error2                                         ; 8d0d: 4c a4 95    L..            ; Directory: Already exists error
 
+; ***************************************************************************************
+; Check file is not locked or open
+; 
+; Check the entry at (&B6) for the locked attribute and
+; generate a Locked error if set. Then check whether any
+; files on the current drive are open.
+; 
+; ***************************************************************************************
 ; &8d10 referenced 5 times by &8ce5, &8d0b, &9128, &a589, &b306
 .check_file_not_open
     ldy #2                                                            ; 8d10: a0 02       ..             ; Y=2: check file access
@@ -2974,6 +3121,14 @@ oscli                                           = &fff7
     inx                                                               ; 8d6c: e8          .              ; X=1: no conflict found
     rts                                                               ; 8d6d: 60          `              ; Return (X=1 = no conflict)
 
+; ***************************************************************************************
+; Validate path and check for wildcards
+; 
+; Scan the filename at (&B4) checking for invalid
+; characters and wildcards. Generates Bad name or
+; Wild cards errors for invalid patterns.
+; 
+; ***************************************************************************************
 ; &8d6e referenced 2 times by &8712, &8dbd
 .set_up_directory_search
     ldy #0                                                            ; 8d6e: a0 00       ..             ; Y=0: scan filename
@@ -2996,7 +3151,7 @@ oscli                                           = &fff7
     cmp #&2e ; '.'                                                    ; 8d85: c9 2e       ..             ; Is it '.'?
     bne return_17                                                     ; 8d87: d0 4c       .L             ; No dot after drive: return
     iny                                                               ; 8d89: c8          .              ; Skip past dot
-    jsr parse_and_search_dir                                          ; 8d8a: 20 d6 8d     ..            ; Get next character
+    jsr parse_and_search_dir                                          ; 8d8a: 20 d6 8d     ..            ; Get next character; Check next path character is terminator
 ; &8d8d referenced 1 time by &8d7c
 .skip_dot_in_path
     and #&fd                                                          ; 8d8d: 29 fd       ).             ; Strip to check for '$'
@@ -3004,7 +3159,7 @@ oscli                                           = &fff7
     beq scan_name_bytes_loop                                          ; 8d91: f0 ec       ..             ; Yes: continue past root specifier
 ; &8d93 referenced 1 time by &8da9
 .scan_name_alpha_loop
-    jsr parse_and_search_dir                                          ; 8d93: 20 d6 8d     ..            ; Get next path character
+    jsr parse_and_search_dir                                          ; 8d93: 20 d6 8d     ..            ; Get next path character; Check next path character is terminator
     cmp #&5e ; '^'                                                    ; 8d96: c9 5e       .^             ; Is it '^' (parent)?
     beq check_bad_name_char                                           ; 8d98: f0 04       ..             ; Yes: skip past it
     cmp #&40 ; '@'                                                    ; 8d9a: c9 40       .@             ; Is it '@' (current)?
@@ -3035,7 +3190,7 @@ oscli                                           = &fff7
     bne c8dab                                                         ; 8dbb: d0 ee       ..             ; Continue scanning
 ; &8dbd referenced 3 times by &8cd4, &a50c, &b2fe
 .set_up_gsinit_path
-    jsr set_up_directory_search                                       ; 8dbd: 20 6e 8d     n.            ; Save text pointer low; Push on stack
+    jsr set_up_directory_search                                       ; 8dbd: 20 6e 8d     n.            ; Save text pointer low; Validate path and check for wildcards; Push on stack
 ; &8dc0 referenced 1 time by &8dd3
 .gsinit_scan_loop
     lda (zp_text_ptr),y                                               ; 8dc0: b1 b4       ..             ; Save text pointer high
@@ -3053,6 +3208,13 @@ oscli                                           = &fff7
 .return_17
     rts                                                               ; 8dd5: 60          `              ; Return
 
+; ***************************************************************************************
+; Check next path character is terminator
+; 
+; Read the character at (&B4),Y and generate a Bad name
+; error if it is not a filename terminator.
+; 
+; ***************************************************************************************
 ; &8dd6 referenced 2 times by &8d8a, &8d93
 .parse_and_search_dir
     jsr check_char_is_terminator                                      ; 8dd6: 20 1a 87     ..            ; Get character at (&B4),Y; Check if character is a filename terminator; Strip bit 7
@@ -3154,6 +3316,14 @@ oscli                                           = &fff7
     sta zp_text_ptr_h                                                 ; 8e6c: 85 b5       ..             ; Store back in (&B5)
     rts                                                               ; 8e6e: 60          `              ; Return
 
+; ***************************************************************************************
+; Allocate disc space and store in entry
+; 
+; Allocate disc space from the FSM for the requested
+; file size, then store the allocated sector address
+; in the directory entry at (&B6).
+; 
+; ***************************************************************************************
 ; &8e6f referenced 3 times by &8f4f, &a64c, &a8df
 .allocate_disc_space_for_file
     ldy #9                                                            ; 8e6f: a0 09       ..             ; Get OSFILE block pointer low
@@ -3180,6 +3350,13 @@ oscli                                           = &fff7
     bpl copy_alloc_request_loop                                       ; 8e88: 10 e7       ..             ; Loop for all name bytes
     rts                                                               ; 8e8a: 60          `              ; Return
 
+; ***************************************************************************************
+; Copy OSFILE template into directory entry
+; 
+; Copy filename, attributes, and sector information from
+; the OSFILE workspace into the directory entry at (&B6).
+; 
+; ***************************************************************************************
 ; &8e8b referenced 2 times by &8f52, &a65d
 .copy_entry_from_template
     ldy #&11                                                          ; 8e8b: a0 11       ..             ; Y=&11: copy filename and attributes
@@ -3304,14 +3481,22 @@ oscli                                           = &fff7
     sta (zp_entry_ptr),y                                              ; 8f47: 91 b6       ..             ; Store &FF in sector high
     jmp release_disc_space                                            ; 8f49: 4c b5 84    L..            ; Release disc space back to free space map
 
+; ***************************************************************************************
+; Validate file is not locked then create entry
+; 
+; Check file is not locked or open, write the filename
+; into the directory entry, allocate disc space, and copy
+; the file length and sector address.
+; 
+; ***************************************************************************************
 ; &8f4c referenced 3 times by &8f74, &8f7d, &b35a
 .validate_not_locked
     jsr check_file_not_open2                                          ; 8f4c: 20 f3 8d     ..            ; Save (&B6) for restore; Push on stack
-    jsr allocate_disc_space_for_file                                  ; 8f4f: 20 6f 8e     o.            ; Save (&B7); Push on stack
+    jsr allocate_disc_space_for_file                                  ; 8f4f: 20 6f 8e     o.            ; Save (&B7); Allocate disc space and store in entry; Push on stack
 ; &8f52 referenced 2 times by &95ca, &a8e2
 .write_entry_sector_info
-    jsr copy_entry_from_template                                      ; 8f52: 20 8b 8e     ..            ; Y=&0D: copy load/exec/length; X=&0B: 12 bytes
-    jsr allocate_disc_space                                           ; 8f55: 20 32 86     2.            ; Store in entry
+    jsr copy_entry_from_template                                      ; 8f52: 20 8b 8e     ..            ; Y=&0D: copy load/exec/length; Copy OSFILE template into directory entry; X=&0B: 12 bytes
+    jsr allocate_disc_space                                           ; 8f55: 20 32 86     2.            ; Allocate disc space from free space map; Store in entry
 ; &8f58 referenced 1 time by &a660
 .copy_length_to_entry
     ldy #&18                                                          ; 8f58: a0 18       ..             ; Y=&18: get OSFILE data bytes
@@ -3335,17 +3520,25 @@ oscli                                           = &fff7
     rts                                                               ; 8f73: 60          `              ; Return
 
 .osfile_load_handler
-    jsr validate_not_locked                                           ; 8f74: 20 4c 8f     L.            ; Store in directory entry; Also store in CSD info
-    jsr multi_sector_disc_command                                     ; 8f77: 20 3d 8a     =.            ; Next entry byte (increasing Y)
+    jsr validate_not_locked                                           ; 8f74: 20 4c 8f     L.            ; Store in directory entry; Validate file is not locked then create entry; Also store in CSD info
+    jsr multi_sector_disc_command                                     ; 8f77: 20 3d 8a     =.            ; Execute multi-sector disc command; Next entry byte (increasing Y)
     jmp search_for_osfile_target                                      ; 8f7a: 4c 80 8f    L..            ; Next workspace byte (decreasing X); Loop for 3 bytes
 
 .osfile_read_cat_info
-    jsr validate_not_locked                                           ; 8f7d: 20 4c 8f     L.            ; Y=4: clear access byte 4; Store 0 (no E attribute)
+    jsr validate_not_locked                                           ; 8f7d: 20 4c 8f     L.            ; Y=4: clear access byte 4; Validate file is not locked then create entry; Store 0 (no E attribute)
 ; &8f80 referenced 2 times by &8f7a, &962f
 .search_for_osfile_target
-    jsr write_dir_and_validate                                        ; 8f80: 20 86 8f     ..            ; Write directory and update
+    jsr write_dir_and_validate                                        ; 8f80: 20 86 8f     ..            ; Write directory and update; Write directory and FSM back to disc
     jmp store_length_and_sector                                       ; 8f83: 4c 5c 8c    L\.            ; Check and write entry
 
+; ***************************************************************************************
+; Write directory and FSM back to disc
+; 
+; Verify directory integrity, validate the free space map
+; checksums, then write the current directory and FSM
+; sectors back to disc.
+; 
+; ***************************************************************************************
 ; &8f86 referenced 17 times by &897f, &8f80, &90fb, &9238, &96ac, &97d4, &99c3, &a007, &a273, &a5df, &a5f8, &a663, &a6c4, &a933, &af4f, &b35d, &b462
 .write_dir_and_validate
     jsr verify_dir_integrity                                          ; 8f86: 20 de a6     ..            ; Verify directory integrity; Verify directory buffer integrity
@@ -3365,7 +3558,7 @@ oscli                                           = &fff7
     sta l101c                                                         ; 8fa5: 8d 1c 10    ...            ; Next sector byte
     lda l1116                                                         ; 8fa8: ad 16 11    ...            ; Next info byte; Loop for 3 bytes
     sta wksp_disc_op_sector                                           ; 8fab: 8d 1b 10    ...            ; Restore (&B7) from stack; Store back
-    jsr exec_disc_op_from_wksp                                        ; 8fae: 20 87 82     ..            ; Write directory to disc
+    jsr exec_disc_op_from_wksp                                        ; 8fae: 20 87 82     ..            ; Write directory to disc; Execute disc command from workspace control block
     lda wksp_current_drive                                            ; 8fb1: ad 17 11    ...            ; Restore (&B6) from stack; Store back
     jsr convert_drive_to_slot                                         ; 8fb4: 20 79 b5     y.            ; Get FSM checksum byte
     lda fsm_s1_disc_id_hi                                             ; 8fb7: ad fc 0f    ...            ; Is it zero (unmodified)?; Zero: skip FSM write
@@ -3385,18 +3578,38 @@ oscli                                           = &fff7
     lda #0                                                            ; 8fdc: a9 00       ..             ; A=0: success
     rts                                                               ; 8fde: 60          `              ; Return
 
+; ***************************************************************************************
+; Find first matching directory entry
+; 
+; Parse a filename from the command line and search the
+; current directory for the first entry matching the
+; parsed filename pattern.
+; 
+; On exit:
+;   Z set if found, (&B6) points to matching entry
+;   Z clear if not found
+; 
+; ***************************************************************************************
 ; &8fdf referenced 13 times by &8be5, &8cb3, &8cd7, &94e7, &993d, &9a2d, &9c43, &a586, &a672, &b20e, &b2e6, &b301, &b36d
 .find_first_matching_entry
-    jsr parse_filename_from_cmdline                                   ; 8fdf: 20 4c 88     L.            ; Set up search with wildcards
+    jsr parse_filename_from_cmdline                                   ; 8fdf: 20 4c 88     L.            ; Set up search with wildcards; Parse filename from command line
     php                                                               ; 8fe2: 08          .              ; Point to first dir entry
     pha                                                               ; 8fe3: 48          H              ; Save A on stack
-    jsr mark_directory_dirty                                          ; 8fe4: 20 ea 8f     ..            ; Verify directory integrity
+    jsr mark_directory_dirty                                          ; 8fe4: 20 ea 8f     ..            ; Validate FSM checksums and mark directory dirty; Verify directory integrity
     pla                                                               ; 8fe7: 68          h              ; Restore A
     plp                                                               ; 8fe8: 28          (              ; Search for matching entry
 ; &8fe9 referenced 3 times by &8ff8, &900c, &9028
 .return_18
     rts                                                               ; 8fe9: 60          `              ; Return
 
+; ***************************************************************************************
+; Validate FSM checksums and mark directory dirty
+; 
+; Validate the in-memory free space map by checking both
+; sector checksums. Generates a Bad FS map error if the
+; checksums do not match.
+; 
+; ***************************************************************************************
 ; &8fea referenced 5 times by &8fe4, &9ffa, &a255, &a754, &a872
 .mark_directory_dirty
     jsr print_newline_and_entry                                       ; 8fea: 20 09 90     ..            ; Return search result
@@ -3407,7 +3620,7 @@ oscli                                           = &fff7
     beq return_18                                                     ; 8ff8: f0 ef       ..             ; Found: return
 ; &8ffa referenced 7 times by &8ff3, &9017, &901a, &9021, &903a, &9045, &904a
 .check_first_char_wildcard
-    jsr generate_disc_error                                           ; 8ffa: 20 2b 83     +.            ; Bad FS map error
+    jsr generate_disc_error                                           ; 8ffa: 20 2b 83     +.            ; Bad FS map error; Generate disc error with state recovery
     equb &a9                                                          ; 8ffd: a9          .
     equs "Bad FS map", 0                                              ; 8ffe: 42 61 64... Bad
 
@@ -3583,7 +3796,7 @@ oscli                                           = &fff7
     beq apply_access_bits_loop                                        ; 90f9: f0 e7       ..             ; Exactly 2: handle L bit
 ; &90fb referenced 2 times by &90ad, &90cd
 .check_dir_access_bit
-    jsr write_dir_and_validate                                        ; 90fb: 20 86 8f     ..            ; Write directory to disc
+    jsr write_dir_and_validate                                        ; 90fb: 20 86 8f     ..            ; Write directory to disc; Write directory and FSM back to disc
     jmp check_existing_for_save                                       ; 90fe: 4c c3 8c    L..            ; Return via catalogue info copy
 
 .osfile_delete_handler
@@ -3611,14 +3824,14 @@ oscli                                           = &fff7
     lda #&10                                                          ; 911a: a9 10       ..             ; Control block page = &10
     sta zp_osfile_ptr_h                                               ; 911c: 85 b9       ..             ; Store control block pointer high
 .search_and_delete_entry
-    jsr setup_disc_write                                              ; 911e: 20 c9 8c     ..            ; Search directory for the file
+    jsr setup_disc_write                                              ; 911e: 20 c9 8c     ..            ; Search directory for the file; Parse filename from OSFILE block and search
     beq check_and_delete_found                                        ; 9121: f0 05       ..             ; Found? Proceed to delete
     lda #0                                                            ; 9123: a9 00       ..             ; Not found: A=0 (no error)
-    jmp save_wksp_and_return                                          ; 9125: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; 9125: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; &9128 referenced 2 times by &9121, &9a32
 .check_and_delete_found
-    jsr check_file_not_open                                           ; 9128: 20 10 8d     ..            ; Check if file has open channels
+    jsr check_file_not_open                                           ; 9128: 20 10 8d     ..            ; Check if file has open channels; Check file is not locked or open
     ldy #3                                                            ; 912b: a0 03       ..             ; Y=3: check access byte
     lda (zp_entry_ptr),y                                              ; 912d: b1 b6       ..             ; Get access/attribute byte
     bpl proceed_with_delete                                           ; 912f: 10 3d       .=             ; Bit 7 clear: regular file, skip
@@ -3632,10 +3845,10 @@ oscli                                           = &fff7
     lda #&ff                                                          ; 913c: a9 ff       ..             ; Mark workspace as not saved
     sta l102e                                                         ; 913e: 8d 2e 10    ...            ; Mark alternative workspace as unset
     sta wksp_saved_drive                                              ; 9141: 8d 2f 10    ./.            ; Mark saved drive as unset
-    jsr parse_path_and_load                                           ; 9144: 20 7f 94     ..            ; Load the subdirectory to check
+    jsr parse_path_and_load                                           ; 9144: 20 7f 94     ..            ; Load the subdirectory to check; Parse path and load target directory
     lda dir_first_entry                                               ; 9147: ad 05 12    ...            ; Is first entry empty (dir empty)?
     php                                                               ; 914a: 08          .              ; Save result (empty flag)
-    jsr save_wksp_and_return                                          ; 914b: 20 d3 89     ..            ; Restore CSD and directory
+    jsr save_wksp_and_return                                          ; 914b: 20 d3 89     ..            ; Restore CSD and directory; Save workspace state and return result
     ldy #3                                                            ; 914e: a0 03       ..             ; Y=3: restore 4 bytes of CSD sector
 ; &9150 referenced 1 time by &9157
 .restore_csd_after_check_loop
@@ -3755,8 +3968,8 @@ oscli                                           = &fff7
     cmp #&16                                                          ; 9231: c9 16       ..             ; High byte should be &16
     bne check_lib_deleted                                             ; 9233: d0 ea       ..             ; Not past end: continue copying
     jsr release_disc_space                                            ; 9235: 20 b5 84     ..            ; Release the file's disc space; Release disc space back to free space map
-    jsr write_dir_and_validate                                        ; 9238: 20 86 8f     ..            ; Write modified directory to disc
-    jmp get_object_type_result                                        ; 923b: 4c d0 89    L..            ; Save workspace and return
+    jsr write_dir_and_validate                                        ; 9238: 20 86 8f     ..            ; Write modified directory to disc; Write directory and FSM back to disc
+    jmp get_object_type_result                                        ; 923b: 4c d0 89    L..            ; Save workspace and return; Load object type and save workspace
 
 ; ***************************************************************************************
 ; OSFILE handler
@@ -3827,7 +4040,7 @@ oscli                                           = &fff7
     and #&7f                                                          ; 928b: 29 7f       ).             ; Strip bit 7 (access bit)
     cmp #&20 ; ' '                                                    ; 928d: c9 20       .              ; Is it a printable character?
     bcc pad_with_spaces                                               ; 928f: 90 08       ..             ; No, pad rest with spaces
-    jsr print_via_osasci                                              ; 9291: 20 c4 92     ..            ; Print character via OSASCI
+    jsr print_via_osasci                                              ; 9291: 20 c4 92     ..            ; Print character via OSASCI; Print character preserving registers
     iny                                                               ; 9294: c8          .              ; Next character
     dex                                                               ; 9295: ca          .              ; Decrement column counter
     bne print_name_char_loop                                          ; 9296: d0 f1       ..             ; Loop for remaining columns
@@ -3861,13 +4074,13 @@ oscli                                           = &fff7
 .print_char_loop
     lda (zp_entry_ptr),y                                              ; 92a8: b1 b6       ..             ; Get next string character
     bmi last_char_reached                                             ; 92aa: 30 06       0.             ; Bit 7 set: last character
-    jsr print_via_osasci                                              ; 92ac: 20 c4 92     ..            ; Print character via OSASCI
+    jsr print_via_osasci                                              ; 92ac: 20 c4 92     ..            ; Print character via OSASCI; Print character preserving registers
     iny                                                               ; 92af: c8          .              ; Next character
     bne print_char_loop                                               ; 92b0: d0 f6       ..             ; Loop for more characters
 ; &92b2 referenced 1 time by &92aa
 .last_char_reached
     and #&7f                                                          ; 92b2: 29 7f       ).             ; Strip bit 7 from last char
-    jsr print_via_osasci                                              ; 92b4: 20 c4 92     ..            ; Print last character
+    jsr print_via_osasci                                              ; 92b4: 20 c4 92     ..            ; Print last character; Print character preserving registers
     tya                                                               ; 92b7: 98          .              ; Y = string length + 1
     clc                                                               ; 92b8: 18          .              ; Clear carry for address calc
     adc zp_entry_ptr                                                  ; 92b9: 65 b6       e.             ; Add string length to pointer
@@ -3879,6 +4092,13 @@ oscli                                           = &fff7
     pha                                                               ; 92c2: 48          H              ; Push updated return addr low
     rts                                                               ; 92c3: 60          `              ; Return (past inline string)
 
+; ***************************************************************************************
+; Print character preserving registers
+; 
+; Write A via OSASCI while preserving A, X, and (&B6).
+; Used during catalogue printing.
+; 
+; ***************************************************************************************
 ; &92c4 referenced 3 times by &9291, &92ac, &92b4
 .print_via_osasci
     pha                                                               ; 92c4: 48          H              ; Save character to print
@@ -3900,6 +4120,13 @@ oscli                                           = &fff7
     pla                                                               ; 92dc: 68          h              ; Restore character (was printed)
     rts                                                               ; 92dd: 60          `              ; Return
 
+; ***************************************************************************************
+; Print entry name and access string
+; 
+; Print the 10-character padded filename from (&B6)
+; followed by the access attribute string (R, W, L, D).
+; 
+; ***************************************************************************************
 ; &92de referenced 2 times by &93e2, &9501
 .print_entry_name_and_access
     ldx #&0a                                                          ; 92de: a2 0a       ..             ; X=&0A: print up to 10 name chars
@@ -3932,7 +4159,7 @@ oscli                                           = &fff7
     jsr oswrch                                                        ; 9304: 20 ee ff     ..            ; Write character 40
     ldy #&19                                                          ; 9307: a0 19       ..             ; Y=&19: offset to sequence number
     lda (zp_entry_ptr),y                                              ; 9309: b1 b6       ..             ; Get sequence number byte
-    jsr print_hex_byte                                                ; 930b: 20 1b 93     ..            ; Print as 2 hex digits
+    jsr print_hex_byte                                                ; 930b: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     lda #&29 ; ')'                                                    ; 930e: a9 29       .)             ; Print ')' after sequence number
     jsr oswrch                                                        ; 9310: 20 ee ff     ..            ; Write character 41
     jmp ca016                                                         ; 9313: 4c 16 a0    L..            ; Print space and return
@@ -3941,6 +4168,13 @@ oscli                                           = &fff7
 .l9316
     equs "RWLDE"                                                      ; 9316: 52 57 4c... RWL
 
+; ***************************************************************************************
+; Print a byte as two hex digits
+; 
+; Print the value in A as two hexadecimal ASCII digits
+; via OSWRCH, high nibble first.
+; 
+; ***************************************************************************************
 ; &931b referenced 8 times by &930b, &9342, &9521, &a071, &a087, &a1c9, &a1cf, &a1d5
 .print_hex_byte
     pha                                                               ; 931b: 48          H              ; Save value
@@ -3955,6 +4189,14 @@ oscli                                           = &fff7
     jsr hex_digit                                                     ; 9324: 20 3e 84     >.            ; Convert 4-bit value to ASCII hex digit
     jmp oswrch                                                        ; 9327: 4c ee ff    L..            ; Write character
 
+; ***************************************************************************************
+; Verify directory and print catalogue header
+; 
+; Verify directory integrity then print directory title,
+; sequence number, drive number, and name as the header
+; for a catalogue listing.
+; 
+; ***************************************************************************************
 ; &932a referenced 2 times by &93d4, &9436
 .verify_dir_and_list
     jsr verify_dir_integrity                                          ; 932a: 20 de a6     ..            ; Verify directory buffer integrity
@@ -3969,7 +4211,7 @@ oscli                                           = &fff7
 
     tay                                                               ; 933e: a8          .              ; Transfer Y to A for display
     lda dir_master_sequence                                           ; 933f: ad fa 16    ...            ; Get directory sequence number
-    jsr print_hex_byte                                                ; 9342: 20 1b 93     ..            ; Print as 2 hex digits
+    jsr print_hex_byte                                                ; 9342: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     jsr print_inline_string                                           ; 9345: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs ")", &0d, "Drive"                                            ; 9348: 29 0d 44... ).D
 
@@ -4015,7 +4257,7 @@ oscli                                           = &fff7
     jsr parse_dir_argument                                            ; 93d1: 20 71 94     q.            ; Parse optional directory path argument
 ; &93d4 referenced 1 time by &a485
 .print_cat_header_and_entries
-    jsr verify_dir_and_list                                           ; 93d4: 20 2a 93     *.            ; Load and validate directory
+    jsr verify_dir_and_list                                           ; 93d4: 20 2a 93     *.            ; Load and validate directory; Verify directory and print catalogue header
     lda #4                                                            ; 93d7: a9 04       ..             ; Columns per line = 4
     sta wksp_102b                                                     ; 93d9: 8d 2b 10    .+.            ; Store column counter
 ; &93dc referenced 2 times by &93ff, &9403
@@ -4023,7 +4265,7 @@ oscli                                           = &fff7
     ldy #0                                                            ; 93dc: a0 00       ..             ; Y=0: check first byte of entry
     lda (zp_entry_ptr),y                                              ; 93de: b1 b6       ..             ; Get first byte
     beq print_cat_pair_second                                         ; 93e0: f0 23       .#             ; Zero: end of entries
-    jsr print_entry_name_and_access                                   ; 93e2: 20 de 92     ..            ; Print entry name with access
+    jsr print_entry_name_and_access                                   ; 93e2: 20 de 92     ..            ; Print entry name with access; Print entry name and access string
     dec wksp_102b                                                     ; 93e5: ce 2b 10    .+.            ; Decrement column counter
     bne advance_cat_entry                                             ; 93e8: d0 0b       ..             ; Not zero: same line
     lda #4                                                            ; 93ea: a9 04       ..             ; Reset column counter to 4
@@ -4060,7 +4302,7 @@ oscli                                           = &fff7
     jsr osnewl                                                        ; 9419: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
 ; &941c referenced 2 times by &940a, &943d
 .print_cat_done
-    jmp save_wksp_and_return                                          ; 941c: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; 941c: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
     equs "#'+/Off LoadRun Exec"                                       ; 941f: 23 27 2b... #'+
 
@@ -4076,7 +4318,7 @@ oscli                                           = &fff7
     jsr parse_dir_argument                                            ; 9433: 20 71 94     q.            ; Parse directory argument; Parse optional directory path argument
 ; &9436 referenced 1 time by &a491
 .load_dir_and_list_entries
-    jsr verify_dir_and_list                                           ; 9436: 20 2a 93     *.            ; Load and validate the directory
+    jsr verify_dir_and_list                                           ; 9436: 20 2a 93     *.            ; Load and validate the directory; Verify directory and print catalogue header
 ; &9439 referenced 2 times by &9449, &944d
 .print_next_entry_loop
     ldy #0                                                            ; 9439: a0 00       ..             ; Y=0: check first byte of entry
@@ -4146,10 +4388,18 @@ oscli                                           = &fff7
     ldy #0                                                            ; 9471: a0 00       ..             ; Y=0: check for argument
     lda (zp_text_ptr),y                                               ; 9473: b1 b4       ..             ; Get first char of argument
     cmp #&21 ; '!'                                                    ; 9475: c9 21       .!             ; Is it a printable char?
-    bcs parse_path_and_load                                           ; 9477: b0 06       ..             ; Yes, parse the path
+    bcs parse_path_and_load                                           ; 9477: b0 06       ..             ; Yes, parse the path; Parse path and load target directory
     ldx wksp_current_drive                                            ; 9479: ae 17 11    ...            ; No arg: check drive is initialised
     inx                                                               ; 947c: e8          .              ; Drive = &FF (uninitialised)?
     bne return_20                                                     ; 947d: d0 f1       ..             ; Drive OK, return
+; ***************************************************************************************
+; Parse path and load target directory
+; 
+; Parse a full pathname and load the target directory
+; into the buffer. Handles drive specifiers, root,
+; parent, and current directory references.
+; 
+; ***************************************************************************************
 ; &947f referenced 8 times by &9144, &9477, &953f, &98c9, &991a, &a444, &a6ab, &a86f
 .parse_path_and_load
     jsr full_pathname_parser                                          ; 947f: 20 51 88     Q.            ; Parse path and load directory
@@ -4159,7 +4409,7 @@ oscli                                           = &fff7
     ldy #3                                                            ; 9484: a0 03       ..             ; Y=3: check entry access byte
     lda (zp_entry_ptr),y                                              ; 9486: b1 b6       ..             ; Get access/attribute byte
     bmi prepare_dir_read                                              ; 9488: 30 0d       0.             ; Bit 7 set: is a directory, found it
-    jsr advance_dir_entry_ptr                                         ; 948a: 20 5e 89     ^.            ; Not a directory, search deeper
+    jsr advance_dir_entry_ptr                                         ; 948a: 20 5e 89     ^.            ; Not a directory, search deeper; Advance to next matching directory entry
     beq search_for_dir_entry                                          ; 948d: f0 f5       ..             ; Found directory: loop complete
 ; &948f referenced 1 time by &9495
 .path_not_found
@@ -4203,7 +4453,7 @@ oscli                                           = &fff7
     lda zp_entry_ptr_h                                                ; 94c3: a5 b7       ..             ; Check if this is an *INFO call
     cmp #&94                                                          ; 94c5: c9 94       ..             ; zp_b7 = &94 means *INFO context
     beq return_21                                                     ; 94c7: f0 37       .7             ; Yes, return without reading dir
-    jmp exec_disc_op_from_wksp                                        ; 94c9: 4c 87 82    L..            ; Execute disc read to load directory
+    jmp exec_disc_op_from_wksp                                        ; 94c9: 4c 87 82    L..            ; Execute disc read to load directory; Execute disc command from workspace control block
 
     equb &a4, &0d, &8d, &8d, &0d, &0d, &0d, &0d, &0d, &0d, 0, 0, 0, 0 ; 94cc: a4 0d 8d... ...
     equb   0,   0,   0,   0,   0,   5,   0,   0,   2,   0, 0, 0, 0    ; 94da: 00 00 00... ...
@@ -4217,16 +4467,16 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 ; &94e7 referenced 1 time by &99f4
 .star_info
-    jsr find_first_matching_entry                                     ; 94e7: 20 df 8f     ..            ; Find first matching file
+    jsr find_first_matching_entry                                     ; 94e7: 20 df 8f     ..            ; Find first matching file; Find first matching directory entry
     beq print_info_loop                                               ; 94ea: f0 03       ..             ; Found? Print its info
-    jmp not_found_error                                               ; 94ec: 4c c8 8b    L..            ; Not found: report error
+    jmp not_found_error                                               ; 94ec: 4c c8 8b    L..            ; Not found: report error; Generate Not found error
 
 ; &94ef referenced 2 times by &94ea, &94f5
 .print_info_loop
     jsr print_entry_info                                              ; 94ef: 20 01 95     ..            ; Print this entry's catalogue info; Print full catalogue info for one directory entry
-    jsr advance_dir_entry_ptr                                         ; 94f2: 20 5e 89     ^.            ; Find next matching file
+    jsr advance_dir_entry_ptr                                         ; 94f2: 20 5e 89     ^.            ; Find next matching file; Advance to next matching directory entry
     beq print_info_loop                                               ; 94f5: f0 f8       ..             ; More matches? Continue loop
-    jmp save_wksp_and_return                                          ; 94f7: 4c d3 89    L..            ; No more matches: save and return
+    jmp save_wksp_and_return                                          ; 94f7: 4c d3 89    L..            ; No more matches: save and return; Save workspace state and return result
 
 ; &94fa referenced 2 times by &8c62, &99bb
 .conditional_info_display
@@ -4250,7 +4500,7 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 ; &9501 referenced 3 times by &943f, &94ef, &94fe
 .print_entry_info
-    jsr print_entry_name_and_access                                   ; 9501: 20 de 92     ..            ; Print filename and access string
+    jsr print_entry_name_and_access                                   ; 9501: 20 de 92     ..            ; Print filename and access string; Print entry name and access string
     jsr oswrch                                                        ; 9504: 20 ee ff     ..            ; Print space after access string; Write character
     ldy #4                                                            ; 9507: a0 04       ..             ; Y=4: check first access nibble byte
     lda (zp_entry_ptr),y                                              ; 9509: b1 b6       ..             ; Get access/attribute byte
@@ -4268,7 +4518,7 @@ oscli                                           = &fff7
     cpx #&16                                                          ; 951b: e0 16       ..             ; Skip sector field boundary?
     beq check_field_boundary                                          ; 951d: f0 05       ..             ; Yes, skip the sector field gap
     lda (zp_entry_ptr),y                                              ; 951f: b1 b6       ..             ; Get byte from entry
-    jsr print_hex_byte                                                ; 9521: 20 1b 93     ..            ; Print as 2 hex digits
+    jsr print_hex_byte                                                ; 9521: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
 ; &9524 referenced 1 time by &951d
 .check_field_boundary
     txa                                                               ; 9524: 8a          .              ; Check if at field boundary
@@ -4300,7 +4550,7 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 ; &953f referenced 1 time by &a176
 .star_dir
-    jsr parse_path_and_load                                           ; 953f: 20 7f 94     ..            ; Parse path and load target dir
+    jsr parse_path_and_load                                           ; 953f: 20 7f 94     ..            ; Parse path and load target dir; Parse path and load target directory
     ldy #9                                                            ; 9542: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &9544 referenced 1 time by &954b
 .copy_dir_name_loop
@@ -4325,7 +4575,7 @@ oscli                                           = &fff7
     lda #&ff                                                          ; 9565: a9 ff       ..             ; A=&FF: mark as unset
     sta l102e                                                         ; 9567: 8d 2e 10    ...            ; Clear alternative workspace ptr
     sta wksp_saved_drive                                              ; 956a: 8d 2f 10    ./.            ; Clear saved drive
-    jmp save_wksp_and_return                                          ; 956d: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; 956d: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; ***************************************************************************************
 ; *CDIR command handler
@@ -4440,7 +4690,7 @@ oscli                                           = &fff7
     bne zero_dir_entries_loop                                         ; 9625: d0 e6       ..             ; No: continue copying
     lda #&0d                                                          ; 9627: a9 0d       ..             ; A=CR: terminate title
     sta dir2_title,x                                                  ; 9629: 9d d9 1b    ...            ; Store CR after last title char
-    jsr multi_sector_disc_command                                     ; 962c: 20 3d 8a     =.            ; Calculate sectors and write dir
+    jsr multi_sector_disc_command                                     ; 962c: 20 3d 8a     =.            ; Calculate sectors and write dir; Execute multi-sector disc command
     jmp search_for_osfile_target                                      ; 962f: 4c 80 8f    L..            ; Write directory and update FSM
 
 ; &9632 referenced 1 time by &9579
@@ -4516,7 +4766,7 @@ oscli                                           = &fff7
     lda zp_adfs_flags                                                 ; 96a6: a5 cd       ..             ; Check bit 3 (copy in progress?)
     and #8                                                            ; 96a8: 29 08       ).             ; Bit 3: copy operation flag
     bne check_tube_for_copy                                           ; 96aa: d0 06       ..             ; Set: skip directory write
-    jsr write_dir_and_validate                                        ; 96ac: 20 86 8f     ..            ; Write directory to disc
+    jsr write_dir_and_validate                                        ; 96ac: 20 86 8f     ..            ; Write directory to disc; Write directory and FSM back to disc
     jsr flush_all_channels                                            ; 96af: 20 7c a9     |.            ; Flush OSARGS workspace
 ; &96b2 referenced 1 time by &96aa
 .check_tube_for_copy
@@ -4573,7 +4823,7 @@ oscli                                           = &fff7
     sta l101c                                                         ; 9719: 8d 1c 10    ...            ; Store in disc op
     lda l10a4                                                         ; 971c: ad a4 10    ...            ; Get source sector high + drive
     sta wksp_disc_op_sector                                           ; 971f: 8d 1b 10    ...            ; Store in disc op
-    jsr exec_disc_op_from_wksp                                        ; 9722: 20 87 82     ..            ; Read from source
+    jsr exec_disc_op_from_wksp                                        ; 9722: 20 87 82     ..            ; Read from source; Execute disc command from workspace control block
     lda #&0a                                                          ; 9725: a9 0a       ..             ; Write command = &0A
     sta wksp_disc_op_command                                          ; 9727: 8d 1a 10    ...            ; Store in disc op
     lda l10a8                                                         ; 972a: ad a8 10    ...            ; Get dest sector low
@@ -4582,7 +4832,7 @@ oscli                                           = &fff7
     sta l101c                                                         ; 9733: 8d 1c 10    ...            ; Store in disc op
     lda l10aa                                                         ; 9736: ad aa 10    ...            ; Get dest sector high + drive
     sta wksp_disc_op_sector                                           ; 9739: 8d 1b 10    ...            ; Store in disc op
-    jsr exec_disc_op_from_wksp                                        ; 973c: 20 87 82     ..            ; Write to destination
+    jsr exec_disc_op_from_wksp                                        ; 973c: 20 87 82     ..            ; Write to destination; Execute disc command from workspace control block
     lda l10a5                                                         ; 973f: ad a5 10    ...            ; Check if more sectors to copy
     ora l10a6                                                         ; 9742: 0d a6 10    ...            ; OR with mid byte
     ora l10a7                                                         ; 9745: 0d a7 10    ...            ; OR with high byte
@@ -4658,7 +4908,7 @@ oscli                                           = &fff7
     and l10a4                                                         ; 97cd: 2d a4 10    -..            ; All &FF?
     cmp #&ff                                                          ; 97d0: c9 ff       ..             ; Compare with &FF
     bne init_root_dir_name                                            ; 97d2: d0 45       .E             ; Not &FF: found an entry
-    jmp write_dir_and_validate                                        ; 97d4: 4c 86 8f    L..            ; All &FF: no entries, write dir
+    jmp write_dir_and_validate                                        ; 97d4: 4c 86 8f    L..            ; All &FF: no entries, write dir; Write directory and FSM back to disc
 
 ; &97d7 referenced 1 time by &97c5
 .init_fsm_total_sectors
@@ -4793,7 +5043,7 @@ oscli                                           = &fff7
     dex                                                               ; 988f: ca          .              ; Next byte
     bpl format_write_sectors_loop                                     ; 9890: 10 e9       ..             ; Loop for 3 bytes
     jsr release_disc_space                                            ; 9892: 20 b5 84     ..            ; Release disc space back to free space map
-    jsr allocate_disc_space                                           ; 9895: 20 32 86     2.            ; Allocate space from FSM
+    jsr allocate_disc_space                                           ; 9895: 20 32 86     2.            ; Allocate space from FSM; Allocate disc space from free space map
     ldx #2                                                            ; 9898: a2 02       ..             ; X=2: copy new sector address
     ldy #&18                                                          ; 989a: a0 18       ..             ; Y=&18: start sector in entry
 ; &989c referenced 1 time by &98a6
@@ -4823,7 +5073,7 @@ oscli                                           = &fff7
     sta zp_text_ptr_h                                                 ; 98c7: 85 b5       ..             ; Store in (&B5)
 ; &98c9 referenced 1 time by &990c
 .prepare_cdir_directory
-    jsr parse_path_and_load                                           ; 98c9: 20 7f 94     ..            ; Load root directory
+    jsr parse_path_and_load                                           ; 98c9: 20 7f 94     ..            ; Load root directory; Parse path and load target directory
     ldy #2                                                            ; 98cc: a0 02       ..             ; Y=2: copy parent sector
 ; &98ce referenced 1 time by &98d5
 .init_cdir_entries_loop
@@ -4870,7 +5120,7 @@ oscli                                           = &fff7
     sta zp_text_ptr                                                   ; 9914: 85 b4       ..             ; Store path address low
     lda #&99                                                          ; 9916: a9 99       ..             ; Path page &99
     sta zp_text_ptr_h                                                 ; 9918: 85 b5       ..             ; Store path address high
-    jsr parse_path_and_load                                           ; 991a: 20 7f 94     ..            ; Load parent directory
+    jsr parse_path_and_load                                           ; 991a: 20 7f 94     ..            ; Load parent directory; Parse path and load target directory
     ldy #0                                                            ; 991d: a0 00       ..             ; Y=0: pop entry address from stack
     dec zp_name_ptr                                                   ; 991f: c6 c0       ..             ; Decrement stack pointer
     lda (zp_name_ptr),y                                               ; 9921: b1 c0       ..             ; Get entry pointer high
@@ -4890,7 +5140,7 @@ oscli                                           = &fff7
 
 ; &9938 referenced 1 time by &9910
 .finalise_cdir
-    jmp save_wksp_and_return                                          ; 9938: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; 9938: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
     equb &5e, &0d                                                     ; 993b: 5e 0d       ^.
 
@@ -4903,9 +5153,9 @@ oscli                                           = &fff7
 ; 
 ; ***************************************************************************************
 .star_access
-    jsr find_first_matching_entry                                     ; 993d: 20 df 8f     ..            ; Find first matching file
+    jsr find_first_matching_entry                                     ; 993d: 20 df 8f     ..            ; Find first matching file; Find first matching directory entry
     beq set_file_attributes                                           ; 9940: f0 0f       ..             ; Found? Set attributes
-    jmp not_found_error                                               ; 9942: 4c c8 8b    L..            ; Not found: report error
+    jmp not_found_error                                               ; 9942: 4c c8 8b    L..            ; Not found: report error; Generate Not found error
 
 ; &9945 referenced 2 times by &9951, &9995
 .clear_rwl_attributes
@@ -4995,10 +5245,10 @@ oscli                                           = &fff7
 ; &99bb referenced 3 times by &996e, &997d, &99b6
 .display_and_find_next
     jsr conditional_info_display                                      ; 99bb: 20 fa 94     ..            ; Display info if *OPT1 verbose
-    jsr advance_dir_entry_ptr                                         ; 99be: 20 5e 89     ^.            ; Find next matching file
+    jsr advance_dir_entry_ptr                                         ; 99be: 20 5e 89     ^.            ; Find next matching file; Advance to next matching directory entry
     beq set_file_attributes                                           ; 99c1: f0 8e       ..             ; More matches? Continue
-    jsr write_dir_and_validate                                        ; 99c3: 20 86 8f     ..            ; Write directory back to disc
-    jmp save_wksp_and_return                                          ; 99c6: 4c d3 89    L..            ; Save workspace and return
+    jsr write_dir_and_validate                                        ; 99c3: 20 86 8f     ..            ; Write directory back to disc; Write directory and FSM back to disc
+    jmp save_wksp_and_return                                          ; 99c6: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; &99c9 referenced 1 time by &99aa
 .set_rwl_attribute_bit
@@ -5067,7 +5317,7 @@ oscli                                           = &fff7
     pha                                                               ; 9a29: 48          H              ; Push low byte
     lda zp_text_ptr_h                                                 ; 9a2a: a5 b5       ..             ; Save filename pointer high
     pha                                                               ; 9a2c: 48          H              ; Push high byte
-    jsr find_first_matching_entry                                     ; 9a2d: 20 df 8f     ..            ; Find next matching file
+    jsr find_first_matching_entry                                     ; 9a2d: 20 df 8f     ..            ; Find next matching file; Find first matching directory entry
     bne all_files_deleted                                             ; 9a30: d0 0c       ..             ; Not found: all deleted, finish
     jsr check_and_delete_found                                        ; 9a32: 20 28 91     (.            ; Delete this file
     pla                                                               ; 9a35: 68          h              ; Restore filename pointer high
@@ -5080,7 +5330,7 @@ oscli                                           = &fff7
 .all_files_deleted
     pla                                                               ; 9a3e: 68          h              ; Discard saved filename from stack
     pla                                                               ; 9a3f: 68          h              ; Discard second saved byte
-    jmp save_wksp_and_return                                          ; 9a40: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; 9a40: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; ***************************************************************************************
 ; Jump through FSCV indirect vector
@@ -5372,7 +5622,7 @@ boot_run_option = sub_c9b86+1
     dey                                                               ; 9ba2: 88          .              ; Next byte
     bpl copy_boot_command_loop                                        ; 9ba3: 10 f7       ..             ; Loop for 14 bytes
     lda #&a8                                                          ; 9ba5: a9 a8       ..             ; OSBYTE &A8: read ROM pointer table
-    jsr osbyte_y_ff_x_00                                              ; 9ba7: 20 a0 84     ..            ; Read current value
+    jsr osbyte_y_ff_x_00                                              ; 9ba7: 20 a0 84     ..            ; Read current value; Call OSBYTE to read current value
     stx zp_text_ptr                                                   ; 9baa: 86 b4       ..             ; Store extended vector base low
     sty zp_text_ptr_h                                                 ; 9bac: 84 b5       ..             ; Store extended vector base high
     ldy #&2f ; '/'                                                    ; 9bae: a0 2f       ./             ; Y=&2F: offset into ext vector table
@@ -5438,7 +5688,7 @@ boot_run_option = sub_c9b86+1
     sta wksp_csd_drive_sector,y                                       ; 9c17: 99 2c 10    .,.            ; Copy to CSD drive sector
     dey                                                               ; 9c1a: 88          .              ; Next byte
     bpl copy_workspace_to_save_loop                                   ; 9c1b: 10 f7       ..             ; Loop for 4 bytes
-    jsr save_wksp_and_return                                          ; 9c1d: 20 d3 89     ..            ; Save workspace state
+    jsr save_wksp_and_return                                          ; 9c1d: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     ldx wksp_current_drive                                            ; 9c20: ae 17 11    ...            ; Check current drive is valid
     inx                                                               ; 9c23: e8          .              ; Drive = &FF (uninitialised)?
     beq set_fsm_load_flag                                             ; 9c24: f0 51       .Q             ; Yes, skip to Tube detection
@@ -5454,14 +5704,14 @@ boot_run_option = sub_c9b86+1
     sta zp_text_ptr                                                   ; 9c3d: 85 b4       ..             ; Store path address low
     lda #&9c                                                          ; 9c3f: a9 9c       ..             ; Path in this ROM page
     sta zp_text_ptr_h                                                 ; 9c41: 85 b5       ..             ; Store path address high
-    jsr find_first_matching_entry                                     ; 9c43: 20 df 8f     ..            ; Search for LIB directory
+    jsr find_first_matching_entry                                     ; 9c43: 20 df 8f     ..            ; Search for LIB directory; Find first matching directory entry
     bne init_channel_complete                                         ; 9c46: d0 2c       .,             ; Not found: leave lib as default
 ; &9c48 referenced 1 time by &9c53
 .copy_drive_info_loop
     ldy #3                                                            ; 9c48: a0 03       ..             ; Y=3: check access byte
     lda (zp_entry_ptr),y                                              ; 9c4a: b1 b6       ..             ; Get access byte
     bmi set_workspace_drive                                           ; 9c4c: 30 07       0.             ; Bit 7: is it a directory?
-    jsr advance_dir_entry_ptr                                         ; 9c4e: 20 5e 89     ^.            ; Not a dir: try next match
+    jsr advance_dir_entry_ptr                                         ; 9c4e: 20 5e 89     ^.            ; Not a dir: try next match; Advance to next matching directory entry
     bne init_channel_complete                                         ; 9c51: d0 21       .!             ; No more matches: leave default
     beq copy_drive_info_loop                                          ; 9c53: f0 f3       ..             ; ALWAYS branch
 
@@ -5488,11 +5738,11 @@ boot_run_option = sub_c9b86+1
     bpl init_per_channel_loop                                         ; 9c72: 10 f6       ..             ; Loop for 10 bytes
 ; &9c74 referenced 4 times by &9c2e, &9c39, &9c46, &9c51
 .init_channel_complete
-    jsr save_wksp_and_return                                          ; 9c74: 20 d3 89     ..            ; Save workspace state
+    jsr save_wksp_and_return                                          ; 9c74: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
 ; &9c77 referenced 1 time by &9c24
 .set_fsm_load_flag
     lda #&ea                                                          ; 9c77: a9 ea       ..             ; OSBYTE &EA: read Tube presence
-    jsr osbyte_y_ff_x_00                                              ; 9c79: 20 a0 84     ..            ; Read current value
+    jsr osbyte_y_ff_x_00                                              ; 9c79: 20 a0 84     ..            ; Read current value; Call OSBYTE to read current value
     lda zp_adfs_flags                                                 ; 9c7c: a5 cd       ..             ; Get current ADFS flags
     and #&7f                                                          ; 9c7e: 29 7f       ).             ; Clear bit 7 (Tube flag)
     inx                                                               ; 9c80: e8          .              ; X+1: was X &FF (Tube present)?
@@ -6058,18 +6308,18 @@ l9dd3 = check_help_adfs_keyword+1
 ; &9ff1 referenced 1 time by &9feb
 .c9ff1
     sta zp_adfs_flags                                                 ; 9ff1: 85 cd       ..             ; Store updated flags
-    jmp save_wksp_and_return                                          ; 9ff3: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; 9ff3: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; &9ff6 referenced 1 time by &9fe2
 .c9ff6
     cpx #3                                                            ; 9ff6: e0 03       ..             ; Check for *OPT 4 (boot option)
     bne ca00a                                                         ; 9ff8: d0 10       ..             ; Not *OPT 4: bad opt error
-    jsr mark_directory_dirty                                          ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified
+    jsr mark_directory_dirty                                          ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified; Validate FSM checksums and mark directory dirty
     jsr check_drive_and_reload_fsm                                    ; 9ffd: 20 f5 b4     ..            ; Ensure dir loaded and writable
     lda zp_text_ptr_h                                                 ; a000: a5 b5       ..             ; Get boot option value (second param)
     and #3                                                            ; a002: 29 03       ).             ; Mask to 2 bits (options 0-3)
     sta fsm_s1_boot_option                                            ; a004: 8d fd 0f    ...            ; Store in FSM boot option byte
-    jmp write_dir_and_validate                                        ; a007: 4c 86 8f    L..            ; Write FSM back to disc
+    jmp write_dir_and_validate                                        ; a007: 4c 86 8f    L..            ; Write FSM back to disc; Write directory and FSM back to disc
 
 ; &a00a referenced 1 time by &9ff8
 .ca00a
@@ -6143,7 +6393,7 @@ l9dd3 = check_help_adfs_keyword+1
 .print_fsm_entries_loop
     dex                                                               ; a06d: ca          .              ; Back up to previous byte
     lda fsm_sector_0,x                                                ; a06e: bd 00 0e    ...            ; Get address byte from FSM sector 0
-    jsr print_hex_byte                                                ; a071: 20 1b 93     ..            ; Print as 2 hex digits
+    jsr print_hex_byte                                                ; a071: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     dey                                                               ; a074: 88          .              ; Next byte
     bpl print_fsm_entries_loop                                        ; a075: 10 f6       ..             ; Loop for 3 bytes (high to low)
     jsr print_inline_string                                           ; a077: 20 a0 92     ..            ; Print "  : &" separator; Print bit-7-terminated inline string
@@ -6156,7 +6406,7 @@ l9dd3 = check_help_adfs_keyword+1
 .print_entry_hex_loop
     dex                                                               ; a083: ca          .              ; Back up to previous byte
     lda fsm_sector_1,x                                                ; a084: bd 00 0f    ...            ; Get length byte from FSM sector 1
-    jsr print_hex_byte                                                ; a087: 20 1b 93     ..            ; Print as 2 hex digits
+    jsr print_hex_byte                                                ; a087: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     dey                                                               ; a08a: 88          .              ; Next byte
     bpl print_entry_hex_loop                                          ; a08b: 10 f6       ..             ; Loop for 3 bytes (high to low)
     jsr osnewl                                                        ; a08d: 20 e7 ff     ..            ; Print newline after each entry; Write newline (characters 10 and 13)
@@ -6248,7 +6498,7 @@ l9dd3 = check_help_adfs_keyword+1
     lda (zp_text_ptr),y                                               ; a104: b1 b4       ..             ; Get first argument char
     cmp #&20 ; ' '                                                    ; a106: c9 20       .              ; Is it a printable char?
     bcc return_28                                                     ; a108: 90 06       ..             ; No argument: use default drive
-    jsr parse_drive_from_ascii                                        ; a10a: 20 22 88     ".            ; Parse drive number from argument
+    jsr parse_drive_from_ascii                                        ; a10a: 20 22 88     ".            ; Parse drive number from argument; Parse drive number from ASCII character
     sta l106f                                                         ; a10d: 8d 6f 10    .o.            ; Store parsed drive number
 ; &a110 referenced 1 time by &a108
 .return_28
@@ -6408,11 +6658,11 @@ la154 = sub_ca153+1
 ; &a1c6 referenced 2 times by &a01e, &a03e
 .print_space_value
     lda l1018                                                         ; a1c6: ad 18 10    ...            ; Print high byte as hex
-    jsr print_hex_byte                                                ; a1c9: 20 1b 93     ..            ; Print mid byte as hex
+    jsr print_hex_byte                                                ; a1c9: 20 1b 93     ..            ; Print mid byte as hex; Print a byte as two hex digits
     lda l1017                                                         ; a1cc: ad 17 10    ...            ; Print mid byte as hex
-    jsr print_hex_byte                                                ; a1cf: 20 1b 93     ..            ; Print low byte as hex
+    jsr print_hex_byte                                                ; a1cf: 20 1b 93     ..            ; Print low byte as hex; Print a byte as two hex digits
     lda wksp_disc_op_mem_addr                                         ; a1d2: ad 16 10    ...            ; Print low byte as hex
-    jsr print_hex_byte                                                ; a1d5: 20 1b 93     ..            ; Print result byte as hex
+    jsr print_hex_byte                                                ; a1d5: 20 1b 93     ..            ; Print result byte as hex; Print a byte as two hex digits
     jsr print_inline_string                                           ; a1d8: 20 a0 92     ..            ; Print " Sectors ="; Print bit-7-terminated inline string
     equs " Sectors ="                                                 ; a1db: 20 53 65...  Se
 
@@ -6439,7 +6689,7 @@ la154 = sub_ca153+1
 ; ***************************************************************************************
 .star_title
     jsr check_drive_and_reload_fsm                                    ; a252: 20 f5 b4     ..            ; Ensure dir is loaded and writable
-    jsr mark_directory_dirty                                          ; a255: 20 ea 8f     ..            ; Mark directory as modified
+    jsr mark_directory_dirty                                          ; a255: 20 ea 8f     ..            ; Mark directory as modified; Validate FSM checksums and mark directory dirty
     jsr skip_spaces                                                   ; a258: 20 cf a4     ..            ; Skip leading spaces in argument; Skip leading spaces in command argument
     ldy #0                                                            ; a25b: a0 00       ..             ; Y=0: index into title string
 ; &a25d referenced 1 time by &a271
@@ -6459,7 +6709,7 @@ la154 = sub_ca153+1
     iny                                                               ; a26e: c8          .              ; Next character
     cpy #&13                                                          ; a26f: c0 13       ..             ; Title is 19 characters max
     bne copy_title_loop                                               ; a271: d0 ea       ..             ; Loop for all 19 characters
-    jmp write_dir_and_validate                                        ; a273: 4c 86 8f    L..            ; Write directory back to disc
+    jmp write_dir_and_validate                                        ; a273: 4c 86 8f    L..            ; Write directory back to disc; Write directory and FSM back to disc
 
 ; ***************************************************************************************
 ; *COMPACT command handler
@@ -6650,15 +6900,15 @@ la154 = sub_ca153+1
     sta zp_name_ptr                                                   ; a39b: 85 c0       ..             ; Store in save area low
     lda zp_text_ptr_h                                                 ; a39d: a5 b5       ..             ; Get filename high byte
     sta zp_name_ptr_h                                                 ; a39f: 85 c1       ..             ; Store in save area high
-    jsr exec_disc_and_check_error                                     ; a3a1: 20 b3 8b     ..            ; Try to find file in CSD
+    jsr exec_disc_and_check_error                                     ; a3a1: 20 b3 8b     ..            ; Try to find file in CSD; Search for non-directory file
     beq search_lib_for_command                                        ; a3a4: f0 16       ..             ; Found in CSD, proceed to load
-    jsr save_wksp_and_return                                          ; a3a6: 20 d3 89     ..            ; Not found: save workspace state
+    jsr save_wksp_and_return                                          ; a3a6: 20 d3 89     ..            ; Not found: save workspace state; Save workspace state and return result
     lda zp_name_ptr                                                   ; a3a9: a5 c0       ..             ; Restore filename pointer
     sta zp_text_ptr                                                   ; a3ab: 85 b4       ..             ; Restore filename low
     lda zp_name_ptr_h                                                 ; a3ad: a5 c1       ..             ; Get saved high byte
     sta zp_text_ptr_h                                                 ; a3af: 85 b5       ..             ; Restore filename high
     jsr switch_to_library                                             ; a3b1: 20 60 a4     `.            ; Switch CSD to library directory; Switch CSD to library directory
-    jsr exec_disc_and_check_error                                     ; a3b4: 20 b3 8b     ..            ; Try to find file in library
+    jsr exec_disc_and_check_error                                     ; a3b4: 20 b3 8b     ..            ; Try to find file in library; Search for non-directory file
     bne restore_csd_and_error                                         ; a3b7: d0 cd       ..             ; Not in library either: Not found
     jsr restore_csd                                                   ; a3b9: 20 73 a4     s.            ; Restore CSD after library search; Restore CSD sector from saved copy
 ; &a3bc referenced 1 time by &a3a4
@@ -6709,7 +6959,7 @@ la154 = sub_ca153+1
     ldy #&10                                                          ; a408: a0 10       ..             ; Y=&10: OSFILE block page
     stx zp_osfile_ptr                                                 ; a40a: 86 b8       ..             ; Store block pointer low
     sty zp_osfile_ptr_h                                               ; a40c: 84 b9       ..             ; Store block pointer high
-    jsr exec_disc_and_check_error                                     ; a40e: 20 b3 8b     ..            ; Load the file
+    jsr exec_disc_and_check_error                                     ; a40e: 20 b3 8b     ..            ; Load the file; Search for non-directory file
     ldy #4                                                            ; a411: a0 04       ..             ; Y=4: check if Tube/IO address
     lda (zp_entry_ptr),y                                              ; a413: b1 b6       ..             ; Get exec addr high byte
     ldy #0                                                            ; a415: a0 00       ..             ; Y=0: check low byte of exec addr
@@ -6749,7 +6999,7 @@ la154 = sub_ca153+1
 ; 
 ; ***************************************************************************************
 .star_lib
-    jsr parse_path_and_load                                           ; a444: 20 7f 94     ..            ; Parse path and load target dir
+    jsr parse_path_and_load                                           ; a444: 20 7f 94     ..            ; Parse path and load target dir; Parse path and load target directory
     ldy #9                                                            ; a447: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &a449 referenced 1 time by &a450
 .copy_lib_name_loop
@@ -6766,7 +7016,7 @@ la154 = sub_ca153+1
     bpl copy_lib_sector_loop                                          ; a45b: 10 f7       ..             ; Loop for 4 bytes
 ; &a45d referenced 1 time by &a471
 .save_workspace_and_return
-    jmp save_wksp_and_return                                          ; a45d: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; a45d: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; ***************************************************************************************
 ; Switch CSD to library directory
@@ -6817,7 +7067,7 @@ la154 = sub_ca153+1
     jsr switch_to_library                                             ; a47f: 20 60 a4     `.            ; Switch CSD to library; Switch CSD to library directory
     jsr restore_csd                                                   ; a482: 20 73 a4     s.            ; Restore CSD after catalogue; Restore CSD sector from saved copy
     jsr print_cat_header_and_entries                                  ; a485: 20 d4 93     ..            ; Print catalogue (*CAT format)
-    jmp save_wksp_and_return                                          ; a488: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; a488: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; ***************************************************************************************
 ; *LEX command handler
@@ -6830,7 +7080,7 @@ la154 = sub_ca153+1
     jsr switch_to_library                                             ; a48b: 20 60 a4     `.            ; Switch CSD to library; Switch CSD to library directory
     jsr restore_csd                                                   ; a48e: 20 73 a4     s.            ; Restore CSD after display; Restore CSD sector from saved copy
     jsr load_dir_and_list_entries                                     ; a491: 20 36 94     6.            ; Print full catalogue (*EX format)
-    jmp save_wksp_and_return                                          ; a494: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; a494: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; ***************************************************************************************
 ; *BACK command handler
@@ -6849,7 +7099,7 @@ la154 = sub_ca153+1
     sta wksp_prev_dir_sector,y                                        ; a4a2: 99 1c 11    ...            ; Store as previous dir sector
     dey                                                               ; a4a5: 88          .              ; Next byte
     bpl swap_dir_sectors_loop                                         ; a4a6: 10 f1       ..             ; Loop for 4 bytes (sector+drive)
-    jsr save_wksp_and_return                                          ; a4a8: 20 d3 89     ..            ; Reload directory from new sector
+    jsr save_wksp_and_return                                          ; a4a8: 20 d3 89     ..            ; Reload directory from new sector; Save workspace state and return result
     ldy #9                                                            ; a4ab: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &a4ad referenced 1 time by &a4b4
 .copy_prev_dir_name_loop
@@ -6973,13 +7223,13 @@ la154 = sub_ca153+1
     jsr set_up_gsinit_path                                            ; a50c: 20 bd 8d     ..            ; Parse and validate destination path
     jsr find_file_and_validate                                        ; a50f: 20 e5 8b     ..            ; Search for source file
     beq source_is_found                                               ; a512: f0 03       ..             ; Found?
-    jmp not_found_error                                               ; a514: 4c c8 8b    L..            ; Not found: report error
+    jmp not_found_error                                               ; a514: 4c c8 8b    L..            ; Not found: report error; Generate Not found error
 
 ; &a517 referenced 1 time by &a512
 .source_is_found
     ldy #3                                                            ; a517: a0 03       ..             ; Y=3: check if source is directory
     lda (zp_entry_ptr),y                                              ; a519: b1 b6       ..             ; Get source entry access byte
-    jsr save_wksp_and_return                                          ; a51b: 20 d3 89     ..            ; Save workspace state
+    jsr save_wksp_and_return                                          ; a51b: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     bpl parse_destination_name                                        ; a51e: 10 24       .$             ; Not a directory: skip self-ref check
     pla                                                               ; a520: 68          h              ; Restore first argument pointer
     tax                                                               ; a521: aa          .              ; Transfer to X for save
@@ -7042,7 +7292,7 @@ la154 = sub_ca153+1
     bpl restore_csd_sector_loop2                                      ; a577: 10 f7       ..             ; Loop for 3 bytes
 ; &a579 referenced 1 time by &a56c
 .reload_and_parse_source
-    jsr save_wksp_and_return                                          ; a579: 20 d3 89     ..            ; Save workspace and reload dir
+    jsr save_wksp_and_return                                          ; a579: 20 d3 89     ..            ; Save workspace and reload dir; Save workspace state and return result
     pla                                                               ; a57c: 68          h              ; Restore second arg pointer
     sta zp_text_ptr_h                                                 ; a57d: 85 b5       ..             ; Store in (&B5)
     tax                                                               ; a57f: aa          .              ; Save in X
@@ -7051,8 +7301,8 @@ la154 = sub_ca153+1
     pha                                                               ; a583: 48          H              ; Re-save for later
     txa                                                               ; a584: 8a          .              ; Get high byte from X
     pha                                                               ; a585: 48          H              ; Re-save
-    jsr find_first_matching_entry                                     ; a586: 20 df 8f     ..            ; Search source in original dir
-    jsr check_file_not_open                                           ; a589: 20 10 8d     ..            ; Check if file is open
+    jsr find_first_matching_entry                                     ; a586: 20 df 8f     ..            ; Search source in original dir; Find first matching directory entry
+    jsr check_file_not_open                                           ; a589: 20 10 8d     ..            ; Check if file is open; Check file is not locked or open
     ldy #3                                                            ; a58c: a0 03       ..             ; Y=3: compare directories
     lda zp_entry_ptr                                                  ; a58e: a5 b6       ..             ; Get source entry pointer
 ; &a590 referenced 1 time by &a599
@@ -7111,9 +7361,9 @@ la154 = sub_ca153+1
     sta (zp_entry_ptr),y                                              ; a5da: 91 b6       ..             ; Store renamed byte in entry
     dey                                                               ; a5dc: 88          .              ; Next byte
     bpl merge_name_attributes_loop                                    ; a5dd: 10 e3       ..             ; Loop for 10 bytes
-    jsr write_dir_and_validate                                        ; a5df: 20 86 8f     ..            ; Write directory back to disc
+    jsr write_dir_and_validate                                        ; a5df: 20 86 8f     ..            ; Write directory back to disc; Write directory and FSM back to disc
     jsr update_moved_dir_parent                                       ; a5e2: 20 85 a6     ..            ; Update directory checksums
-    jmp save_wksp_and_return                                          ; a5e5: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; a5e5: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; &a5e8 referenced 1 time by &a5ee
 .already_exists_error
@@ -7127,7 +7377,7 @@ la154 = sub_ca153+1
     lda (zp_entry_ptr),y                                              ; a5f2: b1 b6       ..             ; Get last name byte
     ora #&80                                                          ; a5f4: 09 80       ..             ; Set bit 7 (mark as directory?)
     sta (zp_entry_ptr),y                                              ; a5f6: 91 b6       ..             ; Store back
-    jsr write_dir_and_validate                                        ; a5f8: 20 86 8f     ..            ; Write source directory
+    jsr write_dir_and_validate                                        ; a5f8: 20 86 8f     ..            ; Write source directory; Write directory and FSM back to disc
     ldy #&0a                                                          ; a5fb: a0 0a       ..             ; Y=&0A: copy entry data to workspace
     ldx #7                                                            ; a5fd: a2 07       ..             ; X=7: 8 bytes of entry metadata
 ; &a5ff referenced 1 time by &a606
@@ -7169,13 +7419,13 @@ la154 = sub_ca153+1
     dey                                                               ; a63a: 88          .              ; Next byte (decreasing)
     dex                                                               ; a63b: ca          .              ; Next workspace byte
     bpl copy_start_sector_loop                                        ; a63c: 10 f7       ..             ; Loop for 3 bytes
-    jsr save_wksp_and_return                                          ; a63e: 20 d3 89     ..            ; Save workspace state
+    jsr save_wksp_and_return                                          ; a63e: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     lda #&40 ; '@'                                                    ; a641: a9 40       .@             ; Set up OSFILE block for create
     sta zp_osfile_ptr                                                 ; a643: 85 b8       ..             ; Store block pointer low
     lda #&10                                                          ; a645: a9 10       ..             ; Block page = &10
     sta zp_osfile_ptr_h                                               ; a647: 85 b9       ..             ; Store block pointer high
     jsr check_file_not_open2                                          ; a649: 20 f3 8d     ..            ; Create entry in dest directory
-    jsr allocate_disc_space_for_file                                  ; a64c: 20 6f 8e     o.            ; Allocate disc space
+    jsr allocate_disc_space_for_file                                  ; a64c: 20 6f 8e     o.            ; Allocate disc space; Allocate disc space and store in entry
     ldy #3                                                            ; a64f: a0 03       ..             ; Y=3: copy attributes back to entry
 ; &a651 referenced 1 time by &a65b
 .restore_attributes_loop
@@ -7186,16 +7436,16 @@ la154 = sub_ca153+1
     sta (zp_entry_ptr),y                                              ; a658: 91 b6       ..             ; Store in entry name byte
     dey                                                               ; a65a: 88          .              ; Next byte
     bpl restore_attributes_loop                                       ; a65b: 10 f4       ..             ; Loop for 4 bytes
-    jsr copy_entry_from_template                                      ; a65d: 20 8b 8e     ..            ; Write entry metadata
+    jsr copy_entry_from_template                                      ; a65d: 20 8b 8e     ..            ; Write entry metadata; Copy OSFILE template into directory entry
     jsr copy_length_to_entry                                          ; a660: 20 58 8f     X.            ; Update entry size
-    jsr write_dir_and_validate                                        ; a663: 20 86 8f     ..            ; Write dest directory to disc
+    jsr write_dir_and_validate                                        ; a663: 20 86 8f     ..            ; Write dest directory to disc; Write directory and FSM back to disc
     jsr update_moved_dir_parent                                       ; a666: 20 85 a6     ..            ; Update moved dir's parent pointer
-    jsr save_wksp_and_return                                          ; a669: 20 d3 89     ..            ; Save workspace state
+    jsr save_wksp_and_return                                          ; a669: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     pla                                                               ; a66c: 68          h              ; Restore source name pointer
     sta zp_text_ptr_h                                                 ; a66d: 85 b5       ..             ; Store high byte
     pla                                                               ; a66f: 68          h              ; Restore low byte
     sta zp_text_ptr                                                   ; a670: 85 b4       ..             ; Store low byte
-    jsr find_first_matching_entry                                     ; a672: 20 df 8f     ..            ; Find source entry again
+    jsr find_first_matching_entry                                     ; a672: 20 df 8f     ..            ; Find source entry again; Find first matching directory entry
     ldx #5                                                            ; a675: a2 05       ..             ; X=5: clear 6 bytes of sector info
     lda #0                                                            ; a677: a9 00       ..             ; A=0: zero fill
 ; &a679 referenced 1 time by &a67d
@@ -7204,7 +7454,7 @@ la154 = sub_ca153+1
     dex                                                               ; a67c: ca          .              ; Next byte
     bpl clear_sector_workspace_loop                                   ; a67d: 10 fa       ..             ; Loop for 6 bytes
     jsr write_dir_and_release                                         ; a67f: 20 12 92     ..            ; Remove entry from source directory
-    jmp save_wksp_and_return                                          ; a682: 4c d3 89    L..            ; Save workspace and return
+    jmp save_wksp_and_return                                          ; a682: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; &a685 referenced 2 times by &a5e2, &a666
 .update_moved_dir_parent
@@ -7234,7 +7484,7 @@ la154 = sub_ca153+1
     sta zp_text_ptr                                                   ; a6a5: 85 b4       ..             ; Low byte = &74
     lda #&10                                                          ; a6a7: a9 10       ..             ; Page = &10
     sta zp_text_ptr_h                                                 ; a6a9: 85 b5       ..             ; High byte
-    jsr parse_path_and_load                                           ; a6ab: 20 7f 94     ..            ; Load the moved directory
+    jsr parse_path_and_load                                           ; a6ab: 20 7f 94     ..            ; Load the moved directory; Parse path and load target directory
     ldy #9                                                            ; a6ae: a0 09       ..             ; Y=9: copy name to dir header
 ; &a6b0 referenced 1 time by &a6b7
 .write_dir_name_loop
@@ -7249,7 +7499,7 @@ la154 = sub_ca153+1
     sta dir_parent_sector,y                                           ; a6be: 99 d6 16    ...            ; Store in directory parent field
     dey                                                               ; a6c1: 88          .              ; Next byte
     bpl write_parent_sector_loop                                      ; a6c2: 10 f7       ..             ; Loop for 3 bytes
-    jmp write_dir_and_validate                                        ; a6c4: 4c 86 8f    L..            ; Write updated directory to disc
+    jmp write_dir_and_validate                                        ; a6c4: 4c 86 8f    L..            ; Write updated directory to disc; Write directory and FSM back to disc
 
 ; ***************************************************************************************
 ; Ensure current directory is loaded
@@ -7297,7 +7547,7 @@ la154 = sub_ca153+1
 
 ; &a6f9 referenced 2 times by &a6e9, &a6ee
 .broken_directory_error
-    jsr generate_disc_error                                           ; a6f9: 20 2b 83     +.            ; Dir broken: save drive and error
+    jsr generate_disc_error                                           ; a6f9: 20 2b 83     +.            ; Dir broken: save drive and error; Generate disc error with state recovery
     equb &a8                                                          ; a6fc: a8          .
     equs "Broken directory", 0                                        ; a6fd: 42 72 6f... Bro
 
@@ -7376,7 +7626,7 @@ la154 = sub_ca153+1
     pha                                                               ; a74e: 48          H              ; Save X
     lda l10ce                                                         ; a74f: ad ce 10    ...            ; Check error flag
     bne bad_checksum_error                                            ; a752: d0 e4       ..             ; Non-zero: workspace corrupt, error
-    jsr mark_directory_dirty                                          ; a754: 20 ea 8f     ..            ; Mark directory as modified
+    jsr mark_directory_dirty                                          ; a754: 20 ea 8f     ..            ; Mark directory as modified; Validate FSM checksums and mark directory dirty
     clc                                                               ; a757: 18          .              ; Clear carry for scan
     ldx #&10                                                          ; a758: a2 10       ..             ; X=&10: scan open channel table
 ; &a75a referenced 1 time by &a76b
@@ -7485,7 +7735,7 @@ la154 = sub_ca153+1
     inx                                                               ; a7ee: e8          .              ; Next X
     dey                                                               ; a7ef: 88          .              ; Next Y (decreasing)
     bpl copy_dir_sector_loop                                          ; a7f0: 10 ef       ..             ; Loop for 4 bytes
-    jmp exec_disc_op_from_wksp                                        ; a7f2: 4c 87 82    L..            ; Execute disc read command
+    jmp exec_disc_op_from_wksp                                        ; a7f2: 4c 87 82    L..            ; Execute disc read command; Execute disc command from workspace control block
 
 ; &a7f5 referenced 1 time by &a8d9
 .setup_fsm_read
@@ -7509,7 +7759,7 @@ la154 = sub_ca153+1
     inx                                                               ; a80f: e8          .              ; Next X
     dey                                                               ; a810: 88          .              ; Next Y (decreasing)
     bpl copy_fsm_sector_loop                                          ; a811: 10 ef       ..             ; Loop for 4 bytes
-    jsr exec_disc_op_from_wksp                                        ; a813: 20 87 82     ..            ; Execute disc read command
+    jsr exec_disc_op_from_wksp                                        ; a813: 20 87 82     ..            ; Execute disc read command; Execute disc command from workspace control block
 ; ***************************************************************************************
 ; Load free space map from disc
 ; 
@@ -7538,9 +7788,9 @@ la154 = sub_ca153+1
     sta l107f                                                         ; a827: 8d 7f 10    ...            ; Store source name offset
     lda #&10                                                          ; a82a: a9 10       ..             ; Source name page = &10
     sta l1080                                                         ; a82c: 8d 80 10    ...            ; Store source name page
-    jsr exec_disc_and_check_error                                     ; a82f: 20 b3 8b     ..            ; Find source file
+    jsr exec_disc_and_check_error                                     ; a82f: 20 b3 8b     ..            ; Find source file; Search for non-directory file
     beq source_file_found                                             ; a832: f0 03       ..             ; Found?
-    jmp not_found_error                                               ; a834: 4c c8 8b    L..            ; Not found: report error
+    jmp not_found_error                                               ; a834: 4c c8 8b    L..            ; Not found: report error; Generate Not found error
 
 ; &a837 referenced 1 time by &a832
 .source_file_found
@@ -7559,7 +7809,7 @@ la154 = sub_ca153+1
     sta l106c,y                                                       ; a850: 99 6c 10    .l.            ; Save CSD sector byte
     dey                                                               ; a853: 88          .              ; Next byte
     bpl save_source_dir_sector_loop                                   ; a854: 10 f7       ..             ; Loop for 4 bytes
-    jsr save_wksp_and_return                                          ; a856: 20 d3 89     ..            ; Save workspace state
+    jsr save_wksp_and_return                                          ; a856: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     ldy #3                                                            ; a859: a0 03       ..             ; Y=3: copy current dir sector
 ; &a85b referenced 1 time by &a862
 .copy_csd_for_dest_loop
@@ -7577,8 +7827,8 @@ la868 = check_dest_terminator+1
 
 ; &a86f referenced 1 time by &a86a
 .load_dest_directory
-    jsr parse_path_and_load                                           ; a86f: 20 7f 94     ..            ; Load destination directory
-    jsr mark_directory_dirty                                          ; a872: 20 ea 8f     ..            ; Mark destination dir as modified
+    jsr parse_path_and_load                                           ; a86f: 20 7f 94     ..            ; Load destination directory; Parse path and load target directory
+    jsr mark_directory_dirty                                          ; a872: 20 ea 8f     ..            ; Mark destination dir as modified; Validate FSM checksums and mark directory dirty
     ldy #3                                                            ; a875: a0 03       ..             ; Y=3: save dest dir sector
 ; &a877 referenced 1 time by &a87e
 .save_dest_dir_sector_loop
@@ -7596,9 +7846,9 @@ la868 = check_dest_terminator+1
     bpl copy_file_entry                                               ; a88a: 10 08       ..             ; Bit 7 clear: regular file, copy it
 ; &a88c referenced 1 time by &a939
 .skip_dir_entry_or_done
-    jsr advance_dir_entry_ptr                                         ; a88c: 20 5e 89     ^.            ; Directory: find next entry
+    jsr advance_dir_entry_ptr                                         ; a88c: 20 5e 89     ^.            ; Directory: find next entry; Advance to next matching directory entry
     beq scan_source_entries_loop                                      ; a88f: f0 f2       ..             ; More entries: loop
-    jmp save_wksp_and_return                                          ; a891: 4c d3 89    L..            ; No more entries: done
+    jmp save_wksp_and_return                                          ; a891: 4c d3 89    L..            ; No more entries: done; Save workspace state and return result
 
 ; &a894 referenced 1 time by &a88a
 .copy_file_entry
@@ -7639,7 +7889,7 @@ la868 = check_dest_terminator+1
     sta l107e                                                         ; a8d6: 8d 7e 10    .~.            ; Store terminator
     jsr setup_fsm_read                                                ; a8d9: 20 f5 a7     ..            ; Set up disc read for source file
     jsr check_file_not_open2                                          ; a8dc: 20 f3 8d     ..            ; Check if file is open
-    jsr allocate_disc_space_for_file                                  ; a8df: 20 6f 8e     o.            ; Allocate space for dest file
+    jsr allocate_disc_space_for_file                                  ; a8df: 20 6f 8e     o.            ; Allocate space for dest file; Allocate disc space and store in entry
     jsr write_entry_sector_info                                       ; a8e2: 20 52 8f     R.            ; Write dest directory entry
     ldy #2                                                            ; a8e5: a0 02       ..             ; Y=2: copy sector addresses
 ; &a8e7 referenced 1 time by &a8f4
@@ -7675,7 +7925,7 @@ la868 = check_dest_terminator+1
     jsr execute_sector_copy                                           ; a92c: 20 a6 96     ..            ; Execute sector-by-sector copy
     pla                                                               ; a92f: 68          h              ; Restore original drive
     sta wksp_current_drive                                            ; a930: 8d 17 11    ...            ; Set as current drive
-    jsr write_dir_and_validate                                        ; a933: 20 86 8f     ..            ; Write modified directory
+    jsr write_dir_and_validate                                        ; a933: 20 86 8f     ..            ; Write modified directory; Write directory and FSM back to disc
     jsr setup_disc_read_for_dir                                       ; a936: 20 c0 a7     ..            ; Set up for next source file
     jmp skip_dir_entry_or_done                                        ; a939: 4c 8c a8    L..            ; Loop to copy next file
 
@@ -7697,7 +7947,7 @@ la868 = check_dest_terminator+1
     beq return_33                                                     ; a947: f0 15       ..             ; Yes, nothing more to do
     lda #osbyte_close_spool_exec                                      ; a949: a9 77       .w             ; OSBYTE &77: close spool/exec files
     jsr osbyte                                                        ; a94b: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
-    jsr save_wksp_and_return                                          ; a94e: 20 d3 89     ..            ; Save workspace state to disc
+    jsr save_wksp_and_return                                          ; a94e: 20 d3 89     ..            ; Save workspace state to disc; Save workspace state and return result
     ldy #&ff                                                          ; a951: a0 ff       ..             ; Y=&FF: will become 0 after INY
     tya                                                               ; a953: 98          .              ; A=&FF: flag for OSARGS; A=&ff
     iny                                                               ; a954: c8          .              ; Y=0: falls through to my_osargs; Y=&00
@@ -8420,7 +8670,7 @@ la868 = check_dest_terminator+1
     sta l102d                                                         ; ade9: 8d 2d 10    .-.            ; Store in workspace mid
     lda l11d4,x                                                       ; adec: bd d4 11    ...            ; Get channel's sector high
     sta l102e                                                         ; adef: 8d 2e 10    ...            ; Store in workspace high
-    jsr save_wksp_and_return                                          ; adf2: 20 d3 89     ..            ; Save workspace state
+    jsr save_wksp_and_return                                          ; adf2: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     ldy #2                                                            ; adf5: a0 02       ..             ; Y=2: restore CSD sector
 ; &adf7 referenced 1 time by &adfe
 .restore_csd_after_switch_loop
@@ -8566,7 +8816,7 @@ la868 = check_dest_terminator+1
     lda l109f                                                         ; af02: ad 9f 10    ...            ; Get new allocation high
     sta l103f                                                         ; af05: 8d 3f 10    .?.            ; Store as extension high
     jsr release_disc_space                                            ; af08: 20 b5 84     ..            ; Release disc space back to free space map
-    jsr allocate_disc_space                                           ; af0b: 20 32 86     2.            ; Allocate disc space from FSM
+    jsr allocate_disc_space                                           ; af0b: 20 32 86     2.            ; Allocate disc space from FSM; Allocate disc space from free space map
     ldy #&12                                                          ; af0e: a0 12       ..             ; Y=&12: update dir entry length
     lda #0                                                            ; af10: a9 00       ..             ; A=0: clear length low byte
     ldx zp_channel_offset                                             ; af12: a6 cf       ..             ; Get channel index
@@ -8596,7 +8846,7 @@ la868 = check_dest_terminator+1
     sta (zp_osfile_ptr),y                                             ; af47: 91 b8       ..             ; Store in dir entry
     ora wksp_current_drive                                            ; af49: 0d 17 11    ...            ; OR with drive number for channel
     sta l11b6,x                                                       ; af4c: 9d b6 11    ...            ; Update channel start sector+drive
-    jsr write_dir_and_validate                                        ; af4f: 20 86 8f     ..            ; Write directory back to disc
+    jsr write_dir_and_validate                                        ; af4f: 20 86 8f     ..            ; Write directory back to disc; Write directory and FSM back to disc
     lda zp_adfs_flags                                                 ; af52: a5 cd       ..             ; Clear bit 3 of ADFS flags
     and #&f7                                                          ; af54: 29 f7       ).             ; Mask off bit 3
     sta zp_adfs_flags                                                 ; af56: 85 cd       ..             ; Store cleared flags
@@ -8744,7 +8994,7 @@ la868 = check_dest_terminator+1
     sta wksp_ch_ext_mh,x                                              ; b071: 9d 3e 11    .>.            ; Store as new EXT mid-high
     lda l109d                                                         ; b074: ad 9d 10    ...            ; Get new PTR high
     sta wksp_ch_ext_h,x                                               ; b077: 9d 34 11    .4.            ; Store as new EXT high
-    jsr save_wksp_and_return                                          ; b07a: 20 d3 89     ..            ; Save workspace
+    jsr save_wksp_and_return                                          ; b07a: 20 d3 89     ..            ; Save workspace; Save workspace state and return result
 ; &b07d referenced 1 time by &aeb9
 .restore_drive_after_extend
     lda l10bf                                                         ; b07d: ad bf 10    ...            ; Restore saved drive from temp
@@ -8980,7 +9230,7 @@ la868 = check_dest_terminator+1
 
 ; &b20e referenced 1 time by &b209
 .search_for_input_file
-    jsr find_first_matching_entry                                     ; b20e: 20 df 8f     ..            ; Open for input: search for file
+    jsr find_first_matching_entry                                     ; b20e: 20 df 8f     ..            ; Open for input: search for file; Find first matching directory entry
     beq check_read_conflicts                                          ; b211: f0 05       ..             ; Found?
     lda #0                                                            ; b213: a9 00       ..             ; Not found: A=0 (no handle)
     jmp save_and_return_handle                                        ; b215: 4c d9 b2    L..            ; Return with A=0
@@ -9084,7 +9334,7 @@ la868 = check_dest_terminator+1
     pla                                                               ; b2d8: 68          h              ; Restore file handle
 ; &b2d9 referenced 2 times by &b215, &b2ed
 .save_and_return_handle
-    jsr save_wksp_and_return                                          ; b2d9: 20 d3 89     ..            ; Save workspace and return A=handle
+    jsr save_wksp_and_return                                          ; b2d9: 20 d3 89     ..            ; Save workspace and return A=handle; Save workspace state and return result
     ldx zp_osfind_x                                                   ; b2dc: a6 c5       ..             ; Restore X from saved value
     ldy zp_osfind_y                                                   ; b2de: a4 c4       ..             ; Restore Y from saved value
     rts                                                               ; b2e0: 60          `              ; Return
@@ -9093,7 +9343,7 @@ la868 = check_dest_terminator+1
 .check_random_access_mode
     bit l10a0                                                         ; b2e1: 2c a0 10    ,..            ; Check open mode for random access
     bvc open_for_output_new                                           ; b2e4: 50 18       P.             ; Bit 6 clear: open for output only
-    jsr find_first_matching_entry                                     ; b2e6: 20 df 8f     ..            ; Random: search for existing file
+    jsr find_first_matching_entry                                     ; b2e6: 20 df 8f     ..            ; Random: search for existing file; Find first matching directory entry
     php                                                               ; b2e9: 08          .              ; Save search result flags
     lda #0                                                            ; b2ea: a9 00       ..             ; A=0: default no-file result
     plp                                                               ; b2ec: 28          (              ; Restore flags from search
@@ -9113,9 +9363,9 @@ la868 = check_dest_terminator+1
 ; &b2fe referenced 1 time by &b2e4
 .open_for_output_new
     jsr set_up_gsinit_path                                            ; b2fe: 20 bd 8d     ..            ; Parse destination path
-    jsr find_first_matching_entry                                     ; b301: 20 df 8f     ..            ; Search for existing file
+    jsr find_first_matching_entry                                     ; b301: 20 df 8f     ..            ; Search for existing file; Find first matching directory entry
     bne clear_new_file_osfile                                         ; b304: d0 0c       ..             ; Not found: create new
-    jsr check_file_not_open                                           ; b306: 20 10 8d     ..            ; Found: check it's not open
+    jsr check_file_not_open                                           ; b306: 20 10 8d     ..            ; Found: check it's not open; Check file is not locked or open
     ldy #1                                                            ; b309: a0 01       ..             ; Y=1: check access byte
     lda (zp_entry_ptr),y                                              ; b30b: b1 b6       ..             ; Get first name byte
     bpl check_random_access_attr                                      ; b30d: 10 e9       ..             ; Bit 7 clear: access violation
@@ -9162,15 +9412,15 @@ la868 = check_dest_terminator+1
     stx zp_osfile_ptr                                                 ; b351: 86 b8       ..             ; Store block pointer low
     ldy #&10                                                          ; b353: a0 10       ..             ; Y=&10: OSFILE block page
     sty zp_osfile_ptr_h                                               ; b355: 84 b9       ..             ; Store block pointer high
-    jsr save_wksp_and_return                                          ; b357: 20 d3 89     ..            ; Save workspace
-    jsr validate_not_locked                                           ; b35a: 20 4c 8f     L.            ; Create directory entry for new file
-    jsr write_dir_and_validate                                        ; b35d: 20 86 8f     ..            ; Write directory to disc
-    jsr get_object_type_result                                        ; b360: 20 d0 89     ..            ; Save workspace after dir write
+    jsr save_wksp_and_return                                          ; b357: 20 d3 89     ..            ; Save workspace; Save workspace state and return result
+    jsr validate_not_locked                                           ; b35a: 20 4c 8f     L.            ; Create directory entry for new file; Validate file is not locked then create entry
+    jsr write_dir_and_validate                                        ; b35d: 20 86 8f     ..            ; Write directory to disc; Write directory and FSM back to disc
+    jsr get_object_type_result                                        ; b360: 20 d0 89     ..            ; Save workspace after dir write; Load object type and save workspace
     lda wksp_osfile_block                                             ; b363: ad 40 10    .@.            ; Restore original filename pointer
     sta zp_text_ptr                                                   ; b366: 85 b4       ..             ; Store in (&B4)
     lda l1041                                                         ; b368: ad 41 10    .A.            ; Get filename high byte
     sta zp_text_ptr_h                                                 ; b36b: 85 b5       ..             ; Store in (&B5)
-    jsr find_first_matching_entry                                     ; b36d: 20 df 8f     ..            ; Search for newly created entry
+    jsr find_first_matching_entry                                     ; b36d: 20 df 8f     ..            ; Search for newly created entry; Find first matching directory entry
 ; &b370 referenced 1 time by &b30f
 .set_ext_zero_for_new
     lda #0                                                            ; b370: a9 00       ..             ; A=0: new file has zero length
@@ -9242,7 +9492,7 @@ la868 = check_dest_terminator+1
 ; &b3e4 referenced 2 times by &b3c2, &b465
 .close_read_only
     jsr validate_and_set_ptr                                          ; b3e4: 20 a6 aa     ..            ; EXT == alloc: no update needed
-    jsr save_wksp_and_return                                          ; b3e7: 20 d3 89     ..            ; Save workspace
+    jsr save_wksp_and_return                                          ; b3e7: 20 d3 89     ..            ; Save workspace; Save workspace state and return result
     lda #0                                                            ; b3ea: a9 00       ..             ; A=0: success
     ldy zp_osfind_y                                                   ; b3ec: a4 c4       ..             ; Restore Y
     ldx zp_osfind_x                                                   ; b3ee: a6 c5       ..             ; Restore X
@@ -9295,7 +9545,7 @@ la868 = check_dest_terminator+1
     iny                                                               ; b45c: c8          .              ; Y=&15
     sta (zp_osfile_ptr),y                                             ; b45d: 91 b8       ..             ; Store in entry
     jsr release_disc_space                                            ; b45f: 20 b5 84     ..            ; Release disc space back to free space map
-    jsr write_dir_and_validate                                        ; b462: 20 86 8f     ..            ; Write updated directory to disc
+    jsr write_dir_and_validate                                        ; b462: 20 86 8f     ..            ; Write updated directory to disc; Write directory and FSM back to disc
     jmp close_read_only                                               ; b465: 4c e4 b3    L..            ; Jump to release space and return
 
 ; &b468 referenced 1 time by &88b5
@@ -9691,7 +9941,7 @@ la868 = check_dest_terminator+1
     jsr transfer_sector_bytes                                         ; b70d: 20 80 b9     ..            ; Transfer bytes within this sector
 ; &b710 referenced 2 times by &b7e8, &b822
 .save_and_flush_after_transfer
-    jsr save_wksp_and_return                                          ; b710: 20 d3 89     ..            ; Save workspace state
+    jsr save_wksp_and_return                                          ; b710: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     jsr update_channel_flags_for_ptr                                  ; b713: 20 3f b1     ?.            ; Flush buffer if modified
 ; &b716 referenced 1 time by &b8de
 .prepare_osgbpb_return
@@ -9793,7 +10043,7 @@ la868 = check_dest_terminator+1
     dex                                                               ; b7cc: ca          .              ; Next sector byte
     bpl add_sector_count_loop                                         ; b7cd: 10 f0       ..             ; Loop for 3 bytes
     jsr validate_and_set_ptr                                          ; b7cf: 20 a6 aa     ..            ; Flush channel ensure buffers
-    jsr multi_sector_disc_command                                     ; b7d2: 20 3d 8a     =.            ; Execute multi-sector disc command
+    jsr multi_sector_disc_command                                     ; b7d2: 20 3d 8a     =.            ; Execute multi-sector disc command; Execute multi-sector disc command
     lda wksp_saved_drive                                              ; b7d5: ad 2f 10    ./.            ; Restore saved drive number
     sta wksp_current_drive                                            ; b7d8: 8d 17 11    ...            ; Set as current drive
     lda #&ff                                                          ; b7db: a9 ff       ..             ; A=&FF: mark saved drive as unused
