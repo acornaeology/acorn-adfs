@@ -554,7 +554,8 @@ label(0x8C05, "osfile_save_check_existing")
 entry(0xA029)  # After "Free\r" inline string in star_free
 entry(0xA05F)  # After "Address :  Length" in star_map
 entry(0xA07F)  # After "  : &" in star_map
-entry(0xA1E5)  # After " Sectors =" in sub_ca1c6
+entry(0xA1E6)  # After " Sectors = " in print_space_value
+entry(0xA251)  # RTS after " Bytes " in print_space_value
 entry(0x9A0A)  # After "Destroy ? " in star_destroy
 entry(0x9373)  # After "Option " in verify_dir_and_list
 entry(0x9399)  # After ")\rDir. " in catalogue header
@@ -7940,6 +7941,9 @@ comment(0x9567, "Clear alternative workspace ptr", inline=True)
 comment(0x956A, "Clear saved drive", inline=True)
 comment(0x956D, "Save workspace and return", inline=True)
 
+comment(0xA250, "' ' + bit 7: end of inline string", inline=True)
+comment(0xA251, "Return to caller", inline=True)
+
 # star_title (&A252)
 comment(0xA252, "Ensure dir is loaded and writable", inline=True)
 comment(0xA255, "Mark directory as modified", inline=True)
@@ -8724,7 +8728,7 @@ comment(0xA1C5, "Return", inline=True)
 comment(0xA1C9, "Print mid byte as hex", inline=True)
 comment(0xA1CF, "Print low byte as hex", inline=True)
 comment(0xA1D5, "Print result byte as hex", inline=True)
-comment(0xA1E5, "Y=&A2: continuation parameter", inline=True)
+comment(0xA1E5, "' ' + bit 7: end of inline string", inline=True)
 
 # restore_csd - remaining items
 comment(0xA47B, "Next byte", inline=True)

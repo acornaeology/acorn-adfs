@@ -4331,7 +4331,7 @@ lffff                                           = &ffff
 ; the address past the string so RTS continues after it.
 ; 
 ; ***************************************************************************************
-; &92a0 referenced 18 times by &933a, &9345, &9369, &9379, &938f, &93a6, &93c0, &99fd, &9b78, &9da7, &9dc9, &9e12, &a021, &a041, &a04a, &a077, &a0a0, &a1d8
+; &92a0 referenced 19 times by &933a, &9345, &9369, &9379, &938f, &93a6, &93c0, &99fd, &9b78, &9da7, &9dc9, &9e12, &a021, &a041, &a04a, &a077, &a0a0, &a1d8, &a247
 .print_inline_string
     pla                                                               ; 92a0: 68          h              ; Pop return addr low (inline data)
     sta zp_entry_ptr_lo                                               ; 92a1: 85 b6       ..             ; Store as string pointer low
@@ -7348,20 +7348,80 @@ la154 = sub_ca153+1
     jsr print_hex_byte                                                ; a1d5: 20 1b 93     ..            ; Print result byte as hex; Print a byte as two hex digits
     jsr print_inline_string                                           ; a1d8: 20 a0 92     ..            ; Print " Sectors ="; Print bit-7-terminated inline string
     equs " Sectors ="                                                 ; a1db: 20 53 65...  Se
+    equb &a0                                                          ; a1e5: a0          .              ; ' ' + bit 7: end of inline string
 
-    ldy #&a2                                                          ; a1e5: a0 a2       ..             ; Y=&A2: continuation parameter
-    equb &1f, &8e, &33, &10, &a9,   0, &a2,   9, &9d, &40, &10, &ca   ; a1e7: 1f 8e 33... ..3
-    equb &10, &fa, &0e, &15, &10, &2e, &16, &10, &2e, &17, &10, &2e   ; a1f3: 10 fa 0e... ...
-    equb &18, &10, &a2,   0, &a0,   9, &bd, &40, &10, &2a, &c9, &0a   ; a1ff: 18 10 a2... ...
-    equb &90,   2, &e9, &0a, &9d, &40, &10, &e8, &88, &10, &ef, &ce   ; a20b: 90 02 e9... ...
-    equb &33, &10, &10, &da, &a0, &20, &a2,   8, &d0,   2, &a0, &2c   ; a217: 33 10 10... 3..
-    equb &bd, &40, &10, &d0,   8, &c0, &2c, &f0,   4, &a9, &20, &d0   ; a223: bd 40 10... .@.
-    equb   5, &a0, &2c, &18                                           ; a22f: 05 a0 2c... ..,
-    equs "i0 "                                                        ; a233: 69 30 20    i0
-    equb &ee, &ff, &e0,   6, &f0,   4, &e0, 3, &d0, 4, &98, &20, &ee  ; a236: ee ff e0... ...
-    equb &ff, &ca, &10, &d8, &20, &a0, &92                            ; a243: ff ca 10... ...
+    ldx #&1f                                                          ; a1e6: a2 1f       ..
+    stx wksp_last_access_drive                                        ; a1e8: 8e 33 10    .3.
+    lda #0                                                            ; a1eb: a9 00       ..
+    ldx #9                                                            ; a1ed: a2 09       ..
+; &a1ef referenced 1 time by &a1f3
+.loop_ca1ef
+    sta wksp_osfile_block,x                                           ; a1ef: 9d 40 10    .@.
+    dex                                                               ; a1f2: ca          .
+    bpl loop_ca1ef                                                    ; a1f3: 10 fa       ..
+; &a1f5 referenced 1 time by &a219
+.ca1f5
+    asl wksp_disc_op_result                                           ; a1f5: 0e 15 10    ...
+    rol wksp_disc_op_mem_addr                                         ; a1f8: 2e 16 10    ...
+    rol l1017                                                         ; a1fb: 2e 17 10    ...
+    rol l1018                                                         ; a1fe: 2e 18 10    ...
+    ldx #0                                                            ; a201: a2 00       ..
+    ldy #9                                                            ; a203: a0 09       ..
+; &a205 referenced 1 time by &a214
+.loop_ca205
+    lda wksp_osfile_block,x                                           ; a205: bd 40 10    .@.
+    rol a                                                             ; a208: 2a          *
+    cmp #&0a                                                          ; a209: c9 0a       ..
+    bcc ca20f                                                         ; a20b: 90 02       ..
+    sbc #&0a                                                          ; a20d: e9 0a       ..
+; &a20f referenced 1 time by &a20b
+.ca20f
+    sta wksp_osfile_block,x                                           ; a20f: 9d 40 10    .@.
+    inx                                                               ; a212: e8          .
+    dey                                                               ; a213: 88          .
+    bpl loop_ca205                                                    ; a214: 10 ef       ..
+    dec wksp_last_access_drive                                        ; a216: ce 33 10    .3.
+    bpl ca1f5                                                         ; a219: 10 da       ..
+    ldy #&20 ; ' '                                                    ; a21b: a0 20       .
+    ldx #8                                                            ; a21d: a2 08       ..
+; &a21f referenced 1 time by &a245
+.ca21f
+    bne ca223                                                         ; a21f: d0 02       ..
+    ldy #&2c ; ','                                                    ; a221: a0 2c       .,
+; &a223 referenced 1 time by &a21f
+.ca223
+    lda wksp_osfile_block,x                                           ; a223: bd 40 10    .@.
+    bne ca230                                                         ; a226: d0 08       ..
+    cpy #&2c ; ','                                                    ; a228: c0 2c       .,
+    beq ca230                                                         ; a22a: f0 04       ..
+    lda #&20 ; ' '                                                    ; a22c: a9 20       .
+    bne ca235                                                         ; a22e: d0 05       ..             ; ALWAYS branch
+
+; &a230 referenced 2 times by &a226, &a22a
+.ca230
+    ldy #&2c ; ','                                                    ; a230: a0 2c       .,
+    clc                                                               ; a232: 18          .
+    adc #&30 ; '0'                                                    ; a233: 69 30       i0
+; &a235 referenced 1 time by &a22e
+.ca235
+    jsr oswrch                                                        ; a235: 20 ee ff     ..            ; Write character
+    cpx #6                                                            ; a238: e0 06       ..
+    beq ca240                                                         ; a23a: f0 04       ..
+    cpx #3                                                            ; a23c: e0 03       ..
+    bne ca244                                                         ; a23e: d0 04       ..
+; &a240 referenced 1 time by &a23a
+.ca240
+    tya                                                               ; a240: 98          .
+    jsr oswrch                                                        ; a241: 20 ee ff     ..            ; Write character
+; &a244 referenced 1 time by &a23e
+.ca244
+    dex                                                               ; a244: ca          .
+    bpl ca21f                                                         ; a245: 10 d8       ..
+    jsr print_inline_string                                           ; a247: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs " Bytes"                                                     ; a24a: 20 42 79...  By
-    equb &a0, &60                                                     ; a250: a0 60       .`
+    equb &a0                                                          ; a250: a0          .              ; ' ' + bit 7: end of inline string
+
+    rts                                                               ; a251: 60          `              ; Return to caller
 
 ; ***************************************************************************************
 ; *TITLE command handler
@@ -12599,9 +12659,9 @@ save pydis_start, pydis_end
 ;     zp_entry_ptr_hi:                                   36
 ;     zp_mem_ptr_lo:                                     35
 ;     save_wksp_and_return:                              34
+;     wksp_disc_op_result:                               28
 ;     zp_gspb_ptr_lo:                                    28
 ;     wksp_1004:                                         27
-;     wksp_disc_op_result:                               27
 ;     reload_fsm_and_dir_then_brk:                       26
 ;     l1114:                                             25
 ;     wksp_102b:                                         24
@@ -12613,10 +12673,10 @@ save pydis_start, pydis_end
 ;     wksp_ch_flags:                                     20
 ;     zp_floppy_state:                                   20
 ;     fsm_s1_total_sectors_lo:                           19
+;     print_inline_string:                               19
 ;     zp_mem_ptr_hi:                                     19
 ;     check_char_is_terminator:                          18
 ;     l10a2:                                             18
-;     print_inline_string:                               18
 ;     wksp_ch_ext_h:                                     18
 ;     wksp_ch_ext_mh:                                    18
 ;     wksp_ch_ext_ml:                                    18
@@ -12633,8 +12693,10 @@ save pydis_start, pydis_end
 ;     scsi_wait_for_req:                                 15
 ;     fsm_s0_boot_option:                                14
 ;     wksp_disc_op_command:                              14
+;     wksp_osfile_block:                                 14
 ;     find_first_matching_entry:                         13
 ;     fsm_sector_0:                                      13
+;     l1017:                                             13
 ;     wksp_ch_ptr_h:                                     13
 ;     wksp_ch_ptr_l:                                     13
 ;     wksp_ch_ptr_mh:                                    13
@@ -12642,7 +12704,6 @@ save pydis_start, pydis_end
 ;     wksp_disc_op_sector:                               13
 ;     zp_name_ptr_lo:                                    13
 ;     zp_osfile_ptr_hi:                                  13
-;     l1017:                                             12
 ;     l102e:                                             12
 ;     l1037:                                             12
 ;     l1061:                                             12
@@ -12661,9 +12722,9 @@ save pydis_start, pydis_end
 ;     l1098:                                             10
 ;     l11c0:                                             10
 ;     l11ca:                                             10
+;     oswrch:                                            10
 ;     wksp_103a:                                         10
 ;     wksp_cur_channel:                                  10
-;     wksp_osfile_block:                                 10
 ;     zp_ctrl_blk_hi:                                    10
 ;     dir_master_sequence:                                9
 ;     l0000:                                              9
@@ -12682,12 +12743,14 @@ save pydis_start, pydis_end
 ;     wait_ensuring:                                      9
 ;     wksp_1003:                                          9
 ;     wksp_1060:                                          9
+;     wksp_disc_op_mem_addr:                              9
 ;     advance_dir_entry_ptr:                              8
 ;     ca016:                                              8
 ;     exec_disc_command:                                  8
 ;     exec_disc_op_from_wksp:                             8
 ;     fdc_8271_data_or_1770_command_or_status:            8
 ;     l0406:                                              8
+;     l1018:                                              8
 ;     l1035:                                              8
 ;     l1041:                                              8
 ;     l10a5:                                              8
@@ -12696,16 +12759,13 @@ save pydis_start, pydis_end
 ;     l10d2:                                              8
 ;     l10e0:                                              8
 ;     l1116:                                              8
-;     oswrch:                                             8
 ;     parse_path_and_load:                                8
 ;     print_space:                                        8
 ;     save_workspace_state:                               8
-;     wksp_disc_op_mem_addr:                              8
 ;     bad_checksum_error:                                 7
 ;     check_first_char_wildcard:                          7
 ;     command_done:                                       7
 ;     floppy_error:                                       7
-;     l1018:                                              7
 ;     l1021:                                              7
 ;     l1023:                                              7
 ;     l1036:                                              7
@@ -12786,6 +12846,7 @@ save pydis_start, pydis_end
 ;     tbl_commands:                                       5
 ;     update_channel_flags_for_ptr:                       5
 ;     wait_data_phase:                                    5
+;     wksp_last_access_drive:                             5
 ;     zp_buf_src_hi:                                      5
 ;     zp_buf_src_lo:                                      5
 ;     zp_osfind_x:                                        5
@@ -12939,7 +13000,6 @@ save pydis_start, pydis_end
 ;     wksp_1131:                                          3
 ;     wksp_1132:                                          3
 ;     wksp_fdc_cmd_step:                                  3
-;     wksp_last_access_drive:                             3
 ;     wksp_shadow_save:                                   3
 ;     wksp_tube_transfer_addr_1:                          3
 ;     write_zero_sector:                                  3
@@ -12963,6 +13023,7 @@ save pydis_start, pydis_end
 ;     boot_run_option:                                    2
 ;     broken_directory_error:                             2
 ;     c8dab:                                              2
+;     ca230:                                              2
 ;     calc_bget_sector_addr:                              2
 ;     calc_buffer_address:                                2
 ;     calc_buffer_page_from_offset:                       2
@@ -13224,6 +13285,13 @@ save pydis_start, pydis_end
 ;     build_access_byte_loop:                             1
 ;     build_filename_loop:                                1
 ;     build_osfile_control_block:                         1
+;     ca1f5:                                              1
+;     ca20f:                                              1
+;     ca21f:                                              1
+;     ca223:                                              1
+;     ca235:                                              1
+;     ca240:                                              1
+;     ca244:                                              1
 ;     calc_channel_buffer_page:                           1
 ;     calc_disc_sector_for_channel:                       1
 ;     calc_end_position_loop:                             1
@@ -13615,6 +13683,8 @@ save pydis_start, pydis_end
 ;     load_fsm_for_boot:                                  1
 ;     load_root_directory:                                1
 ;     load_sector_check_result:                           1
+;     loop_ca1ef:                                         1
+;     loop_ca205:                                         1
 ;     loop_cbc9e:                                         1
 ;     mark_directory_modified:                            1
 ;     mark_entry_created:                                 1
@@ -14025,6 +14095,14 @@ save pydis_start, pydis_end
 
 ; Automatically generated labels:
 ;     c8dab
+;     ca1f5
+;     ca20f
+;     ca21f
+;     ca223
+;     ca230
+;     ca235
+;     ca240
+;     ca244
 ;     cbc91
 ;     cbc93
 ;     cbca5
@@ -14183,6 +14261,8 @@ save pydis_start, pydis_end
 ;     la154
 ;     la868
 ;     lffff
+;     loop_ca1ef
+;     loop_ca205
 ;     loop_cbc9e
 ;     return_1
 ;     return_10
@@ -14239,11 +14319,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14987 bytes (91%)
-;     Data                     = 1397 bytes (9%)
+;     Code                     = 15086 bytes (92%)
+;     Data                     = 1298 bytes (8%)
 ;
-;     Number of instructions   = 6979
-;     Number of data bytes     = 434 bytes
+;     Number of instructions   = 7026
+;     Number of data bytes     = 338 bytes
 ;     Number of data words     = 44 bytes
-;     Number of string bytes   = 919 bytes
-;     Number of strings        = 106
+;     Number of string bytes   = 916 bytes
+;     Number of strings        = 105
