@@ -6056,7 +6056,7 @@ boot_run_option = sub_c9b86+1
     ldy #&0d                                                          ; 9b9a: a0 0d       ..             ; Y=&0D: copy 14 bytes of vectors
 ; &9b9c referenced 1 time by &9ba3
 .copy_boot_command_loop
-    lda l9cb3,y                                                       ; 9b9c: b9 b3 9c    ...            ; Get vector table byte from ROM
+    lda tbl_fs_vectors,y                                              ; 9b9c: b9 b3 9c    ...            ; Get vector table byte from ROM
     sta filev,y                                                       ; 9b9f: 99 12 02    ...            ; Store in MOS vector table
     dey                                                               ; 9ba2: 88          .              ; Next byte
     bpl copy_boot_command_loop                                        ; 9ba3: 10 f7       ..             ; Loop for 14 bytes
@@ -6214,10 +6214,39 @@ boot_run_option = sub_c9b86+1
     rts                                                               ; 9caa: 60          `              ; Return
 
     equs ":0.LIB*", &0d                                               ; 9cab: 3a 30 2e... :0.            ; ":0.LIB*" + CR: default library path
+; ***************************************************************************************
+; Filing system vector addresses
+; 
+; Seven 2-byte vector addresses copied to the MOS vector table
+; at &0212-&021F when ADFS is selected. All point into the
+; extended vector jump block at &FFxx, which dispatches through
+; tbl_extended_vectors to reach the actual ADFS handler routines.
+; 
+;   FILEV  &FF1B  OSFILE handler
+;   ARGSV  &FF1E  OSARGS handler
+;   BGETV  &FF21  OSBGET handler
+;   BPUTV  &FF24  OSBPUT handler
+;   GBPBV  &FF27  OSGBPB handler
+;   FINDV  &FF2A  OSFIND handler
+;   FSCV   &FF2D  Filing system control handler
+; 
+; ***************************************************************************************
 ; &9cb3 referenced 1 time by &9b9c
-.l9cb3
-    equb &1b, &ff, &1e, &ff, &21, &ff, &24, &ff, &27, &ff, &2a, &ff   ; 9cb3: 1b ff 1e... ...
-    equb &2d, &ff                                                     ; 9cbf: 2d ff       -.
+.tbl_fs_vectors
+    equb &1b                                                          ; 9cb3: 1b          .              ; FILEV low:  &1B -> &FF1B (OSFILE)
+    equb &ff                                                          ; 9cb4: ff          .              ; FILEV high: &FF (extended vector)
+    equb &1e                                                          ; 9cb5: 1e          .              ; ARGSV low:  &1E -> &FF1E (OSARGS)
+    equb &ff                                                          ; 9cb6: ff          .              ; ARGSV high: &FF
+    equb &21                                                          ; 9cb7: 21          !              ; BGETV low:  &21 -> &FF21 (OSBGET)
+    equb &ff                                                          ; 9cb8: ff          .              ; BGETV high: &FF
+    equb &24                                                          ; 9cb9: 24          $              ; BPUTV low:  &24 -> &FF24 (OSBPUT)
+    equb &ff                                                          ; 9cba: ff          .              ; BPUTV high: &FF
+    equb &27                                                          ; 9cbb: 27          '              ; GBPBV low:  &27 -> &FF27 (OSGBPB)
+    equb &ff                                                          ; 9cbc: ff          .              ; GBPBV high: &FF
+    equb &2a                                                          ; 9cbd: 2a          *              ; FINDV low:  &2A -> &FF2A (OSFIND)
+    equb &ff                                                          ; 9cbe: ff          .              ; FINDV high: &FF
+    equb &2d                                                          ; 9cbf: 2d          -              ; FSCV low:   &2D -> &FF2D (FSC)
+    equb &ff                                                          ; 9cc0: ff          .              ; FSCV high:  &FF
 
 ; ***************************************************************************************
 ; Extended vector table
@@ -13420,7 +13449,6 @@ save pydis_start, pydis_end
 ;     l111d:                                              1
 ;     l1183:                                              1
 ;     l941f:                                              1
-;     l9cb3:                                              1
 ;     l9e48:                                              1
 ;     l9ee4:                                              1
 ;     l9ee5:                                              1
@@ -13781,6 +13809,7 @@ save pydis_start, pydis_end
 ;     system_via_t1c_l:                                   1
 ;     tbl_extended_vectors:                               1
 ;     tbl_forbidden_chars:                                1
+;     tbl_fs_vectors:                                     1
 ;     translate_scsi_error:                               1
 ;     try_star_position_loop:                             1
 ;     tube_byte_transfer:                                 1
@@ -13999,7 +14028,6 @@ save pydis_start, pydis_end
 ;     l11e8
 ;     l11f2
 ;     l941f
-;     l9cb3
 ;     l9dd3
 ;     l9e48
 ;     l9ee4
