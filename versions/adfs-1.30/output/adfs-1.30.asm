@@ -10236,7 +10236,7 @@ la868 = sub_ca867+1
 ; &ba5f referenced 1 time by &ba67
 .loop_cba5f
     pla                                                               ; ba5f: 68          h              ; Pop and discard
-    jmp cbf66                                                         ; ba60: 4c 66 bf    Lf.            ; Jump to error: bad drive number
+    jmp bad_address_error                                             ; ba60: 4c 66 bf    Lf.            ; Jump to error: bad drive number
 
 ; &ba63 referenced 1 time by &ba5d
 .cba63
@@ -10303,7 +10303,7 @@ la868 = sub_ca867+1
 
 ; &bac6 referenced 3 times by &babd, &bd63, &bda6
 .sub_cbac6
-    jsr cbd2b                                                         ; bac6: 20 2b bd     +.            ; Clear seek-complete flag
+    jsr clear_transfer_complete                                       ; bac6: 20 2b bd     +.            ; Clear seek-complete flag
     ldx #0                                                            ; bac9: a2 00       ..             ; X=0: first FDC register
     jsr fdc_write_register_verify                                     ; bacb: 20 09 bb     ..            ; Write to WD1770 register with readback verify
     inx                                                               ; bace: e8          .              ; X=1: track register
@@ -10340,7 +10340,7 @@ la868 = sub_ca867+1
 
 ; &bb06 referenced 2 times by &bafa, &bb02
 .cbb06
-    jmp cbd2b                                                         ; bb06: 4c 2b bd    L+.            ; Clear seek flag and return
+    jmp clear_transfer_complete                                       ; bb06: 4c 2b bd    L+.            ; Clear seek flag and return
 
 ; ***************************************************************************************
 ; Write to WD1770 register with readback verify
@@ -10506,11 +10506,11 @@ la868 = sub_ca867+1
     txa                                                               ; bbc4: 8a          .              ; Get startup byte to A; X=value of start-up option byte
     pha                                                               ; bbc5: 48          H              ; Save startup byte
     and #&20 ; ' '                                                    ; bbc6: 29 20       )              ; Test bit 5 (step rate high)
-    beq cbbcf                                                         ; bbc8: f0 05       ..             ; Clear: fast step rate
+    beq step_rate_fast                                                ; bbc8: f0 05       ..             ; Clear: fast step rate
     lda #3                                                            ; bbca: a9 03       ..             ; Bit 5 set: slow step (rate=3)
     sta wksp_fdc_cmd_step                                             ; bbcc: 8d e8 10    ...            ; Store in FDC command step field
 ; &bbcf referenced 1 time by &bbc8
-.cbbcf
+.step_rate_fast
     pla                                                               ; bbcf: 68          h              ; Restore startup byte
     and #&10                                                          ; bbd0: 29 10       ).             ; Test bit 4 (settle time)
     beq return_43                                                     ; bbd2: f0 05       ..             ; Clear: short settle
@@ -10563,11 +10563,11 @@ la868 = sub_ca867+1
 .copy_code_to_nmi_space
     ldy #&48 ; 'H'                                                    ; bbf1: a0 48       .H             ; Y=&48: copy 73 bytes of NMI code
 ; &bbf3 referenced 1 time by &bbfa
-.loop_cbbf3
+.copy_nmi_code_loop
     lda nmi_code_start,y                                              ; bbf3: b9 79 bc    .y.            ; Read NMI handler byte from ROM
     sta nmi_workspace,y                                               ; bbf6: 99 00 0d    ...            ; Write to NMI workspace
     dey                                                               ; bbf9: 88          .              ; Next byte (loop back)
-    bpl loop_cbbf3                                                    ; bbfa: 10 f7       ..             ; Loop until all bytes copied
+    bpl copy_nmi_code_loop                                            ; bbfa: 10 f7       ..             ; Loop until all bytes copied
     ldy #1                                                            ; bbfc: a0 01       ..             ; Y=1: get memory address low from blk
     lda (zp_b0),y                                                     ; bbfe: b1 b0       ..             ; Get transfer address low byte
     sta nmi_0d0e                                                      ; bc00: 8d 0e 0d    ...            ; Patch NMI handler with address low
@@ -10575,30 +10575,30 @@ la868 = sub_ca867+1
     lda (zp_b0),y                                                     ; bc04: b1 b0       ..             ; Get transfer address high byte
     sta nmi_0d0f                                                      ; bc06: 8d 0f 0d    ...            ; Patch NMI handler with address high
     bit zp_a1                                                         ; bc09: 24 a1       $.             ; Check control flags
-    bmi cbc12                                                         ; bc0b: 30 05       0.             ; Bit 7 set: reading from disc
+    bmi check_tube_for_nmi                                            ; bc0b: 30 05       0.             ; Bit 7 set: reading from disc
     lda #&5f ; '_'                                                    ; bc0d: a9 5f       ._             ; Writing: patch NMI with STA opcode
     sta nmi_0d05                                                      ; bc0f: 8d 05 0d    ...            ; Store at NMI read/write instruction
 ; &bc12 referenced 1 time by &bc0b
-.cbc12
+.check_tube_for_nmi
     bit zp_flags                                                      ; bc12: 24 cd       $.             ; Tube in use?
-    bvc cbc21                                                         ; bc14: 50 0b       P.             ; No, use direct memory NMI handler
+    bvc setup_direct_nmi                                              ; bc14: 50 0b       P.             ; No, use direct memory NMI handler
     lda zp_a1                                                         ; bc16: a5 a1       ..             ; Get control flags for Tube setup
     and #&fd                                                          ; bc18: 29 fd       ).             ; Clear bit 1 (read/write direction)
     sta zp_a1                                                         ; bc1a: 85 a1       ..             ; Store updated control flags
-    jsr sub_cbc2d                                                     ; bc1c: 20 2d bc     -.            ; Set up Tube transfer parameters
-    bmi cbc24                                                         ; bc1f: 30 03       0.             ; Tube read: use read NMI handler
+    jsr setup_tube_nmi_transfer                                       ; bc1c: 20 2d bc     -.            ; Set up Tube transfer parameters
+    bmi store_nmi_completion                                          ; bc1f: 30 03       0.             ; Tube read: use read NMI handler
 ; &bc21 referenced 1 time by &bc14
-.cbc21
-    jsr sub_cbc5c                                                     ; bc21: 20 5c bc     \.            ; Set up direct memory NMI handler
+.setup_direct_nmi
+    jsr setup_direct_write_nmi                                        ; bc21: 20 5c bc     \.            ; Set up direct memory NMI handler
 ; &bc24 referenced 1 time by &bc1f
-.cbc24
+.store_nmi_completion
     sta nmi_0d5f                                                      ; bc24: 8d 5f 0d    ._.            ; Store NMI completion flag
     lda romsel_copy                                                   ; bc27: a5 f4       ..             ; Get current ROM number
     sta nmi_0d34                                                      ; bc29: 8d 34 0d    .4.            ; Patch NMI handler with ROM number
     rts                                                               ; bc2c: 60          `              ; Return
 
 ; &bc2d referenced 1 time by &bc1c
-.sub_cbc2d
+.setup_tube_nmi_transfer
     lda zp_a1                                                         ; bc2d: a5 a1       ..             ; Get control flags
     rol a                                                             ; bc2f: 2a          *              ; Rotate bit 7 into carry
     lda #0                                                            ; bc30: a9 00       ..             ; A=0 (will become direction flag)
@@ -10610,40 +10610,40 @@ la868 = sub_ca867+1
     and #&10                                                          ; bc3c: 29 10       ).             ; Bit 4 set (sector count specified)?
     beq return_44                                                     ; bc3e: f0 0f       ..             ; No, return (single sector)
     bit zp_a1                                                         ; bc40: 24 a1       $.             ; Check read/write direction
-    bmi cbc50                                                         ; bc42: 30 0c       0.             ; Bit 7 set: reading from disc
+    bmi setup_tube_read_nmi                                           ; bc42: 30 0c       0.             ; Bit 7 set: reading from disc
     ldy #7                                                            ; bc44: a0 07       ..             ; Y=7: copy 8 bytes of Tube write NMI
 ; &bc46 referenced 1 time by &bc4d
-.loop_cbc46
+.copy_tube_write_nmi_loop
     lda nmi_tube_write_code,y                                         ; bc46: b9 ed bc    ...            ; Get Tube write NMI handler byte
     sta nmi_0d0a,y                                                    ; bc49: 99 0a 0d    ...            ; Copy to NMI workspace
     dey                                                               ; bc4c: 88          .              ; Next byte
-    bpl loop_cbc46                                                    ; bc4d: 10 f7       ..             ; Loop for 8 bytes
+    bpl copy_tube_write_nmi_loop                                      ; bc4d: 10 f7       ..             ; Loop for 8 bytes
 ; &bc4f referenced 1 time by &bc3e
 .return_44
     rts                                                               ; bc4f: 60          `              ; Return
 
 ; &bc50 referenced 1 time by &bc42
-.cbc50
+.setup_tube_read_nmi
     ldy #7                                                            ; bc50: a0 07       ..             ; Y=7: copy 8 bytes of Tube read NMI
 ; &bc52 referenced 1 time by &bc59
-.loop_cbc52
+.copy_tube_read_nmi_loop
     lda nmi_tube_read_code,y                                          ; bc52: b9 f5 bc    ...            ; Get Tube read NMI handler byte
     sta nmi_0d0a,y                                                    ; bc55: 99 0a 0d    ...            ; Copy to NMI workspace
     dey                                                               ; bc58: 88          .              ; Next byte
-    bpl loop_cbc52                                                    ; bc59: 10 f7       ..             ; Loop for 8 bytes
+    bpl copy_tube_read_nmi_loop                                       ; bc59: 10 f7       ..             ; Loop for 8 bytes
     rts                                                               ; bc5b: 60          `              ; Return
 
 ; &bc5c referenced 1 time by &bc21
-.sub_cbc5c
+.setup_direct_write_nmi
     bit zp_a1                                                         ; bc5c: 24 a1       $.             ; Check read/write direction
     bmi return_45                                                     ; bc5e: 30 18       0.             ; Reading: use default NMI handler
     ldy #&0d                                                          ; bc60: a0 0d       ..             ; Y=&0D: copy 14 bytes of write NMI
 ; &bc62 referenced 1 time by &bc69
-.loop_cbc62
+.copy_write_nmi_loop
     lda nmi_write_code,y                                              ; bc62: b9 df bc    ...            ; Get direct memory write NMI byte
     sta nmi_0d0a,y                                                    ; bc65: 99 0a 0d    ...            ; Copy to NMI workspace
     dey                                                               ; bc68: 88          .              ; Next byte
-    bpl loop_cbc62                                                    ; bc69: 10 f7       ..             ; Loop for 14 bytes
+    bpl copy_write_nmi_loop                                           ; bc69: 10 f7       ..             ; Loop for 14 bytes
     ldy #1                                                            ; bc6b: a0 01       ..             ; Y=1: patch transfer address
     lda (zp_b0),y                                                     ; bc6d: b1 b0       ..             ; Get transfer addr low from block
     sta nmi_0d0b                                                      ; bc6f: 8d 0b 0d    ...            ; Patch NMI handler with addr low
@@ -10743,21 +10743,21 @@ la868 = sub_ca867+1
     rts                                                               ; bd2a: 60          `              ; Return
 
 ; &bd2b referenced 6 times by &bac6, &bb06, &be2b, &be3c, &be54, &be69
-.cbd2b
+.clear_transfer_complete
     ror zp_a2                                                         ; bd2b: 66 a2       f.             ; Clear bit 0 of transfer state
     clc                                                               ; bd2d: 18          .              ; Clear carry
     rol zp_a2                                                         ; bd2e: 26 a2       &.             ; Restore bit 0 cleared
     rts                                                               ; bd30: 60          `              ; Return
 
 ; &bd31 referenced 1 time by &be57
-.sub_cbd31
+.clear_side_flag
     lda zp_a2                                                         ; bd31: a5 a2       ..             ; Get transfer state
     and #&f7                                                          ; bd33: 29 f7       ).             ; Clear bit 3 (side flag)
     sta zp_a2                                                         ; bd35: 85 a2       ..             ; Store updated state
     rts                                                               ; bd37: 60          `              ; Return
 
 ; &bd38 referenced 2 times by &be3f, &be78
-.sub_cbd38
+.clear_seek_flag
     lda zp_a2                                                         ; bd38: a5 a2       ..             ; Get transfer state
     and #&fd                                                          ; bd3a: 29 fd       ).             ; Clear bit 1 (seek flag)
     sta zp_a2                                                         ; bd3c: 85 a2       ..             ; Store updated state
@@ -10789,11 +10789,11 @@ la868 = sub_ca867+1
 ; &bd4c referenced 2 times by &bd10, &be7d
 .apply_head_load_flag
     ror l10e4                                                         ; bd4c: 6e e4 10    n..            ; Rotate head-loaded flag to carry
-    bcc cbd54                                                         ; bd4f: 90 03       ..             ; Not loaded: skip
+    bcc restore_head_flag                                             ; bd4f: 90 03       ..             ; Not loaded: skip
     ora #4                                                            ; bd51: 09 04       ..             ; Set bit 2: head load delay
     clc                                                               ; bd53: 18          .              ; Clear carry (was set by SEC)
 ; &bd54 referenced 1 time by &bd4f
-.cbd54
+.restore_head_flag
     rol l10e4                                                         ; bd54: 2e e4 10    ...            ; Restore head-loaded flag
     rts                                                               ; bd57: 60          `              ; Return
 
@@ -10929,7 +10929,7 @@ la868 = sub_ca867+1
 ; &be29 referenced 1 time by &be25
 .cbe29
     sta zp_a6                                                         ; be29: 85 a6       ..             ; Store FDC command in workspace
-    jsr cbd2b                                                         ; be2b: 20 2b bd     +.            ; Clear seek flag
+    jsr clear_transfer_complete                                       ; be2b: 20 2b bd     +.            ; Clear seek flag
     lda zp_a6                                                         ; be2e: a5 a6       ..             ; Get FDC command
     sta fdc_8271_data_or_1770_command_or_status                       ; be30: 8d 84 fe    ...            ; Issue command to FDC
 ; &be33 referenced 2 times by &be4c, &be67
@@ -10938,8 +10938,8 @@ la868 = sub_ca867+1
     lda zp_a2                                                         ; be36: a5 a2       ..             ; Get transfer state
     and #2                                                            ; be38: 29 02       ).             ; Bit 1 set: need track step
     beq cbe4e                                                         ; be3a: f0 12       ..             ; No step needed: check side switch
-    jsr cbd2b                                                         ; be3c: 20 2b bd     +.            ; Clear seek flag
-    jsr sub_cbd38                                                     ; be3f: 20 38 bd     8.            ; Clear track-step flag
+    jsr clear_transfer_complete                                       ; be3c: 20 2b bd     +.            ; Clear seek flag
+    jsr clear_seek_flag                                               ; be3f: 20 38 bd     8.            ; Clear track-step flag
     lda #&54 ; 'T'                                                    ; be42: a9 54       .T             ; FDC step-in command (&54)
     ora nmi_0d5c                                                      ; be44: 0d 5c 0d    .\.            ; OR in drive select bits
     sta fdc_8271_data_or_1770_command_or_status                       ; be47: 8d 84 fe    ...            ; Issue step-in command
@@ -10950,15 +10950,15 @@ la868 = sub_ca867+1
     lda zp_a2                                                         ; be4e: a5 a2       ..             ; Check bit 3: side switch needed?
     and #8                                                            ; be50: 29 08       ).             ; Check if set
     beq return_46                                                     ; be52: f0 2f       ./             ; Not set: operation complete
-    jsr cbd2b                                                         ; be54: 20 2b bd     +.            ; Clear seek flag for side switch
-    jsr sub_cbd31                                                     ; be57: 20 31 bd     1.            ; Clear side-switch flag
+    jsr clear_transfer_complete                                       ; be54: 20 2b bd     +.            ; Clear seek flag for side switch
+    jsr clear_side_flag                                               ; be57: 20 31 bd     1.            ; Clear side-switch flag
     inc zp_a3                                                         ; be5a: e6 a3       ..             ; Increment track for side 1
     jsr floppy_set_side_1                                             ; be5c: 20 22 bd     ".            ; Select side 1; Select floppy disc side 1
     lda #0                                                            ; be5f: a9 00       ..             ; FDC restore command (seek to trk 0)
     ora nmi_0d5c                                                      ; be61: 0d 5c 0d    .\.            ; OR in drive select
     sta fdc_8271_data_or_1770_command_or_status                       ; be64: 8d 84 fe    ...            ; Issue restore command
     bpl cbe33                                                         ; be67: 10 ca       ..             ; Continue loop (always branches)
-    jsr cbd2b                                                         ; be69: 20 2b bd     +.            ; Clear seek flag
+    jsr clear_transfer_complete                                       ; be69: 20 2b bd     +.            ; Clear seek flag
     jsr sub_cbe84                                                     ; be6c: 20 84 be     ..            ; Check for next track boundary
     txa                                                               ; be6f: 8a          .              ; Transfer result to A
     bne cbe78                                                         ; be70: d0 06       ..             ; Non-zero: more sectors to transfer
@@ -10969,7 +10969,7 @@ la868 = sub_ca867+1
 
 ; &be78 referenced 1 time by &be70
 .cbe78
-    jsr sub_cbd38                                                     ; be78: 20 38 bd     8.            ; Clear track-step flag
+    jsr clear_seek_flag                                               ; be78: 20 38 bd     8.            ; Clear track-step flag
     lda zp_a6                                                         ; be7b: a5 a6       ..             ; Get FDC command
     jsr apply_head_load_flag                                          ; be7d: 20 4c bd     L.            ; Apply head load delay; Apply head load delay to FDC command
     sta fdc_8271_data_or_1770_command_or_status                       ; be80: 8d 84 fe    ...            ; Issue FDC command
@@ -11070,7 +11070,7 @@ la868 = sub_ca867+1
     sta zp_a6                                                         ; bf06: 85 a6       ..             ; Store as drive control byte
     and #&1f                                                          ; bf08: 29 1f       ).             ; Isolate drive number bits
     beq cbf0f                                                         ; bf0a: f0 03       ..             ; Drive 0? OK
-    jmp cbf66                                                         ; bf0c: 4c 66 bf    Lf.            ; Non-zero: bad drive error
+    jmp bad_address_error                                             ; bf0c: 4c 66 bf    Lf.            ; Non-zero: bad drive error
 
 ; &bf0f referenced 1 time by &bf0a
 .cbf0f
@@ -11078,7 +11078,7 @@ la868 = sub_ca867+1
     bvc cbf19                                                         ; bf11: 50 06       P.             ; Bit 6: invalid drive?
     lda #&65 ; 'e'                                                    ; bf13: a9 65       .e             ; Error &65: volume error (bad drive)
     sta zp_a0                                                         ; bf15: 85 a0       ..             ; Store error code
-    bne cbf6a                                                         ; bf17: d0 51       .Q             ; Branch to floppy error; ALWAYS branch
+    bne branch_to_floppy_error                                        ; bf17: d0 51       .Q             ; Branch to floppy error; ALWAYS branch
 
 ; &bf19 referenced 1 time by &bf11
 .cbf19
@@ -11135,20 +11135,20 @@ la868 = sub_ca867+1
     lda (zp_b0),y                                                     ; bf57: b1 b0       ..             ; Get sector address mid byte
     cmp #&0a                                                          ; bf59: c9 0a       ..             ; Sector mid >= &0A (2560 sectors)?
     bcc floppy_calc_track_sector_from_b0_block                        ; bf5b: 90 29       .)             ; Below limit, calculate track/sector; Calculate track/sector from block at &B0
-    bne cbf66                                                         ; bf5d: d0 07       ..             ; Above &0A: definitely out of range
+    bne bad_address_error                                             ; bf5d: d0 07       ..             ; Above &0A: definitely out of range
     iny                                                               ; bf5f: c8          .              ; Exactly &0A: check low byte too; Y=&08
     lda (zp_b0),y                                                     ; bf60: b1 b0       ..             ; Get sector address low byte
     cmp #0                                                            ; bf62: c9 00       ..             ; Low byte < 0? (always false)
-    bcc cbf6c                                                         ; bf64: 90 06       ..             ; Compare always false (A >= 0)
+    bcc check_multi_sector_range                                      ; bf64: 90 06       ..             ; Compare always false (A >= 0)
 ; &bf66 referenced 3 times by &ba60, &bf0c, &bf5d
-.cbf66
+.bad_address_error
     lda #&61 ; 'a'                                                    ; bf66: a9 61       .a             ; Error &61: bad address
     sta zp_a0                                                         ; bf68: 85 a0       ..             ; Store error code
 ; &bf6a referenced 1 time by &bf17
-.cbf6a
+.branch_to_floppy_error
     bne floppy_error                                                  ; bf6a: d0 42       .B             ; Branch to floppy error handler; Handle floppy disc error
 ; &bf6c referenced 1 time by &bf64
-.cbf6c
+.check_multi_sector_range
     lda zp_a1                                                         ; bf6c: a5 a1       ..             ; Check if multi-sector operation
     and #&10                                                          ; bf6e: 29 10       ).             ; Bit 4 set: sector count specified?
     beq floppy_calc_track_sector_from_b0_block                        ; bf70: f0 14       ..             ; No, just calculate track/sector; Calculate track/sector from block at &B0
@@ -11157,11 +11157,11 @@ la868 = sub_ca867+1
     dey                                                               ; bf76: 88          .              ; Y=8: back to sector low byte; Y=&08
     clc                                                               ; bf77: 18          .              ; Clear carry for addition
     adc (zp_b0),y                                                     ; bf78: 71 b0       q.             ; Add sector count to start sector
-    bcs cbf80                                                         ; bf7a: b0 04       ..             ; Carry set: overflow, error
+    bcs volume_error                                                  ; bf7a: b0 04       ..             ; Carry set: overflow, error
     cmp #1                                                            ; bf7c: c9 01       ..             ; End sector < 1? (no sectors)
     bcc floppy_calc_track_sector_from_b0_block                        ; bf7e: 90 06       ..             ; OK, calculate track/sector; Calculate track/sector from block at &B0
 ; &bf80 referenced 1 time by &bf7a
-.cbf80
+.volume_error
     lda #&63 ; 'c'                                                    ; bf80: a9 63       .c             ; Error &63: volume error
     sta zp_a0                                                         ; bf82: 85 a0       ..             ; Store error code
     bne floppy_error                                                  ; bf84: d0 28       .(             ; Branch to floppy error handler; Handle floppy disc error; ALWAYS branch
@@ -11459,8 +11459,8 @@ save pydis_start, pydis_end
 ;     c8d69:                                              6
 ;     cb24d:                                              6
 ;     cb8db:                                              6
-;     cbd2b:                                              6
 ;     check_set_channel_y:                                6
+;     clear_transfer_complete:                            6
 ;     command_exec_xy:                                    6
 ;     floppy_wait_nmi_finish:                             6
 ;     generate_error:                                     6
@@ -11567,6 +11567,7 @@ save pydis_start, pydis_end
 ;     wksp_stack_save:                                    4
 ;     zp_c4:                                              4
 ;     zp_c9:                                              4
+;     bad_address_error:                                  3
 ;     c80af:                                              3
 ;     c8282:                                              3
 ;     c8787:                                              3
@@ -11590,7 +11591,6 @@ save pydis_start, pydis_end
 ;     cb742:                                              3
 ;     cb75d:                                              3
 ;     cb9f3:                                              3
-;     cbf66:                                              3
 ;     check_special_dir_char:                             3
 ;     claim_tube:                                         3
 ;     dir_buffer:                                         3
@@ -11789,6 +11789,7 @@ save pydis_start, pydis_end
 ;     check_filename_length:                              2
 ;     check_open:                                         2
 ;     check_wksp_checksum:                                2
+;     clear_seek_flag:                                    2
 ;     compare_filename:                                   2
 ;     conditional_info_display:                           2
 ;     dec_number_error_100_y:                             2
@@ -11894,7 +11895,6 @@ save pydis_start, pydis_end
 ;     sub_cb8fc:                                          2
 ;     sub_cbb92:                                          2
 ;     sub_cbcfd:                                          2
-;     sub_cbd38:                                          2
 ;     tube_start_xfer_sei:                                2
 ;     wksp:                                               2
 ;     wksp_100d:                                          2
@@ -11905,6 +11905,7 @@ save pydis_start, pydis_end
 ;     zp_bf:                                              2
 ;     zp_c7:                                              2
 ;     advance_and_continue:                               1
+;     branch_to_floppy_error:                             1
 ;     c8111:                                              1
 ;     c8114:                                              1
 ;     c8129:                                              1
@@ -12231,14 +12232,8 @@ save pydis_start, pydis_end
 ;     cbb5f:                                              1
 ;     cbb63:                                              1
 ;     cbb89:                                              1
-;     cbbcf:                                              1
-;     cbc12:                                              1
-;     cbc21:                                              1
-;     cbc24:                                              1
-;     cbc50:                                              1
 ;     cbcc8:                                              1
 ;     cbd0e:                                              1
-;     cbd54:                                              1
 ;     cbd97:                                              1
 ;     cbda2:                                              1
 ;     cbdc5:                                              1
@@ -12264,9 +12259,6 @@ save pydis_start, pydis_end
 ;     cbf25:                                              1
 ;     cbf47:                                              1
 ;     cbf51:                                              1
-;     cbf6a:                                              1
-;     cbf6c:                                              1
-;     cbf80:                                              1
 ;     cbfcd:                                              1
 ;     cbfd8:                                              1
 ;     cbfe0:                                              1
@@ -12274,9 +12266,12 @@ save pydis_start, pydis_end
 ;     check_adfs_prefix:                                  1
 ;     check_at_sign:                                      1
 ;     check_field_boundary:                               1
+;     check_multi_sector_range:                           1
+;     check_tube_for_nmi:                                 1
 ;     check_workspace_claimed:                            1
 ;     claim_nmi:                                          1
 ;     clear_accumulators_loop:                            1
+;     clear_side_flag:                                    1
 ;     command_exec_floppy_op:                             1
 ;     command_exec_retry_loop:                            1
 ;     copy_code_to_nmi_space:                             1
@@ -12285,9 +12280,13 @@ save pydis_start, pydis_end
 ;     copy_dir_name_loop:                                 1
 ;     copy_lib_name_loop:                                 1
 ;     copy_lib_sector_loop:                               1
+;     copy_nmi_code_loop:                                 1
 ;     copy_prev_dir_name_loop:                            1
 ;     copy_result_loop:                                   1
 ;     copy_tube_addr_loop:                                1
+;     copy_tube_read_nmi_loop:                            1
+;     copy_tube_write_nmi_loop:                           1
+;     copy_write_nmi_loop:                                1
 ;     default_workspace_data:                             1
 ;     dir2_master_sequence:                               1
 ;     dir2_name:                                          1
@@ -12605,10 +12604,6 @@ save pydis_start, pydis_end
 ;     loop_cb8ba:                                         1
 ;     loop_cb954:                                         1
 ;     loop_cba5f:                                         1
-;     loop_cbbf3:                                         1
-;     loop_cbc46:                                         1
-;     loop_cbc52:                                         1
-;     loop_cbc62:                                         1
 ;     loop_cbd85:                                         1
 ;     loop_cbd89:                                         1
 ;     loop_cbd9a:                                         1
@@ -12638,6 +12633,7 @@ save pydis_start, pydis_end
 ;     ra_buffer_5:                                        1
 ;     release_nmi:                                        1
 ;     restore_csd_sector_loop:                            1
+;     restore_head_flag:                                  1
 ;     return_1:                                           1
 ;     return_12:                                          1
 ;     return_13:                                          1
@@ -12685,12 +12681,18 @@ save pydis_start, pydis_end
 ;     service_handler_0:                                  1
 ;     service_handler_1:                                  1
 ;     set_matched_flag:                                   1
+;     setup_direct_nmi:                                   1
+;     setup_direct_write_nmi:                             1
+;     setup_tube_nmi_transfer:                            1
+;     setup_tube_read_nmi:                                1
 ;     skip_leading_zero:                                  1
 ;     star_dir:                                           1
 ;     star_info:                                          1
 ;     star_remove:                                        1
+;     step_rate_fast:                                     1
 ;     store_csd_drive:                                    1
 ;     store_digit:                                        1
+;     store_nmi_completion:                               1
 ;     str_at:                                             1
 ;     str_on_channel:                                     1
 ;     str_yes:                                            1
@@ -12717,9 +12719,6 @@ save pydis_start, pydis_end
 ;     sub_cb468:                                          1
 ;     sub_cb47c:                                          1
 ;     sub_cba0c:                                          1
-;     sub_cbc2d:                                          1
-;     sub_cbc5c:                                          1
-;     sub_cbd31:                                          1
 ;     sub_cbda6:                                          1
 ;     sub_cbe84:                                          1
 ;     swap_csd_to_lib_loop:                               1
@@ -12727,6 +12726,7 @@ save pydis_start, pydis_end
 ;     system_via_t1c_l:                                   1
 ;     tbl_extended_vectors:                               1
 ;     tube_start_xfer:                                    1
+;     volume_error:                                       1
 ;     wait_bus_free_loop:                                 1
 ;     wait_target_bsy_loop:                               1
 ;     wksp_1008:                                          1
@@ -13227,16 +13227,9 @@ save pydis_start, pydis_end
 ;     cbb6a
 ;     cbb82
 ;     cbb89
-;     cbbcf
-;     cbc12
-;     cbc21
-;     cbc24
-;     cbc50
 ;     cbcc8
 ;     cbd0e
 ;     cbd10
-;     cbd2b
-;     cbd54
 ;     cbd97
 ;     cbda2
 ;     cbdc5
@@ -13265,10 +13258,6 @@ save pydis_start, pydis_end
 ;     cbf25
 ;     cbf47
 ;     cbf51
-;     cbf66
-;     cbf6a
-;     cbf6c
-;     cbf80
 ;     cbfcd
 ;     cbfd8
 ;     cbfe0
@@ -13669,10 +13658,6 @@ save pydis_start, pydis_end
 ;     loop_cb8ba
 ;     loop_cb954
 ;     loop_cba5f
-;     loop_cbbf3
-;     loop_cbc46
-;     loop_cbc52
-;     loop_cbc62
 ;     loop_cbd85
 ;     loop_cbd89
 ;     loop_cbd9a
@@ -13822,11 +13807,7 @@ save pydis_start, pydis_end
 ;     sub_cba0c
 ;     sub_cbac6
 ;     sub_cbb92
-;     sub_cbc2d
-;     sub_cbc5c
 ;     sub_cbcfd
-;     sub_cbd31
-;     sub_cbd38
 ;     sub_cbda6
 ;     sub_cbe84
 

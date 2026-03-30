@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 35 / 115
-- Auto-labels renamed: 46 / 940
+- Reviewed: 43 / 115
+- Auto-labels renamed: 65 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -57,15 +57,15 @@ before their callers.
 | &A816 | load_fsm | 3 | 0 | REVIEWED |
 | &ACFE | check_set_channel_y | 13 | 2 | REVIEWED |
 | &B1B3 | star_close | 2 | 0 | REVIEWED |
-| &BB09 | fdc_write_register_verify | 5 | 1 | |
-| &BBB4 | floppy_get_step_rate | 19 | 4 | |
-| &BBDA | claim_nmi | 6 | 0 | |
-| &BBE7 | release_nmi | 4 | 0 | |
-| &BBF1 | copy_code_to_nmi_space | 65 | 7 | |
-| &BD22 | floppy_set_side_1 | 16 | 3 | |
-| &BD4C | apply_head_load_flag | 6 | 1 | |
-| &BF55 | floppy_calc_track_sector_from_block_check_range | 26 | 4 | |
-| &BFA2 | xa_div_16_to_ya | 8 | 1 | |
+| &BB09 | fdc_write_register_verify | 5 | 1 | REVIEWED |
+| &BBB4 | floppy_get_step_rate | 19 | 4 | REVIEWED |
+| &BBDA | claim_nmi | 6 | 0 | REVIEWED |
+| &BBE7 | release_nmi | 4 | 0 | REVIEWED |
+| &BBF1 | copy_code_to_nmi_space | 65 | 7 | REVIEWED |
+| &BD22 | floppy_set_side_1 | 16 | 3 | REVIEWED |
+| &BD4C | apply_head_load_flag | 6 | 1 | REVIEWED |
+| &BF55 | floppy_calc_track_sector_from_block_check_range | 26 | 4 | REVIEWED |
+| &BFA2 | xa_div_16_to_ya | 8 | 1 | REVIEWED |
 
 ### Depth 1 (24 subs)
 

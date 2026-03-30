@@ -2854,6 +2854,7 @@ label(0xA4E5, "enter_quoted_string")
 label(0xA4E7, "advance_and_continue")
 label(0xA4EA, "end_of_spaces")
 label(0xA500, "parse_drive_specifier")
+label(0xBBCF, "step_rate_fast")
 label(0xBBDA, "claim_nmi")
 subroutine(0xBBDA, "claim_nmi",
     title="Claim NMI via service call 12",
@@ -2975,6 +2976,19 @@ comment(0xBD46, "Issue restore command to WD1770", inline=True)
 comment(0xBD49, "Wait for command to complete", inline=True)
 
 # sub_cbd4c - apply head load delay flag
+label(0xBBF3, "copy_nmi_code_loop")
+label(0xBC12, "check_tube_for_nmi")
+label(0xBC21, "setup_direct_nmi")
+label(0xBC24, "store_nmi_completion")
+label(0xBC2D, "setup_tube_nmi_transfer")
+label(0xBC46, "copy_tube_write_nmi_loop")
+label(0xBC50, "setup_tube_read_nmi")
+label(0xBC52, "copy_tube_read_nmi_loop")
+label(0xBC5C, "setup_direct_write_nmi")
+label(0xBC62, "copy_write_nmi_loop")
+label(0xBD2B, "clear_transfer_complete")
+label(0xBD31, "clear_side_flag")
+label(0xBD38, "clear_seek_flag")
 label(0xBD4C, "apply_head_load_flag")
 subroutine(0xBD4C, "apply_head_load_flag",
     title="Apply head load delay to FDC command",
@@ -2990,6 +3004,7 @@ comment(0xBD53, "Clear carry (was set by SEC)", inline=True)
 comment(0xBD54, "Restore head-loaded flag", inline=True)
 
 # sub_cbd58 - format track operation
+label(0xBD54, "restore_head_flag")
 label(0xBD58, "floppy_format_track")
 subroutine(0xBD58, "floppy_format_track",
     title="Format a floppy disc track",
@@ -6597,6 +6612,10 @@ label(0x9A78, "boot_data")
 label(0x9A7B, "str_l_boot")
 comment(0x9A7B, "L.$.!BOOT (load boot file)", inline=True)
 label(0x9A85, "str_e_boot")
+label(0xBF66, "bad_address_error")
+label(0xBF6A, "branch_to_floppy_error")
+label(0xBF6C, "check_multi_sector_range")
+label(0xBF80, "volume_error")
 comment(0x9A85, "E.$.!BOOT (exec boot file)", inline=True)
 
 # service_call_handler (&9AA3)
