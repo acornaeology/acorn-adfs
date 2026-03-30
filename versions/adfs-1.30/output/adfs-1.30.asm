@@ -12087,7 +12087,21 @@ la868 = check_dest_terminator+1
     sta fdc_8271_data_or_1770_command_or_status                       ; bd13: 8d 84 fe    ...            ; Issue FDC command
     jmp floppy_wait_nmi_finish                                        ; bd16: 4c c2 bc    L..            ; Wait for floppy NMI transfer to complete
 
-    equb &ad, &5e, &0d, &29, &fb, &8d, &5e, &0d, &60                  ; bd19: ad 5e 0d... .^.
+; ***************************************************************************************
+; Unused: select floppy disc side 0
+; 
+; Unreferenced routine that clears bit 2 of the NMI drive
+; control byte at &0D5E, selecting side 0 of a double-sided
+; floppy disc. The inverse of floppy_set_side_1 which sets
+; bit 2. Dead code — side 0 is the default so no explicit
+; selection is needed.
+; 
+; ***************************************************************************************
+.floppy_set_side_0_unused
+    lda nmi_0d5e                                                      ; bd19: ad 5e 0d    .^.            ; Get NMI drive control byte
+    and #&fb                                                          ; bd1c: 29 fb       ).             ; Clear bit 2 (select side 0)
+    sta nmi_0d5e                                                      ; bd1e: 8d 5e 0d    .^.            ; Store updated control byte
+    rts                                                               ; bd21: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Select floppy disc side 1
@@ -12765,6 +12779,7 @@ save pydis_start, pydis_end
 ;     l109d:                                             11
 ;     l10a8:                                             11
 ;     l10b4:                                             11
+;     nmi_0d5e:                                          11
 ;     skip_spaces:                                       11
 ;     zp_buf_dest_lo:                                    11
 ;     l1098:                                             10
@@ -12784,7 +12799,6 @@ save pydis_start, pydis_end
 ;     l1096:                                              9
 ;     l1097:                                              9
 ;     nmi_0d58:                                           9
-;     nmi_0d5e:                                           9
 ;     output_byte_to_buffer:                              9
 ;     print_hex_byte:                                     9
 ;     tube_data_register_3:                               9
@@ -14359,11 +14373,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 15100 bytes (92%)
-;     Data                     = 1284 bytes (8%)
+;     Code                     = 15109 bytes (92%)
+;     Data                     = 1275 bytes (8%)
 ;
-;     Number of instructions   = 7031
-;     Number of data bytes     = 322 bytes
+;     Number of instructions   = 7035
+;     Number of data bytes     = 313 bytes
 ;     Number of data words     = 44 bytes
 ;     Number of string bytes   = 918 bytes
 ;     Number of strings        = 106

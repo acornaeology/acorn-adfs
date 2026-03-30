@@ -739,6 +739,12 @@ byte(0xBCF8, 3)
 comment(0xBCF8, "&0D0D: STA &FEE5 (write to Tube R3)", inline=True)
 byte(0xBCFB, 2)
 comment(0xBCFB, "&0D10: BCS +6 (branch to completion)", inline=True)
+label(0xBD19, "floppy_set_side_0_unused")
+entry(0xBD19)
+comment(0xBD19, "Get NMI drive control byte", inline=True)
+comment(0xBD1C, "Clear bit 2 (select side 0)", inline=True)
+comment(0xBD1E, "Store updated control byte", inline=True)
+comment(0xBD21, "Return", inline=True)
 entry(0xBD22)
 label(0xBD22, "floppy_set_side_1")
 entry(0xBD3F)
@@ -11012,6 +11018,16 @@ subroutine(0xBCC2, "floppy_wait_nmi_finish",
     description="""\
 Wait for the WD1770 floppy disc controller to complete
 a data transfer. Polls the controller status register.
+""")
+
+subroutine(0xBD19, "floppy_set_side_0_unused",
+    title="Unused: select floppy disc side 0",
+    description="""\
+Unreferenced routine that clears bit 2 of the NMI drive
+control byte at &0D5E, selecting side 0 of a double-sided
+floppy disc. The inverse of floppy_set_side_1 which sets
+bit 2. Dead code — side 0 is the default so no explicit
+selection is needed.
 """)
 
 subroutine(0xBD22, "floppy_set_side_1",
