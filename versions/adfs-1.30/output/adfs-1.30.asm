@@ -3631,7 +3631,7 @@ oscli                                           = &fff7
     lda #&ff                                                          ; 913c: a9 ff       ..             ; Mark workspace as not saved
     sta l102e                                                         ; 913e: 8d 2e 10    ...            ; Mark alternative workspace as unset
     sta wksp_saved_drive                                              ; 9141: 8d 2f 10    ./.            ; Mark saved drive as unset
-    jsr c947f                                                         ; 9144: 20 7f 94     ..            ; Load the subdirectory to check
+    jsr parse_path_and_load                                           ; 9144: 20 7f 94     ..            ; Load the subdirectory to check
     lda dir_first_entry                                               ; 9147: ad 05 12    ...            ; Is first entry empty (dir empty)?
     php                                                               ; 914a: 08          .              ; Save result (empty flag)
     jsr c89d3                                                         ; 914b: 20 d3 89     ..            ; Restore CSD and directory
@@ -4145,60 +4145,60 @@ oscli                                           = &fff7
     ldy #0                                                            ; 9471: a0 00       ..             ; Y=0: check for argument
     lda (zp_b4),y                                                     ; 9473: b1 b4       ..             ; Get first char of argument
     cmp #&21 ; '!'                                                    ; 9475: c9 21       .!             ; Is it a printable char?
-    bcs c947f                                                         ; 9477: b0 06       ..             ; Yes, parse the path
+    bcs parse_path_and_load                                           ; 9477: b0 06       ..             ; Yes, parse the path
     ldx wksp_current_drive                                            ; 9479: ae 17 11    ...            ; No arg: check drive is initialised
     inx                                                               ; 947c: e8          .              ; Drive = &FF (uninitialised)?
     bne return_20                                                     ; 947d: d0 f1       ..             ; Drive OK, return
 ; &947f referenced 8 times by &9144, &9477, &953f, &98c9, &991a, &a444, &a6ab, &a86f
-.c947f
+.parse_path_and_load
     jsr sub_c8851                                                     ; 947f: 20 51 88     Q.            ; Parse path and load directory
-    bne c9492                                                         ; 9482: d0 0e       ..             ; Simple path or '^'/'@'?
+    bne check_special_dir                                             ; 9482: d0 0e       ..             ; Simple path or '^'/'@'?
 ; &9484 referenced 1 time by &948d
-.loop_c9484
+.search_for_dir_entry
     ldy #3                                                            ; 9484: a0 03       ..             ; Y=3: check entry access byte
     lda (zp_b6),y                                                     ; 9486: b1 b6       ..             ; Get access/attribute byte
-    bmi c9497                                                         ; 9488: 30 0d       0.             ; Bit 7 set: is a directory, found it
+    bmi prepare_dir_read                                              ; 9488: 30 0d       0.             ; Bit 7 set: is a directory, found it
     jsr c895e                                                         ; 948a: 20 5e 89     ^.            ; Not a directory, search deeper
-    beq loop_c9484                                                    ; 948d: f0 f5       ..             ; Found directory: loop complete
+    beq search_for_dir_entry                                          ; 948d: f0 f5       ..             ; Found directory: loop complete
 ; &948f referenced 1 time by &9495
-.loop_c948f
+.path_not_found
     jmp c8bd7                                                         ; 948f: 4c d7 8b    L..            ; Not found: raise error
 
 ; &9492 referenced 1 time by &9482
-.c9492
+.check_special_dir
     jsr check_special_dir_char                                        ; 9492: 20 4f 94     O.            ; Check for '^' or '@' specifier; Check for ^ (parent) or @ (current) directory
-    bne loop_c948f                                                    ; 9495: d0 f8       ..             ; Continue to next path component
+    bne path_not_found                                                ; 9495: d0 f8       ..             ; Continue to next path component
 ; &9497 referenced 1 time by &9488
-.c9497
+.prepare_dir_read
     ldy l102e                                                         ; 9497: ac 2e 10    ...            ; Set up workspace for directory read
     iny                                                               ; 949a: c8          .              ; Increment: was &FF, now 0
-    bne c94a8                                                         ; 949b: d0 0b       ..             ; Non-zero: skip CSD copy
+    bne copy_disc_op_template                                         ; 949b: d0 0b       ..             ; Non-zero: skip CSD copy
     ldy #2                                                            ; 949d: a0 02       ..             ; Copy CSD sector to workspace
 ; &949f referenced 1 time by &94a6
-.loop_c949f
+.copy_csd_sector_to_wksp
     lda l1114,y                                                       ; 949f: b9 14 11    ...            ; Get CSD sector byte
     sta wksp_csd_drive_sector,y                                       ; 94a2: 99 2c 10    .,.            ; Copy to CSD workspace
     dey                                                               ; 94a5: 88          .              ; Next byte
-    bpl loop_c949f                                                    ; 94a6: 10 f7       ..             ; Loop for 3 bytes
+    bpl copy_csd_sector_to_wksp                                       ; 94a6: 10 f7       ..             ; Loop for 3 bytes
 ; &94a8 referenced 1 time by &949b
-.c94a8
+.copy_disc_op_template
     ldx #&0a                                                          ; 94a8: a2 0a       ..             ; X=&0A: copy 11-byte disc op block
 ; &94aa referenced 1 time by &94b1
-.loop_c94aa
+.copy_template_loop
     lda l8817,x                                                       ; 94aa: bd 17 88    ...            ; Copy template control block
     sta wksp_disc_op_result,x                                         ; 94ad: 9d 15 10    ...            ; Copy template byte to workspace
     dex                                                               ; 94b0: ca          .              ; Next byte
-    bpl loop_c94aa                                                    ; 94b1: 10 f7       ..             ; Loop for 11 bytes
+    bpl copy_template_loop                                            ; 94b1: 10 f7       ..             ; Loop for 11 bytes
     ldx #2                                                            ; 94b3: a2 02       ..             ; X=2: copy 3 sector address bytes
     ldy #&16                                                          ; 94b5: a0 16       ..             ; Y=&16: offset of start sector in entry
 ; &94b7 referenced 1 time by &94c1
-.loop_c94b7
+.copy_entry_sector_loop
     lda (zp_b6),y                                                     ; 94b7: b1 b6       ..             ; Get sector byte from directory entry
     sta wksp_disc_op_sector,x                                         ; 94b9: 9d 1b 10    ...            ; Store in disc op control block
     sta l10fe,y                                                       ; 94bc: 99 fe 10    ...            ; Also store in workspace
     iny                                                               ; 94bf: c8          .              ; Next sector address byte
     dex                                                               ; 94c0: ca          .              ; Decrement counter
-    bpl loop_c94b7                                                    ; 94c1: 10 f4       ..             ; Loop for 3 bytes
+    bpl copy_entry_sector_loop                                        ; 94c1: 10 f4       ..             ; Loop for 3 bytes
     lda zp_b7                                                         ; 94c3: a5 b7       ..             ; Check if this is an *INFO call
     cmp #&94                                                          ; 94c5: c9 94       ..             ; zp_b7 = &94 means *INFO context
     beq return_21                                                     ; 94c7: f0 37       .7             ; Yes, return without reading dir
@@ -4299,7 +4299,7 @@ oscli                                           = &fff7
 ; ***************************************************************************************
 ; &953f referenced 1 time by &a176
 .star_dir
-    jsr c947f                                                         ; 953f: 20 7f 94     ..            ; Parse path and load target dir
+    jsr parse_path_and_load                                           ; 953f: 20 7f 94     ..            ; Parse path and load target dir
     ldy #9                                                            ; 9542: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &9544 referenced 1 time by &954b
 .copy_dir_name_loop
@@ -4822,7 +4822,7 @@ oscli                                           = &fff7
     sta zp_b5                                                         ; 98c7: 85 b5       ..             ; Store in (&B5)
 ; &98c9 referenced 1 time by &990c
 .c98c9
-    jsr c947f                                                         ; 98c9: 20 7f 94     ..            ; Load root directory
+    jsr parse_path_and_load                                           ; 98c9: 20 7f 94     ..            ; Load root directory
     ldy #2                                                            ; 98cc: a0 02       ..             ; Y=2: copy parent sector
 ; &98ce referenced 1 time by &98d5
 .loop_c98ce
@@ -4869,7 +4869,7 @@ oscli                                           = &fff7
     sta zp_b4                                                         ; 9914: 85 b4       ..             ; Store path address low
     lda #&99                                                          ; 9916: a9 99       ..             ; Path page &99
     sta zp_b5                                                         ; 9918: 85 b5       ..             ; Store path address high
-    jsr c947f                                                         ; 991a: 20 7f 94     ..            ; Load parent directory
+    jsr parse_path_and_load                                           ; 991a: 20 7f 94     ..            ; Load parent directory
     ldy #0                                                            ; 991d: a0 00       ..             ; Y=0: pop entry address from stack
     dec zp_c0                                                         ; 991f: c6 c0       ..             ; Decrement stack pointer
     lda (zp_c0),y                                                     ; 9921: b1 c0       ..             ; Get entry pointer high
@@ -5869,7 +5869,7 @@ l9dd3 = sub_c9dd2+1
 ; &9e6d referenced 1 time by &9e64
 .fscv_dispatch_lo
     equb <(sub_c9fdd-1)                                               ; 9e6d: dc          .
-    equb <(sub_cad3a-1)                                               ; 9e6e: 39          9
+    equb <(check_eof_for_handle-1)                                    ; 9e6e: 39          9
     equb <(star_run-1)                                                ; 9e6f: 98          .
     equb <(star_cmd-1)                                                ; 9e70: 7e          ~
     equb <(star_run-1)                                                ; 9e71: 98          .
@@ -5880,7 +5880,7 @@ l9dd3 = sub_c9dd2+1
 ; &9e76 referenced 1 time by &9e60
 .fscv_dispatch_hi
     equb >(sub_c9fdd-1)                                               ; 9e76: 9f          .
-    equb >(sub_cad3a-1)                                               ; 9e77: ad          .
+    equb >(check_eof_for_handle-1)                                    ; 9e77: ad          .
     equb >(star_run-1)                                                ; 9e78: a3          .
     equb >(star_cmd-1)                                                ; 9e79: 9e          .
     equb >(star_run-1)                                                ; 9e7a: a3          .
@@ -6748,7 +6748,7 @@ la154 = sub_ca153+1
 ; 
 ; ***************************************************************************************
 .star_lib
-    jsr c947f                                                         ; a444: 20 7f 94     ..            ; Parse path and load target dir
+    jsr parse_path_and_load                                           ; a444: 20 7f 94     ..            ; Parse path and load target dir
     ldy #9                                                            ; a447: a0 09       ..             ; Y=9: copy 10-byte directory name
 ; &a449 referenced 1 time by &a450
 .copy_lib_name_loop
@@ -7233,7 +7233,7 @@ la154 = sub_ca153+1
     sta zp_b4                                                         ; a6a5: 85 b4       ..             ; Low byte = &74
     lda #&10                                                          ; a6a7: a9 10       ..             ; Page = &10
     sta zp_b5                                                         ; a6a9: 85 b5       ..             ; High byte
-    jsr c947f                                                         ; a6ab: 20 7f 94     ..            ; Load the moved directory
+    jsr parse_path_and_load                                           ; a6ab: 20 7f 94     ..            ; Load the moved directory
     ldy #9                                                            ; a6ae: a0 09       ..             ; Y=9: copy name to dir header
 ; &a6b0 referenced 1 time by &a6b7
 .loop_ca6b0
@@ -7576,7 +7576,7 @@ la868 = sub_ca867+1
 
 ; &a86f referenced 1 time by &a86a
 .ca86f
-    jsr c947f                                                         ; a86f: 20 7f 94     ..            ; Load destination directory
+    jsr parse_path_and_load                                           ; a86f: 20 7f 94     ..            ; Load destination directory
     jsr sub_c8fea                                                     ; a872: 20 ea 8f     ..            ; Mark destination dir as modified
     ldy #3                                                            ; a875: a0 03       ..             ; Y=3: save dest dir sector
 ; &a877 referenced 1 time by &a87e
@@ -8317,26 +8317,26 @@ la868 = sub_ca867+1
 .return_38
     rts                                                               ; ad39: 60          `              ; Return (EXT == PTR: C clear)
 
-.sub_cad3a
+.check_eof_for_handle
     ldy zp_b4                                                         ; ad3a: a4 b4       ..             ; Get file handle from (&B4)
     jsr check_set_channel_y                                           ; ad3c: 20 fe ac     ..            ; Validate and set channel number from Y
     ror a                                                             ; ad3f: 6a          j              ; Rotate flags bit 0 into carry
-    bcs cad4b                                                         ; ad40: b0 09       ..             ; Carry set: skip flush
+    bcs return_eof_status                                             ; ad40: b0 09       ..             ; Carry set: skip flush
     jsr sub_ca749                                                     ; ad42: 20 49 a7     I.            ; Ensure workspace is valid
     jsr sub_cb18c                                                     ; ad45: 20 8c b1     ..            ; Flush channel buffer if dirty
     jsr compare_ext_to_ptr                                            ; ad48: 20 16 ad     ..            ; Compare file EXT to PTR
 ; &ad4b referenced 1 time by &ad40
-.cad4b
+.return_eof_status
     ldx #0                                                            ; ad4b: a2 00       ..             ; X=0: PTR == EXT result
-    bcs cad50                                                         ; ad4d: b0 01       ..             ; Carry set: PTR == EXT
+    bcs return_eof_result                                             ; ad4d: b0 01       ..             ; Carry set: PTR == EXT
     dex                                                               ; ad4f: ca          .              ; X=&ff
 ; &ad50 referenced 1 time by &ad4d
-.cad50
+.return_eof_result
     ldy zp_b5                                                         ; ad50: a4 b5       ..             ; Restore Y from (&B5)
     rts                                                               ; ad52: 60          `              ; Return
 
 ; &ad53 referenced 2 times by &ad6d, &ad74
-.cad53
+.eof_error
     lda wksp_ch_flags,x                                               ; ad53: bd ac 11    ...            ; Clear EOF and buffer dirty flags
     and #&c8                                                          ; ad56: 29 c8       ).             ; Keep bits 7,6,3 (writeable,open)
     sta wksp_ch_flags,x                                               ; ad58: 9d ac 11    ...            ; Store updated flags
@@ -8356,10 +8356,10 @@ la868 = sub_ca867+1
     ror a                                                             ; ad68: 6a          j              ; Rotate channel flags bit 0 to C
     bcs cad8d                                                         ; ad69: b0 22       ."             ; Bit 0 set: file is readable
     and #4                                                            ; ad6b: 29 04       ).             ; Check bit 2 (at EOF flag)
-    bne cad53                                                         ; ad6d: d0 e4       ..             ; At EOF: raise EOF error
+    bne eof_error                                                     ; ad6d: d0 e4       ..             ; At EOF: raise EOF error
     jsr compare_ext_to_ptr                                            ; ad6f: 20 16 ad     ..            ; Compare EXT with PTR; Compare file EXT to PTR
     bcs cad8d                                                         ; ad72: b0 19       ..             ; EXT != PTR: not at EOF, read byte
-    bne cad53                                                         ; ad74: d0 dd       ..             ; EXT == PTR and EOF: raise error
+    bne eof_error                                                     ; ad74: d0 dd       ..             ; EXT == PTR and EOF: raise error
     jsr sub_ca749                                                     ; ad76: 20 49 a7     I.            ; Save registers for restore
     ldx zp_channel_offset                                             ; ad79: a6 cf       ..             ; Get channel index
     lda wksp_ch_flags,x                                               ; ad7b: bd ac 11    ...            ; Get channel flags
@@ -11226,38 +11226,38 @@ la868 = sub_ca867+1
     txs                                                               ; bfb1: 9a          .              ; Restore stack from saved pointer
     lda l10e0                                                         ; bfb2: ad e0 10    ...            ; Check if NMI was in use
     and #&20 ; ' '                                                    ; bfb5: 29 20       )              ; Bit 5: NMI active?
-    beq cbfe0                                                         ; bfb7: f0 27       .'             ; No NMI, skip to Tube release
+    beq release_tube_after_floppy                                     ; bfb7: f0 27       .'             ; No NMI, skip to Tube release
     lda nmi_0d5e                                                      ; bfb9: ad 5e 0d    .^.            ; Get NMI status byte
     ror a                                                             ; bfbc: 6a          j              ; Rotate bit 0 into carry
     lda zp_a3                                                         ; bfbd: a5 a3       ..             ; Get partial transfer count
-    bcc cbfcd                                                         ; bfbf: 90 0c       ..             ; C=0: store as second count
+    bcc store_second_partial                                          ; bfbf: 90 0c       ..             ; C=0: store as second count
     sta l10e5                                                         ; bfc1: 8d e5 10    ...            ; C=1: store as first count
     rol l10e4                                                         ; bfc4: 2e e4 10    ...            ; Set bit 6 of transfer flag
     clc                                                               ; bfc7: 18          .              ; Clear carry
     ror l10e4                                                         ; bfc8: 6e e4 10    n..            ; Clear bit 0 of transfer flag
-    bcs cbfd8                                                         ; bfcb: b0 0b       ..             ; Branch if first partial sector
+    bcs save_error_and_release_nmi                                    ; bfcb: b0 0b       ..             ; Branch if first partial sector
 ; &bfcd referenced 1 time by &bfbf
-.cbfcd
+.store_second_partial
     sta l10e6                                                         ; bfcd: 8d e6 10    ...            ; Store as second count
     lda l10e4                                                         ; bfd0: ad e4 10    ...            ; Get transfer state flags
     and #&bf                                                          ; bfd3: 29 bf       ).             ; Clear bit 6
     sta l10e4                                                         ; bfd5: 8d e4 10    ...            ; Store updated flags
 ; &bfd8 referenced 1 time by &bfcb
-.cbfd8
+.save_error_and_release_nmi
     lda zp_a0                                                         ; bfd8: a5 a0       ..             ; Get error code from zp_a0
     sta wksp_err_number                                               ; bfda: 8d e3 10    ...            ; Save as error number
     jsr release_nmi                                                   ; bfdd: 20 e7 bb     ..            ; Release NMI; Release NMI via service call 11
 ; &bfe0 referenced 1 time by &bfb7
-.cbfe0
+.release_tube_after_floppy
     jsr release_tube                                                  ; bfe0: 20 43 80     C.            ; Release Tube if in use; Release Tube if in use
     ldx zp_b0                                                         ; bfe3: a6 b0       ..             ; Restore control block ptr low
     lda wksp_err_number                                               ; bfe5: ad e3 10    ...            ; Get error number
-    beq cbff1                                                         ; bfe8: f0 07       ..             ; Zero = no error, return success
+    beq return_error_code                                             ; bfe8: f0 07       ..             ; Zero = no error, return success
     ora #&40 ; '@'                                                    ; bfea: 09 40       .@             ; Set bit 6: disc error flag
     ldy #&ff                                                          ; bfec: a0 ff       ..             ; Y=&FF: mark transfer incomplete
     sty l10e4                                                         ; bfee: 8c e4 10    ...            ; Mark transfer as incomplete
 ; &bff1 referenced 1 time by &bfe8
-.cbff1
+.return_error_code
     ldy zp_b1                                                         ; bff1: a4 b1       ..             ; Restore control block ptr high
     and #&7f                                                          ; bff3: 29 7f       ).             ; Mask to 7-bit error code
     rts                                                               ; bff5: 60          `              ; Return
@@ -11267,6 +11267,7 @@ la868 = sub_ca867+1
 .pydis_end
 
     assert <(check_compaction_recommended-1) == &93
+    assert <(check_eof_for_handle-1) == &39
     assert <(fsc6_new_filing_system-1) == &3b
     assert <(l10c8) == &c8
     assert <(service_handler_0-1) == &b7
@@ -11282,9 +11283,9 @@ la868 = sub_ca867+1
     assert <(sub_c93ce-1) == &cd
     assert <(sub_c9fd8-1) == &d7
     assert <(sub_c9fdd-1) == &dc
-    assert <(sub_cad3a-1) == &39
     assert <(svc5_irq-1) == &77
     assert >(check_compaction_recommended-1) == &a0
+    assert >(check_eof_for_handle-1) == &ad
     assert >(fsc6_new_filing_system-1) == &a9
     assert >(l10c8) == &10
     assert >(service_handler_0-1) == &9a
@@ -11300,7 +11301,6 @@ la868 = sub_ca867+1
     assert >(sub_c93ce-1) == &93
     assert >(sub_c9fd8-1) == &9f
     assert >(sub_c9fdd-1) == &9f
-    assert >(sub_cad3a-1) == &ad
     assert >(svc5_irq-1) == &ab
     assert copyright - rom_header == &18
     assert sub_c8ca8-1 == &8ca7
@@ -11409,7 +11409,6 @@ save pydis_start, pydis_end
 ;     c8287:                                              8
 ;     c828b:                                              8
 ;     c895e:                                              8
-;     c947f:                                              8
 ;     ca016:                                              8
 ;     l0406:                                              8
 ;     l1035:                                              8
@@ -11421,6 +11420,7 @@ save pydis_start, pydis_end
 ;     l10e0:                                              8
 ;     l1116:                                              8
 ;     oswrch:                                             8
+;     parse_path_and_load:                                8
 ;     sub_c931b:                                          8
 ;     sub_ca749:                                          8
 ;     wksp_disc_op_mem_addr:                              8
@@ -11748,7 +11748,6 @@ save pydis_start, pydis_end
 ;     ca97c:                                              2
 ;     cab3d:                                              2
 ;     cab63:                                              2
-;     cad53:                                              2
 ;     cad8d:                                              2
 ;     cae29:                                              2
 ;     cae4c:                                              2
@@ -11796,6 +11795,7 @@ save pydis_start, pydis_end
 ;     dir_parent_sector:                                  2
 ;     divide_loop:                                        2
 ;     end_of_spaces:                                      2
+;     eof_error:                                          2
 ;     fdc_1770_sector:                                    2
 ;     floppy_get_step_rate:                               2
 ;     floppy_init_transfer:                               2
@@ -12029,9 +12029,6 @@ save pydis_start, pydis_end
 ;     c93f8:                                              1
 ;     c9405:                                              1
 ;     c9419:                                              1
-;     c9492:                                              1
-;     c9497:                                              1
-;     c94a8:                                              1
 ;     c95c3:                                              1
 ;     c95c5:                                              1
 ;     c9619:                                              1
@@ -12147,8 +12144,6 @@ save pydis_start, pydis_end
 ;     caca6:                                              1
 ;     cacc6:                                              1
 ;     caccb:                                              1
-;     cad4b:                                              1
-;     cad50:                                              1
 ;     cae35:                                              1
 ;     caec1:                                              1
 ;     caed7:                                              1
@@ -12255,16 +12250,13 @@ save pydis_start, pydis_end
 ;     cbf25:                                              1
 ;     cbf47:                                              1
 ;     cbf51:                                              1
-;     cbfcd:                                              1
-;     cbfd8:                                              1
-;     cbfe0:                                              1
-;     cbff1:                                              1
 ;     check_adfs_prefix:                                  1
 ;     check_at_sign:                                      1
 ;     check_dot_separator:                                1
 ;     check_field_boundary:                               1
 ;     check_multi_sector_range:                           1
 ;     check_name_char_loop:                               1
+;     check_special_dir:                                  1
 ;     check_tube_for_nmi:                                 1
 ;     check_workspace_claimed:                            1
 ;     claim_nmi:                                          1
@@ -12274,14 +12266,18 @@ save pydis_start, pydis_end
 ;     command_exec_retry_loop:                            1
 ;     copy_code_to_nmi_space:                             1
 ;     copy_csd_sector_loop:                               1
+;     copy_csd_sector_to_wksp:                            1
 ;     copy_default_name_loop:                             1
 ;     copy_dir_name_loop:                                 1
+;     copy_disc_op_template:                              1
 ;     copy_entry_name_loop:                               1
+;     copy_entry_sector_loop:                             1
 ;     copy_lib_name_loop:                                 1
 ;     copy_lib_sector_loop:                               1
 ;     copy_nmi_code_loop:                                 1
 ;     copy_prev_dir_name_loop:                            1
 ;     copy_result_loop:                                   1
+;     copy_template_loop:                                 1
 ;     copy_title_loop:                                    1
 ;     copy_tube_addr_loop:                                1
 ;     copy_tube_read_nmi_loop:                            1
@@ -12466,11 +12462,6 @@ save pydis_start, pydis_end
 ;     loop_c92a8:                                         1
 ;     loop_c92ea:                                         1
 ;     loop_c92f9:                                         1
-;     loop_c9484:                                         1
-;     loop_c948f:                                         1
-;     loop_c949f:                                         1
-;     loop_c94aa:                                         1
-;     loop_c94b7:                                         1
 ;     loop_c9579:                                         1
 ;     loop_c95cf:                                         1
 ;     loop_c95e5:                                         1
@@ -12619,7 +12610,9 @@ save pydis_start, pydis_end
 ;     osrdch:                                             1
 ;     osword:                                             1
 ;     pad_title_with_cr:                                  1
+;     path_not_found:                                     1
 ;     poll_req_loop:                                      1
+;     prepare_dir_read:                                   1
 ;     print_name_char_loop:                               1
 ;     print_newline_return:                               1
 ;     ra_buffer_2:                                        1
@@ -12627,6 +12620,7 @@ save pydis_start, pydis_end
 ;     ra_buffer_4:                                        1
 ;     ra_buffer_5:                                        1
 ;     release_nmi:                                        1
+;     release_tube_after_floppy:                          1
 ;     restore_csd_sector_loop:                            1
 ;     restore_head_flag:                                  1
 ;     return_1:                                           1
@@ -12662,6 +12656,10 @@ save pydis_start, pydis_end
 ;     return_7:                                           1
 ;     return_8:                                           1
 ;     return_9:                                           1
+;     return_eof_result:                                  1
+;     return_eof_status:                                  1
+;     return_error_code:                                  1
+;     save_error_and_release_nmi:                         1
 ;     save_workspace_and_return:                          1
 ;     scan_filename_loop:                                 1
 ;     scan_spaces_loop:                                   1
@@ -12670,6 +12668,7 @@ save pydis_start, pydis_end
 ;     scsi_send_byte_wrapper:                             1
 ;     scsi_start_command2:                                1
 ;     scsi_write_read_test:                               1
+;     search_for_dir_entry:                               1
 ;     service_call_handler:                               1
 ;     service_dispatch_hi:                                1
 ;     service_dispatch_lo:                                1
@@ -12691,6 +12690,7 @@ save pydis_start, pydis_end
 ;     store_digit:                                        1
 ;     store_hex_nibble:                                   1
 ;     store_nmi_completion:                               1
+;     store_second_partial:                               1
 ;     store_title_char:                                   1
 ;     str_at:                                             1
 ;     str_on_channel:                                     1
@@ -12923,10 +12923,6 @@ save pydis_start, pydis_end
 ;     c9419
 ;     c941c
 ;     c9439
-;     c947f
-;     c9492
-;     c9497
-;     c94a8
 ;     c95a4
 ;     c95b7
 ;     c95c3
@@ -13095,9 +13091,6 @@ save pydis_start, pydis_end
 ;     cacc6
 ;     caccb
 ;     cace9
-;     cad4b
-;     cad50
-;     cad53
 ;     cad8d
 ;     cae29
 ;     cae35
@@ -13251,10 +13244,6 @@ save pydis_start, pydis_end
 ;     cbf25
 ;     cbf47
 ;     cbf51
-;     cbfcd
-;     cbfd8
-;     cbfe0
-;     cbff1
 ;     l0000
 ;     l0001
 ;     l0002
@@ -13512,11 +13501,6 @@ save pydis_start, pydis_end
 ;     loop_c92a8
 ;     loop_c92ea
 ;     loop_c92f9
-;     loop_c9484
-;     loop_c948f
-;     loop_c949f
-;     loop_c94aa
-;     loop_c94b7
 ;     loop_c9579
 ;     loop_c95cf
 ;     loop_c95e5
@@ -13769,7 +13753,6 @@ save pydis_start, pydis_end
 ;     sub_cabd8
 ;     sub_cacd7
 ;     sub_cacf5
-;     sub_cad3a
 ;     sub_cadc5
 ;     sub_cae59
 ;     sub_cae5e

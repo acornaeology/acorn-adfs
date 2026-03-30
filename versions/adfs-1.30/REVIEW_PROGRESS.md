@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 57 / 115
-- Auto-labels renamed: 82 / 940
+- Reviewed: 61 / 115
+- Auto-labels renamed: 99 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -77,7 +77,7 @@ before their callers.
 | &8476 | invalidate_fsm_and_dir | 19 | 3 | REVIEWED |
 | &84B5 | release_disc_space | 295 | 46 | |
 | &872D | check_filename_length | 14 | 3 | REVIEWED |
-| &9471 | parse_dir_argument | 42 | 9 | |
+| &9471 | parse_dir_argument | 42 | 9 | REVIEWED |
 | &94E7 | star_info | 11 | 1 | REVIEWED |
 | &993D | star_access | 79 | 14 | |
 | &9E7F | star_cmd | 79 | 6 | |
@@ -91,10 +91,10 @@ before their callers.
 | &A71A | calc_wksp_checksum | 13 | 2 | REVIEWED |
 | &A81D | star_copy | 120 | 17 | |
 | &A93C | fsc6_new_filing_system | 12 | 1 | REVIEWED |
-| &AD16 | compare_ext_to_ptr | 31 | 5 | |
+| &AD16 | compare_ext_to_ptr | 31 | 5 | REVIEWED |
 | &B08F | my_osbput | 117 | 16 | |
-| &BF86 | floppy_calc_track_sector_from_b0_block | 15 | 2 | |
-| &BFAE | floppy_error | 31 | 5 | |
+| &BF86 | floppy_calc_track_sector_from_b0_block | 15 | 2 | REVIEWED |
+| &BFAE | floppy_error | 31 | 5 | REVIEWED |
 
 ### Depth 2 (12 subs)
 
