@@ -7276,8 +7276,29 @@ la154 = sub_ca153+1
 .return_29
     rts                                                               ; a19e: 60          `              ; Return
 
+; ***************************************************************************************
+; SCSI unpark heads disc operation control block
+; 
+; Disc operation control block used by *MOUNT to unpark (spin up)
+; the hard drive heads. Referenced indirectly as X=&9F, Y=&A1
+; from star_mount. Issues SCSI command &1B (Start/Stop Unit)
+; with count=1 (start/unpark). The companion block at
+; scsi_cmd_park (&A0EA) has count=0 (stop/park) and is used
+; by *BYE.
+; 
+; ***************************************************************************************
 .scsi_cmd_unpark
-    equb 0, 0, &17, &ff, &ff, &1b, 0, 0, 0, 1, 0                      ; a19f: 00 00 17... ...
+    equb 0                                                            ; a19f: 00          .              ; Result: &00
+    equb 0                                                            ; a1a0: 00          .              ; Memory address low: &00
+    equb &17                                                          ; a1a1: 17          .              ; Memory address high: &17 (buffer page)
+    equb &ff                                                          ; a1a2: ff          .              ; Memory address byte 3: &FF (host memory)
+    equb &ff                                                          ; a1a3: ff          .              ; Memory address byte 4: &FF (host memory)
+    equb &1b                                                          ; a1a4: 1b          .              ; Command: &1B (SCSI Start/Stop Unit)
+    equb 0                                                            ; a1a5: 00          .              ; Sector high: &00
+    equb 0                                                            ; a1a6: 00          .              ; Sector mid: &00
+    equb 0                                                            ; a1a7: 00          .              ; Sector low: &00
+    equb 1                                                            ; a1a8: 01          .              ; Sector count: &01 (start/unpark heads)
+    equb 0                                                            ; a1a9: 00          .              ; Control: &00
 
 ; ***************************************************************************************
 ; Calculate total free space on disc

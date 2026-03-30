@@ -1085,6 +1085,31 @@ comment(0x993B, 'Unused "^" + CR: dead remnant', inline=True)
 # SCSI park heads control block (used by *BYE via X=&EA, Y=&A0)
 label(0xA0EA, "scsi_cmd_park")
 entry(0xA0EA)
+
+# SCSI unpark heads control block (used by *MOUNT via X=&9F, Y=&A1)
+entry(0xA19F)
+byte(0xA19F)
+comment(0xA19F, "Result: &00", inline=True)
+byte(0xA1A0)
+comment(0xA1A0, "Memory address low: &00", inline=True)
+byte(0xA1A1)
+comment(0xA1A1, "Memory address high: &17 (buffer page)", inline=True)
+byte(0xA1A2)
+comment(0xA1A2, "Memory address byte 3: &FF (host memory)", inline=True)
+byte(0xA1A3)
+comment(0xA1A3, "Memory address byte 4: &FF (host memory)", inline=True)
+byte(0xA1A4)
+comment(0xA1A4, "Command: &1B (SCSI Start/Stop Unit)", inline=True)
+byte(0xA1A5)
+comment(0xA1A5, "Sector high: &00", inline=True)
+byte(0xA1A6)
+comment(0xA1A6, "Sector mid: &00", inline=True)
+byte(0xA1A7)
+comment(0xA1A7, "Sector low: &00", inline=True)
+byte(0xA1A8)
+comment(0xA1A8, "Sector count: &01 (start/unpark heads)", inline=True)
+byte(0xA1A9)
+comment(0xA1A9, "Control: &00", inline=True)
 byte(0xA0EA)
 comment(0xA0EA, "Result: &00", inline=True)
 byte(0xA0EB)
@@ -10693,6 +10718,17 @@ from the close_each_drive_loop. Issues SCSI command &1B
 (Start/Stop Unit) with count=0 (stop/park). The companion
 block at scsi_cmd_unpark (&A19F) has count=1 (start/unpark)
 and is used by *MOUNT.
+""")
+
+subroutine(0xA19F, "scsi_cmd_unpark",
+    title="SCSI unpark heads disc operation control block",
+    description="""\
+Disc operation control block used by *MOUNT to unpark (spin up)
+the hard drive heads. Referenced indirectly as X=&9F, Y=&A1
+from star_mount. Issues SCSI command &1B (Start/Stop Unit)
+with count=1 (start/unpark). The companion block at
+scsi_cmd_park (&A0EA) has count=0 (stop/park) and is used
+by *BYE.
 """)
 
 subroutine(0xA111, "star_dismount",
