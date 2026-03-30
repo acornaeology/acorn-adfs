@@ -5509,7 +5509,7 @@ lffff                                           = &ffff
 .finalise_cdir
     jmp save_wksp_and_return                                          ; 9938: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
-    equb &5e, &0d                                                     ; 993b: 5e 0d       ^.
+    equs "^", &0d                                                     ; 993b: 5e 0d       ^.             ; Unused "^" + CR: dead remnant
 
 ; ***************************************************************************************
 ; *ACCESS command handler
@@ -14053,7 +14053,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1372 bytes (8%)
 ;
 ;     Number of instructions   = 6987
-;     Number of data bytes     = 452 bytes
+;     Number of data bytes     = 450 bytes
 ;     Number of data words     = 16 bytes
-;     Number of string bytes   = 904 bytes
-;     Number of strings        = 103
+;     Number of string bytes   = 906 bytes
+;     Number of strings        = 104
