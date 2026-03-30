@@ -6481,7 +6481,9 @@ boot_run_option = sub_c9b86+1
 .help_print_header
     jsr print_inline_string                                           ; 9da7: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs &0d, "Advanced DFS 1.30"                                     ; 9daa: 0d 41 64... .Ad
-    equb &8d, &60                                                     ; 9dbc: 8d 60       .`
+    equb &8d                                                          ; 9dbc: 8d          .              ; CR + bit 7: end of version string
+
+    rts                                                               ; 9dbd: 60          `              ; Return to caller
 
 ; ***************************************************************************************
 ; Service 9: *HELP
@@ -14099,11 +14101,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14987 bytes (91%)
-;     Data                     = 1397 bytes (9%)
+;     Code                     = 14988 bytes (91%)
+;     Data                     = 1396 bytes (9%)
 ;
-;     Number of instructions   = 6978
-;     Number of data bytes     = 427 bytes
+;     Number of instructions   = 6979
+;     Number of data bytes     = 426 bytes
 ;     Number of data words     = 44 bytes
 ;     Number of string bytes   = 926 bytes
 ;     Number of strings        = 106

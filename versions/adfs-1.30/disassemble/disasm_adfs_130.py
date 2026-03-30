@@ -559,6 +559,7 @@ entry(0x9A0A)  # After "Destroy ? " in star_destroy
 entry(0x9373)  # After "Option " in verify_dir_and_list
 entry(0x9399)  # After ")\rDir. " in catalogue header
 entry(0x93B3)  # After "     Lib. " in catalogue header
+entry(0x9DBD)  # RTS after "Advanced DFS 1.30" in help_print_header
 
 # The inline string at &9392 is ")\rDir." + &A0 (space+bit7).
 # The stringhi_hook classifies this as one string; we can't
@@ -4289,6 +4290,8 @@ comment(0xBFF3, "Mask to 7-bit error code", inline=True)
 # Checks if the *HELP argument matches "ADFS" (case-insensitive,
 # abbreviation with dot allowed). If so, prints the version
 # string and a list of all star commands from the command table.
+comment(0x9DBC, "CR + bit 7: end of version string", inline=True)
+comment(0x9DBD, "Return to caller", inline=True)
 comment(0x9DBE, "Save Y (text pointer offset)", inline=True)
 comment(0x9DC0, "Get first char of *HELP argument", inline=True)
 comment(0x9DC2, "Is it a printable char?", inline=True)
