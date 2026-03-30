@@ -6258,27 +6258,20 @@ boot_run_option = sub_c9b86+1
 ; ***************************************************************************************
 ; &9cc1 referenced 1 time by &9bb2
 .tbl_extended_vectors
-    equb &3e                                                          ; 9cc1: 3e          >              ; FILEV low:  <my_osfile (&923E)
-    equb &92                                                          ; 9cc2: 92          .              ; FILEV high: >my_osfile
-    equb &ff                                                          ; 9cc3: ff          .              ; FILEV ROM:  &FF (patched at runtime)
-    equb &55                                                          ; 9cc4: 55          U              ; ARGSV low:  <my_osargs (&A955)
-    equb &a9                                                          ; 9cc5: a9          .              ; ARGSV high: >my_osargs
-    equb &ff                                                          ; 9cc6: ff          .              ; ARGSV ROM:  &FF (patched at runtime)
-    equb &63                                                          ; 9cc7: 63          c              ; BGETV low:  <my_osbget (&AD63)
-    equb &ad                                                          ; 9cc8: ad          .              ; BGETV high: >my_osbget
-    equb &ff                                                          ; 9cc9: ff          .              ; BGETV ROM:  &FF (patched at runtime)
-    equb &8f                                                          ; 9cca: 8f          .              ; BPUTV low:  <my_osbput (&B08F)
-    equb &b0                                                          ; 9ccb: b0          .              ; BPUTV high: >my_osbput
-    equb &ff                                                          ; 9ccc: ff          .              ; BPUTV ROM:  &FF (patched at runtime)
-    equb &7f                                                          ; 9ccd: 7f          .              ; GBPBV low:  <my_osgbpb (&B57F)
-    equb &b5                                                          ; 9cce: b5          .              ; GBPBV high: >my_osgbpb
-    equb &ff                                                          ; 9ccf: ff          .              ; GBPBV ROM:  &FF (patched at runtime)
-    equb &b6                                                          ; 9cd0: b6          .              ; FINDV low:  <my_osfind (&B1B6)
-    equb &b1                                                          ; 9cd1: b1          .              ; FINDV high: >my_osfind
-    equb &ff                                                          ; 9cd2: ff          .              ; FINDV ROM:  &FF (patched at runtime)
-    equb &50                                                          ; 9cd3: 50          P              ; FSCV low:   <my_fscv (&9E50)
-    equb &9e                                                          ; 9cd4: 9e          .              ; FSCV high:  >my_fscv
-    equb &ff                                                          ; 9cd5: ff          .              ; FSCV ROM:   &FF (patched at runtime)
+    equw &923e                                                        ; 9cc1: 3e 92       >.             ; FILEV: my_osfile (&923E)
+    equb &ff                                                          ; 9cc3: ff          .              ; ROM: &FF (patched at runtime)
+    equw &a955                                                        ; 9cc4: 55 a9       U.             ; ARGSV: my_osargs (&A955)
+    equb &ff                                                          ; 9cc6: ff          .              ; ROM: &FF
+    equw &ad63                                                        ; 9cc7: 63 ad       c.             ; BGETV: my_osbget (&AD63)
+    equb &ff                                                          ; 9cc9: ff          .              ; ROM: &FF
+    equw &b08f                                                        ; 9cca: 8f b0       ..             ; BPUTV: my_osbput (&B08F)
+    equb &ff                                                          ; 9ccc: ff          .              ; ROM: &FF
+    equw &b57f                                                        ; 9ccd: 7f b5       ..             ; GBPBV: my_osgbpb (&B57F)
+    equb &ff                                                          ; 9ccf: ff          .              ; ROM: &FF
+    equw &b1b6                                                        ; 9cd0: b6 b1       ..             ; FINDV: my_osfind (&B1B6)
+    equb &ff                                                          ; 9cd2: ff          .              ; ROM: &FF
+    equw &9e50                                                        ; 9cd3: 50 9e       P.             ; FSCV:  my_fscv (&9E50)
+    equb &ff                                                          ; 9cd5: ff          .              ; ROM: &FF
 ; ***************************************************************************************
 ; Filing system name string
 ; 
@@ -14110,7 +14103,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1397 bytes (9%)
 ;
 ;     Number of instructions   = 6978
-;     Number of data bytes     = 441 bytes
-;     Number of data words     = 30 bytes
+;     Number of data bytes     = 427 bytes
+;     Number of data words     = 44 bytes
 ;     Number of string bytes   = 926 bytes
 ;     Number of strings        = 106
