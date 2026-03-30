@@ -5744,10 +5744,14 @@ lffff                                           = &ffff
     equs "$         "                                                 ; 9a50: 24 20 20... $              ; '$' + 9 spaces: default library name
 .default_csd_sector
     equb 2                                                            ; 9a5a: 02          .              ; CSD sector low: 2 (root directory)
-    equb 0, 0, 0                                                      ; 9a5b: 00 00 00    ...            ; CSD sector mid/high + drive: 0
+    equb 0                                                            ; 9a5b: 00          .              ; CSD sector mid: 0
+    equb 0                                                            ; 9a5c: 00          .              ; CSD sector high: 0
+    equb 0                                                            ; 9a5d: 00          .              ; Current drive: 0
 .default_lib_sector
     equb 2                                                            ; 9a5e: 02          .              ; Library sector low: 2 (root directory)
-    equb 0, 0, 0                                                      ; 9a5f: 00 00 00    ...            ; Library sector mid/high + drive: 0
+    equb 0                                                            ; 9a5f: 00          .              ; Library sector mid: 0
+    equb 0                                                            ; 9a60: 00          .              ; Library sector high: 0
+    equb 0                                                            ; 9a61: 00          .              ; Library drive: 0
 .default_prev_dir_sector
     equb 2                                                            ; 9a62: 02          .              ; Previous dir sector low: 2 (root dir)
 
