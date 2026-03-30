@@ -527,18 +527,23 @@ for i in range(10):
     rts_code_ptr(0x9A8F + i, 0x9A99 + i)
 
 # OSFILE dispatch table (RTS trick)
-# Low bytes at &9269, high bytes at &926A (interleaved: lo0,hi0,lo1,hi1,...)
-# Actually: the table appears to be pairs at &9269+2i, &926A+2i
-# OSFILE A=0 (save), 1 (write cat info), 2 (write load addr), etc.
+# Interleaved [lo, hi] pairs at offsets 2,4,6,8,... from &9269.
+# X = A*2+2; loads dispatch_hi,X and dispatch_lo,X.
+# A=0: &8C05 (save file - check existing and overwrite)
+# A=1-4: write cat info (load/exec addr, attributes)
+# A=5: read cat info
+# A=6: delete file
+# A=7: create file
 label(0x9269, "osfile_dispatch_lo")
 label(0x926A, "osfile_dispatch_hi")
-# The table entries are:
-# A=0: &8C04+1 = &8C05 (not valid, re-examine)
-# Actually the interleaving is different. Let me use code_ptr
-# for the pairs. Looking at the code: X = A*2+2, loads l926a,x and l9269,x
-# So the table is at &9269 with pairs: [lo, hi] at offsets 2,4,6,8,...
 for i in range(8):
     rts_code_ptr(0x9269 + 2 + i*2, 0x926A + 2 + i*2)
+
+# OSFILE A=0 entry point: the dispatch table's first entry points
+# to &8C04 (RTS trick -> &8C05). py8dis cannot trace through the
+# RTS-trick dispatch, so this code must be marked as an entry point.
+entry(0x8C05)
+label(0x8C05, "osfile_save_check_existing")
 
 # Fix code regions that follow print_inline_string calls
 # where py8dis doesn't trace the continuation correctly.
@@ -11324,6 +11329,27 @@ The text 'and Hugo.' followed by CR. This fills the last
 10 bytes of the ROM, a signature referencing the Hugo
 directory format used by ADFS.
 """)
+
+subroutine(0x8C05, "osfile_save_check_existing",
+    title="OSFILE A=0: check for existing file before save",
+    description="""\
+Entry point for OSFILE save (A=0), reached via RTS-trick
+dispatch from my_osfile. Searches the current directory for
+an existing file with the same name, checking it is not a
+directory and has the correct access attributes.
+
+On entry:
+  (&B4) points to filename, (&B8) to OSFILE control block
+On exit:
+  Falls through to osfile_save_handler if file is valid
+""")
+
+# Inline comments for osfile_save_check_existing
+comment(0x8C05, "Search for matching non-directory file", inline=True)
+comment(0x8C08, "Not found: report Not found error", inline=True)
+comment(0x8C0A, "Y=0: check first entry name byte", inline=True)
+comment(0x8C0C, "Get first byte of found entry", inline=True)
+comment(0x8C0E, "Bit 7 clear: no read access, error", inline=True)
 
 # ---------------------------------------------------------------------------
 # Generate disassembly

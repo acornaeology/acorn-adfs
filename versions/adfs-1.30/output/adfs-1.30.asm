@@ -2942,7 +2942,7 @@ lffff                                           = &ffff
 ;   Z clear if not found
 ; 
 ; ***************************************************************************************
-; &8bb3 referenced 4 times by &a3a1, &a3b4, &a40e, &a82f
+; &8bb3 referenced 5 times by &8c05, &a3a1, &a3b4, &a40e, &a82f
 .exec_disc_and_check_error
     jsr parse_filename_from_cmdline                                   ; 8bb3: 20 4c 88     L.            ; Search for file in directory; Parse filename from command line
     beq complete_partial_op                                           ; 8bb6: f0 07       ..             ; Found? Check if it's a directory
@@ -2971,7 +2971,7 @@ lffff                                           = &ffff
 ; generate either Bad name or Not found error.
 ; 
 ; ***************************************************************************************
-; &8bc8 referenced 5 times by &8cf6, &94ec, &9942, &a514, &a834
+; &8bc8 referenced 6 times by &8c08, &8cf6, &94ec, &9942, &a514, &a834
 .not_found_error
     ldy #0                                                            ; 8bc8: a0 00       ..             ; Y=0: get first path char
     lda (zp_text_ptr),y                                               ; 8bca: b1 b4       ..             ; Get first character
@@ -2998,13 +2998,32 @@ lffff                                           = &ffff
     ldy #4                                                            ; 8bea: a0 04       ..             ; Y=4: check E attribute byte
     lda (zp_entry_ptr),y                                              ; 8bec: b1 b6       ..             ; Get access/E byte
     bpl check_partial_sectors_done                                    ; 8bee: 10 d5       ..             ; Bit 7 clear: not E, return found
-; &8bf0 referenced 3 times by &a41b, &b256, &b2f8
+; &8bf0 referenced 4 times by &8c0e, &a41b, &b256, &b2f8
 .validate_found_entry
     jsr reload_fsm_and_dir_then_brk                                   ; 8bf0: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &bd                                                          ; 8bf3: bd          .              ; Error &BD: Access violation
     equs "Access violation", 0                                        ; 8bf4: 41 63 63... Acc
-    equb &20, &b3, &8b, &d0, &be, &a0, 0, &b1, &b6, &10, &e0          ; 8c05: 20 b3 8b...  ..
 
+; ***************************************************************************************
+; OSFILE A=0: check for existing file before save
+; 
+; Entry point for OSFILE save (A=0), reached via RTS-trick
+; dispatch from my_osfile. Searches the current directory for
+; an existing file with the same name, checking it is not a
+; directory and has the correct access attributes.
+; 
+; On entry:
+;   (&B4) points to filename, (&B8) to OSFILE control block
+; On exit:
+;   Falls through to osfile_save_handler if file is valid
+; 
+; ***************************************************************************************
+.osfile_save_check_existing
+    jsr exec_disc_and_check_error                                     ; 8c05: 20 b3 8b     ..            ; Search for matching non-directory file; Search for non-directory file
+    bne not_found_error                                               ; 8c08: d0 be       ..             ; Not found: report Not found error; Generate Not found error
+    ldy #0                                                            ; 8c0a: a0 00       ..             ; Y=0: check first entry name byte
+    lda (zp_entry_ptr),y                                              ; 8c0c: b1 b6       ..             ; Get first byte of found entry
+    bpl validate_found_entry                                          ; 8c0e: 10 e0       ..             ; Bit 7 clear: no read access, error
 ; &8c10 referenced 1 time by &a41e
 .create_new_dir_entry
     ldy #6                                                            ; 8c10: a0 06       ..             ; Y=6: check control block byte 6
@@ -12245,7 +12264,7 @@ la868 = check_dest_terminator+1
 save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
-;     zp_entry_ptr:                                     169
+;     zp_entry_ptr:                                     170
 ;     zp_text_ptr:                                      100
 ;     zp_adfs_flags:                                     68
 ;     wksp_current_drive:                                61
@@ -12404,6 +12423,7 @@ save pydis_start, pydis_end
 ;     next_conflict_check:                                6
 ;     nmi_0d59:                                           6
 ;     no_open_files_on_drive:                             6
+;     not_found_error:                                    6
 ;     release_tube_and_return:                            6
 ;     scsi_send_cmd_byte:                                 6
 ;     wksp_1030:                                          6
@@ -12414,6 +12434,7 @@ save pydis_start, pydis_end
 ;     zp_save_y:                                          6
 ;     check_file_not_open:                                5
 ;     convert_drive_to_slot:                              5
+;     exec_disc_and_check_error:                          5
 ;     fdc_1770_track:                                     5
 ;     fdc_8271_command_or_status_or_1770_drive_control:   5
 ;     fdc_write_register_verify:                          5
@@ -12432,7 +12453,6 @@ save pydis_start, pydis_end
 ;     mark_directory_dirty:                               5
 ;     nmi_0d57:                                           5
 ;     nmi_0d5c:                                           5
-;     not_found_error:                                    5
 ;     release_disc_space:                                 5
 ;     release_tube:                                       5
 ;     scsi_get_status:                                    5
@@ -12457,7 +12477,6 @@ save pydis_start, pydis_end
 ;     copy_default_dir_name:                              4
 ;     dir_name:                                           4
 ;     disc_op_tpl_read_dir:                               4
-;     exec_disc_and_check_error:                          4
 ;     execute_sector_copy:                                4
 ;     floppy_set_side_1:                                  4
 ;     get_object_type_result:                             4
@@ -12492,6 +12511,7 @@ save pydis_start, pydis_end
 ;     star_match_succeeded:                               4
 ;     update_dir_entry_on_close:                          4
 ;     update_ext_to_ptr:                                  4
+;     validate_found_entry:                               4
 ;     wksp_1014:                                          4
 ;     wksp_csd_sector:                                    4
 ;     wksp_disc_op_control:                               4
@@ -12585,7 +12605,6 @@ save pydis_start, pydis_end
 ;     update_entry_length:                                3
 ;     update_ext_from_new_ptr:                            3
 ;     validate_and_set_ptr:                               3
-;     validate_found_entry:                               3
 ;     validate_not_locked:                                3
 ;     verify_dir_integrity:                               3
 ;     wksp_1024:                                          3
@@ -13917,11 +13936,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14944 bytes (91%)
-;     Data                     = 1440 bytes (9%)
+;     Code                     = 14955 bytes (91%)
+;     Data                     = 1429 bytes (9%)
 ;
-;     Number of instructions   = 6958
-;     Number of data bytes     = 519 bytes
+;     Number of instructions   = 6963
+;     Number of data bytes     = 508 bytes
 ;     Number of data words     = 16 bytes
 ;     Number of string bytes   = 905 bytes
 ;     Number of strings        = 102
