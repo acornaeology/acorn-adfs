@@ -7,8 +7,8 @@ before their callers.
 ## Statistics
 
 - Total subroutines: 115
-- Reviewed: 67 / 115
-- Auto-labels renamed: 223 / 940
+- Reviewed: 74 / 115
+- Auto-labels renamed: 272 / 940
 - comment-check HIGH fixed: 7 / 7
 - comment-check MEDIUM fixed: 7 / 50 (remaining 43 are chain_comment style)
 
@@ -100,18 +100,18 @@ before their callers.
 
 | Addr | Name | Items | Auto Labels | Status |
 |------|------|-------|-------------|--------|
-| &81B8 | hd_data_transfer_256 | 26 | 5 | |
-| &8353 | generate_error_suffix_x | 95 | 13 | |
-| &9109 | star_remove | 113 | 15 | |
-| &9433 | star_ex | 13 | 1 | |
+| &81B8 | hd_data_transfer_256 | 26 | 5 | REVIEWED |
+| &8353 | generate_error_suffix_x | 95 | 13 | REVIEWED |
+| &9109 | star_remove | 113 | 15 | REVIEWED |
+| &9433 | star_ex | 13 | 1 | REVIEWED |
 | &A276 | star_compact | 125 | 17 | |
-| &A6DE | verify_dir_integrity | 13 | 2 | |
+| &A6DE | verify_dir_integrity | 13 | 2 | REVIEWED |
 | &A731 | check_wksp_checksum | 116 | 16 | |
 | &A955 | my_osargs | 159 | 21 | |
 | &AD63 | my_osbget | 330 | 42 | |
 | &B57F | my_osgbpb | 524 | 62 | |
-| &BB42 | floppy_init_transfer | 53 | 9 | |
-| &BCC2 | floppy_wait_nmi_finish | 26 | 3 | |
+| &BB42 | floppy_init_transfer | 53 | 9 | REVIEWED |
+| &BCC2 | floppy_wait_nmi_finish | 26 | 3 | REVIEWED |
 
 ### Depth 3+ (37 subs)
 
