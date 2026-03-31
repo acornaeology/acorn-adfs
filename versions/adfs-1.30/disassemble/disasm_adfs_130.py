@@ -702,43 +702,33 @@ entry(0xBCC2)
 label(0xBCC2, "floppy_wait_nmi_finish")
 
 # NMI handler code fragments: all three are copied to &0D0A at
-# runtime. Use move() for the direct-memory variant (longest, 14
-# bytes) so py8dis decodes it properly. The two Tube variants are
-# shorter alternatives that overlay the same address; show those
-# as annotated data since py8dis can only move() one block to a
-# given destination.
-#
-# TODO: Extend py8dis move() to support multiple source blocks
-# targeting the same runtime address ("variant moves"). Each
-# variant would be emitted as a separately-labeled block with
-# its own copyblock/clear/org sequence. This would allow all
-# three NMI fragments to be decoded as proper instructions.
+# runtime. Each uses move() with a context manager so py8dis can
+# disambiguate the overlapping runtime addresses.
 label(0xBCDF, "nmi_write_code")
-move(0x0D0A, 0xBCDF, 14)
-entry(0x0D0A)
-comment(0x0D0A, "Read byte from transfer address", inline=True)
-comment(0x0D0D, "Write to WD1770 data register", inline=True)
-comment(0x0D10, "Increment transfer address low", inline=True)
-comment(0x0D13, "No wrap: skip high byte increment", inline=True)
-comment(0x0D15, "Increment transfer address high", inline=True)
+nmi_write_move_id = move(0x0D0A, 0xBCDF, 14)
+with nmi_write_move_id:
+    entry(0x0D0A)
+    comment(0x0D0A, "Read byte from transfer address", inline=True)
+    comment(0x0D0D, "Write to WD1770 data register", inline=True)
+    comment(0x0D10, "Increment transfer address low", inline=True)
+    comment(0x0D13, "No wrap: skip high byte increment", inline=True)
+    comment(0x0D15, "Increment transfer address high", inline=True)
 
 label(0xBCED, "nmi_tube_write_code")
-entry(0xBCED)
-byte(0xBCED, 3)
-comment(0xBCED, "&0D0A: LDA &FEE5 (read Tube R3)", inline=True)
-byte(0xBCF0, 3)
-comment(0xBCF0, "&0D0D: STA &FE87 (write to WD1770)", inline=True)
-byte(0xBCF3, 2)
-comment(0xBCF3, "&0D10: BCS +6 (branch to completion)", inline=True)
+nmi_tube_write_move_id = move(0x0D0A, 0xBCED, 8)
+with nmi_tube_write_move_id:
+    entry(0x0D0A)
+    comment(0x0D0A, "Read byte from Tube R3", inline=True)
+    comment(0x0D0D, "Write to WD1770 data register", inline=True)
+    comment(0x0D10, "Transfer complete: branch to end", inline=True)
 
 label(0xBCF5, "nmi_tube_read_code")
-entry(0xBCF5)
-byte(0xBCF5, 3)
-comment(0xBCF5, "&0D0A: LDA &FE87 (read WD1770)", inline=True)
-byte(0xBCF8, 3)
-comment(0xBCF8, "&0D0D: STA &FEE5 (write to Tube R3)", inline=True)
-byte(0xBCFB, 2)
-comment(0xBCFB, "&0D10: BCS +6 (branch to completion)", inline=True)
+nmi_tube_read_move_id = move(0x0D0A, 0xBCF5, 8)
+with nmi_tube_read_move_id:
+    entry(0x0D0A)
+    comment(0x0D0A, "Read byte from WD1770", inline=True)
+    comment(0x0D0D, "Write to Tube R3", inline=True)
+    comment(0x0D10, "Transfer complete: branch to end", inline=True)
 label(0xBD19, "floppy_set_side_0_unused")
 entry(0xBD19)
 comment(0xBD19, "Get NMI drive control byte", inline=True)

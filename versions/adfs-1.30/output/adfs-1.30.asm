@@ -410,11 +410,7 @@ lffff                                           = &ffff
     org &0d0a
 ; &bcdf referenced 3 times by &bc49, &bc55, &bc65
     lda lffff                                                         ; bcdf: ad ff ff    ... :0d0a[1]   ; Read byte from transfer address
-; &bce0 referenced 3 times by &0d10[1], &ba43, &bc6f
-; &bce1 referenced 3 times by &0d15[1], &ba48, &bc75
     sta fdc_1770_data                                                 ; bce2: 8d 87 fe    ... :0d0d[1]   ; Write to WD1770 data register
-; &bce3 referenced 4 times by &ba4f, &bc00, &bc89, &bd60
-; &bce4 referenced 4 times by &ba54, &bc06, &bc8e, &bd5b
     inc nmi_0d0b                                                      ; bce5: ee 0b 0d    ... :0d10[1]   ; Increment transfer address low
     bne l0d18                                                         ; bce8: d0 03       ..  :0d13[1]   ; No wrap: skip high byte increment
     inc nmi_0d0c                                                      ; bcea: ee 0c 0d    ... :0d15[1]   ; Increment transfer address high
@@ -432,6 +428,46 @@ lffff                                           = &ffff
     org nmi_write_code + (* - &0d0a)
 
 .nmi_tube_write_code
+
+; Move 2: &bced to &0d0a for length 8
+    org &0d0a
+    lda tube_data_register_3                                          ; bced: ad e5 fe    ... :0d0a[2]   ; Read byte from Tube R3
+    sta fdc_1770_data                                                 ; bcf0: 8d 87 fe    ... :0d0d[2]   ; Write to WD1770 data register
+    bcs l0d18                                                         ; bcf3: b0 06       ..  :0d10[2]   ; Transfer complete: branch to end
+
+    ; Copy the newly assembled block of code back to it's proper place in the binary
+    ; file.
+    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
+    copyblock &0d0a, *, nmi_tube_write_code
+
+    ; Clear the area of memory we just temporarily used to assemble the new block,
+    ; allowing us to assemble there again if needed
+    clear &0d0a, &0d12
+
+    ; Set the program counter to the next position in the binary file.
+    org nmi_tube_write_code + (* - &0d0a)
+
+.nmi_tube_read_code
+
+; Move 3: &bcf5 to &0d0a for length 8
+    org &0d0a
+    lda fdc_1770_data                                                 ; bcf5: ad 87 fe    ... :0d0a[3]   ; Read byte from WD1770
+    sta tube_data_register_3                                          ; bcf8: 8d e5 fe    ... :0d0d[3]   ; Write to Tube R3
+    bcs l0d18                                                         ; bcfb: b0 06       ..  :0d10[3]   ; Transfer complete: branch to end
+
+    ; Copy the newly assembled block of code back to it's proper place in the binary
+    ; file.
+    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
+    copyblock &0d0a, *, nmi_tube_read_code
+
+    ; Clear the area of memory we just temporarily used to assemble the new block,
+    ; allowing us to assemble there again if needed
+    clear &0d0a, &0d12
+
+    ; Set the program counter to the next position in the binary file.
+    org nmi_tube_read_code + (* - &0d0a)
+
+.select_fdc_rw_command
 
     org &8000
 
@@ -12048,17 +12084,7 @@ la868 = check_dest_terminator+1
 
 ; &bcdf referenced 1 time by &bc62
 
-    org &bced
-
-; &bced referenced 1 time by &bc46
-    equb &ad, &e5, &fe                                                ; bced: ad e5 fe    ...            ; &0D0A: LDA &FEE5 (read Tube R3)
-    equb &8d, &87, &fe                                                ; bcf0: 8d 87 fe    ...            ; &0D0D: STA &FE87 (write to WD1770)
-    equb &b0, 6                                                       ; bcf3: b0 06       ..             ; &0D10: BCS +6 (branch to completion)
-; &bcf5 referenced 1 time by &bc52
-.nmi_tube_read_code
-    equb &ad, &87, &fe                                                ; bcf5: ad 87 fe    ...            ; &0D0A: LDA &FE87 (read WD1770)
-    equb &8d, &e5, &fe                                                ; bcf8: 8d e5 fe    ...            ; &0D0D: STA &FEE5 (write to Tube R3)
-    equb &b0, 6                                                       ; bcfb: b0 06       ..             ; &0D10: BCS +6 (branch to completion)
+    org &bcfd
 
 ; ***************************************************************************************
 ; Select and issue FDC read/write command
@@ -12069,7 +12095,6 @@ la868 = check_dest_terminator+1
 ; 
 ; ***************************************************************************************
 ; &bcfd referenced 2 times by &bac0, &bd66
-.select_fdc_rw_command
     bit zp_floppy_control                                             ; bcfd: 24 a1       $.             ; Check read/write direction
     bmi set_read_command                                              ; bcff: 30 0d       0.             ; Reading: use read command
     lda zp_floppy_track                                               ; bd01: a5 a3       ..             ; Get current track
@@ -12781,6 +12806,7 @@ save pydis_start, pydis_end
 ;     l10b4:                                             11
 ;     nmi_0d5e:                                          11
 ;     skip_spaces:                                       11
+;     tube_data_register_3:                              11
 ;     zp_buf_dest_lo:                                    11
 ;     l1098:                                             10
 ;     l11c0:                                             10
@@ -12801,7 +12827,6 @@ save pydis_start, pydis_end
 ;     nmi_0d58:                                           9
 ;     output_byte_to_buffer:                              9
 ;     print_hex_byte:                                     9
-;     tube_data_register_3:                               9
 ;     wait_ensuring:                                      9
 ;     wksp_1003:                                          9
 ;     wksp_1060:                                          9
@@ -12927,6 +12952,7 @@ save pydis_start, pydis_end
 ;     dir_name:                                           4
 ;     disc_op_tpl_read_dir:                               4
 ;     execute_sector_copy:                                4
+;     fdc_1770_data:                                      4
 ;     floppy_set_side_1:                                  4
 ;     get_object_type_result:                             4
 ;     get_wksp_addr_ba:                                   4
@@ -13002,6 +13028,7 @@ save pydis_start, pydis_end
 ;     hd_init_detect:                                     3
 ;     hex_digit:                                          3
 ;     invalidate_fsm_and_dir:                             3
+;     l0d18:                                              3
 ;     l103b:                                              3
 ;     l104f:                                              3
 ;     l1052:                                              3
@@ -13138,7 +13165,6 @@ save pydis_start, pydis_end
 ;     end_of_data_command:                                2
 ;     end_of_spaces:                                      2
 ;     eof_error:                                          2
-;     fdc_1770_data:                                      2
 ;     fdc_1770_sector:                                    2
 ;     find_last_path_component:                           2
 ;     floppy_get_step_rate:                               2
@@ -13701,7 +13727,6 @@ save pydis_start, pydis_end
 ;     l0103:                                              1
 ;     l0104:                                              1
 ;     l06a9:                                              1
-;     l0d18:                                              1
 ;     l0e03:                                              1
 ;     l103e:                                              1
 ;     l1046:                                              1
@@ -14373,11 +14398,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 15109 bytes (92%)
-;     Data                     = 1275 bytes (8%)
+;     Code                     = 15125 bytes (92%)
+;     Data                     = 1259 bytes (8%)
 ;
-;     Number of instructions   = 7035
-;     Number of data bytes     = 313 bytes
+;     Number of instructions   = 7041
+;     Number of data bytes     = 297 bytes
 ;     Number of data words     = 44 bytes
 ;     Number of string bytes   = 918 bytes
 ;     Number of strings        = 106
