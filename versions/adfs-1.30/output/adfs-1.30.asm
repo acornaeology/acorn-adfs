@@ -431,7 +431,7 @@ nmi_patched_addr            = &ffff
 ; Move 1: &bc79 to &0d00 for length 73
     org &0d00
 ; &bc79 referenced 1 time by &bbf6
-    pha                                                               ; bc79: 48          H   :0d00[1]   ; NMI handler code (copied to &0D00)
+    pha                                                               ; bc79: 48          H   :0d00[1]
     lda fdc_1770_command_or_status                                    ; bc7a: ad 84 fe    ... :0d01[1]
     and #&1f                                                          ; bc7d: 29 1f       ).  :0d04[1]
 ; &bc7e referenced 1 time by &bc0f
