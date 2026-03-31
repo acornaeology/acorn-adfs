@@ -3148,7 +3148,7 @@ nmi_patched_addr                                = &ffff
 ; OSFILE A=0: check for existing file before save
 ; 
 ; Entry point for OSFILE save (A=0), reached via RTS-trick
-; dispatch from my_osfile. Searches the current directory for
+; dispatch from osfile_handler. Searches the current directory for
 ; an existing file with the same name, checking it is not a
 ; directory and has the correct access attributes.
 ; 
@@ -4366,7 +4366,7 @@ nmi_patched_addr                                = &ffff
 ; Handle OSFILE calls for whole-file operations: load, save,
 ; read/write catalogue info, delete, create.
 ; 
-.my_osfile
+.osfile_handler
     stx zp_osfile_ptr_lo                                              ; 923e: 86 b8       ..             ; Save control block address low
     sty zp_osfile_ptr_hi                                              ; 9240: 84 b9       ..             ; Save control block address high
     tay                                                               ; 9242: a8          .              ; Transfer function code to Y
@@ -5066,7 +5066,7 @@ nmi_patched_addr                                = &ffff
 .star_cdir
     lda #&ff                                                          ; 9570: a9 ff       ..             ; OSARGS &FF: ensure FS is selected
     ldy #0                                                            ; 9572: a0 00       ..             ; Y=0: for OSARGS
-    jsr my_osargs                                                     ; 9574: 20 55 a9     U.            ; OSARGS handler
+    jsr osargs_handler                                                ; 9574: 20 55 a9     U.            ; OSARGS handler
     ldx #&0f                                                          ; 9577: a2 0f       ..             ; X=&0F: copy 16-byte template block
 ; &9579 referenced 1 time by &9580
 .check_dir_exists_loop
@@ -6373,29 +6373,29 @@ boot_run_option = sub_c9b86+1
 ; installed). Copied to the MOS extended vector area when
 ; ADFS is selected as the current filing system.
 ; 
-;   FILEV  &923E  my_osfile
-;   ARGSV  &A955  my_osargs
-;   BGETV  &AD63  my_osbget
-;   BPUTV  &B08F  my_osbput
-;   GBPBV  &B57F  my_osgbpb
-;   FINDV  &B1B6  my_osfind
-;   FSCV   &9E50  my_fscv
+;   FILEV  &923E  osfile_handler
+;   ARGSV  &A955  osargs_handler
+;   BGETV  &AD63  osbget_handler
+;   BPUTV  &B08F  osbput_handler
+;   GBPBV  &B57F  osgbpb_handler
+;   FINDV  &B1B6  osfind_handler
+;   FSCV   &9E50  fscv_handler
 ; 
 ; &9cc1 referenced 1 time by &9bb2
 .tbl_extended_vectors
-    equw &923e                                                        ; 9cc1: 3e 92       >.             ; FILEV: my_osfile (&923E)
+    equw &923e                                                        ; 9cc1: 3e 92       >.             ; FILEV: osfile_handler (&923E)
     equb &ff                                                          ; 9cc3: ff          .              ; ROM: &FF (patched at runtime)
-    equw &a955                                                        ; 9cc4: 55 a9       U.             ; ARGSV: my_osargs (&A955)
+    equw &a955                                                        ; 9cc4: 55 a9       U.             ; ARGSV: osargs_handler (&A955)
     equb &ff                                                          ; 9cc6: ff          .              ; ROM: &FF
-    equw &ad63                                                        ; 9cc7: 63 ad       c.             ; BGETV: my_osbget (&AD63)
+    equw &ad63                                                        ; 9cc7: 63 ad       c.             ; BGETV: osbget_handler (&AD63)
     equb &ff                                                          ; 9cc9: ff          .              ; ROM: &FF
-    equw &b08f                                                        ; 9cca: 8f b0       ..             ; BPUTV: my_osbput (&B08F)
+    equw &b08f                                                        ; 9cca: 8f b0       ..             ; BPUTV: osbput_handler (&B08F)
     equb &ff                                                          ; 9ccc: ff          .              ; ROM: &FF
-    equw &b57f                                                        ; 9ccd: 7f b5       ..             ; GBPBV: my_osgbpb (&B57F)
+    equw &b57f                                                        ; 9ccd: 7f b5       ..             ; GBPBV: osgbpb_handler (&B57F)
     equb &ff                                                          ; 9ccf: ff          .              ; ROM: &FF
-    equw &b1b6                                                        ; 9cd0: b6 b1       ..             ; FINDV: my_osfind (&B1B6)
+    equw &b1b6                                                        ; 9cd0: b6 b1       ..             ; FINDV: osfind_handler (&B1B6)
     equb &ff                                                          ; 9cd2: ff          .              ; ROM: &FF
-    equw &9e50                                                        ; 9cd3: 50 9e       P.             ; FSCV:  my_fscv (&9E50)
+    equw &9e50                                                        ; 9cd3: 50 9e       P.             ; FSCV:  fscv_handler (&9E50)
     equb &ff                                                          ; 9cd5: ff          .              ; ROM: &FF
 ; ***************************************************************************************
 ; Filing system name string
@@ -6439,7 +6439,7 @@ boot_run_option = sub_c9b86+1
     beq service4_not_matched                                          ; 9cf3: f0 0a       ..             ; Yes, match succeeded
     ora #&20 ; ' '                                                    ; 9cf5: 09 20       .              ; Convert to lowercase for compare
     cmp str_filing_system_name,x                                      ; 9cf7: dd d6 9c    ...            ; Compare with "adfs" (backwards)
-    bne service4_claim_and_dispatch                                   ; 9cfa: d0 15       ..             ; No match, not for us
+    bne service4_decline                                              ; 9cfa: d0 15       ..             ; No match, not for us
     dex                                                               ; 9cfc: ca          .              ; Next char in 'ADFS'
     bpl match_command_loop                                            ; 9cfd: 10 ef       ..             ; Loop for 4 characters
 ; &9cff referenced 2 times by &9cf3, &9d04
@@ -6448,7 +6448,7 @@ boot_run_option = sub_c9b86+1
     iny                                                               ; 9d01: c8          .              ; Advance past matched space
     cmp #&20 ; ' '                                                    ; 9d02: c9 20       .              ; Space?
     beq service4_not_matched                                          ; 9d04: f0 f9       ..             ; Yes, skip more spaces
-    bcs service4_claim_and_dispatch                                   ; 9d06: b0 09       ..             ; Printable: more text follows, fail
+    bcs service4_decline                                              ; 9d06: b0 09       ..             ; Printable: more text follows, fail
     pla                                                               ; 9d08: 68          h              ; Get prefix flag
     tax                                                               ; 9d09: aa          .              ; Transfer prefix flag to X
     pla                                                               ; 9d0a: 68          h              ; Get saved text offset
@@ -6464,7 +6464,7 @@ boot_run_option = sub_c9b86+1
 ; command to the next ROM in the service chain.
 ; 
 ; &9d11 referenced 2 times by &9cfa, &9d06
-.service4_claim_and_dispatch
+.service4_decline
     pla                                                               ; 9d11: 68          h              ; Not for us: clean up stack
     pla                                                               ; 9d12: 68          h              ; Clean up stack (discard flag)
     tay                                                               ; 9d13: a8          .              ; Restore Y
@@ -6750,7 +6750,7 @@ l9dd3 = check_help_adfs_keyword+1
 ; Handle filing system control calls via FSCV. Dispatches
 ; star commands, *RUN, *CAT, etc.
 ; 
-.my_fscv
+.fscv_handler
     stx zp_text_ptr_lo                                                ; 9e50: 86 b4       ..             ; Save text pointer in (&B4)
     sty zp_text_ptr_hi                                                ; 9e52: 84 b5       ..             ; Store text pointer high
     tax                                                               ; 9e54: aa          .              ; Transfer FSC code to X
@@ -7091,7 +7091,6 @@ help_param_none = help_param_title+7
 ; 
 ; &a016 referenced 8 times by &9299, &92e3, &92fc, &9313, &93f5, &952b, &952e, &9e25
 .print_space
-.ca016
     lda #&20 ; ' '                                                    ; a016: a9 20       .              ; A=&20: space character
     jmp oswrch                                                        ; a018: 4c ee ff    L..            ; Write character 32
 
@@ -7306,7 +7305,7 @@ help_param_none = help_param_title+7
     adc #&30 ; '0'                                                    ; a127: 69 30       i0             ; Add &30 to get file handle
     tay                                                               ; a129: a8          .              ; Transfer to Y for OSFIND
     lda #0                                                            ; a12a: a9 00       ..             ; A=0: close file
-    jsr my_osfind                                                     ; a12c: 20 b6 b1     ..            ; Close this file
+    jsr osfind_handler                                                ; a12c: 20 b6 b1     ..            ; Close this file
 ; &a12f referenced 2 times by &a119, &a123
 .check_csd_on_drive
     dex                                                               ; a12f: ca          .              ; Next channel
@@ -7822,7 +7821,7 @@ la154 = sub_ca153+1
     ldx zp_entry_ptr_lo                                               ; a3d6: a6 b6       ..             ; Exec = &FFFFFFFF: open with OSFIND
     ldy zp_entry_ptr_hi                                               ; a3d8: a4 b7       ..             ; Get directory entry pointer high
     lda #&40 ; '@'                                                    ; a3da: a9 40       .@             ; A=&40: open for reading
-    jsr my_osfind                                                     ; a3dc: 20 b6 b1     ..            ; Open the file
+    jsr osfind_handler                                                ; a3dc: 20 b6 b1     ..            ; Open the file
     sta wksp_exec_handle                                              ; a3df: 8d 32 11    .2.            ; Save handle for *EXEC
     ldx #<(str_e_boot)                                                ; a3e2: a2 85       ..             ; Point to "E.$.!BOOT" string
     ldy #>(str_e_boot)                                                ; a3e4: a0 9a       ..             ; Y: high byte of E.$.!BOOT string
@@ -8852,7 +8851,7 @@ la868 = check_dest_terminator+1
     jsr save_wksp_and_return                                          ; a94e: 20 d3 89     ..            ; Save workspace state to disc
     ldy #&ff                                                          ; a951: a0 ff       ..             ; Y=&FF: will become 0 after INY
     tya                                                               ; a953: 98          .              ; A=&FF: flag for OSARGS
-    iny                                                               ; a954: c8          .              ; Y=0: falls through to my_osargs
+    iny                                                               ; a954: c8          .              ; Y=0: falls through to osargs_handler
 ; ***************************************************************************************
 ; OSARGS handler
 ; 
@@ -8860,7 +8859,7 @@ la868 = check_dest_terminator+1
 ; (PTR, EXT, allocation) and filing system information.
 ; 
 ; &a955 referenced 1 time by &9574
-.my_osargs
+.osargs_handler
     cpy #0                                                            ; a955: c0 00       ..             ; Y=0? General OSARGS query
     bne osargs_file_specific                                          ; a957: d0 3c       .<             ; Y!=0: file-specific handler
     tay                                                               ; a959: a8          .              ; Transfer A to Y (function code)
@@ -9165,7 +9164,7 @@ la868 = check_dest_terminator+1
     jsr hd_command_bget_bput_sector                                   ; ab4f: 20 c6 aa     ..            ; Hard drive single sector for BGET/BPUT
     ldy #0                                                            ; ab52: a0 00       ..             ; Y=0: data transfer index
     jsr scsi_wait_for_req                                             ; ab54: 20 0f 83     ..            ; Wait for SCSI REQ signal
-    bpl wait_write_data_phase                                         ; ab57: 10 0a       ..             ; Status OK: continue
+    bpl scsi_write_page                                               ; ab57: 10 0a       ..             ; Status OK: continue
     jsr command_done                                                  ; ab59: 20 8a 81     ..            ; Complete SCSI command and read status
     dec zp_retry_count                                                ; ab5c: c6 ce       ..             ; Decrement retry counter
     bpl hd_bput_write_sector                                          ; ab5e: 10 eb       ..             ; More retries: try write again
@@ -9178,11 +9177,11 @@ la868 = check_dest_terminator+1
 ; register, then set the ensuring flag.
 ; 
 ; &ab63 referenced 2 times by &ab57, &ab69
-.wait_write_data_phase
+.scsi_write_page
     lda (zp_buf_src_lo),y                                             ; ab63: b1 bc       ..             ; Get byte from buffer
     sta fred_hard_drive_0                                             ; ab65: 8d 40 fc    .@.            ; Write to SCSI data bus
     iny                                                               ; ab68: c8          .              ; Next byte
-    bne wait_write_data_phase                                         ; ab69: d0 f8       ..             ; Loop for 256 bytes
+    bne scsi_write_page                                               ; ab69: d0 f8       ..             ; Loop for 256 bytes
     lda #1                                                            ; ab6b: a9 01       ..             ; Set ensuring flag
     ora zp_adfs_flags                                                 ; ab6d: 05 cd       ..             ; OR into ADFS flags
     sta zp_adfs_flags                                                 ; ab6f: 85 cd       ..             ; Store updated flags
@@ -9570,7 +9569,7 @@ la868 = check_dest_terminator+1
 ; 
 ; Handle OSBGET calls to read a single byte from an open file.
 ; 
-.my_osbget
+.osbget_handler
     stx zp_save_x                                                     ; ad63: 86 c3       ..             ; Save X register
     jsr check_set_channel_y                                           ; ad65: 20 fe ac     ..            ; Validate file handle in Y
     ror a                                                             ; ad68: 6a          j              ; Rotate channel flags bit 0 to C
@@ -10012,7 +10011,7 @@ la868 = check_dest_terminator+1
 ; 
 ; Handle OSBPUT calls to write a single byte to an open file.
 ; 
-.my_osbput
+.osbput_handler
     stx zp_save_x                                                     ; b08f: 86 c3       ..             ; Save X register
     pha                                                               ; b091: 48          H              ; Save byte to write on stack
     jsr check_set_channel_y                                           ; b092: 20 fe ac     ..            ; Validate file handle in Y
@@ -10191,7 +10190,7 @@ la868 = check_dest_terminator+1
 ; Handle OSFIND calls to open and close files for byte access.
 ; 
 ; &b1b6 referenced 2 times by &a12c, &a3dc
-.my_osfind
+.osfind_handler
     jsr save_workspace_state                                          ; b1b6: 20 49 a7     I.            ; Save registers for later restore
     stx wksp_osfile_block                                             ; b1b9: 8e 40 10    .@.            ; Save X in OSFILE block as filename
     stx zp_text_ptr_lo                                                ; b1bc: 86 b4       ..             ; Filename pointer low = X
@@ -10778,7 +10777,7 @@ la868 = check_dest_terminator+1
 ; 
 ; Handle OSGBPB calls for reading and writing groups of bytes.
 ; 
-.my_osgbpb
+.osgbpb_handler
     jsr save_workspace_state                                          ; b57f: 20 49 a7     I.            ; Save registers for restore
     sta wksp_osgbpb_func                                              ; b582: 8d b4 10    ...            ; Store OSGBPB function code
     sta wksp_osgbpb_mode                                              ; b585: 8d b5 10    ...            ; Store mode flag copy
@@ -11639,7 +11638,7 @@ la868 = check_dest_terminator+1
     jsr floppy_restore_track_0                                        ; baba: 20 3f bd     ?.            ; Seek to track 0 first
 ; &babd referenced 2 times by &baac, &bab8
 .setup_nmi_for_transfer
-    jsr process_floppy_result                                         ; babd: 20 c6 ba     ..            ; Set up sector parameters
+    jsr setup_fdc_and_seek                                            ; babd: 20 c6 ba     ..            ; Set up sector parameters
     jsr select_fdc_rw_command                                         ; bac0: 20 fd bc     ..            ; Set up NMI handler
     jmp floppy_error                                                  ; bac3: 4c ae bf    L..            ; Process result/error
 
@@ -11650,7 +11649,7 @@ la868 = check_dest_terminator+1
 ; readback verify, then seek to the target track.
 ; 
 ; &bac6 referenced 3 times by &babd, &bd63, &bda6
-.process_floppy_result
+.setup_fdc_and_seek
     jsr clear_transfer_complete                                       ; bac6: 20 2b bd     +.            ; Clear seek-complete flag
     ldx #0                                                            ; bac9: a2 00       ..             ; X=0: first FDC register
     jsr fdc_write_register_verify                                     ; bacb: 20 09 bb     ..            ; Write to WD1770 register with readback verify
@@ -12284,7 +12283,7 @@ la868 = check_dest_terminator+1
     sta nmi_read_addr_hi                                              ; bd5b: 8d 0f 0d    ...            ; Store as NMI buffer high byte
     lda #0                                                            ; bd5e: a9 00       ..             ; A=0: NMI buffer low byte
     sta nmi_read_addr_lo                                              ; bd60: 8d 0e 0d    ...            ; Store as NMI buffer low byte
-    jsr process_floppy_result                                         ; bd63: 20 c6 ba     ..            ; Set up FDC registers for operation
+    jsr setup_fdc_and_seek                                            ; bd63: 20 c6 ba     ..            ; Set up FDC registers for operation
     jsr select_fdc_rw_command                                         ; bd66: 20 fd bc     ..            ; Set up FDC command and issue
     lda zp_floppy_track                                               ; bd69: a5 a3       ..             ; Save current track
     pha                                                               ; bd6b: 48          H              ; Push on stack
@@ -12331,7 +12330,7 @@ la868 = check_dest_terminator+1
 
 ; &bda6 referenced 1 time by &bb20
 .issue_fdc_track_command
-    jsr process_floppy_result                                         ; bda6: 20 c6 ba     ..            ; Set up FDC registers
+    jsr setup_fdc_and_seek                                            ; bda6: 20 c6 ba     ..            ; Set up FDC registers
     lda zp_floppy_state                                               ; bda9: a5 a2       ..             ; Get transfer state flags
     ora #&40 ; '@'                                                    ; bdab: 09 40       .@             ; Set bit 6 (multi-sector flag)
     sta zp_floppy_state                                               ; bdad: 85 a2       ..             ; Store updated state
@@ -12957,7 +12956,6 @@ save pydis_start, pydis_end
 ;     zp_user_ptr_2:                                      9
 ;     zp_user_ptr_3:                                      9
 ;     advance_dir_entry_ptr:                              8
-;     ca016:                                              8
 ;     exec_disc_command:                                  8
 ;     exec_disc_op_from_wksp:                             8
 ;     fdc_8271_data_or_1770_command_or_status:            8
@@ -13169,7 +13167,6 @@ save pydis_start, pydis_end
 ;     print_entry_info:                                   3
 ;     print_next_command:                                 3
 ;     print_via_osasci:                                   3
-;     process_floppy_result:                              3
 ;     read_clock_for_timing:                              3
 ;     return_10:                                          3
 ;     return_14:                                          3
@@ -13179,6 +13176,7 @@ save pydis_start, pydis_end
 ;     scsi_start_command:                                 3
 ;     set_drive_from_channel:                             3
 ;     set_up_gsinit_path:                                 3
+;     setup_fdc_and_seek:                                 3
 ;     skip_spaces_before_attrs:                           3
 ;     step_ensure_offset_loop:                            3
 ;     switch_to_library:                                  3
@@ -13324,12 +13322,12 @@ save pydis_start, pydis_end
 ;     mask_error_code:                                    2
 ;     match_command_char:                                 2
 ;     mount_read_root_dir:                                2
-;     my_osfind:                                          2
 ;     next_attr_char:                                     2
 ;     next_command_entry:                                 2
 ;     nmi_adfs_flags:                                     2
 ;     nmi_patched_addr:                                   2
 ;     not_open_for_update_error:                          2
+;     osfind_handler:                                     2
 ;     output_printable_char:                              2
 ;     pad_with_spaces:                                    2
 ;     parse_and_setup_search:                             2
@@ -13375,12 +13373,13 @@ save pydis_start, pydis_end
 ;     save_and_return_handle:                             2
 ;     save_byte_count_for_write:                          2
 ;     save_text_ptr_after_match:                          2
+;     scsi_write_page:                                    2
 ;     search_dir_for_channel:                             2
 ;     search_dir_for_file:                                2
 ;     search_dir_with_wildcards:                          2
 ;     search_for_osfile_target:                           2
 ;     select_fdc_rw_command:                              2
-;     service4_claim_and_dispatch:                        2
+;     service4_decline:                                   2
 ;     service4_not_matched:                               2
 ;     set_cdir_parent_sector:                             2
 ;     set_default_dir_for_boot:                           2
@@ -13424,7 +13423,6 @@ save pydis_start, pydis_end
 ;     wait_format_nmi_complete:                           2
 ;     wait_req_and_transfer:                              2
 ;     wait_tube_data_phase:                               2
-;     wait_write_data_phase:                              2
 ;     wild_cards_error:                                   2
 ;     wksp:                                               2
 ;     wksp_alloc_size_hi:                                 2
@@ -13879,7 +13877,6 @@ save pydis_start, pydis_end
 ;     merge_with_prev_loop:                               1
 ;     mount_drive_setup:                                  1
 ;     mount_set_boot_option:                              1
-;     my_osargs:                                          1
 ;     name_length_ok:                                     1
 ;     next_digit:                                         1
 ;     next_entry_byte:                                    1
@@ -13907,6 +13904,7 @@ save pydis_start, pydis_end
 ;     osargs:                                             1
 ;     osargs_file_specific:                               1
 ;     osargs_general_query:                               1
+;     osargs_handler:                                     1
 ;     osfile_dispatch_hi:                                 1
 ;     osfile_dispatch_lo:                                 1
 ;     osfile_tpl_cdir:                                    1

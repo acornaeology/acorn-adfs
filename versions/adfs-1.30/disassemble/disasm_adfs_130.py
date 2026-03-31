@@ -686,7 +686,7 @@ label(0x8D21, "check_open")
 entry(0x9109)
 label(0x9109, "star_remove")
 entry(0x923E)
-label(0x923E, "my_osfile")
+label(0x923E, "osfile_handler")
 entry(0x9433)
 label(0x9433, "star_ex")
 entry(0x94E7)
@@ -789,7 +789,7 @@ label(0x9DBE, "service_handler_9")
 
 # Filing system control vector
 entry(0x9E50)
-label(0x9E50, "my_fscv")
+label(0x9E50, "fscv_handler")
 entry(0x9E7F)
 label(0x9E7F, "star_cmd")
 label(0x9EE3, "tbl_commands")
@@ -848,7 +848,7 @@ label(0xA93C, "fsc6_new_filing_system")
 
 # OSARGS handler
 entry(0xA955)
-label(0xA955, "my_osargs")
+label(0xA955, "osargs_handler")
 
 # Channel I/O
 entry(0xAAC6)
@@ -863,15 +863,15 @@ label(0xACFE, "check_set_channel_y")
 entry(0xAD16)
 label(0xAD16, "compare_ext_to_ptr")
 entry(0xAD63)
-label(0xAD63, "my_osbget")
+label(0xAD63, "osbget_handler")
 entry(0xB08F)
-label(0xB08F, "my_osbput")
+label(0xB08F, "osbput_handler")
 entry(0xB1B3)
 label(0xB1B3, "star_close")
 entry(0xB1B6)
-label(0xB1B6, "my_osfind")
+label(0xB1B6, "osfind_handler")
 entry(0xB57F)
-label(0xB57F, "my_osgbpb")
+label(0xB57F, "osgbpb_handler")
 
 # Floppy disc driver entry points (indirect jump table)
 label(0xBA00, "do_floppy_scsi_command_ind")
@@ -1415,31 +1415,31 @@ entry(0x9CC1)
 # Extended vector table: 7 entries of 3 bytes (addr, ROM)
 # ROM byte is &FF, patched to actual ROM number at install time.
 word(0x9CC1)
-comment(0x9CC1, "FILEV: my_osfile (&923E)", inline=True)
+comment(0x9CC1, "FILEV: osfile_handler (&923E)", inline=True)
 byte(0x9CC3)
 comment(0x9CC3, "ROM: &FF (patched at runtime)", inline=True)
 word(0x9CC4)
-comment(0x9CC4, "ARGSV: my_osargs (&A955)", inline=True)
+comment(0x9CC4, "ARGSV: osargs_handler (&A955)", inline=True)
 byte(0x9CC6)
 comment(0x9CC6, "ROM: &FF", inline=True)
 word(0x9CC7)
-comment(0x9CC7, "BGETV: my_osbget (&AD63)", inline=True)
+comment(0x9CC7, "BGETV: osbget_handler (&AD63)", inline=True)
 byte(0x9CC9)
 comment(0x9CC9, "ROM: &FF", inline=True)
 word(0x9CCA)
-comment(0x9CCA, "BPUTV: my_osbput (&B08F)", inline=True)
+comment(0x9CCA, "BPUTV: osbput_handler (&B08F)", inline=True)
 byte(0x9CCC)
 comment(0x9CCC, "ROM: &FF", inline=True)
 word(0x9CCD)
-comment(0x9CCD, "GBPBV: my_osgbpb (&B57F)", inline=True)
+comment(0x9CCD, "GBPBV: osgbpb_handler (&B57F)", inline=True)
 byte(0x9CCF)
 comment(0x9CCF, "ROM: &FF", inline=True)
 word(0x9CD0)
-comment(0x9CD0, "FINDV: my_osfind (&B1B6)", inline=True)
+comment(0x9CD0, "FINDV: osfind_handler (&B1B6)", inline=True)
 byte(0x9CD2)
 comment(0x9CD2, "ROM: &FF", inline=True)
 word(0x9CD3)
-comment(0x9CD3, "FSCV:  my_fscv (&9E50)", inline=True)
+comment(0x9CD3, "FSCV:  fscv_handler (&9E50)", inline=True)
 byte(0x9CD5)
 comment(0x9CD5, "ROM: &FF", inline=True)
 entry(0x9CD6)
@@ -2426,7 +2426,7 @@ comment(0x89A6, "Get CSD sector byte", inline=True)
 comment(0x89A9, "Copy to CSD drive sector", inline=True)
 comment(0x89AC, "Next byte", inline=True)
 
-# my_osfind body - open file path (&B203-&B57E)
+# osfind_handler body - open file path (&B203-&B57E)
 # After finding an empty channel slot, searches for the file,
 # checks for conflicts with already-open files, and sets up
 # the channel's buffer, PTR, EXT, and allocation info.
@@ -2837,7 +2837,7 @@ comment(0xB57C, "Fourth shift", inline=True)
 comment(0xB57D, "Transfer to X as index", inline=True)
 comment(0xB57E, "Return", inline=True)
 
-# my_osbget body (&AD7E-&B08E)
+# osbget_handler body (&AD7E-&B08E)
 # After validating the channel and checking EOF,
 # calculates the buffer address from PTR, loads the sector
 # if needed, reads the byte, and advances PTR.
@@ -3346,7 +3346,7 @@ comment(0x8492, "Zero directory buffer", inline=True)
 comment(0x8495, "Next byte", inline=True)
 comment(0x8496, "Loop for 256 bytes", inline=True)
 
-# my_osfile (&923E)
+# osfile_handler (&923E)
 comment(0x923E, "Save control block address low", inline=True)
 comment(0x9240, "Save control block address high", inline=True)
 comment(0x9242, "Transfer function code to Y", inline=True)
@@ -3509,7 +3509,7 @@ comment(0x84A4, "Call OSBYTE", inline=True)
 comment(0x84A7, "Y=&84: high byte (string in this ROM)", inline=True)
 comment(0x84A9, "Call OSCLI with (X,Y) address", inline=True)
 
-# my_fscv (&9E50)
+# fscv_handler (&9E50)
 comment(0x9E50, "Save text pointer in (&B4)", inline=True)
 comment(0x9E54, "Transfer FSC code to X", inline=True)
 comment(0x9E55, "FSC >= &80? Not for us", inline=True)
@@ -4012,7 +4012,7 @@ comment(0x9CAB, '":0.LIB*" + CR: default library path', inline=True)
 label(0x9CEC, "check_adfs_prefix")
 label(0x9CEE, "match_command_loop")
 label(0x9CFF, "service4_not_matched")
-label(0x9D11, "service4_claim_and_dispatch")
+label(0x9D11, "service4_decline")
 label(0x9D35, "match_osword_block_loop")
 label(0x9D46, "copy_disc_op_params_loop")
 label(0x9D52, "execute_osword_disc_op")
@@ -4195,7 +4195,7 @@ label(0xAABD, "set_ptr_complete")
 label(0xAAF0, "calc_channel_buffer_page")
 label(0xAAF3, "flush_dirty_channel_buffer")
 label(0xAB3D, "write_dirty_sector_to_disc")
-label(0xAB63, "wait_write_data_phase")
+label(0xAB63, "scsi_write_page")
 label(0xAB75, "write_buffer_to_scsi_loop")
 label(0xAB87, "advance_write_page")
 label(0xAB8A, "write_complete")
@@ -4392,7 +4392,7 @@ label(0xBA9B, "set_fdc_control_byte")
 label(0xBAB0, "set_track_and_sector")
 label(0xBABA, "seek_to_track_0")
 label(0xBABD, "setup_nmi_for_transfer")
-label(0xBAC6, "process_floppy_result")
+label(0xBAC6, "setup_fdc_and_seek")
 label(0xBAF1, "check_floppy_error_code")
 label(0xBAF4, "retry_after_error")
 label(0xBB06, "return_floppy_result")
@@ -4779,7 +4779,7 @@ comment(0x8301, "Send byte and return status", inline=True)
 comment(0xBA0C, "A=&FF: mark transfer state", inline=True)
 comment(0xBA0E, "Store in transfer workspace", inline=True)
 
-# my_osbget (&AD63)
+# osbget_handler (&AD63)
 # OSBGET reads one byte from an open file.
 # Validates the channel, checks for EOF, reads the next
 # byte from the file buffer, advancing PTR.
@@ -4796,7 +4796,7 @@ comment(0xAD76, "Save registers for restore", inline=True)
 comment(0xAD79, "Get channel index", inline=True)
 comment(0xAD7B, "Get channel flags", inline=True)
 
-# my_osargs (&A955)
+# osargs_handler (&A955)
 # OSARGS dispatch:
 #   Y=0, A=0: return FS number (8 = ADFS)
 #   Y=0, A=1: return command line tail address
@@ -4878,7 +4878,7 @@ comment(0xA949, "OSBYTE &77: close spool/exec files", inline=True)
 comment(0xA94E, "Save workspace state to disc", inline=True)
 comment(0xA951, "Y=&FF: will become 0 after INY", inline=True)
 comment(0xA953, "A=&FF: flag for OSARGS", inline=True)
-comment(0xA954, "Y=0: falls through to my_osargs", inline=True)
+comment(0xA954, "Y=0: falls through to osargs_handler", inline=True)
 
 # star_destroy (&99E6)
 # Lists matching files, prompts "Destroy ? ", reads "YES\r"
@@ -4928,7 +4928,7 @@ comment(0x9A3E, "Discard saved filename from stack", inline=True)
 comment(0x9A3F, "Discard second saved byte", inline=True)
 comment(0x9A40, "Save workspace and return", inline=True)
 
-# my_osgbpb (&B57F)
+# osgbpb_handler (&B57F)
 # OSGBPB dispatch:
 #   A=1-4: file byte transfer operations (read/write)
 #   A=5-8: directory/title reading operations
@@ -4949,7 +4949,7 @@ comment(0xB5A7, "Y=0: get file handle from block", inline=True)
 comment(0xB5A9, "Read channel number from block+0", inline=True)
 comment(0xB5AC, "Validate file handle", inline=True)
 
-# my_osgbpb body (&B5B0-&B9FF) - the final routine!
+# osgbpb_handler body (&B5B0-&B9FF) - the final routine!
 # OSGBPB: A=1-4 file byte transfer, A=5-8 directory info read
 
 # File I/O path: setup channel and PTR
@@ -5539,7 +5539,7 @@ comment(0xB9FB, "Release Tube and return", inline=True)
 # The tube_start_xfer_sei and tube_start_xfer routines at
 # &81EF-&81FB are already fully commented above.
 
-# my_osbput (&B08F)
+# osbput_handler (&B08F)
 # Writes a byte to an open file at the current PTR position.
 # Checks the file is open for writing, manages the buffer,
 # and advances PTR. If PTR passes EXT, extends the file.
@@ -5555,7 +5555,7 @@ comment(0xB0BA, "State >= 6: buffer dirty, ready", inline=True)
 comment(0xB0BE, "State = 3: buffer clean, skip load", inline=True)
 comment(0xB0C2, "Compute PTR+1 to check if extending", inline=True)
 
-# my_osfind (&B1B6)
+# osfind_handler (&B1B6)
 # A=0: close file (Y=handle, or Y=0 for all)
 # A=&40: open for input (reading)
 # A=&80: open for output (writing)
@@ -8513,7 +8513,7 @@ comment(0x8229, "NOP timing delay", inline=True)
 comment(0x822A, "NOP timing delay", inline=True)
 comment(0x8238, "Continue outer transfer loop", inline=True)
 
-# my_osfile - remaining items
+# osfile_handler - remaining items
 comment(0x9245, "Clear current channel", inline=True)
 comment(0x9249, "Transfer A*2 to X", inline=True)
 comment(0x924B, "X = A*2 + 2 (dispatch table offset)", inline=True)
@@ -8752,7 +8752,7 @@ comment(0x9AE5, "Return A=1 (claim 1 page)", inline=True)
 comment(0x9AE8, "Get our ROM number", inline=True)
 comment(0x9AF0, "Return", inline=True)
 
-# my_fscv - remaining items
+# fscv_handler - remaining items
 comment(0x9E52, "Store text pointer high", inline=True)
 comment(0x9E59, "FSC >= 9: not for us", inline=True)
 comment(0x9E5D, "Clear current channel", inline=True)
@@ -9627,7 +9627,7 @@ comment(0xA933, "Write modified directory", inline=True)
 comment(0xA936, "Set up for next source file", inline=True)
 comment(0xA939, "Loop to copy next file", inline=True)
 
-# my_osbput (&B08F) - complete body coverage
+# osbput_handler (&B08F) - complete body coverage
 comment(0xB097, "Clear modification flag", inline=True)
 comment(0xB0BC, "Buffer state >= 6: ready", inline=True)
 comment(0xB0C0, "Buffer state = 3: skip load", inline=True)
@@ -9838,7 +9838,7 @@ comment(0xA380, "Store in (&B5)", inline=True)
 comment(0xA382, "Also in OSFILE block+1", inline=True)
 comment(0xA385, "Return", inline=True)
 
-# my_osargs - remaining items (complete body coverage)
+# osargs_handler - remaining items (complete body coverage)
 comment(0xA95E, "Return (FS number in A)", inline=True)
 comment(0xA97B, "Return (success)", inline=True)
 comment(0xA97C, "X=&10: scan open channels", inline=True)
@@ -10440,46 +10440,46 @@ Main entry point for MOS service calls. Dispatches to
 individual handlers based on the service call number in A.
 """)
 
-subroutine(0x9E50, "my_fscv",
+subroutine(0x9E50, "fscv_handler",
     title="Filing system control vector handler",
     description="""\
 Handle filing system control calls via FSCV. Dispatches
 star commands, *RUN, *CAT, etc.
 """)
 
-subroutine(0x923E, "my_osfile",
+subroutine(0x923E, "osfile_handler",
     title="OSFILE handler",
     description="""\
 Handle OSFILE calls for whole-file operations: load, save,
 read/write catalogue info, delete, create.
 """)
 
-subroutine(0xA955, "my_osargs",
+subroutine(0xA955, "osargs_handler",
     title="OSARGS handler",
     description="""\
 Handle OSARGS calls for reading and writing file arguments
 (PTR, EXT, allocation) and filing system information.
 """)
 
-subroutine(0xAD63, "my_osbget",
+subroutine(0xAD63, "osbget_handler",
     title="OSBGET handler",
     description="""\
 Handle OSBGET calls to read a single byte from an open file.
 """)
 
-subroutine(0xB08F, "my_osbput",
+subroutine(0xB08F, "osbput_handler",
     title="OSBPUT handler",
     description="""\
 Handle OSBPUT calls to write a single byte to an open file.
 """)
 
-subroutine(0xB1B6, "my_osfind",
+subroutine(0xB1B6, "osfind_handler",
     title="OSFIND handler",
     description="""\
 Handle OSFIND calls to open and close files for byte access.
 """)
 
-subroutine(0xB57F, "my_osgbpb",
+subroutine(0xB57F, "osgbpb_handler",
     title="OSGBPB handler",
     description="""\
 Handle OSGBPB calls for reading and writing groups of bytes.
@@ -11564,7 +11564,7 @@ current sector buffer, routing through direct memory,
 indirect via (zp_buf_dest), or the Tube.
 """)
 
-subroutine(0xBAC6, "process_floppy_result",
+subroutine(0xBAC6, "setup_fdc_and_seek",
     title="Set up FDC registers and seek to track",
     description="""\
 Write track and sector to the WD1770 registers with
@@ -11727,7 +11727,7 @@ OR with low nibble to produce a combined byte.
     on_exit={"a": "combined byte value",
              "x": "preserved", "y": "preserved"})
 
-subroutine(0xA016, "ca016",
+subroutine(0xA016, "print_space",
     title="Print a space character",
     description="""\
 Print a single space (&20) via OSWRCH.
@@ -11781,7 +11781,7 @@ Set bit 7 of transfer mode for read, get step rate,
 claim NMI, and set up the track.
 """)
 
-subroutine(0x9D11, "service4_claim_and_dispatch",
+subroutine(0x9D11, "service4_decline",
     title="Decline service 4 and pass on",
     description="""\
 Clean up stack and return A=4 to pass the unrecognised
@@ -11863,7 +11863,7 @@ Return A=1 to claim one workspace page and set Y=&1C
 to raise PAGE to &1D00 for ADFS workspace.
 """)
 
-subroutine(0xAB63, "wait_write_data_phase",
+subroutine(0xAB63, "scsi_write_page",
     title="Write 256 bytes to SCSI bus",
     description="""\
 Transfer a page from (zp_buf_src) to the SCSI data
@@ -12090,13 +12090,13 @@ high, ROM number (&FF, patched to actual ROM number when
 installed). Copied to the MOS extended vector area when
 ADFS is selected as the current filing system.
 
-  FILEV  &923E  my_osfile
-  ARGSV  &A955  my_osargs
-  BGETV  &AD63  my_osbget
-  BPUTV  &B08F  my_osbput
-  GBPBV  &B57F  my_osgbpb
-  FINDV  &B1B6  my_osfind
-  FSCV   &9E50  my_fscv
+  FILEV  &923E  osfile_handler
+  ARGSV  &A955  osargs_handler
+  BGETV  &AD63  osbget_handler
+  BPUTV  &B08F  osbput_handler
+  GBPBV  &B57F  osgbpb_handler
+  FINDV  &B1B6  osfind_handler
+  FSCV   &9E50  fscv_handler
 """)
 
 subroutine(0x9CD6, "str_filing_system_name",
@@ -12262,7 +12262,7 @@ subroutine(0x8C05, "osfile_save_check_existing",
     title="OSFILE A=0: check for existing file before save",
     description="""\
 Entry point for OSFILE save (A=0), reached via RTS-trick
-dispatch from my_osfile. Searches the current directory for
+dispatch from osfile_handler. Searches the current directory for
 an existing file with the same name, checking it is not a
 directory and has the correct access attributes.
 
