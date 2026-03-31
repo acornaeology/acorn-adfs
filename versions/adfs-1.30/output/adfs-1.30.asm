@@ -411,11 +411,11 @@ nmi_patched_addr                                = &ffff
 ; Move 1: &bcdf to &0d0a for length 14
     org &0d0a
 ; &bcdf referenced 3 times by &bc49, &bc55, &bc65
-    lda nmi_patched_addr                                              ; bcdf: ad ff ff    ... :0d0a[1]   ; Read byte from transfer address
-    sta fdc_1770_data                                                 ; bce2: 8d 87 fe    ... :0d0d[1]   ; Write to WD1770 data register
-    inc nmi_write_addr_lo                                             ; bce5: ee 0b 0d    ... :0d10[1]   ; Increment transfer address low
-    bne nmi_transfer_done                                             ; bce8: d0 03       ..  :0d13[1]   ; No wrap: skip high byte increment
-    inc nmi_write_addr_hi                                             ; bcea: ee 0c 0d    ... :0d15[1]   ; Increment transfer address high
+    lda nmi_patched_addr                                              ; bcdf: ad ff ff    ... :0d0a[1]
+    sta fdc_1770_data                                                 ; bce2: 8d 87 fe    ... :0d0d[1]
+    inc nmi_write_addr_lo                                             ; bce5: ee 0b 0d    ... :0d10[1]
+    bne nmi_transfer_done                                             ; bce8: d0 03       ..  :0d13[1]
+    inc nmi_write_addr_hi                                             ; bcea: ee 0c 0d    ... :0d15[1]
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -433,9 +433,9 @@ nmi_patched_addr                                = &ffff
 
 ; Move 2: &bced to &0d0a for length 8
     org &0d0a
-    lda tube_data_register_3                                          ; bced: ad e5 fe    ... :0d0a[2]   ; Read byte from Tube R3
-    sta fdc_1770_data                                                 ; bcf0: 8d 87 fe    ... :0d0d[2]   ; Write to WD1770 data register
-    bcs nmi_transfer_done                                             ; bcf3: b0 06       ..  :0d10[2]   ; Transfer complete: branch to end
+    lda tube_data_register_3                                          ; bced: ad e5 fe    ... :0d0a[2]
+    sta fdc_1770_data                                                 ; bcf0: 8d 87 fe    ... :0d0d[2]
+    bcs nmi_transfer_done                                             ; bcf3: b0 06       ..  :0d10[2]
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -453,9 +453,9 @@ nmi_patched_addr                                = &ffff
 
 ; Move 3: &bcf5 to &0d0a for length 8
     org &0d0a
-    lda fdc_1770_data                                                 ; bcf5: ad 87 fe    ... :0d0a[3]   ; Read byte from WD1770
-    sta tube_data_register_3                                          ; bcf8: 8d e5 fe    ... :0d0d[3]   ; Write to Tube R3
-    bcs nmi_transfer_done                                             ; bcfb: b0 06       ..  :0d10[3]   ; Transfer complete: branch to end
+    lda fdc_1770_data                                                 ; bcf5: ad 87 fe    ... :0d0a[3]
+    sta tube_data_register_3                                          ; bcf8: 8d e5 fe    ... :0d0d[3]
+    bcs nmi_transfer_done                                             ; bcfb: b0 06       ..  :0d10[3]
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -1221,7 +1221,7 @@ nmi_patched_addr                                = &ffff
 ; &832b referenced 6 times by &82e8, &85c8, &8656, &8664, &8ffa, &a6f9
 .generate_disc_error
     ldx wksp_saved_drive                                              ; 832b: ae 2f 10    ./.            ; Check if drive was already saved
-    inx                                                               ; 832e: e8          .              ; X=saved_drive+1; if !=0, already set
+    inx                                                               ; 832e: e8          .              ; Non-zero means drive already saved
     bne reload_fsm_and_dir_then_brk                                   ; 832f: d0 17       ..             ; Already saved, just raise the error
     ldx wksp_alt_sector_hi                                            ; 8331: ae 2e 10    ...            ; Check alternative workspace
     inx                                                               ; 8334: e8          .              ; Increment: non-zero?
@@ -3508,20 +3508,20 @@ nmi_patched_addr                                = &ffff
     bne c8dab                                                         ; 8dbb: d0 ee       ..             ; Continue scanning
 ; &8dbd referenced 3 times by &8cd4, &a50c, &b2fe
 .set_up_gsinit_path
-    jsr set_up_directory_search                                       ; 8dbd: 20 6e 8d     n.            ; Save text pointer low; Push on stack
+    jsr set_up_directory_search                                       ; 8dbd: 20 6e 8d     n.            ; Save text pointer low
 ; &8dc0 referenced 1 time by &8dd3
 .gsinit_scan_loop
     lda (zp_text_ptr_lo),y                                            ; 8dc0: b1 b4       ..             ; Save text pointer high
-    and #&7f                                                          ; 8dc2: 29 7f       ).             ; Push on stack; Get text pointer low
-    cmp #&2a ; '*'                                                    ; 8dc4: c9 2a       .*             ; Store for GSINIT
-    beq mark_saved_drive_unset                                        ; 8dc6: f0 16       ..             ; Raise Wild cards error; Get text pointer high
-    cmp #&23 ; '#'                                                    ; 8dc8: c9 23       .#             ; Store for GSINIT high
-    beq mark_saved_drive_unset                                        ; 8dca: f0 12       ..             ; Raise Wild cards error; Call GSINIT to init string parsing
+    and #&7f                                                          ; 8dc2: 29 7f       ).             ; Push on stack
+    cmp #&2a ; '*'                                                    ; 8dc4: c9 2a       .*
+    beq mark_saved_drive_unset                                        ; 8dc6: f0 16       ..             ; Raise Wild cards error
+    cmp #&23 ; '#'                                                    ; 8dc8: c9 23       .#
+    beq mark_saved_drive_unset                                        ; 8dca: f0 12       ..             ; Raise Wild cards error
     cmp #&2e ; '.'                                                    ; 8dcc: c9 2e       ..             ; Is it '.'?
-    beq return_17                                                     ; 8dce: f0 05       ..             ; Restore text pointer high; Store back
+    beq return_17                                                     ; 8dce: f0 05       ..             ; Restore text pointer high
     dey                                                               ; 8dd0: 88          .              ; Decrement index
-    cpy #&ff                                                          ; 8dd1: c0 ff       ..             ; Restore text pointer low; Store back
-    bne gsinit_scan_loop                                              ; 8dd3: d0 eb       ..             ; Return
+    cpy #&ff                                                          ; 8dd1: c0 ff       ..             ; Restore text pointer low
+    bne gsinit_scan_loop                                              ; 8dd3: d0 eb       ..
 ; &8dd5 referenced 4 times by &8d87, &8da6, &8dce, &8dd9
 .return_17
     rts                                                               ; 8dd5: 60          `              ; Return
@@ -3534,8 +3534,8 @@ nmi_patched_addr                                = &ffff
 ; 
 ; &8dd6 referenced 2 times by &8d8a, &8d93
 .parse_and_search_dir
-    jsr check_char_is_terminator                                      ; 8dd6: 20 1a 87     ..            ; Get character at (&B4),Y; Strip bit 7
-    bne return_17                                                     ; 8dd9: d0 fa       ..             ; Return character in A
+    jsr check_char_is_terminator                                      ; 8dd6: 20 1a 87     ..            ; Get character at (&B4),Y
+    bne return_17                                                     ; 8dd9: d0 fa       ..
 ; &8ddb referenced 4 times by &8d77, &8d83, &8da2, &8db5
 .bad_name_in_path
     jmp bad_name_error                                                ; 8ddb: 4c 37 87    L7.            ; Wild cards found: Bad name error
@@ -3578,20 +3578,20 @@ nmi_patched_addr                                = &ffff
 ; 
 ; &8df3 referenced 4 times by &8f4c, &9594, &a649, &a8dc
 .check_file_not_open2
-    jsr copy_osfile_addrs                                             ; 8df3: 20 e9 8c     ..            ; A=&FF: mark saved drive as unset; Store in saved drive
+    jsr copy_osfile_addrs                                             ; 8df3: 20 e9 8c     ..            ; A=&FF: mark saved drive as unset
 ; &8df6 referenced 1 time by &a556
 .search_dir_for_new_entry
     bne no_empty_entry_found                                          ; 8df6: d0 21       .!             ; Ensure directory integrity
-    ldx #2                                                            ; 8df8: a2 02       ..             ; Point (&B6) to first dir entry
-    ldy #&12                                                          ; 8dfa: a0 12       ..             ; Y=&12: offset of first dir entry
-    lda (zp_entry_ptr_lo),y                                           ; 8dfc: b1 b6       ..             ; Get first byte of entry
-    cmp #1                                                            ; 8dfe: c9 01       ..             ; Zero: found empty slot
+    ldx #2                                                            ; 8df8: a2 02       ..
+    ldy #&12                                                          ; 8dfa: a0 12       ..
+    lda (zp_entry_ptr_lo),y                                           ; 8dfc: b1 b6       ..
+    cmp #1                                                            ; 8dfe: c9 01       ..
 ; &8e00 referenced 1 time by &8e09
 .scan_entry_bytes_loop
     iny                                                               ; 8e00: c8          .              ; Next entry byte
     lda #0                                                            ; 8e01: a9 00       ..             ; Get name and compare
-    adc (zp_entry_ptr_lo),y                                           ; 8e03: 71 b6       q.             ; Match: file already exists
-    sta wksp_entry_size_base,y                                        ; 8e05: 99 24 10    .$.            ; Advance to next entry (+&1A)
+    adc (zp_entry_ptr_lo),y                                           ; 8e03: 71 b6       q.
+    sta wksp_entry_size_base,y                                        ; 8e05: 99 24 10    .$.
     dex                                                               ; 8e08: ca          .              ; Clear carry for addition
     bpl scan_entry_bytes_loop                                         ; 8e09: 10 f5       ..             ; Add 26 bytes
     ldy #&18                                                          ; 8e0b: a0 18       ..             ; Store updated pointer low
@@ -3599,15 +3599,15 @@ nmi_patched_addr                                = &ffff
 ; &8e0f referenced 1 time by &8e16
 .find_empty_entry_loop
     lda (zp_entry_ptr_lo),y                                           ; 8e0f: b1 b6       ..             ; Increment page
-    sta wksp_object_sector,x                                          ; 8e11: 9d 34 10    .4.            ; Continue searching; Check if directory full
+    sta wksp_object_sector,x                                          ; 8e11: 9d 34 10    .4.            ; Continue searching
     dey                                                               ; 8e14: 88          .              ; Back up one entry position
     dex                                                               ; 8e15: ca          .              ; Compare pointer with &16B1
-    bpl find_empty_entry_loop                                         ; 8e16: 10 f7       ..             ; Compare high byte
+    bpl find_empty_entry_loop                                         ; 8e16: 10 f7       ..
     rts                                                               ; 8e18: 60          `              ; Return (slot found)
 
 ; &8e19 referenced 1 time by &8df6
 .no_empty_entry_found
-    lda dir_last_entry_area                                           ; 8e19: ad b1 16    ...            ; Below limit: slot found; At limit: dir full
+    lda dir_last_entry_area                                           ; 8e19: ad b1 16    ...            ; Below limit: slot found
     beq check_name_already_exists                                     ; 8e1c: f0 0d       ..             ; Exactly at limit: dir full
     jsr reload_fsm_and_dir_then_brk                                   ; 8e1e: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &b3                                                          ; 8e21: b3          .              ; Error &B3: Dir full
@@ -3676,14 +3676,14 @@ nmi_patched_addr                                = &ffff
     cmp #&21 ; '!'                                                    ; 8e75: c9 21       .!             ; Store in (&B9)
     bcc store_allocated_sector                                        ; 8e77: 90 04       ..             ; Y=2: copy 3-byte start sector
     cmp #&22 ; '"'                                                    ; 8e79: c9 22       ."             ; Get start sector byte from entry
-    bne check_exact_alloc                                             ; 8e7b: d0 02       ..             ; Store in object sector workspace
+    bne check_exact_alloc                                             ; 8e7b: d0 02       ..
 ; &8e7d referenced 1 time by &8e77
 .store_allocated_sector
     lda #&0d                                                          ; 8e7d: a9 0d       ..             ; A=CR: pad entry name
 ; &8e7f referenced 1 time by &8e7b
 .check_exact_alloc
-    cpy #2                                                            ; 8e7f: c0 02       ..             ; Next byte (decreasing Y); Loop for 3 bytes
-    bcs reduce_alloc_to_available                                     ; 8e81: b0 02       ..             ; Get file length byte 0
+    cpy #2                                                            ; 8e7f: c0 02       ..             ; Next byte (decreasing Y)
+    bcs reduce_alloc_to_available                                     ; 8e81: b0 02       ..
     ora #&80                                                          ; 8e83: 09 80       ..             ; Set bit 7 for D attribute
 ; &8e85 referenced 1 time by &8e81
 .reduce_alloc_to_available
@@ -3704,7 +3704,7 @@ nmi_patched_addr                                = &ffff
 ; &8e8d referenced 1 time by &8e93
 .copy_name_to_entry_loop
     lda (zp_osfile_ptr_lo),y                                          ; 8e8d: b1 b8       ..             ; Get name byte from workspace
-    sta wksp_disc_op_result,y                                         ; 8e8f: 99 15 10    ...            ; Store in directory entry
+    sta wksp_disc_op_result,y                                         ; 8e8f: 99 15 10    ...
     dey                                                               ; 8e92: 88          .              ; Next byte
     bpl copy_name_to_entry_loop                                       ; 8e93: 10 f8       ..             ; Loop for 10 bytes
     ldy #&12                                                          ; 8e95: a0 12       ..             ; Increment dir sequence number
@@ -3712,8 +3712,8 @@ nmi_patched_addr                                = &ffff
     ldx #3                                                            ; 8e98: a2 03       ..             ; Store updated sequence in header
 ; &8e9a referenced 1 time by &8ea4
 .copy_access_byte_loop
-    lda wksp_entry_calc_base,y                                        ; 8e9a: b9 11 10    ...            ; Also store in footer
-    sbc wksp_entry_field_base,y                                       ; 8e9d: f9 0d 10    ...            ; Y=&19: store in entry
+    lda wksp_entry_calc_base,y                                        ; 8e9a: b9 11 10    ...
+    sbc wksp_entry_field_base,y                                       ; 8e9d: f9 0d 10    ...
     sta (zp_entry_ptr_lo),y                                           ; 8ea0: 91 b6       ..             ; Store sequence in entry
     iny                                                               ; 8ea2: c8          .              ; Next byte
     dex                                                               ; 8ea3: ca          .              ; Decrement counter
@@ -3831,41 +3831,41 @@ nmi_patched_addr                                = &ffff
 ; 
 ; &8f4c referenced 3 times by &8f74, &8f7d, &b35a
 .validate_not_locked
-    jsr check_file_not_open2                                          ; 8f4c: 20 f3 8d     ..            ; Save (&B6) for restore; Push on stack
-    jsr allocate_disc_space_for_file                                  ; 8f4f: 20 6f 8e     o.            ; Save (&B7); Push on stack
+    jsr check_file_not_open2                                          ; 8f4c: 20 f3 8d     ..            ; Save (&B6) for restore
+    jsr allocate_disc_space_for_file                                  ; 8f4f: 20 6f 8e     o.            ; Save (&B7)
 ; &8f52 referenced 2 times by &95ca, &a8e2
 .write_entry_sector_info
-    jsr copy_entry_from_template                                      ; 8f52: 20 8b 8e     ..            ; Y=&0D: copy load/exec/length; X=&0B: 12 bytes
-    jsr allocate_disc_space                                           ; 8f55: 20 32 86     2.            ; Allocate disc space from free space map; Store in entry
+    jsr copy_entry_from_template                                      ; 8f52: 20 8b 8e     ..            ; Y=&0D: copy load/exec/length
+    jsr allocate_disc_space                                           ; 8f55: 20 32 86     2.            ; Allocate disc space from free space map
 ; &8f58 referenced 1 time by &a660
 .copy_length_to_entry
     ldy #&18                                                          ; 8f58: a0 18       ..             ; Y=&18: get OSFILE data bytes
     ldx #2                                                            ; 8f5a: a2 02       ..             ; Get OSFILE block byte
 ; &8f5c referenced 1 time by &8f63
 .copy_3byte_length_loop
-    lda wksp_alloc_sector,x                                           ; 8f5c: bd 3a 10    .:.            ; Store in disc op workspace
-    sta (zp_entry_ptr_lo),y                                           ; 8f5f: 91 b6       ..             ; Store in directory entry
+    lda wksp_alloc_sector,x                                           ; 8f5c: bd 3a 10    .:.
+    sta (zp_entry_ptr_lo),y                                           ; 8f5f: 91 b6       ..
     dey                                                               ; 8f61: 88          .              ; Next entry byte (decreasing)
     dex                                                               ; 8f62: ca          .              ; Next workspace byte
-    bpl copy_3byte_length_loop                                        ; 8f63: 10 f7       ..             ; Next OSFILE byte (decreasing); Next workspace byte
+    bpl copy_3byte_length_loop                                        ; 8f63: 10 f7       ..             ; Next OSFILE byte (decreasing)
     ldx #2                                                            ; 8f65: a2 02       ..             ; Loop for 12 bytes
-    ldy #6                                                            ; 8f67: a0 06       ..             ; Restore (&B7) from stack; Store back
+    ldy #6                                                            ; 8f67: a0 06       ..             ; Restore (&B7) from stack
 ; &8f69 referenced 1 time by &8f71
 .copy_sector_to_entry_loop
-    lda wksp_alloc_sector,x                                           ; 8f69: bd 3a 10    .:.            ; Restore (&B6) from stack; Store back
-    sta wksp_disc_op_result,y                                         ; 8f6c: 99 15 10    ...            ; Y=&16: get start sector
+    lda wksp_alloc_sector,x                                           ; 8f69: bd 3a 10    .:.
+    sta wksp_disc_op_result,y                                         ; 8f6c: 99 15 10    ...
     iny                                                               ; 8f6f: c8          .              ; X=2: 3 sector bytes
     dex                                                               ; 8f70: ca          .              ; Decrement counter
     bpl copy_sector_to_entry_loop                                     ; 8f71: 10 f6       ..             ; Get new sector byte from workspace
     rts                                                               ; 8f73: 60          `              ; Return
 
 .osfile_load_handler
-    jsr validate_not_locked                                           ; 8f74: 20 4c 8f     L.            ; Store in directory entry; Also store in CSD info
-    jsr multi_sector_disc_command                                     ; 8f77: 20 3d 8a     =.            ; Execute multi-sector disc command; Next entry byte (increasing Y)
-    jmp search_for_osfile_target                                      ; 8f7a: 4c 80 8f    L..            ; Next workspace byte (decreasing X); Loop for 3 bytes
+    jsr validate_not_locked                                           ; 8f74: 20 4c 8f     L.            ; Store in directory entry
+    jsr multi_sector_disc_command                                     ; 8f77: 20 3d 8a     =.            ; Execute multi-sector disc command
+    jmp search_for_osfile_target                                      ; 8f7a: 4c 80 8f    L..            ; Next workspace byte (decreasing X)
 
 .osfile_read_cat_info
-    jsr validate_not_locked                                           ; 8f7d: 20 4c 8f     L.            ; Y=4: clear access byte 4; Store 0 (no E attribute)
+    jsr validate_not_locked                                           ; 8f7d: 20 4c 8f     L.            ; Y=4: clear access byte 4
 ; &8f80 referenced 2 times by &8f7a, &962f
 .search_for_osfile_target
     jsr write_dir_and_validate                                        ; 8f80: 20 86 8f     ..            ; Write directory and update
@@ -3881,37 +3881,37 @@ nmi_patched_addr                                = &ffff
 ; &8f86 referenced 17 times by &897f, &8f80, &90fb, &9238, &96ac, &97d4, &99c3, &a007, &a273, &a5df, &a5f8, &a663, &a6c4, &a933, &af4f, &b35d, &b462
 .write_dir_and_validate
     jsr verify_dir_integrity                                          ; 8f86: 20 de a6     ..            ; Verify directory integrity
-    jsr print_newline_and_entry                                       ; 8f89: 20 09 90     ..            ; Get (&B6) pointer; Push on stack
+    jsr print_newline_and_entry                                       ; 8f89: 20 09 90     ..            ; Get (&B6) pointer
     ldx #&0a                                                          ; 8f8c: a2 0a       ..             ; Get (&B7) pointer
 ; &8f8e referenced 1 time by &8f95
 .read_osfile_cat_fields_loop
-    lda disc_op_tpl_read_dir,x                                        ; 8f8e: bd 17 88    ...            ; Push on stack; X=&0A: copy 11-byte template
+    lda disc_op_tpl_read_dir,x                                        ; 8f8e: bd 17 88    ...            ; Push on stack
     sta wksp_disc_op_result,x                                         ; 8f91: 9d 15 10    ...            ; Get template byte from ROM
     dex                                                               ; 8f94: ca          .              ; Store in disc op workspace
     bpl read_osfile_cat_fields_loop                                   ; 8f95: 10 f7       ..             ; Loop for template bytes
-    lda #&0a                                                          ; 8f97: a9 0a       ..             ; Next byte; Loop for 11 bytes
-    sta wksp_disc_op_command                                          ; 8f99: 8d 1a 10    ...            ; X=2: copy 3 sector bytes
-    lda wksp_csd_sector_lo                                            ; 8f9c: ad 14 11    ...            ; Y=&16: sector offset in info area; Get sector byte from CSD info
-    sta wksp_disc_op_sector_lo                                        ; 8f9f: 8d 1d 10    ...            ; Store in disc op sector field
-    lda wksp_csd_sector_mid                                           ; 8fa2: ad 15 11    ...            ; Store in entry sector field
-    sta wksp_disc_op_sector_mid                                       ; 8fa5: 8d 1c 10    ...            ; Next sector byte
-    lda wksp_csd_sector_hi                                            ; 8fa8: ad 16 11    ...            ; Next info byte; Loop for 3 bytes
-    sta wksp_disc_op_sector                                           ; 8fab: 8d 1b 10    ...            ; Restore (&B7) from stack; Store back
+    lda #&0a                                                          ; 8f97: a9 0a       ..             ; Next byte
+    sta wksp_disc_op_command                                          ; 8f99: 8d 1a 10    ...
+    lda wksp_csd_sector_lo                                            ; 8f9c: ad 14 11    ...            ; Y=&16: sector offset in info area
+    sta wksp_disc_op_sector_lo                                        ; 8f9f: 8d 1d 10    ...
+    lda wksp_csd_sector_mid                                           ; 8fa2: ad 15 11    ...
+    sta wksp_disc_op_sector_mid                                       ; 8fa5: 8d 1c 10    ...
+    lda wksp_csd_sector_hi                                            ; 8fa8: ad 16 11    ...            ; Next info byte
+    sta wksp_disc_op_sector                                           ; 8fab: 8d 1b 10    ...            ; Restore (&B7) from stack
     jsr exec_disc_op_from_wksp                                        ; 8fae: 20 87 82     ..            ; Write directory to disc
-    lda wksp_current_drive                                            ; 8fb1: ad 17 11    ...            ; Restore (&B6) from stack; Store back
+    lda wksp_current_drive                                            ; 8fb1: ad 17 11    ...            ; Restore (&B6) from stack
     jsr convert_drive_to_slot                                         ; 8fb4: 20 79 b5     y.            ; Get FSM checksum byte
-    lda fsm_s1_disc_id_hi                                             ; 8fb7: ad fc 0f    ...            ; Is it zero (unmodified)?; Zero: skip FSM write
-    sta wksp_disc_id_hi,x                                             ; 8fba: 9d 22 11    .".            ; X=slot index (drive >> 4); A=0: zero for clear
+    lda fsm_s1_disc_id_hi                                             ; 8fb7: ad fc 0f    ...            ; Is it zero (unmodified)?
+    sta wksp_disc_id_hi,x                                             ; 8fba: 9d 22 11    .".            ; X=slot index (drive >> 4)
     lda system_via_t1c_l                                              ; 8fbd: ad 44 fe    .D.            ; Clear FSM modification flag
-    sta wksp_disc_id_lo,x                                             ; 8fc0: 9d 21 11    .!.            ; Y=&FF: calculate FSM checksums; Get FSM sector 0 byte
-    sta fsm_s1_disc_id_lo                                             ; 8fc3: 8d fb 0f    ...            ; Add to checksum
-    jsr setup_print_hex_field                                         ; 8fc6: 20 5c 90     \.            ; Next byte; Loop for 256 bytes
+    sta wksp_disc_id_lo,x                                             ; 8fc0: 9d 21 11    .!.            ; Y=&FF: calculate FSM checksums
+    sta fsm_s1_disc_id_lo                                             ; 8fc3: 8d fb 0f    ...
+    jsr setup_print_hex_field                                         ; 8fc6: 20 5c 90     \.            ; Next byte
     stx fsm_s0_checksum                                               ; 8fc9: 8e ff 0e    ...            ; Store sector 0 checksum
-    sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1; Get FSM sector 1 byte
+    sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1
     ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; X=&71: validate FSM entry count
-    ldy #&90                                                          ; 8fd1: a0 90       ..             ; Add to checksum; Loop for 255 bytes
-    jsr exec_disc_command                                             ; 8fd3: 20 8b 82     ..            ; Execute disc command and check for error; Store sector 1 checksum
-    lda zp_adfs_flags                                                 ; 8fd6: a5 cd       ..             ; Write FSM back to disc
+    ldy #&90                                                          ; 8fd1: a0 90       ..             ; Add to checksum
+    jsr exec_disc_command                                             ; 8fd3: 20 8b 82     ..            ; Execute disc command and check for error
+    lda zp_adfs_flags                                                 ; 8fd6: a5 cd       ..
     and #&ef                                                          ; 8fd8: 29 ef       ).             ; Clear FSM-inconsistent flag
     sta zp_adfs_flags                                                 ; 8fda: 85 cd       ..             ; Return
     lda #0                                                            ; 8fdc: a9 00       ..             ; A=0: success
@@ -3934,7 +3934,7 @@ nmi_patched_addr                                = &ffff
     jsr parse_filename_from_cmdline                                   ; 8fdf: 20 4c 88     L.            ; Set up search with wildcards
     php                                                               ; 8fe2: 08          .              ; Point to first dir entry
     pha                                                               ; 8fe3: 48          H              ; Save A on stack
-    jsr mark_directory_dirty                                          ; 8fe4: 20 ea 8f     ..            ; Validate FSM checksums and mark directory dirty; Verify directory integrity
+    jsr mark_directory_dirty                                          ; 8fe4: 20 ea 8f     ..            ; Validate FSM checksums and mark directory dirty
     pla                                                               ; 8fe7: 68          h              ; Restore A
     plp                                                               ; 8fe8: 28          (              ; Search for matching entry
 ; &8fe9 referenced 3 times by &8ff8, &900c, &9028
@@ -3950,12 +3950,12 @@ nmi_patched_addr                                = &ffff
 ; 
 ; &8fea referenced 5 times by &8fe4, &9ffa, &a255, &a754, &a872
 .mark_directory_dirty
-    jsr print_newline_and_entry                                       ; 8fea: 20 09 90     ..            ; Return search result
+    jsr print_newline_and_entry                                       ; 8fea: 20 09 90     ..
     jsr setup_print_hex_field                                         ; 8fed: 20 5c 90     \.            ; Mark directory as modified
     cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Verify directory
     bne check_first_char_wildcard                                     ; 8ff3: d0 05       ..             ; Point to first entry
-    cpx fsm_s0_checksum                                               ; 8ff5: ec ff 0e    ...            ; X=FSM sector 0 checksum; Search for entry
-    beq return_18                                                     ; 8ff8: f0 ef       ..             ; Found: return
+    cpx fsm_s0_checksum                                               ; 8ff5: ec ff 0e    ...            ; X=FSM sector 0 checksum
+    beq return_18                                                     ; 8ff8: f0 ef       ..
 ; ***************************************************************************************
 ; Validate FSM map checksums
 ; 
@@ -4013,7 +4013,7 @@ nmi_patched_addr                                = &ffff
     bne check_first_char_wildcard                                     ; 9045: d0 b3       ..             ; Above: bad ordering, bad FS map
     dey                                                               ; 9047: 88          .              ; Next comparison byte
     bpl print_access_flags_loop                                       ; 9048: 10 f4       ..             ; Loop for 3 bytes
-    bmi check_first_char_wildcard                                     ; 904a: 30 ae       0.             ; Validate FSM map checksums; ALWAYS branch
+    bmi check_first_char_wildcard                                     ; 904a: 30 ae       0.             ; Validate FSM map checksums
 
 ; &904c referenced 2 times by &9043, &904f
 .print_no_access_flag
@@ -4138,7 +4138,7 @@ nmi_patched_addr                                = &ffff
     dex                                                               ; 90c6: ca          .              ; Next workspace byte
     bpl copy_cat_info_to_entry_loop                                   ; 90c7: 10 f7       ..             ; Loop for 4 bytes
     ldx wksp_disc_op_xfer_len_3                                       ; 90c9: ae 23 10    .#.            ; Get function code again
-    dex                                                               ; 90cc: ca          .              ; X=function-1; X=0 means A=1
+    dex                                                               ; 90cc: ca          .              ; X=0 means function was 1 (write all)
     bne check_dir_access_bit                                          ; 90cd: d0 2c       .,             ; A=1 (write all): continue to access
 ; &90cf referenced 1 time by &9104
 .set_entry_access_from_osfile
@@ -6161,7 +6161,7 @@ str_run_boot = str_l_boot+2
 
 .sub_c9b86
 boot_run_option = sub_c9b86+1
-    sta ext_vec_fsc_lo                                                ; 9b86: 8d a9 06    ...            ; FSC 6: select ADFS as filing system
+    sta ext_vec_fsc_lo                                                ; 9b86: 8d a9 06    ...
 ; &9b87 referenced 2 times by &9b3f, &9d0e
     jsr jmp_indirect_fscv                                             ; 9b89: 20 43 9a     C.            ; Jump through FSCV indirect vector
     lda #osbyte_issue_service_request                                 ; 9b8c: a9 8f       ..             ; OSBYTE &8F: issue service 10
@@ -8866,7 +8866,7 @@ la868 = check_dest_terminator+1
 .osargs_general_query
     jsr save_workspace_state                                          ; a95f: 20 49 a7     I.            ; Save registers for later restore
     stx zp_save_x                                                     ; a962: 86 c3       ..             ; Save X (zero page pointer)
-    dey                                                               ; a964: 88          .              ; Y was function code; Y-1=0 means A=1
+    dey                                                               ; a964: 88          .              ; Y=0 means function was 1
     bne flush_all_channels                                            ; a965: d0 15       ..             ; A!=1: check further functions
     lda wksp_cmd_tail                                                 ; a967: ad d6 10    ...            ; A=1: return command tail low byte
     sta zp_user_ptr_0,x                                               ; a96a: 95 00       ..             ; Store in zero page at X+0
@@ -10946,7 +10946,7 @@ la868 = check_dest_terminator+1
     clc                                                               ; b6b8: 18          .              ; Clear carry for addition
 ; &b6b9 referenced 1 time by &b6c2
 .update_control_block_addr_loop
-    lda wksp_alloc_size_hi,y                                          ; b6b9: b9 3f 10    .?.            ; Get transferred bytes count; Add to control block memory address
+    lda wksp_alloc_size_hi,y                                          ; b6b9: b9 3f 10    .?.            ; Get transferred bytes count
     adc (zp_gspb_ptr_lo),y                                            ; b6bc: 71 c6       q.
     sta (zp_gspb_ptr_lo),y                                            ; b6be: 91 c6       ..             ; Store updated memory address
     iny                                                               ; b6c0: c8          .              ; Next address byte
