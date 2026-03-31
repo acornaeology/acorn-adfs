@@ -4587,6 +4587,18 @@ Set up NMI handler addresses for a format operation,
 then write the track format data to disc.
 """)
 
+label(0xBE69, "floppy_next_sector")
+subroutine(0xBE69, "floppy_next_sector",
+    title="Advance multi-sector transfer to next sector",
+    description="""\
+Called from the NMI end-of-operation handler during
+multi-sector transfers. Clears the transfer-complete
+flag, then calls the FDC seek routine to check whether
+a track boundary has been crossed and step the head if
+needed. If the seek routine returns zero, all sectors
+have been transferred and the completion flag is set.
+""")
+
 # cbb09 - write WD1770 register with verify
 label(0xBB09, "fdc_write_register_verify")
 subroutine(0xBB09, "fdc_write_register_verify",
@@ -10103,57 +10115,60 @@ comment(0xBC75, "Patch NMI handler with addr high", inline=True)
 comment(0xBC78, "Return", inline=True)
 
 # NMI handler code (&BC79-&BCC1, runs at &0D00-&0D48)
+# All comments use runtime addresses with move_id since this
+# code is in a move block.
+
 # Entry point: NMI vector fires on each WD1770 DRQ or status change
-comment(0xBC79, "Save A (NMI must preserve all regs)", inline=True)
-comment(0xBC7A, "Read WD1770 status register", inline=True)
-comment(0xBC7D, "Mask to low 5 status bits", inline=True)
-comment(0xBC7F, "Status = 3 (data request)?", inline=True)
-comment(0xBC81, "No: check for error or completion", inline=True)
+comment(0x0D00, "Save A (NMI must preserve all regs)", inline=True, move_id=nmi_main_move_id)
+comment(0x0D01, "Read WD1770 status register", inline=True, move_id=nmi_main_move_id)
+comment(0x0D04, "Mask to low 5 status bits", inline=True, move_id=nmi_main_move_id)
+comment(0x0D06, "Status = 3 (data request)?", inline=True, move_id=nmi_main_move_id)
+comment(0x0D08, "No: check for error or completion", inline=True, move_id=nmi_main_move_id)
 
 # DRQ handler: transfer one byte (default is read from disc)
 # This section is patched by nmi_write_code, nmi_tube_write_code,
 # or nmi_tube_read_code depending on the transfer direction.
-comment(0xBC83, "Read byte from WD1770 data register", inline=True)
-comment(0xBC86, "Store at transfer address (patched)", inline=True)
-comment(0xBC89, "Increment transfer address low byte", inline=True)
-comment(0xBC8C, "No page crossing: skip high byte", inline=True)
-comment(0xBC8E, "Increment transfer address high byte", inline=True)
-comment(0xBC91, "Restore A", inline=True)
-comment(0xBC92, "Return from NMI", inline=True)
+comment(0x0D0A, "Read byte from WD1770 data register", inline=True, move_id=nmi_main_move_id)
+comment(0x0D0D, "Store at transfer address (patched)", inline=True, move_id=nmi_main_move_id)
+comment(0x0D10, "Increment transfer address low byte", inline=True, move_id=nmi_main_move_id)
+comment(0x0D13, "No page crossing: skip high byte", inline=True, move_id=nmi_main_move_id)
+comment(0x0D15, "Increment transfer address high byte", inline=True, move_id=nmi_main_move_id)
+comment(0x0D18, "Restore A", inline=True, move_id=nmi_main_move_id)
+comment(0x0D19, "Return from NMI", inline=True, move_id=nmi_main_move_id)
 
 # Status/error handler: not a DRQ, check for errors
-comment(0xBC93, "Test error bits: WP, RNF, CRC (&58)", inline=True)
-comment(0xBC95, "No errors: check for end of operation", inline=True)
-comment(0xBC97, "Store error status for later reporting", inline=True)
-comment(0xBC99, "Set bit 0 of control flags (error)", inline=True)
-comment(0xBC9B, "(continued)", inline=True)
-comment(0xBC9C, "(continued)", inline=True)
+comment(0x0D1A, "Test error bits: WP, RNF, CRC", inline=True, move_id=nmi_main_move_id)
+comment(0x0D1C, "No errors: check for end of operation", inline=True, move_id=nmi_main_move_id)
+comment(0x0D1E, "Store error status for caller", inline=True, move_id=nmi_main_move_id)
+comment(0x0D20, "Rotate control flags right", inline=True, move_id=nmi_main_move_id)
+comment(0x0D22, "Set carry for error flag", inline=True, move_id=nmi_main_move_id)
+comment(0x0D23, "Set bit 0: error occurred", inline=True, move_id=nmi_main_move_id)
 
 # Set transfer-complete flag and return
-comment(0xBC9E, "Set bit 0 of state (transfer complete)", inline=True)
-comment(0xBCA0, "(continued)", inline=True)
-comment(0xBCA1, "(continued)", inline=True)
-comment(0xBCA3, "Restore A", inline=True)
-comment(0xBCA4, "Return from NMI", inline=True)
+comment(0x0D25, "Rotate state flags right", inline=True, move_id=nmi_main_move_id)
+comment(0x0D27, "Set carry for complete flag", inline=True, move_id=nmi_main_move_id)
+comment(0x0D28, "Set bit 0: transfer complete", inline=True, move_id=nmi_main_move_id)
+comment(0x0D2A, "Restore A", inline=True, move_id=nmi_main_move_id)
+comment(0x0D2B, "Return from NMI", inline=True, move_id=nmi_main_move_id)
 
 # End-of-operation: no error, no DRQ — check if track stepping needed
-comment(0xBCA5, "Bit 6 of state: multi-sector mode?", inline=True)
-comment(0xBCA7, "No: mark complete and return", inline=True)
-comment(0xBCA9, "Save current ROM number", inline=True)
-comment(0xBCAB, "Push ROM number on stack", inline=True)
-comment(0xBCAC, "Select ROM 0 for floppy driver", inline=True)
-comment(0xBCAE, "Store in ROM select shadow", inline=True)
-comment(0xBCB0, "Write to ROM select register", inline=True)
-comment(0xBCB3, "Save X", inline=True)
-comment(0xBCB4, "Push X on stack", inline=True)
-comment(0xBCB5, "Call track-stepping routine", inline=True)
-comment(0xBCB8, "Restore X", inline=True)
-comment(0xBCB9, "Transfer to X", inline=True)
-comment(0xBCBA, "Restore original ROM number", inline=True)
-comment(0xBCBB, "Store in ROM select shadow", inline=True)
-comment(0xBCBD, "Write to ROM select register", inline=True)
-comment(0xBCC0, "Restore A", inline=True)
-comment(0xBCC1, "Return from NMI", inline=True)
+comment(0x0D2C, "Multi-sector mode active? (bit 6)", inline=True, move_id=nmi_main_move_id)
+comment(0x0D2E, "No: mark complete and return", inline=True, move_id=nmi_main_move_id)
+comment(0x0D30, "Save current ROM bank number", inline=True, move_id=nmi_main_move_id)
+comment(0x0D32, "Push onto stack", inline=True, move_id=nmi_main_move_id)
+comment(0x0D33, "Select ROM bank 0", inline=True, move_id=nmi_main_move_id)
+comment(0x0D35, "Update ROM select shadow copy", inline=True, move_id=nmi_main_move_id)
+comment(0x0D37, "Switch to ROM bank 0", inline=True, move_id=nmi_main_move_id)
+comment(0x0D3A, "Save X register", inline=True, move_id=nmi_main_move_id)
+comment(0x0D3B, "Push onto stack", inline=True, move_id=nmi_main_move_id)
+comment(0x0D3C, "Advance to next sector", inline=True, move_id=nmi_main_move_id)
+comment(0x0D3F, "Restore X register", inline=True, move_id=nmi_main_move_id)
+comment(0x0D40, "Pull from stack", inline=True, move_id=nmi_main_move_id)
+comment(0x0D41, "Restore original ROM bank", inline=True, move_id=nmi_main_move_id)
+comment(0x0D42, "Update ROM select shadow copy", inline=True, move_id=nmi_main_move_id)
+comment(0x0D44, "Switch back to original ROM bank", inline=True, move_id=nmi_main_move_id)
+comment(0x0D47, "Restore A", inline=True, move_id=nmi_main_move_id)
+comment(0x0D48, "Return from NMI", inline=True, move_id=nmi_main_move_id)
 
 # star_remove - remaining gap items
 comment(0x910E, "Store filename addr in OSFILE block", inline=True)

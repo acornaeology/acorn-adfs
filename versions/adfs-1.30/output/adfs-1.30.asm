@@ -431,21 +431,21 @@ nmi_patched_addr            = &ffff
 ; Move 1: &bc79 to &0d00 for length 73
     org &0d00
 ; &bc79 referenced 1 time by &bbf6
-    pha                                                               ; bc79: 48          H   :0d00[1]
-    lda fdc_1770_command_or_status                                    ; bc7a: ad 84 fe    ... :0d01[1]
-    and #&1f                                                          ; bc7d: 29 1f       ).  :0d04[1]
+    pha                                                               ; bc79: 48          H   :0d00[1]   ; Save A (NMI must preserve all regs)
+    lda fdc_1770_command_or_status                                    ; bc7a: ad 84 fe    ... :0d01[1]   ; Read WD1770 status register
+    and #&1f                                                          ; bc7d: 29 1f       ).  :0d04[1]   ; Mask to low 5 status bits
 ; &bc7e referenced 1 time by &bc0f
-    cmp #3                                                            ; bc7f: c9 03       ..  :0d06[1]
-    bne nmi_check_status_error                                        ; bc81: d0 10       ..  :0d08[1]   ; NMI status/error handler
+    cmp #3                                                            ; bc7f: c9 03       ..  :0d06[1]   ; Status = 3 (data request)?
+    bne nmi_check_status_error                                        ; bc81: d0 10       ..  :0d08[1]   ; No: check for error or completion
 ; &bc83 referenced 3 times by &bc49, &bc55, &bc65
-    lda fdc_1770_data                                                 ; bc83: ad 87 fe    ... :0d0a[1]
-    sta nmi_patched_addr                                              ; bc86: 8d ff ff    ... :0d0d[1]
-    inc nmi_read_addr_lo                                              ; bc89: ee 0e 0d    ... :0d10[1]
-    bne nmi_transfer_done                                             ; bc8c: d0 03       ..  :0d13[1]
-    inc nmi_read_addr_hi                                              ; bc8e: ee 0f 0d    ... :0d15[1]
+    lda fdc_1770_data                                                 ; bc83: ad 87 fe    ... :0d0a[1]   ; Read byte from WD1770 data register
+    sta nmi_patched_addr                                              ; bc86: 8d ff ff    ... :0d0d[1]   ; Store at transfer address (patched)
+    inc nmi_read_addr_lo                                              ; bc89: ee 0e 0d    ... :0d10[1]   ; Increment transfer address low byte
+    bne nmi_transfer_done                                             ; bc8c: d0 03       ..  :0d13[1]   ; No page crossing: skip high byte
+    inc nmi_read_addr_hi                                              ; bc8e: ee 0f 0d    ... :0d15[1]   ; Increment transfer address high byte
 ; &bc91 referenced 4 times by &0d10[3], &0d10[4], &0d13[1], &0d13[2]
-    pla                                                               ; bc91: 68          h   :0d18[1]
-    rti                                                               ; bc92: 40          @   :0d19[1]
+    pla                                                               ; bc91: 68          h   :0d18[1]   ; Restore A
+    rti                                                               ; bc92: 40          @   :0d19[1]   ; Return from NMI
 
 ; ***************************************************************************************
 ; NMI status/error handler
@@ -457,19 +457,19 @@ nmi_patched_addr            = &ffff
 ; 
 ; &bc93 referenced 1 time by &0d08[1]
 .nmi_check_status_error
-    and #&58 ; 'X'                                                    ; bc93: 29 58       )X  :0d1a[1]
-    beq nmi_check_end_of_operation                                    ; bc95: f0 0e       ..  :0d1c[1]   ; NMI end-of-operation handler
-    sta zp_floppy_error                                               ; bc97: 85 a0       ..  :0d1e[1]
-    ror zp_floppy_control                                             ; bc99: 66 a1       f.  :0d20[1]
-    sec                                                               ; bc9b: 38          8   :0d22[1]
-    rol zp_floppy_control                                             ; bc9c: 26 a1       &.  :0d23[1]
+    and #&58 ; 'X'                                                    ; bc93: 29 58       )X  :0d1a[1]   ; Test error bits: WP, RNF, CRC
+    beq nmi_check_end_of_operation                                    ; bc95: f0 0e       ..  :0d1c[1]   ; No errors: check for end of operation
+    sta zp_floppy_error                                               ; bc97: 85 a0       ..  :0d1e[1]   ; Store error status for caller
+    ror zp_floppy_control                                             ; bc99: 66 a1       f.  :0d20[1]   ; Rotate control flags right
+    sec                                                               ; bc9b: 38          8   :0d22[1]   ; Set carry for error flag
+    rol zp_floppy_control                                             ; bc9c: 26 a1       &.  :0d23[1]   ; Set bit 0: error occurred
 ; &bc9e referenced 1 time by &0d2e[1]
 .nmi_set_transfer_complete
-    ror zp_floppy_state                                               ; bc9e: 66 a2       f.  :0d25[1]
-    sec                                                               ; bca0: 38          8   :0d27[1]
-    rol zp_floppy_state                                               ; bca1: 26 a2       &.  :0d28[1]
-    pla                                                               ; bca3: 68          h   :0d2a[1]
-    rti                                                               ; bca4: 40          @   :0d2b[1]
+    ror zp_floppy_state                                               ; bc9e: 66 a2       f.  :0d25[1]   ; Rotate state flags right
+    sec                                                               ; bca0: 38          8   :0d27[1]   ; Set carry for complete flag
+    rol zp_floppy_state                                               ; bca1: 26 a2       &.  :0d28[1]   ; Set bit 0: transfer complete
+    pla                                                               ; bca3: 68          h   :0d2a[1]   ; Restore A
+    rti                                                               ; bca4: 40          @   :0d2b[1]   ; Return from NMI
 
 ; ***************************************************************************************
 ; NMI end-of-operation handler
@@ -483,24 +483,24 @@ nmi_patched_addr            = &ffff
 ; 
 ; &bca5 referenced 1 time by &0d1c[1]
 .nmi_check_end_of_operation
-    bit zp_floppy_state                                               ; bca5: 24 a2       $.  :0d2c[1]
-    bvc nmi_set_transfer_complete                                     ; bca7: 50 f5       P.  :0d2e[1]
-    lda romsel_copy                                                   ; bca9: a5 f4       ..  :0d30[1]
-    pha                                                               ; bcab: 48          H   :0d32[1]
-    lda #0                                                            ; bcac: a9 00       ..  :0d33[1]
+    bit zp_floppy_state                                               ; bca5: 24 a2       $.  :0d2c[1]   ; Multi-sector mode active? (bit 6)
+    bvc nmi_set_transfer_complete                                     ; bca7: 50 f5       P.  :0d2e[1]   ; No: mark complete and return
+    lda romsel_copy                                                   ; bca9: a5 f4       ..  :0d30[1]   ; Save current ROM bank number
+    pha                                                               ; bcab: 48          H   :0d32[1]   ; Push onto stack
+    lda #0                                                            ; bcac: a9 00       ..  :0d33[1]   ; Select ROM bank 0
 ; &bcad referenced 1 time by &bc29
-    sta romsel_copy                                                   ; bcae: 85 f4       ..  :0d35[1]
-    sta romsel                                                        ; bcb0: 8d 30 fe    .0. :0d37[1]
-    txa                                                               ; bcb3: 8a          .   :0d3a[1]
-    pha                                                               ; bcb4: 48          H   :0d3b[1]
-    jsr sub_cbe69                                                     ; bcb5: 20 69 be     i. :0d3c[1]
-    pla                                                               ; bcb8: 68          h   :0d3f[1]
-    tax                                                               ; bcb9: aa          .   :0d40[1]
-    pla                                                               ; bcba: 68          h   :0d41[1]
-    sta romsel_copy                                                   ; bcbb: 85 f4       ..  :0d42[1]
-    sta romsel                                                        ; bcbd: 8d 30 fe    .0. :0d44[1]
-    pla                                                               ; bcc0: 68          h   :0d47[1]
-    rti                                                               ; bcc1: 40          @   :0d48[1]
+    sta romsel_copy                                                   ; bcae: 85 f4       ..  :0d35[1]   ; Update ROM select shadow copy
+    sta romsel                                                        ; bcb0: 8d 30 fe    .0. :0d37[1]   ; Switch to ROM bank 0
+    txa                                                               ; bcb3: 8a          .   :0d3a[1]   ; Save X register
+    pha                                                               ; bcb4: 48          H   :0d3b[1]   ; Push onto stack
+    jsr floppy_next_sector                                            ; bcb5: 20 69 be     i. :0d3c[1]   ; Advance to next sector
+    pla                                                               ; bcb8: 68          h   :0d3f[1]   ; Restore X register
+    tax                                                               ; bcb9: aa          .   :0d40[1]   ; Pull from stack
+    pla                                                               ; bcba: 68          h   :0d41[1]   ; Restore original ROM bank
+    sta romsel_copy                                                   ; bcbb: 85 f4       ..  :0d42[1]   ; Update ROM select shadow copy
+    sta romsel                                                        ; bcbd: 8d 30 fe    .0. :0d44[1]   ; Switch back to original ROM bank
+    pla                                                               ; bcc0: 68          h   :0d47[1]   ; Restore A
+    rti                                                               ; bcc1: 40          @   :0d48[1]   ; Return from NMI
 
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
@@ -12488,8 +12488,18 @@ la868 = check_dest_terminator+1
     ora nmi_drive_cmd                                                 ; be61: 0d 5c 0d    .\.            ; OR in drive select
     sta fdc_1770_command_or_status                                    ; be64: 8d 84 fe    ...            ; Issue restore command
     bpl wait_format_nmi_complete                                      ; be67: 10 ca       ..             ; Continue loop (always branches)
+; ***************************************************************************************
+; Advance multi-sector transfer to next sector
+; 
+; Called from the NMI end-of-operation handler during
+; multi-sector transfers. Clears the transfer-complete
+; flag, then calls the FDC seek routine to check whether
+; a track boundary has been crossed and step the head if
+; needed. If the seek routine returns zero, all sectors
+; have been transferred and the completion flag is set.
+; 
 ; &be69 referenced 1 time by &0d3c[1]
-.sub_cbe69
+.floppy_next_sector
     jsr clear_transfer_complete                                       ; be69: 20 2b bd     +.            ; Clear seek flag
     jsr execute_fdc_seek                                              ; be6c: 20 84 be     ..            ; Check for next track boundary
     txa                                                               ; be6f: 8a          .              ; Transfer result to A
@@ -13860,6 +13870,7 @@ save pydis_start, pydis_end
 ;     floppy_command:                           1
 ;     floppy_command_ind:                       1
 ;     floppy_format_track:                      1
+;     floppy_next_sector:                       1
 ;     floppy_partial_sector:                    1
 ;     floppy_ts_block_check_range:              1
 ;     flush_channels_loop:                      1
@@ -14260,7 +14271,6 @@ save pydis_start, pydis_end
 ;     str_at:                                   1
 ;     str_on_channel:                           1
 ;     str_yes:                                  1
-;     sub_cbe69:                                1
 ;     subtract_from_length_loop:                1
 ;     sum_entry_bytes_loop:                     1
 ;     sum_fsm_entries_loop:                     1
@@ -14420,7 +14430,6 @@ save pydis_start, pydis_end
 ;     return_9
 ;     sub_c9b86
 ;     sub_ca153
-;     sub_cbe69
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
