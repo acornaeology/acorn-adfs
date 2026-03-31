@@ -3626,6 +3626,7 @@ comment(0xAD13, "Zero = channel not open", inline=True)
 # floppy_get_step_rate (&BBB4)
 # Reads OSBYTE &FF startup options, extracts bits 4-5 for
 # disc drive step rate and head settle time.
+no_automatic_comment(0xBBC4)
 comment(0xBBB4, "Clear side select flag", inline=True)
 comment(0xBBB9, "Clear FDC step rate command bits", inline=True)
 comment(0xBBBC, "OSBYTE &FF: read startup options", inline=True)
@@ -11039,8 +11040,16 @@ format operations.
 subroutine(0xBBB4, "floppy_get_step_rate",
     title="Get floppy step rate",
     description="""\
-Determine the step rate for the floppy disc drive from
-the workspace settings.
+Read OSBYTE &FF startup options and extract bits 4-5
+for the FDC step rate and head settle time.
+
+WD1770 and WD1772 timings (ms):
+  b5 b4 | 1770 step | 1770 settle | 1772 step | 1772 settle
+  ------+-----------+-------------+-----------+------------
+   0  0 |         6 |          30 |         6 |          15
+   0  1 |        12 |          30 |        12 |          15
+   1  0 |        20 |          30 |         2 |          15
+   1  1 |        30 |          30 |         3 |          15
 """)
 
 subroutine(0xBBF1, "copy_code_to_nmi_space",

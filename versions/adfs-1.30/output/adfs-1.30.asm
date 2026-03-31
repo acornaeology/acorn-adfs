@@ -11838,8 +11838,16 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; Get floppy step rate
 ; 
-; Determine the step rate for the floppy disc drive from
-; the workspace settings.
+; Read OSBYTE &FF startup options and extract bits 4-5
+; for the FDC step rate and head settle time.
+; 
+; WD1770 and WD1772 timings (ms):
+;   b5 b4 | 1770 step | 1770 settle | 1772 step | 1772 settle
+;   ------+-----------+-------------+-----------+------------
+;    0  0 |         6 |          30 |         6 |          15
+;    0  1 |        12 |          30 |        12 |          15
+;    1  0 |        20 |          30 |         2 |          15
+;    1  1 |        30 |          30 |         3 |          15
 ; 
 ; &bbb4 referenced 2 times by &ba35, &bb89
 .floppy_get_step_rate
@@ -11850,24 +11858,6 @@ la868 = check_dest_terminator+1
     ldx #0                                                            ; bbbe: a2 00       ..             ; X=0: read current value
     tay                                                               ; bbc0: a8          .              ; Y=&FF: read current value
     jsr osbyte                                                        ; bbc1: 20 f4 ff     ..            ; Read start-up option byte
-
-    ; X is the startup option byte:
-    ;     bits 0 to 2     screen MODE selected following reset
-    ;     bit 3           if clear reverse action of SHIFT+BREAK
-    ;     bits 4 and 5    used to set disc drive timings (see below)
-    ;     bit 6           not used by OS (reserved for future applications)
-    ;     bit 7           if clear select NFS, if set select DFS
-    ; 
-    ; Disc drive timing links:
-    ; |                           |                8271                 |          1770           |          1772           |
-    ; |---------------------------|-------------------------------------|-------------------------|-------------------------|
-    ; | b5 | b4 | link 3 | link 4 | step time | settle time | head load | step time | settle time | step time | settle time |
-    ; |----|----|--------|--------|-----------|-------------|-----------|-----------|-------------|-----------|-------------|
-    ; |  0 | 0  | 1      | 1      | 4         | 16          | 0         | 6         | 30          | 6         | 15          |
-    ; |  0 | 1  | 1      | 0      | 6         | 16          | 0         | 12        | 30          | 12        | 15          |
-    ; |  1 | 0  | 0      | 1      | 6         | 50          | 32        | 20        | 30          | 2         | 15          |
-    ; |  1 | 1  | 0      | 0      | 24        | 20          | 64        | 30        | 30          | 3         | 15          |
-    ; |---------------------------------------------------------------------------------------------------------------------|
     txa                                                               ; bbc4: 8a          .              ; Get startup byte to A
     pha                                                               ; bbc5: 48          H              ; Save startup byte
     and #&20 ; ' '                                                    ; bbc6: 29 20       )              ; Test bit 5 (step rate high)
