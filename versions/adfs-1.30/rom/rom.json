@@ -20,6 +20,11 @@
             "icon": "doc"
         },
         {
+            "label": "Discuss this disassembly on the Stardot Forums thread: ADFS 1.30 disassembly",
+            "url": "https://stardot.org.uk/forums/viewtopic.php?t=13082",
+            "icon": "chat"
+        },
+        {
             "label": "Hoglet's ADFS 1.30 disassembly (BeebAsm, byte-identical reassembly)",
             "url": "https://github.com/hoglet67/ADFS130",
             "icon": "ref"
