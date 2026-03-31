@@ -309,12 +309,95 @@ label(0x1040, "wksp_osfile_block")         # 18-byte control block for OSFILE
 label(0x1041, "wksp_osfile_block_1")
 label(0x1042, "wksp_osfile_load_addr")     # OSFILE load address (4 bytes)
 label(0x1043, "wksp_osfile_load_addr_1")
+label(0x1046, "wksp_osfile_exec_addr")     # OSFILE exec address (4 bytes)
+label(0x1047, "wksp_osfile_exec_addr_1")
+label(0x1048, "wksp_osfile_exec_addr_2")
+label(0x1049, "wksp_osfile_exec_addr_3")
+label(0x104A, "wksp_osfile_start_addr")    # OSFILE start/length (4 bytes)
+label(0x104B, "wksp_osfile_start_addr_1")
+label(0x104C, "wksp_osfile_start_addr_2")
+label(0x104D, "wksp_osfile_start_addr_3")
+label(0x104F, "wksp_osfile_end_addr_1")    # OSFILE end/attributes
+label(0x1050, "wksp_osfile_end_addr_2")
+label(0x1052, "wksp_osfile_attr")
+label(0x1053, "wksp_osfile_attr_1")
+label(0x1054, "wksp_osfile_attr_2")
 label(0x105D, "wksp_access_accum")         # access attribute accumulator
 label(0x105E, "wksp_access_accum_1")
 label(0x105F, "wksp_free_space_total")     # 3-byte free space total
 label(0x1060, "wksp_compact_start_page")   # *COMPACT start page
 label(0x1061, "wksp_compact_length")
-label(0x1062, "wksp_object_name")   # current object name buffer
+label(0x1062, "wksp_object_name")          # current object name buffer
+label(0x1063, "wksp_object_name_1")
+
+# Multi-file operation workspace (&106C-&1094)
+label(0x106C, "wksp_saved_dir_sector")     # saved CSD sector for *COPY
+label(0x106F, "wksp_drive_number")         # parsed drive number
+label(0x1070, "wksp_new_parent_sector")    # new parent sector for *RENAME
+label(0x1073, "wksp_dest_drive")           # destination drive for *COPY
+label(0x1074, "wksp_dest_name")            # destination filename buffer
+label(0x107E, "wksp_dest_filename_end")    # terminator position
+label(0x107F, "wksp_copy_name_ptr")        # *COPY source name pointer
+label(0x1080, "wksp_copy_name_ptr_hi")
+label(0x1089, "wksp_copy_osfile_params")   # *COPY OSFILE parameters
+label(0x108C, "wksp_copy_osfile_exec")
+label(0x108D, "wksp_copy_dest_params")
+label(0x1091, "wksp_filename_save")        # saved filename pointer
+label(0x1092, "wksp_filename_save_hi")
+label(0x1093, "wksp_entry_save")           # saved entry pointer
+label(0x1094, "wksp_entry_save_hi")
+
+# OSGBPB workspace (&1095-&10BF)
+label(0x1095, "wksp_osgbpb_end_ptr")      # end position for transfer
+label(0x1096, "wksp_osgbpb_sector_lo")    # current sector address
+label(0x1097, "wksp_osgbpb_sector_mid")
+label(0x1098, "wksp_osgbpb_sector_hi")
+label(0x109A, "wksp_new_ptr_lo")           # new PTR value (4 bytes)
+label(0x109B, "wksp_new_ptr_mid")
+label(0x109C, "wksp_new_ptr_mid_hi")
+label(0x109D, "wksp_new_ptr_hi")
+label(0x109E, "wksp_new_ptr_4")
+label(0x109F, "wksp_osgbpb_wksp_9f")
+label(0x10A0, "wksp_ch_buf_sector")        # channel buffer sector
+label(0x10A1, "wksp_ch_buf_sector_1")
+label(0x10A2, "wksp_copy_read_sector")     # *COPY read sector address
+label(0x10A3, "wksp_copy_read_sector_1")
+label(0x10A4, "wksp_copy_read_sector_2")
+label(0x10A5, "wksp_copy_write_sector")    # *COPY write sector address
+label(0x10A6, "wksp_copy_write_sector_1")
+label(0x10A7, "wksp_copy_write_sector_2")
+label(0x10A8, "wksp_copy_src_sector")      # *COPY source sector
+label(0x10A9, "wksp_copy_src_sector_1")
+label(0x10AA, "wksp_copy_src_sector_2")
+label(0x10AB, "wksp_copy_dest_sector")     # *COPY dest sector
+label(0x10AC, "wksp_copy_dest_sector_1")
+label(0x10AD, "wksp_copy_dest_sector_2")
+label(0x10B4, "wksp_osgbpb_func")         # OSGBPB function code
+label(0x10B5, "wksp_osgbpb_mode")         # OSGBPB mode/status flag
+label(0x10B6, "wksp_osgbpb_start")        # transfer start position
+label(0x10B7, "wksp_osgbpb_end")          # transfer end position
+label(0x10B8, "wksp_osgbpb_data_addr")    # data transfer address (4 bytes)
+label(0x10B9, "wksp_osgbpb_data_addr_1")
+label(0x10BA, "wksp_osgbpb_data_addr_2")
+label(0x10BB, "wksp_osgbpb_data_addr_3")
+label(0x10BC, "wksp_osgbpb_wksp_bc")
+label(0x10BD, "wksp_osgbpb_byte_count")   # output byte counter
+label(0x10BE, "wksp_osgbpb_name_offset")  # name offset for A=8
+label(0x10BF, "wksp_saved_drive_2")       # saved drive for extension
+
+# Path/search workspace (&10C0-&10CF)
+label(0x10C0, "wksp_search_result")        # pathname search result (4 bytes)
+label(0x10C1, "wksp_search_result_1")
+label(0x10C2, "wksp_search_result_2")
+label(0x10C3, "wksp_search_result_3")
+label(0x10C8, "wksp_path_drive")           # pathname drive number
+label(0x10C9, "wksp_path_sector")          # pathname sector (3 bytes)
+label(0x10CA, "wksp_path_sector_1")
+label(0x10CB, "wksp_path_sector_2")
+label(0x10CC, "wksp_path_wksp_cc")
+label(0x10CD, "wksp_path_wksp_cd")
+label(0x10CE, "wksp_path_wksp_ce")
+label(0x10CF, "wksp_modify_flag")          # buffer modification flag
 
 # Workspace page &1100
 label(0x1100, "wksp_csd_name")      # 10 bytes
@@ -374,12 +457,24 @@ label(0x11E8, "wksp_ch_dir_sec_ml")   # dir sector mid-low
 # Per-channel sequence number (10 channels, 1 byte each)
 label(0x11F2, "wksp_ch_seq_num")
 label(0x10D0, "wksp_err_sector")   # error sector (little-endian)
+label(0x10D1, "wksp_err_sector_mid")
+label(0x10D2, "wksp_err_sector_hi")
 label(0x10D3, "wksp_err_code")
+label(0x10D4, "wksp_err_channel")   # file handle for error context
 label(0x10D5, "wksp_cur_channel")
+label(0x10D6, "wksp_cmd_tail")      # saved command tail pointer
 label(0x10D7, "wksp_shadow_save")
+label(0x10D8, "wksp_screen_mode_save") # saved screen mode for shadow
+label(0x10E0, "wksp_floppy_mode")   # floppy transfer mode flags
+label(0x10E1, "wksp_nmi_owner")     # NMI owner ID for release
+label(0x10E2, "wksp_format_page")   # format buffer page number
 label(0x10E3, "wksp_err_number")
+label(0x10E4, "wksp_partial_xfer_state") # partial sector transfer state
+label(0x10E5, "wksp_partial_count_1")
+label(0x10E6, "wksp_partial_count_2")
 label(0x10E7, "wksp_stack_save")
 label(0x10E8, "wksp_fdc_cmd_step")
+label(0x10FE, "wksp_alt_csd_sector")  # alt workspace CSD sector
 
 # ---------------------------------------------------------------------------
 # Paged workspace: directory buffer (&1200-&16FF)

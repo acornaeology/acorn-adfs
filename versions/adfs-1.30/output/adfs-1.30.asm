@@ -221,106 +221,108 @@ wksp_osfile_block                               = &1040
 wksp_osfile_block_1                             = &1041
 wksp_osfile_load_addr                           = &1042
 wksp_osfile_load_addr_1                         = &1043
-l1046                                           = &1046
-l1047                                           = &1047
-l1048                                           = &1048
-l1049                                           = &1049
-l104a                                           = &104a
-l104b                                           = &104b
-l104c                                           = &104c
-l104d                                           = &104d
-l104f                                           = &104f
-l1050                                           = &1050
-l1052                                           = &1052
-l1053                                           = &1053
-l1054                                           = &1054
+wksp_osfile_exec_addr                           = &1046
+wksp_osfile_exec_addr_1                         = &1047
+wksp_osfile_exec_addr_2                         = &1048
+wksp_osfile_exec_addr_3                         = &1049
+wksp_osfile_start_addr                          = &104a
+wksp_osfile_start_addr_1                        = &104b
+wksp_osfile_start_addr_2                        = &104c
+wksp_osfile_start_addr_3                        = &104d
+wksp_osfile_end_addr_1                          = &104f
+wksp_osfile_end_addr_2                          = &1050
+wksp_osfile_attr                                = &1052
+wksp_osfile_attr_1                              = &1053
+wksp_osfile_attr_2                              = &1054
 wksp_access_accum                               = &105d
 wksp_access_accum_1                             = &105e
 wksp_free_space_total                           = &105f
 wksp_compact_start_page                         = &1060
 wksp_compact_length                             = &1061
 wksp_object_name                                = &1062
-l1063                                           = &1063
-l106c                                           = &106c
-l106f                                           = &106f
-l1070                                           = &1070
-l1073                                           = &1073
-l1074                                           = &1074
-l107e                                           = &107e
-l107f                                           = &107f
-l1080                                           = &1080
-l1089                                           = &1089
-l108c                                           = &108c
-l108d                                           = &108d
-l1091                                           = &1091
-l1092                                           = &1092
-l1093                                           = &1093
-l1094                                           = &1094
-l1095                                           = &1095
-l1096                                           = &1096
-l1097                                           = &1097
-l1098                                           = &1098
-l109a                                           = &109a
-l109b                                           = &109b
-l109c                                           = &109c
-l109d                                           = &109d
-l109e                                           = &109e
-l109f                                           = &109f
-l10a0                                           = &10a0
-l10a1                                           = &10a1
-l10a2                                           = &10a2
-l10a3                                           = &10a3
-l10a4                                           = &10a4
-l10a5                                           = &10a5
-l10a6                                           = &10a6
-l10a7                                           = &10a7
-l10a8                                           = &10a8
-l10a9                                           = &10a9
-l10aa                                           = &10aa
-l10ab                                           = &10ab
-l10ac                                           = &10ac
-l10ad                                           = &10ad
-l10b4                                           = &10b4
-l10b5                                           = &10b5
-l10b6                                           = &10b6
-l10b7                                           = &10b7
-l10b8                                           = &10b8
-l10b9                                           = &10b9
-l10ba                                           = &10ba
-l10bb                                           = &10bb
-l10bc                                           = &10bc
-l10bf                                           = &10bf
-l10c0                                           = &10c0
-l10c1                                           = &10c1
-l10c2                                           = &10c2
-l10c3                                           = &10c3
-l10c8                                           = &10c8
-l10c9                                           = &10c9
-l10ca                                           = &10ca
-l10cb                                           = &10cb
-l10cc                                           = &10cc
-l10cd                                           = &10cd
-l10ce                                           = &10ce
-l10cf                                           = &10cf
+wksp_object_name_1                              = &1063
+wksp_saved_dir_sector                           = &106c
+wksp_drive_number                               = &106f
+wksp_new_parent_sector                          = &1070
+wksp_dest_drive                                 = &1073
+wksp_dest_name                                  = &1074
+wksp_dest_filename_end                          = &107e
+wksp_copy_name_ptr                              = &107f
+wksp_copy_name_ptr_hi                           = &1080
+wksp_copy_osfile_params                         = &1089
+wksp_copy_osfile_exec                           = &108c
+wksp_copy_dest_params                           = &108d
+wksp_filename_save                              = &1091
+wksp_filename_save_hi                           = &1092
+wksp_entry_save                                 = &1093
+wksp_entry_save_hi                              = &1094
+wksp_osgbpb_end_ptr                             = &1095
+wksp_osgbpb_sector_lo                           = &1096
+wksp_osgbpb_sector_mid                          = &1097
+wksp_osgbpb_sector_hi                           = &1098
+wksp_new_ptr_lo                                 = &109a
+wksp_new_ptr_mid                                = &109b
+wksp_new_ptr_mid_hi                             = &109c
+wksp_new_ptr_hi                                 = &109d
+wksp_new_ptr_4                                  = &109e
+wksp_osgbpb_wksp_9f                             = &109f
+wksp_ch_buf_sector                              = &10a0
+wksp_ch_buf_sector_1                            = &10a1
+wksp_copy_read_sector                           = &10a2
+wksp_copy_read_sector_1                         = &10a3
+wksp_copy_read_sector_2                         = &10a4
+wksp_copy_write_sector                          = &10a5
+wksp_copy_write_sector_1                        = &10a6
+wksp_copy_write_sector_2                        = &10a7
+wksp_copy_src_sector                            = &10a8
+wksp_copy_src_sector_1                          = &10a9
+wksp_copy_src_sector_2                          = &10aa
+wksp_copy_dest_sector                           = &10ab
+wksp_copy_dest_sector_1                         = &10ac
+wksp_copy_dest_sector_2                         = &10ad
+wksp_osgbpb_func                                = &10b4
+wksp_osgbpb_mode                                = &10b5
+wksp_osgbpb_start                               = &10b6
+wksp_osgbpb_end                                 = &10b7
+wksp_osgbpb_data_addr                           = &10b8
+wksp_osgbpb_data_addr_1                         = &10b9
+wksp_osgbpb_data_addr_2                         = &10ba
+wksp_osgbpb_data_addr_3                         = &10bb
+wksp_osgbpb_wksp_bc                             = &10bc
+wksp_osgbpb_byte_count                          = &10bd
+wksp_osgbpb_name_offset                         = &10be
+wksp_saved_drive_2                              = &10bf
+wksp_search_result                              = &10c0
+wksp_search_result_1                            = &10c1
+wksp_search_result_2                            = &10c2
+wksp_search_result_3                            = &10c3
+wksp_path_drive                                 = &10c8
+wksp_path_sector                                = &10c9
+wksp_path_sector_1                              = &10ca
+wksp_path_sector_2                              = &10cb
+wksp_path_wksp_cc                               = &10cc
+wksp_path_wksp_cd                               = &10cd
+wksp_path_wksp_ce                               = &10ce
+wksp_modify_flag                                = &10cf
 wksp_err_sector                                 = &10d0
-l10d1                                           = &10d1
-l10d2                                           = &10d2
+wksp_err_sector_mid                             = &10d1
+wksp_err_sector_hi                              = &10d2
 wksp_err_code                                   = &10d3
-l10d4                                           = &10d4
+wksp_err_channel                                = &10d4
 wksp_cur_channel                                = &10d5
-l10d6                                           = &10d6
+wksp_cmd_tail                                   = &10d6
 wksp_shadow_save                                = &10d7
-l10d8                                           = &10d8
-l10e0                                           = &10e0
-l10e1                                           = &10e1
-l10e2                                           = &10e2
+wksp_screen_mode_save                           = &10d8
+wksp_floppy_mode                                = &10e0
+wksp_nmi_owner                                  = &10e1
+wksp_format_page                                = &10e2
 wksp_err_number                                 = &10e3
-l10e4                                           = &10e4
-l10e5                                           = &10e5
-l10e6                                           = &10e6
+wksp_partial_xfer_state                         = &10e4
+wksp_partial_count_1                            = &10e5
+wksp_partial_count_2                            = &10e6
 wksp_stack_save                                 = &10e7
 wksp_fdc_cmd_step                               = &10e8
-l10fe                                           = &10fe
+wksp_alt_csd_sector                             = &10fe
 wksp_csd_name                                   = &1100
 wksp_lib_name                                   = &110a
 wksp_csd_sector                                 = &1113
@@ -690,10 +692,10 @@ nmi_patched_addr                                = &ffff
     ldy #6                                                            ; 80d2: a0 06       ..             ; Byte 6: drive + sector high
     lda (zp_ctrl_blk_lo),y                                            ; 80d4: b1 b0       ..             ; Get drive+sector byte from blk
     ora wksp_current_drive                                            ; 80d6: 0d 17 11    ...            ; Combine with current drive number
-    sta l10d2                                                         ; 80d9: 8d d2 10    ...            ; Store in error sector workspace
+    sta wksp_err_sector_hi                                            ; 80d9: 8d d2 10    ...            ; Store in error sector workspace
     iny                                                               ; 80dc: c8          .              ; Y=&07
     lda (zp_ctrl_blk_lo),y                                            ; 80dd: b1 b0       ..             ; Byte 7: sector mid
-    sta l10d1                                                         ; 80df: 8d d1 10    ...            ; Store sector mid byte
+    sta wksp_err_sector_mid                                           ; 80df: 8d d1 10    ...            ; Store sector mid byte
     iny                                                               ; 80e2: c8          .              ; Y=&08
     lda (zp_ctrl_blk_lo),y                                            ; 80e3: b1 b0       ..             ; Byte 8: sector low
     sta wksp_err_sector                                               ; 80e5: 8d d0 10    ...            ; Store sector low byte
@@ -1031,8 +1033,8 @@ nmi_patched_addr                                = &ffff
     bpl receive_sense_data_loop                                       ; 825c: 10 f4       ..             ; Loop for 4 bytes
     lda wksp_current_drive_hi                                         ; 825e: ad 33 11    .3.            ; Get drive LUN bits
     and #&e0                                                          ; 8261: 29 e0       ).             ; Isolate LUN
-    ora l10d2                                                         ; 8263: 0d d2 10    ...            ; Merge with error sector high byte
-    sta l10d2                                                         ; 8266: 8d d2 10    ...            ; Store back
+    ora wksp_err_sector_hi                                            ; 8263: 0d d2 10    ...            ; Merge with error sector high byte
+    sta wksp_err_sector_hi                                            ; 8266: 8d d2 10    ...            ; Store back
     jsr scsi_wait_for_req                                             ; 8269: 20 0f 83     ..            ; Wait for status phase; Wait for SCSI REQ signal
     ldx wksp_err_code                                                 ; 826c: ae d3 10    ...            ; Get error code from workspace
     lda fred_hard_drive_0                                             ; 826f: ad 40 fc    .@.            ; Read status byte
@@ -1306,7 +1308,7 @@ nmi_patched_addr                                = &ffff
     sta brk_error_block,y                                             ; 8389: 99 00 01    ...            ; Store in error block
     dex                                                               ; 838c: ca          .              ; Next character in reversed string
     bpl copy_at_string_loop                                           ; 838d: 10 f6       ..             ; Loop for 5 chars of ' at :'
-    lda l10d2                                                         ; 838f: ad d2 10    ...            ; Get drive number from error sector
+    lda wksp_err_sector_hi                                            ; 838f: ad d2 10    ...            ; Get drive number from error sector
     asl a                                                             ; 8392: 0a          .              ; Shift drive bits into low nibble
     rol a                                                             ; 8393: 2a          *              ; Rotate drive bits to low nibble
     rol a                                                             ; 8394: 2a          *              ; Second rotate
@@ -1317,7 +1319,7 @@ nmi_patched_addr                                = &ffff
     lda #&2f ; '/'                                                    ; 839d: a9 2f       ./             ; Append '/' separator
     iny                                                               ; 839f: c8          .              ; Advance to next position
     sta brk_error_block,y                                             ; 83a0: 99 00 01    ...            ; Store separator in error block
-    lda l10d2                                                         ; 83a3: ad d2 10    ...            ; Get sector high byte
+    lda wksp_err_sector_hi                                            ; 83a3: ad d2 10    ...            ; Get sector high byte
     and #&1f                                                          ; 83a6: 29 1f       ).             ; Mask to 5-bit sector address
     ldx #2                                                            ; 83a8: a2 02       ..             ; X=2: output 3 bytes of sector addr
     bne append_sector_hex                                             ; 83aa: d0 03       ..             ; Always branch to loop entry; ALWAYS branch
@@ -1351,7 +1353,7 @@ nmi_patched_addr                                = &ffff
     tya                                                               ; 83d3: 98          .              ; Save current position
     pha                                                               ; 83d4: 48          H              ; Push Y on stack
     lda #&c6                                                          ; 83d5: a9 c6       ..             ; Close SPOOL file if open
-    sta l10d8                                                         ; 83d7: 8d d8 10    ...            ; Store SPOOL/EXEC flag
+    sta wksp_screen_mode_save                                         ; 83d7: 8d d8 10    ...            ; Store SPOOL/EXEC flag
     jsr osbyte_y_ff_x_00                                              ; 83da: 20 a0 84     ..            ; OSBYTE &C6: read/write EXEC handle; Call OSBYTE to read current value
     cpx wksp_cur_channel                                              ; 83dd: ec d5 10    ...            ; Is EXEC on this channel?
     php                                                               ; 83e0: 08          .              ; Save flags for comparison result
@@ -1370,7 +1372,7 @@ nmi_patched_addr                                = &ffff
     tay                                                               ; 83f1: a8          .              ; Transfer back to Y
 ; &83f2 referenced 1 time by &83be
 .raise_brk_error
-    lda l10ce                                                         ; 83f2: ad ce 10    ...            ; Check for additional error handling
+    lda wksp_path_wksp_ce                                             ; 83f2: ad ce 10    ...            ; Check for additional error handling
     bne copy_brk_block_loop                                           ; 83f5: d0 03       ..             ; Non-zero: skip workspace update
     jsr load_dir_for_drive                                            ; 83f7: 20 a2 a7     ..            ; Update workspace checksum; Restore workspace and load directory
 ; &83fa referenced 1 time by &83f5
@@ -2041,7 +2043,7 @@ nmi_patched_addr                                = &ffff
     jsr skip_spaces                                                   ; 870f: 20 cf a4     ..            ; Skip leading spaces in command argument
     jsr set_up_directory_search                                       ; 8712: 20 6e 8d     n.            ; Set up directory for search; Validate path and check for wildcards
     ldy #0                                                            ; 8715: a0 00       ..             ; Y=0: clear search flag
-    sty l10c0                                                         ; 8717: 8c c0 10    ...            ; Store in workspace
+    sty wksp_search_result                                            ; 8717: 8c c0 10    ...            ; Store in workspace
 ; ***************************************************************************************
 ; Check if character is a filename terminator
 ; 
@@ -2478,7 +2480,7 @@ nmi_patched_addr                                = &ffff
     jsr check_special_dir_char                                        ; 88d2: 20 4f 94     O.            ; Check for ^ or @ specifiers; Check for ^ (parent) or @ (current) directory
     bne search_current_dir                                            ; 88d5: d0 28       .(             ; Not special: regular path component
     iny                                                               ; 88d7: c8          .              ; Advance past ^ or @ character
-    sty l10a2                                                         ; 88d8: 8c a2 10    ...            ; Store length marker
+    sty wksp_copy_read_sector                                         ; 88d8: 8c a2 10    ...            ; Store length marker
     jsr check_char_is_terminator                                      ; 88db: 20 1a 87     ..            ; Get next character; Check if character is a filename terminator
     cmp #&2e ; '.'                                                    ; 88de: c9 2e       ..             ; Is it '.' (more path follows)?
     bne return_12                                                     ; 88e0: d0 22       ."             ; No: this is the final component
@@ -2489,13 +2491,13 @@ nmi_patched_addr                                = &ffff
     lda #&24 ; '$'                                                    ; 88e5: a9 24       .$             ; No dot after root: set up $ entry
     sta wksp_object_name                                              ; 88e7: 8d 62 10    .b.            ; Store '$' as object name
     lda #&0d                                                          ; 88ea: a9 0d       ..             ; CR padding
-    sta l1063                                                         ; 88ec: 8d 63 10    .c.            ; Store CR after name
+    sta wksp_object_name_1                                            ; 88ec: 8d 63 10    .c.            ; Store CR after name
     lda #&cc                                                          ; 88ef: a9 cc       ..             ; Point to dummy dir entry at &94CC
     sta zp_entry_ptr_lo                                               ; 88f1: 85 b6       ..             ; Store pointer low
     lda #&94                                                          ; 88f3: a9 94       ..             ; Pointer high = &94
     sta zp_entry_ptr_hi                                               ; 88f5: 85 b7       ..             ; Store pointer high
     lda #2                                                            ; 88f7: a9 02       ..             ; A=2: root sector number
-    sta l10c0                                                         ; 88f9: 8d c0 10    ...            ; Store as found sector
+    sta wksp_search_result                                            ; 88f9: 8d c0 10    ...            ; Store as found sector
     lda #0                                                            ; 88fc: a9 00       ..             ; A=0: success (Z set)
     rts                                                               ; 88fe: 60          `              ; Return
 
@@ -2530,7 +2532,7 @@ nmi_patched_addr                                = &ffff
     sta zp_text_ptr_hi                                                ; 8915: 85 b5       ..             ; Store updated text pointer high
     jsr skip_spaces                                                   ; 8917: 20 cf a4     ..            ; Skip spaces after path component; Skip leading spaces in command argument
     lda zp_text_ptr_lo                                                ; 891a: a5 b4       ..             ; Save remaining text pointer
-    sta l10d6                                                         ; 891c: 8d d6 10    ...            ; Store for later use
+    sta wksp_cmd_tail                                                 ; 891c: 8d d6 10    ...            ; Store for later use
     lda zp_text_ptr_hi                                                ; 891f: a5 b5       ..             ; Get high byte
     sta wksp_shadow_save                                              ; 8921: 8d d7 10    ...            ; Store high byte
     pla                                                               ; 8924: 68          h              ; Restore original text pointer
@@ -2544,7 +2546,7 @@ nmi_patched_addr                                = &ffff
     inx                                                               ; 8932: e8          .              ; Bit 7 set: X=2 (directory); X=&02
 ; &8933 referenced 1 time by &8930
 .scan_for_component_end
-    stx l10c0                                                         ; 8933: 8e c0 10    ...            ; Store object type
+    stx wksp_search_result                                            ; 8933: 8e c0 10    ...            ; Store object type
     lda #0                                                            ; 8936: a9 00       ..             ; A=0: success (Z set)
     rts                                                               ; 8938: 60          `              ; Return
 
@@ -2564,7 +2566,7 @@ nmi_patched_addr                                = &ffff
     bne scan_component_chars_loop                                     ; 894b: d0 ee       ..             ; Loop scanning
 ; &894d referenced 1 time by &8948
 .save_component_length
-    sty l10a2                                                         ; 894d: 8c a2 10    ...            ; Save component length
+    sty wksp_copy_read_sector                                         ; 894d: 8c a2 10    ...            ; Save component length
 ; &8950 referenced 1 time by &8959
 .check_access_is_dir_loop
     ldy #3                                                            ; 8950: a0 03       ..             ; Y=3: check if entry is directory
@@ -2621,7 +2623,7 @@ nmi_patched_addr                                = &ffff
 
 ; &8991 referenced 2 times by &88e2, &8979
 .advance_text_past_component
-    lda l10a2                                                         ; 8991: ad a2 10    ...            ; Get matched component length
+    lda wksp_copy_read_sector                                         ; 8991: ad a2 10    ...            ; Get matched component length
     sec                                                               ; 8994: 38          8              ; Set carry (add 1 for separator)
     adc zp_text_ptr_lo                                                ; 8995: 65 b4       e.             ; Add to text pointer
     sta zp_text_ptr_lo                                                ; 8997: 85 b4       ..             ; Store updated pointer low
@@ -2654,7 +2656,7 @@ nmi_patched_addr                                = &ffff
 .copy_subdir_sector_loop
     lda (zp_entry_ptr_lo),y                                           ; 89be: b1 b6       ..             ; Get sector byte from entry
     sta wksp_disc_op_sector,x                                         ; 89c0: 9d 1b 10    ...            ; Store in disc op sector field
-    sta l10fe,y                                                       ; 89c3: 99 fe 10    ...            ; Also store in CSD info
+    sta wksp_alt_csd_sector,y                                         ; 89c3: 99 fe 10    ...            ; Also store in CSD info
     iny                                                               ; 89c6: c8          .              ; Next entry byte
     dex                                                               ; 89c7: ca          .              ; Next sector byte
     bpl copy_subdir_sector_loop                                       ; 89c8: 10 f4       ..             ; Loop for 3 bytes
@@ -2673,7 +2675,7 @@ nmi_patched_addr                                = &ffff
 ; ***************************************************************************************
 ; &89d0 referenced 4 times by &8c5f, &8cc6, &923b, &b360
 .get_object_type_result
-    lda l10c0                                                         ; 89d0: ad c0 10    ...            ; Get object type result
+    lda wksp_search_result                                            ; 89d0: ad c0 10    ...            ; Get object type result
 ; ***************************************************************************************
 ; Save workspace state and return result
 ; 
@@ -2900,9 +2902,9 @@ nmi_patched_addr                                = &ffff
 .floppy_partial_sector
     lda wksp_disc_op_sector                                           ; 8b1e: ad 1b 10    ...            ; Get sector address high byte
     ora wksp_current_drive                                            ; 8b21: 0d 17 11    ...            ; Combine with current drive
-    sta l10d2                                                         ; 8b24: 8d d2 10    ...            ; Store in error sector workspace
+    sta wksp_err_sector_hi                                            ; 8b24: 8d d2 10    ...            ; Store in error sector workspace
     lda wksp_disc_op_sector_mid                                       ; 8b27: ad 1c 10    ...            ; Get sector address mid byte
-    sta l10d1                                                         ; 8b2a: 8d d1 10    ...            ; Store in error sector workspace
+    sta wksp_err_sector_mid                                           ; 8b2a: 8d d1 10    ...            ; Store in error sector workspace
     lda wksp_disc_op_sector_lo                                        ; 8b2d: ad 1d 10    ...            ; Get sector address low byte
     sta wksp_err_sector                                               ; 8b30: 8d d0 10    ...            ; Store in error sector workspace
     jsr calc_buffer_page_from_offset                                  ; 8b33: 20 d7 ac     ..            ; Calculate buffer offset; Calculate buffer page from channel offset
@@ -4817,7 +4819,7 @@ nmi_patched_addr                                = &ffff
 .copy_entry_sector_loop
     lda (zp_entry_ptr_lo),y                                           ; 94b7: b1 b6       ..             ; Get sector byte from directory entry
     sta wksp_disc_op_sector,x                                         ; 94b9: 9d 1b 10    ...            ; Store in disc op control block
-    sta l10fe,y                                                       ; 94bc: 99 fe 10    ...            ; Also store in workspace
+    sta wksp_alt_csd_sector,y                                         ; 94bc: 99 fe 10    ...            ; Also store in workspace
     iny                                                               ; 94bf: c8          .              ; Next sector address byte
     dex                                                               ; 94c0: ca          .              ; Decrement counter
     bpl copy_entry_sector_loop                                        ; 94c1: 10 f4       ..             ; Loop for 3 bytes
@@ -5131,7 +5133,7 @@ nmi_patched_addr                                = &ffff
     ldy #2                                                            ; 964e: a0 02       ..             ; Y=2: compare 3 sector bytes
 ; &9650 referenced 1 time by &9659
 .copy_sector_data_loop
-    lda l10a2,y                                                       ; 9650: b9 a2 10    ...            ; Get old sector address byte
+    lda wksp_copy_read_sector,y                                       ; 9650: b9 a2 10    ...            ; Get old sector address byte
     cmp wksp_csd_drive_sector,y                                       ; 9653: d9 2c 10    .,.            ; Compare with CSD sector
     bne advance_sector_ptrs                                           ; 9656: d0 0e       ..             ; Mismatch: not CSD
     dey                                                               ; 9658: 88          .              ; Next byte
@@ -5139,7 +5141,7 @@ nmi_patched_addr                                = &ffff
     ldy #2                                                            ; 965b: a0 02       ..             ; CSD matches: update to new sector
 ; &965d referenced 1 time by &9664
 .write_dest_sector
-    lda l10a8,y                                                       ; 965d: b9 a8 10    ...            ; Get new sector byte
+    lda wksp_copy_src_sector,y                                        ; 965d: b9 a8 10    ...            ; Get new sector byte
     sta wksp_csd_drive_sector,y                                       ; 9660: 99 2c 10    .,.            ; Store as CSD sector
     dey                                                               ; 9663: 88          .              ; Next byte
     bpl write_dest_sector                                             ; 9664: 10 f7       ..             ; Loop for 3 bytes
@@ -5151,7 +5153,7 @@ nmi_patched_addr                                = &ffff
     ldy #2                                                            ; 966e: a0 02       ..             ; Y=2: compare 3 sector bytes
 ; &9670 referenced 1 time by &9679
 .copy_remaining_loop
-    lda l10a2,y                                                       ; 9670: b9 a2 10    ...            ; Get old sector address byte
+    lda wksp_copy_read_sector,y                                       ; 9670: b9 a2 10    ...            ; Get old sector address byte
     cmp wksp_lib_sector,y                                             ; 9673: d9 18 11    ...            ; Compare with lib sector
     bne advance_source_sector                                         ; 9676: d0 0e       ..             ; Mismatch: not library
     dey                                                               ; 9678: 88          .              ; Next byte
@@ -5159,7 +5161,7 @@ nmi_patched_addr                                = &ffff
     ldy #2                                                            ; 967b: a0 02       ..             ; Lib matches: update to new sector
 ; &967d referenced 1 time by &9684
 .advance_dest_sector
-    lda l10a8,y                                                       ; 967d: b9 a8 10    ...            ; Get new sector byte
+    lda wksp_copy_src_sector,y                                        ; 967d: b9 a8 10    ...            ; Get new sector byte
     sta wksp_lib_sector,y                                             ; 9680: 99 18 11    ...            ; Store as lib sector
     dey                                                               ; 9683: 88          .              ; Next byte
     bpl advance_dest_sector                                           ; 9684: 10 f7       ..             ; Loop for 3 bytes
@@ -5171,7 +5173,7 @@ nmi_patched_addr                                = &ffff
     ldy #2                                                            ; 968e: a0 02       ..             ; Y=2: compare 3 sector bytes
 ; &9690 referenced 1 time by &9699
 .copy_dir_name_to_entry
-    lda l10a2,y                                                       ; 9690: b9 a2 10    ...            ; Get old sector byte
+    lda wksp_copy_read_sector,y                                       ; 9690: b9 a2 10    ...            ; Get old sector byte
     cmp wksp_prev_dir_sector,y                                        ; 9693: d9 1c 11    ...            ; Compare with prev dir sector
     bne execute_sector_copy                                           ; 9696: d0 0e       ..             ; Mismatch: not prev dir
     dey                                                               ; 9698: 88          .              ; Next byte
@@ -5179,7 +5181,7 @@ nmi_patched_addr                                = &ffff
     ldy #2                                                            ; 969b: a0 02       ..             ; Prev dir matches: update
 ; &969d referenced 1 time by &96a4
 .set_entry_dir_attribute
-    lda l10a8,y                                                       ; 969d: b9 a8 10    ...            ; Get new sector byte
+    lda wksp_copy_src_sector,y                                        ; 969d: b9 a8 10    ...            ; Get new sector byte
     sta wksp_prev_dir_sector,y                                        ; 96a0: 99 1c 11    ...            ; Store as prev dir sector
     dey                                                               ; 96a3: 88          .              ; Next byte
     bpl set_entry_dir_attribute                                       ; 96a4: 10 f7       ..             ; Loop for 3 bytes
@@ -5192,18 +5194,18 @@ nmi_patched_addr                                = &ffff
     jsr flush_all_channels                                            ; 96af: 20 7c a9     |.            ; Flush OSARGS workspace; Flush all open channel buffers
 ; &96b2 referenced 1 time by &96aa
 .check_tube_for_copy
-    lda l10a7                                                         ; 96b2: ad a7 10    ...            ; Check if sectors remain to copy
-    ora l10a6                                                         ; 96b5: 0d a6 10    ...            ; OR with mid byte
-    ora l10a5                                                         ; 96b8: 0d a5 10    ...            ; OR with high byte
+    lda wksp_copy_write_sector_2                                      ; 96b2: ad a7 10    ...            ; Check if sectors remain to copy
+    ora wksp_copy_write_sector_1                                      ; 96b5: 0d a6 10    ...            ; OR with mid byte
+    ora wksp_copy_write_sector                                        ; 96b8: 0d a5 10    ...            ; OR with high byte
     bne read_source_to_buffer                                         ; 96bb: d0 01       ..             ; Non-zero: more to copy
     rts                                                               ; 96bd: 60          `              ; All done: return
 
 ; &96be referenced 1 time by &96bb
 .read_source_to_buffer
-    lda l10a7                                                         ; 96be: ad a7 10    ...            ; Get sector count high
-    ora l10a6                                                         ; 96c1: 0d a6 10    ...            ; OR with mid byte
+    lda wksp_copy_write_sector_2                                      ; 96be: ad a7 10    ...            ; Get sector count high
+    ora wksp_copy_write_sector_1                                      ; 96c1: 0d a6 10    ...            ; OR with mid byte
     bne write_buffer_to_dest                                          ; 96c4: d0 08       ..             ; Non-zero: more than buffer fits
-    lda l10a5                                                         ; 96c6: ad a5 10    ...            ; Get sector count low
+    lda wksp_copy_write_sector                                        ; 96c6: ad a5 10    ...            ; Get sector count low
     cmp wksp_compact_length                                           ; 96c9: cd 61 10    .a.            ; Compare with buffer size
     bcc advance_copy_sector                                           ; 96cc: 90 03       ..             ; Fits in buffer: use exact count
 ; &96ce referenced 1 time by &96c4
@@ -5222,64 +5224,64 @@ nmi_patched_addr                                = &ffff
 ; &96e6 referenced 1 time by &977a
 .copy_sectors_remaining
     sec                                                               ; 96e6: 38          8              ; Set carry for subtraction
-    lda l10a5                                                         ; 96e7: ad a5 10    ...            ; Subtract copied amount from total
+    lda wksp_copy_write_sector                                        ; 96e7: ad a5 10    ...            ; Subtract copied amount from total
     sbc wksp_compact_length                                           ; 96ea: ed 61 10    .a.            ; Subtract buffer size
-    sta l10a5                                                         ; 96ed: 8d a5 10    ...            ; Store reduced count low
-    lda l10a6                                                         ; 96f0: ad a6 10    ...            ; Get count mid
+    sta wksp_copy_write_sector                                        ; 96ed: 8d a5 10    ...            ; Store reduced count low
+    lda wksp_copy_write_sector_1                                      ; 96f0: ad a6 10    ...            ; Get count mid
     sbc #0                                                            ; 96f3: e9 00       ..             ; Subtract borrow
-    sta l10a6                                                         ; 96f5: 8d a6 10    ...            ; Store reduced mid
-    lda l10a7                                                         ; 96f8: ad a7 10    ...            ; Get count high
+    sta wksp_copy_write_sector_1                                      ; 96f5: 8d a6 10    ...            ; Store reduced mid
+    lda wksp_copy_write_sector_2                                      ; 96f8: ad a7 10    ...            ; Get count high
     sbc #0                                                            ; 96fb: e9 00       ..             ; Subtract borrow
-    sta l10a7                                                         ; 96fd: 8d a7 10    ...            ; Store reduced high
+    sta wksp_copy_write_sector_2                                      ; 96fd: 8d a7 10    ...            ; Store reduced high
     bcs set_transfer_address                                          ; 9700: b0 09       ..             ; No underflow: proceed
-    lda l10a5                                                         ; 9702: ad a5 10    ...            ; Underflow: adjust sector count
+    lda wksp_copy_write_sector                                        ; 9702: ad a5 10    ...            ; Underflow: adjust sector count
     adc wksp_compact_length                                           ; 9705: 6d 61 10    ma.            ; Add buffer size back
     sta wksp_disc_op_sector_count                                     ; 9708: 8d 1e 10    ...            ; Store as final chunk size
 ; &970b referenced 1 time by &9700
 .set_transfer_address
     lda #8                                                            ; 970b: a9 08       ..             ; Read command = 8
     sta wksp_disc_op_command                                          ; 970d: 8d 1a 10    ...            ; Store in disc op
-    lda l10a2                                                         ; 9710: ad a2 10    ...            ; Get source sector low
+    lda wksp_copy_read_sector                                         ; 9710: ad a2 10    ...            ; Get source sector low
     sta wksp_disc_op_sector_lo                                        ; 9713: 8d 1d 10    ...            ; Store in disc op sector
-    lda l10a3                                                         ; 9716: ad a3 10    ...            ; Get source sector mid
+    lda wksp_copy_read_sector_1                                       ; 9716: ad a3 10    ...            ; Get source sector mid
     sta wksp_disc_op_sector_mid                                       ; 9719: 8d 1c 10    ...            ; Store in disc op
-    lda l10a4                                                         ; 971c: ad a4 10    ...            ; Get source sector high + drive
+    lda wksp_copy_read_sector_2                                       ; 971c: ad a4 10    ...            ; Get source sector high + drive
     sta wksp_disc_op_sector                                           ; 971f: 8d 1b 10    ...            ; Store in disc op
     jsr exec_disc_op_from_wksp                                        ; 9722: 20 87 82     ..            ; Read from source; Execute disc command from workspace control block
     lda #&0a                                                          ; 9725: a9 0a       ..             ; Write command = &0A
     sta wksp_disc_op_command                                          ; 9727: 8d 1a 10    ...            ; Store in disc op
-    lda l10a8                                                         ; 972a: ad a8 10    ...            ; Get dest sector low
+    lda wksp_copy_src_sector                                          ; 972a: ad a8 10    ...            ; Get dest sector low
     sta wksp_disc_op_sector_lo                                        ; 972d: 8d 1d 10    ...            ; Store in disc op sector
-    lda l10a9                                                         ; 9730: ad a9 10    ...            ; Get dest sector mid
+    lda wksp_copy_src_sector_1                                        ; 9730: ad a9 10    ...            ; Get dest sector mid
     sta wksp_disc_op_sector_mid                                       ; 9733: 8d 1c 10    ...            ; Store in disc op
-    lda l10aa                                                         ; 9736: ad aa 10    ...            ; Get dest sector high + drive
+    lda wksp_copy_src_sector_2                                        ; 9736: ad aa 10    ...            ; Get dest sector high + drive
     sta wksp_disc_op_sector                                           ; 9739: 8d 1b 10    ...            ; Store in disc op
     jsr exec_disc_op_from_wksp                                        ; 973c: 20 87 82     ..            ; Write to destination; Execute disc command from workspace control block
-    lda l10a5                                                         ; 973f: ad a5 10    ...            ; Check if more sectors to copy
-    ora l10a6                                                         ; 9742: 0d a6 10    ...            ; OR with mid byte
-    ora l10a7                                                         ; 9745: 0d a7 10    ...            ; OR with high byte
+    lda wksp_copy_write_sector                                        ; 973f: ad a5 10    ...            ; Check if more sectors to copy
+    ora wksp_copy_write_sector_1                                      ; 9742: 0d a6 10    ...            ; OR with mid byte
+    ora wksp_copy_write_sector_2                                      ; 9745: 0d a7 10    ...            ; OR with high byte
     beq validate_disc_size                                            ; 9748: f0 33       .3             ; Zero: all copied
     lda wksp_disc_op_sector_count                                     ; 974a: ad 1e 10    ...            ; Check if full buffer was used
     cmp wksp_compact_length                                           ; 974d: cd 61 10    .a.            ; Compare with buffer size
     bne validate_disc_size                                            ; 9750: d0 2b       .+             ; Partial: done
     clc                                                               ; 9752: 18          .              ; Advance source sector
-    lda l10a2                                                         ; 9753: ad a2 10    ...            ; Get source low
+    lda wksp_copy_read_sector                                         ; 9753: ad a2 10    ...            ; Get source low
     adc wksp_compact_length                                           ; 9756: 6d 61 10    ma.            ; Add buffer pages copied
-    sta l10a2                                                         ; 9759: 8d a2 10    ...            ; Store updated source low
+    sta wksp_copy_read_sector                                         ; 9759: 8d a2 10    ...            ; Store updated source low
     bcc check_format_parameters                                       ; 975c: 90 08       ..             ; No carry
-    inc l10a3                                                         ; 975e: ee a3 10    ...            ; Carry: inc source mid
+    inc wksp_copy_read_sector_1                                       ; 975e: ee a3 10    ...            ; Carry: inc source mid
     bne check_format_parameters                                       ; 9761: d0 03       ..             ; No wrap
-    inc l10a4                                                         ; 9763: ee a4 10    ...            ; Wrap: inc source high
+    inc wksp_copy_read_sector_2                                       ; 9763: ee a4 10    ...            ; Wrap: inc source high
 ; &9766 referenced 2 times by &975c, &9761
 .check_format_parameters
     clc                                                               ; 9766: 18          .              ; Advance dest sector
-    lda l10a8                                                         ; 9767: ad a8 10    ...            ; Get dest low
+    lda wksp_copy_src_sector                                          ; 9767: ad a8 10    ...            ; Get dest low
     adc wksp_compact_length                                           ; 976a: 6d 61 10    ma.            ; Add buffer pages
-    sta l10a8                                                         ; 976d: 8d a8 10    ...            ; Store updated dest low
+    sta wksp_copy_src_sector                                          ; 976d: 8d a8 10    ...            ; Store updated dest low
     bcc validate_sector_count                                         ; 9770: 90 08       ..             ; No carry
-    inc l10a9                                                         ; 9772: ee a9 10    ...            ; Carry: inc dest mid
+    inc wksp_copy_src_sector_1                                        ; 9772: ee a9 10    ...            ; Carry: inc dest mid
     bne validate_sector_count                                         ; 9775: d0 03       ..             ; No wrap
-    inc l10aa                                                         ; 9777: ee aa 10    ...            ; Wrap: inc dest high
+    inc wksp_copy_src_sector_2                                        ; 9777: ee aa 10    ...            ; Wrap: inc dest high
 ; &977a referenced 2 times by &9770, &9775
 .validate_sector_count
     jmp copy_sectors_remaining                                        ; 977a: 4c e6 96    L..            ; Loop for more chunks
@@ -5317,24 +5319,24 @@ nmi_patched_addr                                = &ffff
 ; &97a8 referenced 2 times by &98ab, &98d7
 .format_init_dir
     lda #0                                                            ; 97a8: a9 00       ..             ; A=0: clear search state
-    sta l10ab                                                         ; 97aa: 8d ab 10    ...            ; Clear dest sector low
-    sta l10ac                                                         ; 97ad: 8d ac 10    ...            ; Clear dest sector mid
-    sta l10ad                                                         ; 97b0: 8d ad 10    ...            ; Clear dest sector high
+    sta wksp_copy_dest_sector                                         ; 97aa: 8d ab 10    ...            ; Clear dest sector low
+    sta wksp_copy_dest_sector_1                                       ; 97ad: 8d ac 10    ...            ; Clear dest sector mid
+    sta wksp_copy_dest_sector_2                                       ; 97b0: 8d ad 10    ...            ; Clear dest sector high
 ; &97b3 referenced 2 times by &9835, &9869
 .format_init_fsm
     lda #&ff                                                          ; 97b3: a9 ff       ..             ; A=&FF: init source sector to &FFFFFF
-    sta l10a2                                                         ; 97b5: 8d a2 10    ...            ; Set source sector low
-    sta l10a3                                                         ; 97b8: 8d a3 10    ...            ; Set source sector mid
-    sta l10a4                                                         ; 97bb: 8d a4 10    ...            ; Set source sector high
+    sta wksp_copy_read_sector                                         ; 97b5: 8d a2 10    ...            ; Set source sector low
+    sta wksp_copy_read_sector_1                                       ; 97b8: 8d a3 10    ...            ; Set source sector mid
+    sta wksp_copy_read_sector_2                                       ; 97bb: 8d a4 10    ...            ; Set source sector high
     jsr print_catalogue_header                                        ; 97be: 20 c5 93     ..            ; Point to first directory entry
 ; &97c1 referenced 2 times by &9813, &9817
 .init_fsm_zeros_loop
     ldy #0                                                            ; 97c1: a0 00       ..             ; Y=0: check entry first byte
     lda (zp_entry_ptr_lo),y                                           ; 97c3: b1 b6       ..             ; Get first byte
     bne init_fsm_total_sectors                                        ; 97c5: d0 10       ..             ; Non-zero: valid entry
-    lda l10a2                                                         ; 97c7: ad a2 10    ...            ; End of entries: check if any found
-    and l10a3                                                         ; 97ca: 2d a3 10    -..            ; AND all source sector bytes
-    and l10a4                                                         ; 97cd: 2d a4 10    -..            ; All &FF?
+    lda wksp_copy_read_sector                                         ; 97c7: ad a2 10    ...            ; End of entries: check if any found
+    and wksp_copy_read_sector_1                                       ; 97ca: 2d a3 10    -..            ; AND all source sector bytes
+    and wksp_copy_read_sector_2                                       ; 97cd: 2d a4 10    -..            ; All &FF?
     cmp #&ff                                                          ; 97d0: c9 ff       ..             ; Compare with &FF
     bne init_root_dir_name                                            ; 97d2: d0 45       .E             ; Not &FF: found an entry
     jmp write_dir_and_validate                                        ; 97d4: 4c 86 8f    L..            ; All &FF: no entries, write dir; Write directory and FSM back to disc
@@ -5346,7 +5348,7 @@ nmi_patched_addr                                = &ffff
     sec                                                               ; 97db: 38          8              ; Set carry for subtraction
 ; &97dc referenced 1 time by &97e3
 .init_fsm_sector_loop
-    lda l1095,y                                                       ; 97dc: b9 95 10    ...            ; Get workspace sector byte
+    lda wksp_osgbpb_end_ptr,y                                         ; 97dc: b9 95 10    ...            ; Get workspace sector byte
     sbc (zp_entry_ptr_lo),y                                           ; 97df: f1 b6       ..             ; Subtract entry sector byte
     iny                                                               ; 97e1: c8          .              ; Next byte
     dex                                                               ; 97e2: ca          .              ; Next workspace byte
@@ -5357,7 +5359,7 @@ nmi_patched_addr                                = &ffff
     sec                                                               ; 97eb: 38          8              ; Set carry
 ; &97ec referenced 1 time by &97f3
 .write_fsm_to_disc_loop
-    lda l108c,y                                                       ; 97ec: b9 8c 10    ...            ; Get other workspace byte
+    lda wksp_copy_osfile_exec,y                                       ; 97ec: b9 8c 10    ...            ; Get other workspace byte
     sbc (zp_entry_ptr_lo),y                                           ; 97ef: f1 b6       ..             ; Subtract entry sector byte
     iny                                                               ; 97f1: c8          .              ; Next byte
     dex                                                               ; 97f2: ca          .              ; Next workspace byte
@@ -5368,7 +5370,7 @@ nmi_patched_addr                                = &ffff
 ; &97fb referenced 1 time by &9802
 .create_root_dir
     lda (zp_entry_ptr_lo),y                                           ; 97fb: b1 b6       ..             ; Get entry sector byte
-    sta l108c,y                                                       ; 97fd: 99 8c 10    ...            ; Store as best entry sector
+    sta wksp_copy_osfile_exec,y                                       ; 97fd: 99 8c 10    ...            ; Store as best entry sector
     iny                                                               ; 9800: c8          .              ; Next byte
     dex                                                               ; 9801: ca          .              ; Next workspace byte
     bpl create_root_dir                                               ; 9802: 10 f7       ..             ; Loop for 3 bytes
@@ -5395,8 +5397,8 @@ nmi_patched_addr                                = &ffff
     ldy #2                                                            ; 9821: a0 02       ..             ; Y=2: copy 3 source sector bytes
 ; &9823 referenced 1 time by &982a
 .fill_root_name_loop
-    lda l10a2,y                                                       ; 9823: b9 a2 10    ...            ; Get source sector byte
-    sta l10ab,y                                                       ; 9826: 99 ab 10    ...            ; Store as dest for allocation
+    lda wksp_copy_read_sector,y                                       ; 9823: b9 a2 10    ...            ; Get source sector byte
+    sta wksp_copy_dest_sector,y                                       ; 9826: 99 ab 10    ...            ; Store as dest for allocation
     dey                                                               ; 9829: 88          .              ; Next byte
     bpl fill_root_name_loop                                           ; 982a: 10 f7       ..             ; Loop for 3 bytes
     ldx #0                                                            ; 982c: a2 00       ..             ; X=0: start scanning FSM
@@ -5418,7 +5420,7 @@ nmi_patched_addr                                = &ffff
 .write_root_sectors_loop
     dex                                                               ; 983f: ca          .              ; Back up one
     lda fsm_sector_0,x                                                ; 9840: bd 00 0e    ...            ; Get FSM address byte
-    cmp l10a2,y                                                       ; 9843: d9 a2 10    ...            ; Compare with source sector
+    cmp wksp_copy_read_sector,y                                       ; 9843: d9 a2 10    ...            ; Compare with source sector
     bcs set_root_as_csd                                               ; 9846: b0 04       ..             ; FSM >= source: possible match
     ldx zp_mem_ptr_lo                                                 ; 9848: a6 b2       ..             ; Restore X, try next
     bne set_root_identity_loop                                        ; 984a: d0 e4       ..             ; Loop (X != 0)
@@ -5441,7 +5443,7 @@ nmi_patched_addr                                = &ffff
     lda nmi_0dfa,x                                                    ; 985c: bd fa 0d    ...            ; Get previous entry end address
     adc fsm_s0_reserved,x                                             ; 985f: 7d fa 0e    }..            ; Add previous entry length
     php                                                               ; 9862: 08          .              ; Save carry
-    cmp l10a2,y                                                       ; 9863: d9 a2 10    ...            ; Compare with source sector
+    cmp wksp_copy_read_sector,y                                       ; 9863: d9 a2 10    ...            ; Compare with source sector
     beq format_next_track_loop                                        ; 9866: f0 04       ..             ; Match: entries are adjacent
     plp                                                               ; 9868: 28          (              ; Restore carry, not adjacent
 ; &9869 referenced 1 time by &9855
@@ -5464,10 +5466,10 @@ nmi_patched_addr                                = &ffff
     iny                                                               ; 987b: c8          .              ; Next length byte
     lda (zp_entry_ptr_lo),y                                           ; 987c: b1 b6       ..             ; Get next byte
     adc #0                                                            ; 987e: 69 00       i.             ; Add carry from compare
-    sta l1092,y                                                       ; 9880: 99 92 10    ...            ; Store sector count
+    sta wksp_filename_save_hi,y                                       ; 9880: 99 92 10    ...            ; Store sector count
     sta wksp_csd_drive_temp,y                                         ; 9883: 99 2a 10    .*.            ; Store in alt workspace
     sta wksp_1024,y                                                   ; 9886: 99 24 10    .$.            ; Store in disc op
-    lda l10a2,x                                                       ; 9889: bd a2 10    ...            ; Get source sector byte
+    lda wksp_copy_read_sector,x                                       ; 9889: bd a2 10    ...            ; Get source sector byte
     sta wksp_object_sector,x                                          ; 988c: 9d 34 10    .4.            ; Store in object sector
     dex                                                               ; 988f: ca          .              ; Next byte
     bpl format_write_sectors_loop                                     ; 9890: 10 e9       ..             ; Loop for 3 bytes
@@ -5479,7 +5481,7 @@ nmi_patched_addr                                = &ffff
 .verify_formatted_sectors
     lda wksp_alloc_sector,x                                           ; 989c: bd 3a 10    .:.            ; Get new sector byte
     sta (zp_entry_ptr_lo),y                                           ; 989f: 91 b6       ..             ; Store in directory entry
-    sta l10a8,x                                                       ; 98a1: 9d a8 10    ...            ; Store as dest sector
+    sta wksp_copy_src_sector,x                                        ; 98a1: 9d a8 10    ...            ; Store as dest sector
     dey                                                               ; 98a4: 88          .              ; Next entry byte (decreasing)
     dex                                                               ; 98a5: ca          .              ; Next workspace byte
     bpl verify_formatted_sectors                                      ; 98a6: 10 f4       ..             ; Loop for 3 bytes
@@ -5490,10 +5492,10 @@ nmi_patched_addr                                = &ffff
 .calculate_total_sectors
     lda #0                                                            ; 98ae: a9 00       ..             ; A=0: init recursion stack pointer
     sta zp_name_ptr_lo                                                ; 98b0: 85 c0       ..             ; Store in workspace
-    sta l1053                                                         ; 98b2: 8d 53 10    .S.            ; Clear root sector low
-    sta l1054                                                         ; 98b5: 8d 54 10    .T.            ; Clear root sector mid
+    sta wksp_osfile_attr_1                                            ; 98b2: 8d 53 10    .S.            ; Clear root sector low
+    sta wksp_osfile_attr_2                                            ; 98b5: 8d 54 10    .T.            ; Clear root sector mid
     lda #2                                                            ; 98b8: a9 02       ..             ; Root sector = 2
-    sta l1052                                                         ; 98ba: 8d 52 10    .R.            ; Store root sector low
+    sta wksp_osfile_attr                                              ; 98ba: 8d 52 10    .R.            ; Store root sector low
     lda #&1b                                                          ; 98bd: a9 1b       ..             ; Set up path ':0.$' for root
     sta zp_name_ptr_hi                                                ; 98bf: 85 c1       ..             ; Store in workspace
     lda #&3c ; '<'                                                    ; 98c1: a9 3c       .<             ; Path string address low
@@ -5506,7 +5508,7 @@ nmi_patched_addr                                = &ffff
     ldy #2                                                            ; 98cc: a0 02       ..             ; Y=2: copy parent sector
 ; &98ce referenced 1 time by &98d5
 .init_cdir_entries_loop
-    lda l1052,y                                                       ; 98ce: b9 52 10    .R.            ; Get sector byte from workspace
+    lda wksp_osfile_attr,y                                            ; 98ce: b9 52 10    .R.            ; Get sector byte from workspace
     sta dir_parent_sector,y                                           ; 98d1: 99 d6 16    ...            ; Store as dir parent pointer
     dey                                                               ; 98d4: 88          .              ; Next byte
     bpl init_cdir_entries_loop                                        ; 98d5: 10 f7       ..             ; Loop for 3 bytes
@@ -5536,7 +5538,7 @@ nmi_patched_addr                                = &ffff
 ; &9903 referenced 1 time by &990a
 .copy_name_to_cdir_loop
     lda wksp_csd_sector_lo,x                                          ; 9903: bd 14 11    ...            ; Get parent sector byte
-    sta l1052,x                                                       ; 9906: 9d 52 10    .R.            ; Store in workspace
+    sta wksp_osfile_attr,x                                            ; 9906: 9d 52 10    .R.            ; Store in workspace
     dex                                                               ; 9909: ca          .              ; Next byte
     bpl copy_name_to_cdir_loop                                        ; 990a: 10 f7       ..             ; Loop for 3 bytes
     bmi prepare_cdir_directory                                        ; 990c: 30 bb       0.             ; ALWAYS branch
@@ -6261,7 +6263,7 @@ boot_run_option = sub_c9b86+1
     ldx wksp_current_drive                                            ; 9c8b: ae 17 11    ...            ; Check drive is valid
     inx                                                               ; 9c8e: e8          .              ; Drive = &FF?
     bne clear_fsm_flag_after_load                                     ; 9c8f: d0 06       ..             ; No, check boot option
-    stx l106f                                                         ; 9c91: 8e 6f 10    .o.            ; X=0: store as drive for mount
+    stx wksp_drive_number                                             ; 9c91: 8e 6f 10    .o.            ; X=0: store as drive for mount
     jsr mount_drive_setup                                             ; 9c94: 20 61 a1     a.            ; Mount drive 0
 ; &9c97 referenced 1 time by &9c8f
 .clear_fsm_flag_after_load
@@ -6819,7 +6821,7 @@ l9dd3 = check_help_adfs_keyword+1
 .skip_spaces_before_args
     jsr skip_spaces                                                   ; 9ecd: 20 cf a4     ..            ; Skip spaces after command; Skip leading spaces in command argument
     lda zp_text_ptr_lo                                                ; 9ed0: a5 b4       ..             ; Save text pointer for command handler
-    sta l10d6                                                         ; 9ed2: 8d d6 10    ...            ; Save text pointer low for handler
+    sta wksp_cmd_tail                                                 ; 9ed2: 8d d6 10    ...            ; Save text pointer low for handler
     lda zp_text_ptr_hi                                                ; 9ed5: a5 b5       ..             ; Get text pointer high
     sta wksp_shadow_save                                              ; 9ed7: 8d d7 10    ...            ; Save for handler
 ; &9eda referenced 1 time by &9eb5
@@ -7127,7 +7129,7 @@ l9ee5 = tbl_commands+2
 ; 
 ; ***************************************************************************************
 .check_compaction_recommended
-    ldx l10d8                                                         ; a094: ae d8 10    ...            ; Check if already reported
+    ldx wksp_screen_mode_save                                         ; a094: ae d8 10    ...            ; Check if already reported
     bne return_27                                                     ; a097: d0 b0       ..             ; Already done, skip
     ldx fsm_s1_total_sectors_lo                                       ; a099: ae fe 0f    ...            ; Get FSM end-of-list pointer
     cpx #&e1                                                          ; a09c: e0 e1       ..             ; Pointer >= &E1 (many fragments)?
@@ -7223,13 +7225,13 @@ l9ee5 = tbl_commands+2
     dey                                                               ; a0fe: 88          .              ; Decrement Y (was INY+1)
 ; &a0ff referenced 1 time by &a0fc
 .store_default_drive
-    sty l106f                                                         ; a0ff: 8c 6f 10    .o.            ; Store default drive number
+    sty wksp_drive_number                                             ; a0ff: 8c 6f 10    .o.            ; Store default drive number
     ldy #0                                                            ; a102: a0 00       ..             ; Y=0: check for argument
     lda (zp_text_ptr_lo),y                                            ; a104: b1 b4       ..             ; Get first argument char
     cmp #&20 ; ' '                                                    ; a106: c9 20       .              ; Is it a printable char?
     bcc return_28                                                     ; a108: 90 06       ..             ; No argument: use default drive
     jsr parse_drive_from_ascii                                        ; a10a: 20 22 88     ".            ; Parse drive number from argument; Parse drive number from ASCII character
-    sta l106f                                                         ; a10d: 8d 6f 10    .o.            ; Store parsed drive number
+    sta wksp_drive_number                                             ; a10d: 8d 6f 10    .o.            ; Store parsed drive number
 ; &a110 referenced 1 time by &a108
 .return_28
     rts                                                               ; a110: 60          `              ; Return
@@ -7250,7 +7252,7 @@ l9ee5 = tbl_commands+2
     beq check_csd_on_drive                                            ; a119: f0 14       ..             ; Channel not open? Skip
     lda wksp_ch_start_sec_h,x                                         ; a11b: bd b6 11    ...            ; Get channel's drive number
     and #&e0                                                          ; a11e: 29 e0       ).             ; Isolate drive bits
-    cmp l106f                                                         ; a120: cd 6f 10    .o.            ; Compare with target drive
+    cmp wksp_drive_number                                             ; a120: cd 6f 10    .o.            ; Compare with target drive
     bne check_csd_on_drive                                            ; a123: d0 0a       ..             ; Different drive? Skip
     clc                                                               ; a125: 18          .              ; Clear carry for addition
     txa                                                               ; a126: 8a          .              ; Channel index to A
@@ -7263,7 +7265,7 @@ l9ee5 = tbl_commands+2
     dex                                                               ; a12f: ca          .              ; Next channel
     bpl close_drive_channels_loop                                     ; a130: 10 e4       ..             ; Loop for all 10 channels
     lda wksp_current_drive                                            ; a132: ad 17 11    ...            ; Is dismounted drive the CSD drive?
-    cmp l106f                                                         ; a135: cd 6f 10    .o.            ; Compare with target drive
+    cmp wksp_drive_number                                             ; a135: cd 6f 10    .o.            ; Compare with target drive
     bne mount_read_root_dir                                           ; a138: d0 3f       .?             ; Different drive: CSD unaffected
     lda #&ff                                                          ; a13a: a9 ff       ..             ; Mark current drive as uninitialised
     sta wksp_current_drive                                            ; a13c: 8d 17 11    ...            ; Set CSD drive to &FF (unset)
@@ -7312,7 +7314,7 @@ la154 = sub_ca153+1
     jsr parse_drive_argument                                          ; a15e: 20 f5 a0     ..            ; Parse drive number argument; Parse optional drive number argument
 ; &a161 referenced 1 time by &9c94
 .mount_drive_setup
-    lda l106f                                                         ; a161: ad 6f 10    .o.            ; Get drive number to mount
+    lda wksp_drive_number                                             ; a161: ad 6f 10    .o.            ; Get drive number to mount
     sta wksp_current_drive                                            ; a164: 8d 17 11    ...            ; Set as current drive
     ldx #&9f                                                          ; a167: a2 9f       ..             ; Point to unpark command block
     ldy #&a1                                                          ; a169: a0 a1       ..             ; Y=&A1: control block page
@@ -7325,7 +7327,7 @@ la154 = sub_ca153+1
 ; &a179 referenced 2 times by &a138, &a147
 .mount_read_root_dir
     lda wksp_prev_dir_sector_hi                                       ; a179: ad 1f 11    ...            ; Check if previous dir is on drive
-    cmp l106f                                                         ; a17c: cd 6f 10    .o.            ; Compare with target drive
+    cmp wksp_drive_number                                             ; a17c: cd 6f 10    .o.            ; Compare with target drive
     bne mount_set_boot_option                                         ; a17f: d0 08       ..             ; Different drive, leave previous
     lda #&ff                                                          ; a181: a9 ff       ..             ; Invalidate previous directory
     sta wksp_prev_dir_sector_mid                                      ; a183: 8d 1e 11    ...            ; Invalidate prev dir high byte
@@ -7333,7 +7335,7 @@ la154 = sub_ca153+1
 ; &a189 referenced 1 time by &a17f
 .mount_set_boot_option
     lda wksp_lib_sector_hi                                            ; a189: ad 1b 11    ...            ; Check if library is on this drive
-    cmp l106f                                                         ; a18c: cd 6f 10    .o.            ; Compare with target drive
+    cmp wksp_drive_number                                             ; a18c: cd 6f 10    .o.            ; Compare with target drive
     bne return_29                                                     ; a18f: d0 0d       ..             ; Different drive, leave library
     lda #&ff                                                          ; a191: a9 ff       ..             ; Invalidate library sector
     sta wksp_lib_sector_mid                                           ; a193: 8d 1a 11    ...            ; Invalidate lib sector high
@@ -7759,9 +7761,9 @@ la154 = sub_ca153+1
 ; &a3bc referenced 1 time by &a3a4
 .search_lib_for_command
     lda zp_text_ptr_lo                                                ; a3bc: a5 b4       ..             ; Save filename address for OSFILE
-    sta l10a2                                                         ; a3be: 8d a2 10    ...            ; Store filename addr for OSFILE
+    sta wksp_copy_read_sector                                         ; a3be: 8d a2 10    ...            ; Store filename addr for OSFILE
     lda zp_text_ptr_hi                                                ; a3c1: a5 b5       ..             ; Get filename pointer high
-    sta l10a3                                                         ; a3c3: 8d a3 10    ...            ; Store in OSFILE block
+    sta wksp_copy_read_sector_1                                       ; a3c3: 8d a3 10    ...            ; Store in OSFILE block
     ldy #&0e                                                          ; a3c6: a0 0e       ..             ; Y=&0E: check exec address bytes
     lda (zp_entry_ptr_lo),y                                           ; a3c8: b1 b6       ..             ; Get exec addr byte 0
     ldx #2                                                            ; a3ca: a2 02       ..             ; X=2: AND with bytes 1 and 2
@@ -7799,7 +7801,7 @@ la154 = sub_ca153+1
 ; &a401 referenced 1 time by &a3f5
 .run_tube_transfer
     lda #&a5                                                          ; a401: a9 a5       ..             ; Set up OSFILE block for load
-    sta l10a8                                                         ; a403: 8d a8 10    ...            ; Store exec addr for later JMP
+    sta wksp_copy_src_sector                                          ; a403: 8d a8 10    ...            ; Store exec addr for later JMP
     ldx #&a2                                                          ; a406: a2 a2       ..             ; X=&A2: OSFILE block offset
     ldy #&10                                                          ; a408: a0 10       ..             ; Y=&10: OSFILE block page
     stx zp_osfile_ptr_lo                                              ; a40a: 86 b8       ..             ; Store block pointer low
@@ -7815,16 +7817,16 @@ la154 = sub_ca153+1
 ; &a41e referenced 1 time by &a419
 .run_set_exec_addr
     jsr create_new_dir_entry                                          ; a41e: 20 10 8c     ..            ; Set up Tube transfer
-    lda l10ab                                                         ; a421: ad ab 10    ...            ; Check exec addr for &FFxx (Tube)
+    lda wksp_copy_dest_sector                                         ; a421: ad ab 10    ...            ; Check exec addr for &FFxx (Tube)
     cmp #&ff                                                          ; a424: c9 ff       ..             ; High byte = &FF (Tube address)?
     bne run_jump_to_file                                              ; a426: d0 0c       ..             ; No, check further
-    lda l10aa                                                         ; a428: ad aa 10    ...            ; Get next exec addr byte
+    lda wksp_copy_src_sector_2                                        ; a428: ad aa 10    ...            ; Get next exec addr byte
     cmp #&fe                                                          ; a42b: c9 fe       ..             ; Is it >= &FE (I/O space)?
     bcc run_jump_to_file                                              ; a42d: 90 05       ..             ; No, normal Tube address
 ; &a42f referenced 1 time by &a436
 .copy_exec_addr_loop
     lda #1                                                            ; a42f: a9 01       ..             ; A=1: language entry point
-    jmp (l10a8)                                                       ; a431: 6c a8 10    l..            ; Jump to execution address
+    jmp (wksp_copy_src_sector)                                        ; a431: 6c a8 10    l..            ; Jump to execution address
 
 ; &a434 referenced 2 times by &a426, &a42d
 .run_jump_to_file
@@ -8233,10 +8235,10 @@ la154 = sub_ca153+1
     dex                                                               ; a605: ca          .              ; Decrement counter
     bpl copy_entry_metadata_loop                                      ; a606: 10 f7       ..             ; Loop for 8 bytes
     lda #0                                                            ; a608: a9 00       ..             ; Clear OSFILE block fields
-    sta l104a                                                         ; a60a: 8d 4a 10    .J.            ; Clear load address
-    sta l104b                                                         ; a60d: 8d 4b 10    .K.            ; Clear exec address
-    sta l104c                                                         ; a610: 8d 4c 10    .L.            ; Clear length
-    sta l104d                                                         ; a613: 8d 4d 10    .M.            ; Clear attributes
+    sta wksp_osfile_start_addr                                        ; a60a: 8d 4a 10    .J.            ; Clear load address
+    sta wksp_osfile_start_addr_1                                      ; a60d: 8d 4b 10    .K.            ; Clear exec address
+    sta wksp_osfile_start_addr_2                                      ; a610: 8d 4c 10    .L.            ; Clear length
+    sta wksp_osfile_start_addr_3                                      ; a613: 8d 4d 10    .M.            ; Clear attributes
     ldx #3                                                            ; a616: a2 03       ..             ; X=3: copy 3+1 start sector bytes
 ; &a618 referenced 1 time by &a61f
 .copy_entry_sector_loop2
@@ -8314,7 +8316,7 @@ la154 = sub_ca153+1
 ; &a68e referenced 1 time by &a695
 .copy_parent_sector_loop
     lda wksp_csd_sector_lo,y                                          ; a68e: b9 14 11    ...            ; Get CSD sector byte
-    sta l1070,y                                                       ; a691: 99 70 10    .p.            ; Store as new parent sector
+    sta wksp_new_parent_sector,y                                      ; a691: 99 70 10    .p.            ; Store as new parent sector
     dey                                                               ; a694: 88          .              ; Next byte
     bpl copy_parent_sector_loop                                       ; a695: 10 f7       ..             ; Loop for 3 bytes
     ldy #9                                                            ; a697: a0 09       ..             ; Y=9: copy 10-byte directory name
@@ -8322,7 +8324,7 @@ la154 = sub_ca153+1
 .copy_dir_name_from_entry
     lda (zp_entry_ptr_lo),y                                           ; a699: b1 b6       ..             ; Get name byte from entry
     and #&7f                                                          ; a69b: 29 7f       ).             ; Strip bit 7 (attribute)
-    sta l1074,y                                                       ; a69d: 99 74 10    .t.            ; Store as directory name
+    sta wksp_dest_name,y                                              ; a69d: 99 74 10    .t.            ; Store as directory name
     dey                                                               ; a6a0: 88          .              ; Next byte
     bpl copy_dir_name_from_entry                                      ; a6a1: 10 f6       ..             ; Loop for 10 bytes
     lda #&74 ; 't'                                                    ; a6a3: a9 74       .t             ; Point to workspace name buffer
@@ -8333,14 +8335,14 @@ la154 = sub_ca153+1
     ldy #9                                                            ; a6ae: a0 09       ..             ; Y=9: copy name to dir header
 ; &a6b0 referenced 1 time by &a6b7
 .write_dir_name_loop
-    lda l1074,y                                                       ; a6b0: b9 74 10    .t.            ; Get name from workspace
+    lda wksp_dest_name,y                                              ; a6b0: b9 74 10    .t.            ; Get name from workspace
     sta dir_name,y                                                    ; a6b3: 99 cc 16    ...            ; Store in directory name field
     dey                                                               ; a6b6: 88          .              ; Next byte
     bpl write_dir_name_loop                                           ; a6b7: 10 f7       ..             ; Loop for 10 bytes
     ldy #2                                                            ; a6b9: a0 02       ..             ; Y=2: copy parent sector pointer
 ; &a6bb referenced 1 time by &a6c2
 .write_parent_sector_loop
-    lda l1070,y                                                       ; a6bb: b9 70 10    .p.            ; Get new parent sector byte
+    lda wksp_new_parent_sector,y                                      ; a6bb: b9 70 10    .p.            ; Get new parent sector byte
     sta dir_parent_sector,y                                           ; a6be: 99 d6 16    ...            ; Store in directory parent field
     dey                                                               ; a6c1: 88          .              ; Next byte
     bpl write_parent_sector_loop                                      ; a6c2: 10 f7       ..             ; Loop for 3 bytes
@@ -8469,7 +8471,7 @@ la154 = sub_ca153+1
 ; &a738 referenced 7 times by &a752, &a761, &a765, &a76d, &a775, &ace6, &ae32
 .bad_checksum_error
     lda #&0f                                                          ; a738: a9 0f       ..             ; Checksum mismatch or corruption
-    sta l10ce                                                         ; a73a: 8d ce 10    ...            ; Set error flag
+    sta wksp_path_wksp_ce                                             ; a73a: 8d ce 10    ...            ; Set error flag
     jsr generate_error_no_suffix                                      ; a73d: 20 51 83     Q.            ; Generate error without drive/sector suffix
     equb &aa                                                          ; a740: aa          .              ; Error &AA: Bad checksum
     equs "Bad sum", 0                                                 ; a741: 42 61 64... Bad
@@ -8489,7 +8491,7 @@ la154 = sub_ca153+1
     pha                                                               ; a74c: 48          H              ; Save Y
     txa                                                               ; a74d: 8a          .              ; Transfer X to A
     pha                                                               ; a74e: 48          H              ; Save X
-    lda l10ce                                                         ; a74f: ad ce 10    ...            ; Check error flag
+    lda wksp_path_wksp_ce                                             ; a74f: ad ce 10    ...            ; Check error flag
     bne bad_checksum_error                                            ; a752: d0 e4       ..             ; Non-zero: workspace corrupt, error
     jsr mark_directory_dirty                                          ; a754: 20 ea 8f     ..            ; Mark directory as modified; Validate FSM checksums and mark directory dirty
     clc                                                               ; a757: 18          .              ; Clear carry for scan
@@ -8511,7 +8513,7 @@ la154 = sub_ca153+1
     bpl save_wksp_byte_loop                                           ; a76b: 10 ed       ..             ; Loop for all entries
     bcc bad_checksum_error                                            ; a76d: 90 c9       ..             ; No dirty entries + C=0: corrupt
     jsr restore_wksp_from_save                                        ; a76f: 20 97 a7     ..            ; Calculate channel checksum
-    cmp l10c1                                                         ; a772: cd c1 10    ...            ; Compare with stored checksum
+    cmp wksp_search_result_1                                          ; a772: cd c1 10    ...            ; Compare with stored checksum
     bne bad_checksum_error                                            ; a775: d0 c1       ..             ; Mismatch: corrupt
     pha                                                               ; a777: 48          H              ; Push 2 dummy bytes for stack frame
     pha                                                               ; a778: 48          H              ; Second push
@@ -8564,10 +8566,10 @@ la154 = sub_ca153+1
     txa                                                               ; a7a6: 8a          .              ; Transfer X to A
     pha                                                               ; a7a7: 48          H              ; Save X
     jsr restore_wksp_from_save                                        ; a7a8: 20 97 a7     ..            ; Calculate channel checksum
-    sta l10c1                                                         ; a7ab: 8d c1 10    ...            ; Store checksum in workspace
+    sta wksp_search_result_1                                          ; a7ab: 8d c1 10    ...            ; Store checksum in workspace
     lda #0                                                            ; a7ae: a9 00       ..             ; A=0: clear flags
-    sta l10d8                                                         ; a7b0: 8d d8 10    ...            ; Clear SPOOL/EXEC tracking
-    sta l10ce                                                         ; a7b3: 8d ce 10    ...            ; Clear error flag
+    sta wksp_screen_mode_save                                         ; a7b0: 8d d8 10    ...            ; Clear SPOOL/EXEC tracking
+    sta wksp_path_wksp_ce                                             ; a7b3: 8d ce 10    ...            ; Clear error flag
     sta wksp_cur_channel                                              ; a7b6: 8d d5 10    ...            ; Clear current channel
     pla                                                               ; a7b9: 68          h              ; Restore X
     tax                                                               ; a7ba: aa          .              ; Transfer to X
@@ -8586,13 +8588,13 @@ la154 = sub_ca153+1
 ; ***************************************************************************************
 ; &a7c0 referenced 2 times by &a880, &a936
 .setup_disc_read_for_dir
-    lda l1091                                                         ; a7c0: ad 91 10    ...            ; Get saved filename pointer low
+    lda wksp_filename_save                                            ; a7c0: ad 91 10    ...            ; Get saved filename pointer low
     sta zp_text_ptr_lo                                                ; a7c3: 85 b4       ..             ; Store in (&B4)
-    lda l1092                                                         ; a7c5: ad 92 10    ...            ; Get saved filename pointer high
+    lda wksp_filename_save_hi                                         ; a7c5: ad 92 10    ...            ; Get saved filename pointer high
     sta zp_text_ptr_hi                                                ; a7c8: 85 b5       ..             ; Store in (&B5)
-    lda l1094                                                         ; a7ca: ad 94 10    ...            ; Get saved dir entry high
+    lda wksp_entry_save_hi                                            ; a7ca: ad 94 10    ...            ; Get saved dir entry high
     sta zp_entry_ptr_hi                                               ; a7cd: 85 b7       ..             ; Store in (&B7)
-    lda l1093                                                         ; a7cf: ad 93 10    ...            ; Get saved dir entry low
+    lda wksp_entry_save                                               ; a7cf: ad 93 10    ...            ; Get saved dir entry low
     sta zp_entry_ptr_lo                                               ; a7d2: 85 b6       ..             ; Store in (&B6)
     ldx #&0b                                                          ; a7d4: a2 0b       ..             ; X=&0B: copy 12-byte disc op template
 ; &a7d6 referenced 1 time by &a7dd
@@ -8604,7 +8606,7 @@ la154 = sub_ca153+1
     ldy #3                                                            ; a7df: a0 03       ..             ; Y=3: copy 4-byte sector address
 ; &a7e1 referenced 1 time by &a7f0
 .copy_dir_sector_loop
-    lda l106c,y                                                       ; a7e1: b9 6c 10    .l.            ; Get source sector byte
+    lda wksp_saved_dir_sector,y                                       ; a7e1: b9 6c 10    .l.            ; Get source sector byte
     sta wksp_csd_sector_lo,y                                          ; a7e4: 99 14 11    ...            ; Store in CSD sector
     cpx #0                                                            ; a7e7: e0 00       ..             ; X=0?
     beq read_dir_from_disc                                            ; a7e9: f0 03       ..             ; Yes, skip disc op sector store
@@ -8628,7 +8630,7 @@ la154 = sub_ca153+1
     ldy #3                                                            ; a800: a0 03       ..             ; Y=3: copy 4-byte sector address
 ; &a802 referenced 1 time by &a811
 .copy_fsm_sector_loop
-    lda l1070,y                                                       ; a802: b9 70 10    .p.            ; Get dest sector byte
+    lda wksp_new_parent_sector,y                                      ; a802: b9 70 10    .p.            ; Get dest sector byte
     sta wksp_csd_sector_lo,y                                          ; a805: 99 14 11    ...            ; Store in CSD sector
     cpx #0                                                            ; a808: e0 00       ..             ; X=0?
     beq read_fsm_from_disc                                            ; a80a: f0 03       ..             ; Yes, skip disc op store
@@ -8664,9 +8666,9 @@ la154 = sub_ca153+1
     lda #&10                                                          ; a821: a9 10       ..             ; Control block page = &10
     sta zp_osfile_ptr_hi                                              ; a823: 85 b9       ..             ; Store control block pointer high
     lda #&74 ; 't'                                                    ; a825: a9 74       .t             ; Store source name offset
-    sta l107f                                                         ; a827: 8d 7f 10    ...            ; Store source name offset
+    sta wksp_copy_name_ptr                                            ; a827: 8d 7f 10    ...            ; Store source name offset
     lda #&10                                                          ; a82a: a9 10       ..             ; Source name page = &10
-    sta l1080                                                         ; a82c: 8d 80 10    ...            ; Store source name page
+    sta wksp_copy_name_ptr_hi                                         ; a82c: 8d 80 10    ...            ; Store source name page
     jsr exec_disc_and_check_error                                     ; a82f: 20 b3 8b     ..            ; Find source file; Search for non-directory file
     beq source_file_found                                             ; a832: f0 03       ..             ; Found?
     jmp not_found_error                                               ; a834: 4c c8 8b    L..            ; Not found: report error; Generate Not found error
@@ -8674,18 +8676,18 @@ la154 = sub_ca153+1
 ; &a837 referenced 1 time by &a832
 .source_file_found
     lda zp_entry_ptr_lo                                               ; a837: a5 b6       ..             ; Save directory entry pointer
-    sta l1093                                                         ; a839: 8d 93 10    ...            ; Save dir entry pointer low
+    sta wksp_entry_save                                               ; a839: 8d 93 10    ...            ; Save dir entry pointer low
     lda zp_entry_ptr_hi                                               ; a83c: a5 b7       ..             ; Get dir entry pointer high
-    sta l1094                                                         ; a83e: 8d 94 10    ...            ; Save dir entry pointer high
+    sta wksp_entry_save_hi                                            ; a83e: 8d 94 10    ...            ; Save dir entry pointer high
     lda zp_text_ptr_lo                                                ; a841: a5 b4       ..             ; Save filename pointer
-    sta l1091                                                         ; a843: 8d 91 10    ...            ; Save filename pointer low
+    sta wksp_filename_save                                            ; a843: 8d 91 10    ...            ; Save filename pointer low
     lda zp_text_ptr_hi                                                ; a846: a5 b5       ..             ; Get filename pointer high
-    sta l1092                                                         ; a848: 8d 92 10    ...            ; Save filename pointer high
+    sta wksp_filename_save_hi                                         ; a848: 8d 92 10    ...            ; Save filename pointer high
     ldy #3                                                            ; a84b: a0 03       ..             ; Y=3: save current directory sector
 ; &a84d referenced 1 time by &a854
 .save_source_dir_sector_loop
     lda wksp_csd_sector_lo,y                                          ; a84d: b9 14 11    ...            ; Copy CSD sector to workspace
-    sta l106c,y                                                       ; a850: 99 6c 10    .l.            ; Save CSD sector byte
+    sta wksp_saved_dir_sector,y                                       ; a850: 99 6c 10    .l.            ; Save CSD sector byte
     dey                                                               ; a853: 88          .              ; Next byte
     bpl save_source_dir_sector_loop                                   ; a854: 10 f7       ..             ; Loop for 4 bytes
     jsr save_wksp_and_return                                          ; a856: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
@@ -8712,7 +8714,7 @@ la868 = check_dest_terminator+1
 ; &a877 referenced 1 time by &a87e
 .save_dest_dir_sector_loop
     lda wksp_csd_sector_lo,y                                          ; a877: b9 14 11    ...            ; Get dest dir sector byte
-    sta l1070,y                                                       ; a87a: 99 70 10    .p.            ; Store in workspace
+    sta wksp_new_parent_sector,y                                      ; a87a: 99 70 10    .p.            ; Store in workspace
     dey                                                               ; a87d: 88          .              ; Next byte
     bpl save_dest_dir_sector_loop                                     ; a87e: 10 f7       ..             ; Loop for 4 bytes
     jsr setup_disc_read_for_dir                                       ; a880: 20 c0 a7     ..            ; Set up disc read for source; Set up disc read for directory load
@@ -8732,28 +8734,28 @@ la868 = check_dest_terminator+1
 ; &a894 referenced 1 time by &a88a
 .copy_file_entry
     lda zp_entry_ptr_lo                                               ; a894: a5 b6       ..             ; Save source entry pointer
-    sta l1093                                                         ; a896: 8d 93 10    ...            ; Store entry pointer low
+    sta wksp_entry_save                                               ; a896: 8d 93 10    ...            ; Store entry pointer low
     lda zp_entry_ptr_hi                                               ; a899: a5 b7       ..             ; Get entry pointer high
-    sta l1094                                                         ; a89b: 8d 94 10    ...            ; Store entry pointer high
+    sta wksp_entry_save_hi                                            ; a89b: 8d 94 10    ...            ; Store entry pointer high
     jsr search_dir_for_file                                           ; a89e: 20 62 8c     b.            ; Check if file already exists at dest; Search directory for matching file
     ldy #&16                                                          ; a8a1: a0 16       ..             ; Y=&16: get source start sector
     lda (zp_entry_ptr_lo),y                                           ; a8a3: b1 b6       ..             ; Get sector low byte
-    sta l10a2                                                         ; a8a5: 8d a2 10    ...            ; Store in load address workspace
+    sta wksp_copy_read_sector                                         ; a8a5: 8d a2 10    ...            ; Store in load address workspace
     iny                                                               ; a8a8: c8          .              ; Y=&17
     lda (zp_entry_ptr_lo),y                                           ; a8a9: b1 b6       ..             ; Get sector mid byte
-    sta l10a3                                                         ; a8ab: 8d a3 10    ...            ; Store in load address workspace
+    sta wksp_copy_read_sector_1                                       ; a8ab: 8d a3 10    ...            ; Store in load address workspace
     iny                                                               ; a8ae: c8          .              ; Y=&18
     lda (zp_entry_ptr_lo),y                                           ; a8af: b1 b6       ..             ; Get sector high byte
     ora wksp_current_drive                                            ; a8b1: 0d 17 11    ...            ; OR with drive number
-    sta l10a4                                                         ; a8b4: 8d a4 10    ...            ; Store in load address workspace
+    sta wksp_copy_read_sector_2                                       ; a8b4: 8d a4 10    ...            ; Store in load address workspace
     ldx #0                                                            ; a8b7: a2 00       ..             ; X=0: clear length bytes
     ldy #3                                                            ; a8b9: a0 03       ..             ; Y=3: copy 4-byte OSFILE params
 ; &a8bb referenced 1 time by &a8c6
 .copy_osfile_params_loop
-    lda l1089,y                                                       ; a8bb: b9 89 10    ...            ; Get source OSFILE param
-    sta l108d,y                                                       ; a8be: 99 8d 10    ...            ; Copy to dest OSFILE block
+    lda wksp_copy_osfile_params,y                                     ; a8bb: b9 89 10    ...            ; Get source OSFILE param
+    sta wksp_copy_dest_params,y                                       ; a8be: 99 8d 10    ...            ; Copy to dest OSFILE block
     txa                                                               ; a8c1: 8a          .              ; Transfer X (=0) for clearing
-    sta l1089,y                                                       ; a8c2: 99 89 10    ...            ; Clear source param
+    sta wksp_copy_osfile_params,y                                     ; a8c2: 99 89 10    ...            ; Clear source param
     dey                                                               ; a8c5: 88          .              ; Next byte
     bpl copy_osfile_params_loop                                       ; a8c6: 10 f3       ..             ; Loop for 4 bytes
     ldy #9                                                            ; a8c8: a0 09       ..             ; Y=9: copy 10-byte filename
@@ -8761,11 +8763,11 @@ la868 = check_dest_terminator+1
 .copy_source_name_loop
     lda (zp_entry_ptr_lo),y                                           ; a8ca: b1 b6       ..             ; Get filename byte from source
     and #&7f                                                          ; a8cc: 29 7f       ).             ; Strip bit 7 (access flag)
-    sta l1074,y                                                       ; a8ce: 99 74 10    .t.            ; Store in dest name workspace
+    sta wksp_dest_name,y                                              ; a8ce: 99 74 10    .t.            ; Store in dest name workspace
     dey                                                               ; a8d1: 88          .              ; Next byte
     bpl copy_source_name_loop                                         ; a8d2: 10 f6       ..             ; Loop for 10 bytes
     lda #&0d                                                          ; a8d4: a9 0d       ..             ; A=CR: terminate filename
-    sta l107e                                                         ; a8d6: 8d 7e 10    .~.            ; Store terminator
+    sta wksp_dest_filename_end                                        ; a8d6: 8d 7e 10    .~.            ; Store terminator
     jsr setup_fsm_read                                                ; a8d9: 20 f5 a7     ..            ; Set up disc read for source file
     jsr check_file_not_open2                                          ; a8dc: 20 f3 8d     ..            ; Check if file is open; Copy OSFILE addresses and search for empty entry
     jsr allocate_disc_space_for_file                                  ; a8df: 20 6f 8e     o.            ; Allocate space for dest file; Allocate disc space and store in entry
@@ -8774,9 +8776,9 @@ la868 = check_dest_terminator+1
 ; &a8e7 referenced 1 time by &a8f4
 .copy_sector_addresses_loop
     lda wksp_alloc_sector,y                                           ; a8e7: b9 3a 10    .:.            ; Get source sector byte
-    sta l10a8,y                                                       ; a8ea: 99 a8 10    ...            ; Store as read sector
+    sta wksp_copy_src_sector,y                                        ; a8ea: 99 a8 10    ...            ; Store as read sector
     lda wksp_alloc_size,y                                             ; a8ed: b9 3d 10    .=.            ; Get dest sector byte
-    sta l10a5,y                                                       ; a8f0: 99 a5 10    ...            ; Store as write sector
+    sta wksp_copy_write_sector,y                                      ; a8f0: 99 a5 10    ...            ; Store as write sector
     dey                                                               ; a8f3: 88          .              ; Next byte
     bpl copy_sector_addresses_loop                                    ; a8f4: 10 f1       ..             ; Loop for 3 bytes
     lda #osbyte_read_oshwm                                            ; a8f6: a9 83       ..             ; OSBYTE &83: read OSHWM
@@ -8791,12 +8793,12 @@ la868 = check_dest_terminator+1
     lda zp_adfs_flags                                                 ; a90b: a5 cd       ..             ; Set bit 3 of ADFS flags
     ora #8                                                            ; a90d: 09 08       ..             ; Indicate copy operation in progress
     sta zp_adfs_flags                                                 ; a90f: 85 cd       ..             ; Store updated flags
-    lda l106f                                                         ; a911: ad 6f 10    .o.            ; Get source drive number
-    ora l10a4                                                         ; a914: 0d a4 10    ...            ; OR into read sector high byte
-    sta l10a4                                                         ; a917: 8d a4 10    ...            ; Store source drive+sector
-    lda l1073                                                         ; a91a: ad 73 10    .s.            ; Get dest drive number
-    ora l10aa                                                         ; a91d: 0d aa 10    ...            ; OR into write sector high byte
-    sta l10aa                                                         ; a920: 8d aa 10    ...            ; Store dest drive+sector
+    lda wksp_drive_number                                             ; a911: ad 6f 10    .o.            ; Get source drive number
+    ora wksp_copy_read_sector_2                                       ; a914: 0d a4 10    ...            ; OR into read sector high byte
+    sta wksp_copy_read_sector_2                                       ; a917: 8d a4 10    ...            ; Store source drive+sector
+    lda wksp_dest_drive                                               ; a91a: ad 73 10    .s.            ; Get dest drive number
+    ora wksp_copy_src_sector_2                                        ; a91d: 0d aa 10    ...            ; OR into write sector high byte
+    sta wksp_copy_src_sector_2                                        ; a920: 8d aa 10    ...            ; Store dest drive+sector
     lda wksp_current_drive                                            ; a923: ad 17 11    ...            ; Save current drive
     pha                                                               ; a926: 48          H              ; Push on stack
     lda #0                                                            ; a927: a9 00       ..             ; Set drive to 0 temporarily
@@ -8854,7 +8856,7 @@ la868 = check_dest_terminator+1
     stx zp_save_x                                                     ; a962: 86 c3       ..             ; Save X (zero page pointer)
     dey                                                               ; a964: 88          .              ; Y was function code; Y-1=0 means A=1
     bne flush_all_channels                                            ; a965: d0 15       ..             ; A!=1: check further functions; Flush all open channel buffers
-    lda l10d6                                                         ; a967: ad d6 10    ...            ; A=1: return command tail low byte
+    lda wksp_cmd_tail                                                 ; a967: ad d6 10    ...            ; A=1: return command tail low byte
     sta zp_user_ptr_0,x                                               ; a96a: 95 00       ..             ; Store in zero page at X+0
     lda wksp_shadow_save                                              ; a96c: ad d7 10    ...            ; Command tail high byte
     sta zp_user_ptr_1,x                                               ; a96f: 95 01       ..             ; Store in zero page at X+1
@@ -8932,13 +8934,13 @@ la868 = check_dest_terminator+1
 .copy_new_ptr_from_user
     ldx zp_save_x                                                     ; a9cf: a6 c3       ..             ; A=3: copy new PTR from user's ZP
     lda zp_user_ptr_0,x                                               ; a9d1: b5 00       ..             ; Get new PTR low byte
-    sta l109a                                                         ; a9d3: 8d 9a 10    ...            ; Store new PTR low in workspace
+    sta wksp_new_ptr_lo                                               ; a9d3: 8d 9a 10    ...            ; Store new PTR low in workspace
     lda zp_user_ptr_1,x                                               ; a9d6: b5 01       ..             ; Get new PTR mid-low from user ZP
-    sta l109b                                                         ; a9d8: 8d 9b 10    ...            ; Store in workspace
+    sta wksp_new_ptr_mid                                              ; a9d8: 8d 9b 10    ...            ; Store in workspace
     lda zp_user_ptr_2,x                                               ; a9db: b5 02       ..             ; Get new PTR mid-high
-    sta l109c                                                         ; a9dd: 8d 9c 10    ...            ; Store in workspace
+    sta wksp_new_ptr_mid_hi                                           ; a9dd: 8d 9c 10    ...            ; Store in workspace
     lda zp_user_ptr_3,x                                               ; a9e0: b5 03       ..             ; Get new PTR high
-    sta l109d                                                         ; a9e2: 8d 9d 10    ...            ; Store in workspace
+    sta wksp_new_ptr_hi                                               ; a9e2: 8d 9d 10    ...            ; Store in workspace
     jsr check_ptr_within_allocation                                   ; a9e5: 20 59 ae     Y.            ; Validate and apply new PTR
     ldx zp_save_x                                                     ; a9e8: a6 c3       ..             ; Store new PTR in channel table
     ldy zp_channel_offset                                             ; a9ea: a4 cf       ..             ; Get channel index
@@ -9011,13 +9013,13 @@ la868 = check_dest_terminator+1
 ; &aa6f referenced 1 time by &aa6a
 .write_new_ext
     lda zp_user_ptr_0,x                                               ; aa6f: b5 00       ..             ; Copy new EXT from user's ZP
-    sta l109a                                                         ; aa71: 8d 9a 10    ...            ; Store new EXT low in workspace
+    sta wksp_new_ptr_lo                                               ; aa71: 8d 9a 10    ...            ; Store new EXT low in workspace
     lda zp_user_ptr_1,x                                               ; aa74: b5 01       ..             ; Get new EXT mid-low
-    sta l109b                                                         ; aa76: 8d 9b 10    ...            ; Store in workspace
+    sta wksp_new_ptr_mid                                              ; aa76: 8d 9b 10    ...            ; Store in workspace
     lda zp_user_ptr_2,x                                               ; aa79: b5 02       ..             ; Get new EXT mid-high
-    sta l109c                                                         ; aa7b: 8d 9c 10    ...            ; Store in workspace
+    sta wksp_new_ptr_mid_hi                                           ; aa7b: 8d 9c 10    ...            ; Store in workspace
     lda zp_user_ptr_3,x                                               ; aa7e: b5 03       ..             ; Get new EXT high
-    sta l109d                                                         ; aa80: 8d 9d 10    ...            ; Store in workspace
+    sta wksp_new_ptr_hi                                               ; aa80: 8d 9d 10    ...            ; Store in workspace
     jsr check_ptr_within_allocation                                   ; aa83: 20 59 ae     Y.            ; Validate and apply new EXT
     ldx zp_save_x                                                     ; aa86: a6 c3       ..             ; Restore X
     ldy zp_channel_offset                                             ; aa88: a4 cf       ..             ; Get channel index
@@ -9111,13 +9113,13 @@ la868 = check_dest_terminator+1
     and #&1e                                                          ; ab10: 29 1e       ).             ; Isolate channel number bits
     ror a                                                             ; ab12: 6a          j              ; Shift right to get channel index
     ora #&30 ; '0'                                                    ; ab13: 09 30       .0             ; OR with &30 to get file handle
-    sta l10d4                                                         ; ab15: 8d d4 10    ...            ; Store file handle for errors
+    sta wksp_err_channel                                              ; ab15: 8d d4 10    ...            ; Store file handle for errors
     lda wksp_1001,x                                                   ; ab18: bd 01 10    ...            ; Get sector address low
     sta wksp_err_sector                                               ; ab1b: 8d d0 10    ...            ; Store in error sector workspace
     lda wksp_1002,x                                                   ; ab1e: bd 02 10    ...            ; Get sector address mid
-    sta l10d1                                                         ; ab21: 8d d1 10    ...            ; Store in error sector mid
+    sta wksp_err_sector_mid                                           ; ab21: 8d d1 10    ...            ; Store in error sector mid
     lda wksp_1003,x                                                   ; ab24: bd 03 10    ...            ; Get drive+sector high
-    sta l10d2                                                         ; ab27: 8d d2 10    ...            ; Store in error sector high
+    sta wksp_err_sector_hi                                            ; ab27: 8d d2 10    ...            ; Store in error sector high
     jsr set_drive_from_channel                                        ; ab2a: 20 1c b5     ..            ; Flush channel if dirty; Set current drive from channel's drive
     jsr command_set_retries                                           ; ab2d: 20 80 80     ..            ; Set retry count for disc operation
     stx zp_name_ptr_hi                                                ; ab30: 86 c1       ..             ; Save channel index
@@ -9207,7 +9209,7 @@ la868 = check_dest_terminator+1
     beq return_35                                                     ; aba8: f0 2d       .-             ; Zero: no error, return
     lda #0                                                            ; abaa: a9 00       ..             ; Clear pending error
     sta wksp_1131                                                     ; abac: 8d 31 11    .1.            ; Clear error status
-    ldx l10d4                                                         ; abaf: ae d4 10    ...            ; Get file handle for error message
+    ldx wksp_err_channel                                              ; abaf: ae d4 10    ...            ; Get file handle for error message
     jsr generate_error_suffix_x                                       ; abb2: 20 53 83     S.            ; Generate error with suffix control in X
     equb &ca                                                          ; abb5: ca          .              ; Error &CA: Data lost
     equs "Data lost, channel", 0                                      ; abb6: 44 61 74... Dat
@@ -9215,7 +9217,7 @@ la868 = check_dest_terminator+1
 ; &abc9 referenced 2 times by &ac05, &ac89
 .calc_buffer_address
     txa                                                               ; abc9: 8a          .              ; Save X (channel index)
-    stx l10a1                                                         ; abca: 8e a1 10    ...            ; Store in workspace
+    stx wksp_ch_buf_sector_1                                          ; abca: 8e a1 10    ...            ; Store in workspace
     lsr a                                                             ; abcd: 4a          J              ; Divide by 4 for channel number
     lsr a                                                             ; abce: 4a          J              ; Second shift
     adc #&17                                                          ; abcf: 69 17       i.             ; Add &17 for buffer page base
@@ -9236,26 +9238,26 @@ la868 = check_dest_terminator+1
 ; &abd8 referenced 6 times by &adad, &afaf, &b01f, &b10e, &b6ee, &b811
 .find_buffer_for_sector
     ldx #&10                                                          ; abd8: a2 10       ..             ; X=&10: start of channel table
-    stx l1095                                                         ; abda: 8e 95 10    ...            ; Store as initial best match
+    stx wksp_osgbpb_end_ptr                                           ; abda: 8e 95 10    ...            ; Store as initial best match
     tay                                                               ; abdd: a8          .              ; Transfer A to Y (mode flag)
 ; &abde referenced 1 time by &ac68
 .scan_channel_buffers
     lda wksp_1004,x                                                   ; abde: bd 04 10    ...            ; Get channel state entry
     and #1                                                            ; abe1: 29 01       ).             ; Check bit 0 (dirty flag)
     beq buffer_sector_match                                           ; abe3: f0 03       ..             ; Not dirty: skip
-    stx l1095                                                         ; abe5: 8e 95 10    ...            ; Update best dirty channel index
+    stx wksp_osgbpb_end_ptr                                           ; abe5: 8e 95 10    ...            ; Update best dirty channel index
 ; &abe8 referenced 1 time by &abe3
 .buffer_sector_match
     lda wksp_1004,x                                                   ; abe8: bd 04 10    ...            ; Get channel state
     bpl read_single_hd_sector                                         ; abeb: 10 75       .u             ; Bit 7 clear: channel not active; Read a single sector via SCSI
     lda wksp_1001,x                                                   ; abed: bd 01 10    ...            ; Get channel sector low
-    cmp l1096                                                         ; abf0: cd 96 10    ...            ; Compare with target sector low
+    cmp wksp_osgbpb_sector_lo                                         ; abf0: cd 96 10    ...            ; Compare with target sector low
     bne read_single_hd_sector                                         ; abf3: d0 6d       .m             ; No match: try next channel; Read a single sector via SCSI
     lda wksp_1002,x                                                   ; abf5: bd 02 10    ...            ; Get channel sector mid
-    cmp l1097                                                         ; abf8: cd 97 10    ...            ; Compare with target sector mid
+    cmp wksp_osgbpb_sector_mid                                        ; abf8: cd 97 10    ...            ; Compare with target sector mid
     bne read_single_hd_sector                                         ; abfb: d0 65       .e             ; No match: try next channel; Read a single sector via SCSI
     lda wksp_1003,x                                                   ; abfd: bd 03 10    ...            ; Get channel drive+sector high
-    cmp l1098                                                         ; ac00: cd 98 10    ...            ; Compare with target high
+    cmp wksp_osgbpb_sector_hi                                         ; ac00: cd 98 10    ...            ; Compare with target high
     bne read_single_hd_sector                                         ; ac03: d0 5d       .]             ; No match: try next channel; Read a single sector via SCSI
     jsr calc_buffer_address                                           ; ac05: 20 c9 ab     ..            ; Match: set up buffer address
 ; &ac08 referenced 1 time by &acd4
@@ -9338,18 +9340,18 @@ la868 = check_dest_terminator+1
 
 ; &ac6b referenced 1 time by &ac66
 .wait_read_data_phase
-    ldx l1095                                                         ; ac6b: ae 95 10    ...            ; Get best dirty channel index
-    lda l1096                                                         ; ac6e: ad 96 10    ...            ; Get target sector low
+    ldx wksp_osgbpb_end_ptr                                           ; ac6b: ae 95 10    ...            ; Get best dirty channel index
+    lda wksp_osgbpb_sector_lo                                         ; ac6e: ad 96 10    ...            ; Get target sector low
     sta wksp_1001,x                                                   ; ac71: 9d 01 10    ...            ; Store as channel sector low
     sta wksp_err_sector                                               ; ac74: 8d d0 10    ...            ; Also store in error workspace
-    lda l1097                                                         ; ac77: ad 97 10    ...            ; Get target sector mid
+    lda wksp_osgbpb_sector_mid                                        ; ac77: ad 97 10    ...            ; Get target sector mid
     sta wksp_1002,x                                                   ; ac7a: 9d 02 10    ...            ; Store as channel sector mid
-    sta l10d1                                                         ; ac7d: 8d d1 10    ...            ; Store in error workspace
-    lda l1098                                                         ; ac80: ad 98 10    ...            ; Get target drive+sector high
+    sta wksp_err_sector_mid                                           ; ac7d: 8d d1 10    ...            ; Store in error workspace
+    lda wksp_osgbpb_sector_hi                                         ; ac80: ad 98 10    ...            ; Get target drive+sector high
     sta wksp_1003,x                                                   ; ac83: 9d 03 10    ...            ; Store as channel drive+sector
-    sta l10d2                                                         ; ac86: 8d d2 10    ...            ; Store in error workspace
+    sta wksp_err_sector_hi                                            ; ac86: 8d d2 10    ...            ; Store in error workspace
     jsr calc_buffer_address                                           ; ac89: 20 c9 ab     ..            ; Calculate buffer page for channel
-    lda l1098                                                         ; ac8c: ad 98 10    ...            ; Get drive+sector high for read
+    lda wksp_osgbpb_sector_hi                                         ; ac8c: ad 98 10    ...            ; Get drive+sector high for read
     jsr set_drive_from_channel                                        ; ac8f: 20 1c b5     ..            ; Set up disc read control block; Set current drive from channel's drive
     sty zp_ctrl_blk_hi                                                ; ac92: 84 b1       ..             ; Save Y (buffer high)
     stx zp_ctrl_blk_lo                                                ; ac94: 86 b0       ..             ; Save X (buffer low)
@@ -9570,19 +9572,19 @@ la868 = check_dest_terminator+1
     clc                                                               ; ad8f: 18          .              ; Clear carry for address calculation
     lda wksp_ch_start_sec_ml,x                                        ; ad90: bd ca 11    ...            ; Get channel buffer offset low
     adc wksp_ch_ptr_ml,x                                              ; ad93: 7d 70 11    }p.            ; Add PTR mid-low for buffer addr
-    sta l1096                                                         ; ad96: 8d 96 10    ...            ; Store sector address low
+    sta wksp_osgbpb_sector_lo                                         ; ad96: 8d 96 10    ...            ; Store sector address low
     lda wksp_ch_start_sec_mh,x                                        ; ad99: bd c0 11    ...            ; Get channel buffer offset mid
     adc wksp_ch_ptr_mh,x                                              ; ad9c: 7d 66 11    }f.            ; Add PTR mid-high
-    sta l1097                                                         ; ad9f: 8d 97 10    ...            ; Store sector address mid
+    sta wksp_osgbpb_sector_mid                                        ; ad9f: 8d 97 10    ...            ; Store sector address mid
     lda wksp_ch_start_sec_h,x                                         ; ada2: bd b6 11    ...            ; Get channel buffer base page
     adc wksp_ch_ptr_h,x                                               ; ada5: 7d 5c 11    }\.            ; Add PTR high
-    sta l1098                                                         ; ada8: 8d 98 10    ...            ; Store sector address high
+    sta wksp_osgbpb_sector_hi                                         ; ada8: 8d 98 10    ...            ; Store sector address high
     lda #&40 ; '@'                                                    ; adab: a9 40       .@             ; A=&40: read buffer mode
     jsr find_buffer_for_sector                                        ; adad: 20 d8 ab     ..            ; Load sector into channel buffer; Find or allocate a buffer for a sector
     ldx zp_channel_offset                                             ; adb0: a6 cf       ..             ; Get channel index
     ldy wksp_ch_ptr_l,x                                               ; adb2: bc 7a 11    .z.            ; Get PTR low byte as buffer offset
     lda #0                                                            ; adb5: a9 00       ..             ; A=0: clear modification flag
-    sta l10cf                                                         ; adb7: 8d cf 10    ...            ; Store zero mod flag
+    sta wksp_modify_flag                                              ; adb7: 8d cf 10    ...            ; Store zero mod flag
     jsr increment_ptr_after_write                                     ; adba: 20 23 b1     #.            ; Advance PTR and update flags; Increment PTR after byte write
     lda (zp_buf_dest_lo),y                                            ; adbd: b1 be       ..             ; Read byte from buffer at PTR offset
     ldy zp_save_y                                                     ; adbf: a4 c2       ..             ; Restore Y
@@ -9687,16 +9689,16 @@ la868 = check_dest_terminator+1
 ; &ae59 referenced 3 times by &a9e5, &aa83, &b0eb
 .check_ptr_within_allocation
     lda #0                                                            ; ae59: a9 00       ..             ; A=0: clear allocation flag
-    sta l10b5                                                         ; ae5b: 8d b5 10    ...            ; Clear extension flag
+    sta wksp_osgbpb_mode                                              ; ae5b: 8d b5 10    ...            ; Clear extension flag
 ; &ae5e referenced 1 time by &b5ff
 .extend_file_if_needed
     lda wksp_saved_drive                                              ; ae5e: ad 2f 10    ./.            ; Get saved drive
-    sta l10bf                                                         ; ae61: 8d bf 10    ...            ; Store for restore later
+    sta wksp_saved_drive_2                                            ; ae61: 8d bf 10    ...            ; Store for restore later
     ldx #2                                                            ; ae64: a2 02       ..             ; X=2: save 3 bytes of CSD
 ; &ae66 referenced 1 time by &ae6d
 .save_csd_for_extend_loop
     lda wksp_csd_drive_sector,x                                       ; ae66: bd 2c 10    .,.            ; Get CSD sector byte
-    sta l10bc,x                                                       ; ae69: 9d bc 10    ...            ; Store in temp workspace
+    sta wksp_osgbpb_wksp_bc,x                                         ; ae69: 9d bc 10    ...            ; Store in temp workspace
     dex                                                               ; ae6c: ca          .              ; Next byte
     bpl save_csd_for_extend_loop                                      ; ae6d: 10 f7       ..             ; Loop for 3 bytes
     lda #&ff                                                          ; ae6f: a9 ff       ..             ; A=&FF: mark workspace as modified
@@ -9704,30 +9706,30 @@ la868 = check_dest_terminator+1
     sta wksp_saved_drive                                              ; ae74: 8d 2f 10    ./.            ; Clear saved drive
     ldx zp_channel_offset                                             ; ae77: a6 cf       ..             ; Get channel index
     lda wksp_ch_alloc_h,x                                             ; ae79: bd 84 11    ...            ; Compare allocation with new PTR
-    cmp l109d                                                         ; ae7c: cd 9d 10    ...            ; High byte matches?
+    cmp wksp_new_ptr_hi                                               ; ae7c: cd 9d 10    ...            ; High byte matches?
     bne check_alloc_vs_ptr                                            ; ae7f: d0 16       ..             ; No: need to extend
     lda wksp_ch_alloc_mh,x                                            ; ae81: bd 8e 11    ...            ; Compare mid-high
-    cmp l109c                                                         ; ae84: cd 9c 10    ...            ; Match?
+    cmp wksp_new_ptr_mid_hi                                           ; ae84: cd 9c 10    ...            ; Match?
     bne check_alloc_vs_ptr                                            ; ae87: d0 0e       ..             ; No: need to extend
     lda wksp_ch_alloc_ml,x                                            ; ae89: bd 98 11    ...            ; Compare mid-low
-    cmp l109b                                                         ; ae8c: cd 9b 10    ...            ; Match?
+    cmp wksp_new_ptr_mid                                              ; ae8c: cd 9b 10    ...            ; Match?
     bne check_alloc_vs_ptr                                            ; ae8f: d0 06       ..             ; No: need to extend
     lda wksp_ch_alloc_l,x                                             ; ae91: bd a2 11    ...            ; Compare low byte
-    cmp l109a                                                         ; ae94: cd 9a 10    ...            ; Match?
+    cmp wksp_new_ptr_lo                                               ; ae94: cd 9a 10    ...            ; Match?
 ; &ae97 referenced 3 times by &ae7f, &ae87, &ae8f
 .check_alloc_vs_ptr
     bcc extend_file_allocation                                        ; ae97: 90 28       .(             ; Alloc < PTR: need to extend
     lda wksp_ch_ext_h,x                                               ; ae99: bd 34 11    .4.            ; Compare EXT with new PTR
-    cmp l109d                                                         ; ae9c: cd 9d 10    ...            ; High byte matches?
+    cmp wksp_new_ptr_hi                                               ; ae9c: cd 9d 10    ...            ; High byte matches?
     bne update_ext_to_ptr                                             ; ae9f: d0 1b       ..             ; No: EXT needs update; Handle PTR exceeding EXT
     lda wksp_ch_ext_mh,x                                              ; aea1: bd 3e 11    .>.            ; Compare mid-high
-    cmp l109c                                                         ; aea4: cd 9c 10    ...            ; Match?
+    cmp wksp_new_ptr_mid_hi                                           ; aea4: cd 9c 10    ...            ; Match?
     bne update_ext_to_ptr                                             ; aea7: d0 13       ..             ; No: EXT needs update; Handle PTR exceeding EXT
     lda wksp_ch_ext_ml,x                                              ; aea9: bd 48 11    .H.            ; Compare mid-low
-    cmp l109b                                                         ; aeac: cd 9b 10    ...            ; Match?
+    cmp wksp_new_ptr_mid                                              ; aeac: cd 9b 10    ...            ; Match?
     bne update_ext_to_ptr                                             ; aeaf: d0 0b       ..             ; No: EXT needs update; Handle PTR exceeding EXT
     lda wksp_ch_ext_l,x                                               ; aeb1: bd 52 11    .R.            ; Compare low byte
-    cmp l109a                                                         ; aeb4: cd 9a 10    ...            ; Match?
+    cmp wksp_new_ptr_lo                                               ; aeb4: cd 9a 10    ...            ; Match?
     bne update_ext_to_ptr                                             ; aeb7: d0 03       ..             ; No: EXT needs update; Handle PTR exceeding EXT
 ; &aeb9 referenced 1 time by &aebc
 .handle_eof_write
@@ -9749,11 +9751,11 @@ la868 = check_dest_terminator+1
 .extend_file_allocation
     sec                                                               ; aec1: 38          8              ; Calculate new allocation size
     lda #0                                                            ; aec2: a9 00       ..             ; A=0: compute pages needed
-    adc l109c                                                         ; aec4: 6d 9c 10    m..            ; Add PTR mid-low + 1 page
-    sta l109e                                                         ; aec7: 8d 9e 10    ...            ; Store new allocation mid
+    adc wksp_new_ptr_mid_hi                                           ; aec4: 6d 9c 10    m..            ; Add PTR mid-low + 1 page
+    sta wksp_new_ptr_4                                                ; aec7: 8d 9e 10    ...            ; Store new allocation mid
     lda #0                                                            ; aeca: a9 00       ..             ; A=0: propagate carry
-    adc l109d                                                         ; aecc: 6d 9d 10    m..            ; Add PTR high + carry
-    sta l109f                                                         ; aecf: 8d 9f 10    ...            ; Store new allocation high
+    adc wksp_new_ptr_hi                                               ; aecc: 6d 9d 10    m..            ; Add PTR high + carry
+    sta wksp_osgbpb_wksp_9f                                           ; aecf: 8d 9f 10    ...            ; Store new allocation high
     bcc switch_drive_for_extend                                       ; aed2: 90 03       ..             ; No overflow: proceed
     jmp disc_full_error                                               ; aed4: 4c 56 86    LV.            ; Overflow: Disc full error
 
@@ -9773,9 +9775,9 @@ la868 = check_dest_terminator+1
     sta wksp_object_size_hi                                           ; aef4: 8d 39 10    .9.            ; Store as required size high
     lda #0                                                            ; aef7: a9 00       ..             ; Clear sector info
     sta wksp_alloc_size                                               ; aef9: 8d 3d 10    .=.            ; Clear low
-    lda l109e                                                         ; aefc: ad 9e 10    ...            ; Get new allocation mid
+    lda wksp_new_ptr_4                                                ; aefc: ad 9e 10    ...            ; Get new allocation mid
     sta wksp_alloc_size_mid                                           ; aeff: 8d 3e 10    .>.            ; Store as extension mid
-    lda l109f                                                         ; af02: ad 9f 10    ...            ; Get new allocation high
+    lda wksp_osgbpb_wksp_9f                                           ; af02: ad 9f 10    ...            ; Get new allocation high
     sta wksp_alloc_size_hi                                            ; af05: 8d 3f 10    .?.            ; Store as extension high
     jsr release_disc_space                                            ; af08: 20 b5 84     ..            ; Release disc space back to free space map
     jsr allocate_disc_space                                           ; af0b: 20 32 86     2.            ; Allocate disc space from FSM; Allocate disc space from free space map
@@ -9787,11 +9789,11 @@ la868 = check_dest_terminator+1
     iny                                                               ; af19: c8          .              ; Y=&13
     sta (zp_osfile_ptr_lo),y                                          ; af1a: 91 b8       ..             ; Store in dir entry
     sta wksp_ch_alloc_ml,x                                            ; af1c: 9d 98 11    ...            ; Update channel alloc mid-low
-    lda l109e                                                         ; af1f: ad 9e 10    ...            ; Get new alloc mid
+    lda wksp_new_ptr_4                                                ; af1f: ad 9e 10    ...            ; Get new alloc mid
     iny                                                               ; af22: c8          .              ; Y=&14
     sta (zp_osfile_ptr_lo),y                                          ; af23: 91 b8       ..             ; Store in dir entry
     sta wksp_ch_alloc_mh,x                                            ; af25: 9d 8e 11    ...            ; Update channel alloc mid-high
-    lda l109f                                                         ; af28: ad 9f 10    ...            ; Get new alloc high
+    lda wksp_osgbpb_wksp_9f                                           ; af28: ad 9f 10    ...            ; Get new alloc high
     iny                                                               ; af2b: c8          .              ; Y=&15
     sta (zp_osfile_ptr_lo),y                                          ; af2c: 91 b8       ..             ; Store in dir entry
     sta wksp_ch_alloc_h,x                                             ; af2e: 9d 84 11    ...            ; Update channel alloc high
@@ -9821,16 +9823,16 @@ la868 = check_dest_terminator+1
 ; &af66 referenced 1 time by &af7f
 .copy_old_sector_info_loop
     lda wksp_object_sector,y                                          ; af66: b9 34 10    .4.            ; Get old start sector byte
-    sta l10a2,y                                                       ; af69: 99 a2 10    ...            ; Store for copy source
+    sta wksp_copy_read_sector,y                                       ; af69: 99 a2 10    ...            ; Store for copy source
     cmp wksp_alloc_sector,y                                           ; af6c: d9 3a 10    .:.            ; Compare with new start sector
     beq check_relocation_needed                                       ; af6f: f0 04       ..             ; Same: no relocation needed
     inx                                                               ; af71: e8          .              ; Different: flag relocation
     lda wksp_alloc_sector,y                                           ; af72: b9 3a 10    .:.            ; Get new start sector byte
 ; &af75 referenced 1 time by &af6f
 .check_relocation_needed
-    sta l10a8,y                                                       ; af75: 99 a8 10    ...            ; Store for copy destination
+    sta wksp_copy_src_sector,y                                        ; af75: 99 a8 10    ...            ; Store for copy destination
     lda wksp_object_size,y                                            ; af78: b9 37 10    .7.            ; Get required size byte
-    sta l10a5,y                                                       ; af7b: 99 a5 10    ...            ; Store for copy length
+    sta wksp_copy_write_sector,y                                      ; af7b: 99 a5 10    ...            ; Store for copy length
     dey                                                               ; af7e: 88          .              ; Next byte
     bpl copy_old_sector_info_loop                                     ; af7f: 10 e5       ..             ; Loop for 3 bytes
     txa                                                               ; af81: 8a          .              ; X non-zero: relocation occurred
@@ -9838,7 +9840,7 @@ la868 = check_dest_terminator+1
     jsr execute_sector_copy                                           ; af84: 20 a6 96     ..            ; Copy data from old to new location
 ; &af87 referenced 2 times by &aebe, &af82
 .skip_zero_fill
-    lda l10b5                                                         ; af87: ad b5 10    ...            ; Check extension flag
+    lda wksp_osgbpb_mode                                              ; af87: ad b5 10    ...            ; Check extension flag
     beq calc_zero_fill_start                                          ; af8a: f0 03       ..             ; Non-zero: skip zeroing
     jmp update_ext_from_new_ptr                                       ; af8c: 4c 60 b0    L`.            ; Jump to update EXT; Update EXT from new PTR value
 
@@ -9848,13 +9850,13 @@ la868 = check_dest_terminator+1
     clc                                                               ; af91: 18          .              ; Clear carry for address calculation
     lda wksp_ch_ext_ml,x                                              ; af92: bd 48 11    .H.            ; Get EXT mid-low
     adc wksp_ch_start_sec_ml,x                                        ; af95: 7d ca 11    }..            ; Add channel offset low
-    sta l1096                                                         ; af98: 8d 96 10    ...            ; Store zero-fill start sector low
+    sta wksp_osgbpb_sector_lo                                         ; af98: 8d 96 10    ...            ; Store zero-fill start sector low
     lda wksp_ch_ext_mh,x                                              ; af9b: bd 3e 11    .>.            ; Get EXT mid-high
     adc wksp_ch_start_sec_mh,x                                        ; af9e: 7d c0 11    }..            ; Add channel offset mid
-    sta l1097                                                         ; afa1: 8d 97 10    ...            ; Store zero-fill start mid
+    sta wksp_osgbpb_sector_mid                                        ; afa1: 8d 97 10    ...            ; Store zero-fill start mid
     lda wksp_ch_ext_h,x                                               ; afa4: bd 34 11    .4.            ; Get EXT high
     adc wksp_ch_start_sec_h,x                                         ; afa7: 7d b6 11    }..            ; Add channel base + drive
-    sta l1098                                                         ; afaa: 8d 98 10    ...            ; Store zero-fill start high
+    sta wksp_osgbpb_sector_hi                                         ; afaa: 8d 98 10    ...            ; Store zero-fill start high
     lda #&c0                                                          ; afad: a9 c0       ..             ; A=&C0: write buffer mode
     jsr find_buffer_for_sector                                        ; afaf: 20 d8 ab     ..            ; Set up buffer for writing zeros; Find or allocate a buffer for a sector
     ldx zp_channel_offset                                             ; afb2: a6 cf       ..             ; Get channel index
@@ -9865,17 +9867,17 @@ la868 = check_dest_terminator+1
     sta (zp_buf_dest_lo),y                                            ; afb9: 91 be       ..             ; Write zero to buffer
     iny                                                               ; afbb: c8          .              ; Next byte
     bne zero_fill_sector_loop                                         ; afbc: d0 fb       ..             ; Loop for rest of sector
-    lda l109b                                                         ; afbe: ad 9b 10    ...            ; Get new PTR mid-low
+    lda wksp_new_ptr_mid                                              ; afbe: ad 9b 10    ...            ; Get new PTR mid-low
     clc                                                               ; afc1: 18          .              ; Clear carry
     adc wksp_ch_start_sec_ml,x                                        ; afc2: 7d ca 11    }..            ; Add channel base
     sta wksp_object_sector                                            ; afc5: 8d 34 10    .4.            ; Store target sector low
-    lda l109c                                                         ; afc8: ad 9c 10    ...            ; Get new PTR mid-high
+    lda wksp_new_ptr_mid_hi                                           ; afc8: ad 9c 10    ...            ; Get new PTR mid-high
     adc wksp_ch_start_sec_mh,x                                        ; afcb: 7d c0 11    }..            ; Add channel offset
     sta wksp_object_sector_mid                                        ; afce: 8d 35 10    .5.            ; Store target sector mid
-    lda l109d                                                         ; afd1: ad 9d 10    ...            ; Get new PTR high
+    lda wksp_new_ptr_hi                                               ; afd1: ad 9d 10    ...            ; Get new PTR high
     adc wksp_ch_start_sec_h,x                                         ; afd4: 7d b6 11    }..            ; Add channel base + drive
     sta wksp_object_sector_hi                                         ; afd7: 8d 36 10    .6.            ; Store target sector high
-    lda l109a                                                         ; afda: ad 9a 10    ...            ; Get PTR low byte
+    lda wksp_new_ptr_lo                                               ; afda: ad 9a 10    ...            ; Get PTR low byte
     bne decrement_fill_sector                                         ; afdd: d0 13       ..             ; Non-zero: not sector-aligned
     lda wksp_object_sector                                            ; afdf: ad 34 10    .4.            ; Check sector low
     bne check_sector_mid                                              ; afe2: d0 0b       ..             ; Non-zero: adjust sector
@@ -9891,24 +9893,24 @@ la868 = check_dest_terminator+1
 ; &aff2 referenced 1 time by &afdd
 .decrement_fill_sector
     lda wksp_object_sector                                            ; aff2: ad 34 10    .4.            ; Compare with buffer sector
-    cmp l1096                                                         ; aff5: cd 96 10    ...            ; Match low byte?
+    cmp wksp_osgbpb_sector_lo                                         ; aff5: cd 96 10    ...            ; Match low byte?
     bne write_zero_sector                                             ; aff8: d0 13       ..             ; No: need to write more zeros
     lda wksp_object_sector_mid                                        ; affa: ad 35 10    .5.            ; Match mid byte?
-    cmp l1097                                                         ; affd: cd 97 10    ...            ; Check mid
+    cmp wksp_osgbpb_sector_mid                                        ; affd: cd 97 10    ...            ; Check mid
     bne write_zero_sector                                             ; b000: d0 0b       ..             ; No: need more
     lda wksp_object_sector_hi                                         ; b002: ad 36 10    .6.            ; Match high byte?
-    cmp l1098                                                         ; b005: cd 98 10    ...            ; Check high
+    cmp wksp_osgbpb_sector_hi                                         ; b005: cd 98 10    ...            ; Check high
     bne write_zero_sector                                             ; b008: d0 03       ..             ; No: need more
     jmp update_ext_from_new_ptr                                       ; b00a: 4c 60 b0    L`.            ; All match: done zeroing; Update EXT from new PTR value
 
 ; &b00d referenced 3 times by &aff8, &b000, &b008
 .write_zero_sector
     jsr wait_ensuring                                                 ; b00d: 20 05 83     ..            ; Wait while files are being ensured
-    inc l1096                                                         ; b010: ee 96 10    ...            ; Advance buffer sector: inc low
+    inc wksp_osgbpb_sector_lo                                         ; b010: ee 96 10    ...            ; Advance buffer sector: inc low
     bne advance_fill_sector                                           ; b013: d0 08       ..             ; No wrap
-    inc l1097                                                         ; b015: ee 97 10    ...            ; Wrap: inc mid
+    inc wksp_osgbpb_sector_mid                                        ; b015: ee 97 10    ...            ; Wrap: inc mid
     bne advance_fill_sector                                           ; b018: d0 03       ..             ; No wrap
-    inc l1098                                                         ; b01a: ee 98 10    ...            ; Wrap: inc high
+    inc wksp_osgbpb_sector_hi                                         ; b01a: ee 98 10    ...            ; Wrap: inc high
 ; &b01d referenced 2 times by &b013, &b018
 .advance_fill_sector
     lda #&40 ; '@'                                                    ; b01d: a9 40       .@             ; A=&40: read buffer mode
@@ -9922,7 +9924,7 @@ la868 = check_dest_terminator+1
     bne zero_entire_sector_loop                                       ; b028: d0 fb       ..             ; Loop for 256 bytes
 ; &b02a referenced 3 times by &b053, &b058, &b05d
 .mark_buffer_dirty
-    ldx l10a1                                                         ; b02a: ae a1 10    ...            ; Get channel buffer table index
+    ldx wksp_ch_buf_sector_1                                          ; b02a: ae a1 10    ...            ; Get channel buffer table index
     lda #&c0                                                          ; b02d: a9 c0       ..             ; A=&C0: mark buffer as dirty
     ora wksp_1004,x                                                   ; b02f: 1d 04 10    ...            ; OR with channel state
     sta wksp_1004,x                                                   ; b032: 9d 04 10    ...            ; Store dirty state
@@ -9955,23 +9957,23 @@ la868 = check_dest_terminator+1
 ; &b060 referenced 3 times by &af8c, &b00a, &b04e
 .update_ext_from_new_ptr
     ldx zp_channel_offset                                             ; b060: a6 cf       ..             ; Get channel index
-    lda l109a                                                         ; b062: ad 9a 10    ...            ; Get new PTR low
+    lda wksp_new_ptr_lo                                               ; b062: ad 9a 10    ...            ; Get new PTR low
     sta wksp_ch_ext_l,x                                               ; b065: 9d 52 11    .R.            ; Store as new EXT low
-    lda l109b                                                         ; b068: ad 9b 10    ...            ; Get new PTR mid-low
+    lda wksp_new_ptr_mid                                              ; b068: ad 9b 10    ...            ; Get new PTR mid-low
     sta wksp_ch_ext_ml,x                                              ; b06b: 9d 48 11    .H.            ; Store as new EXT mid-low
-    lda l109c                                                         ; b06e: ad 9c 10    ...            ; Get new PTR mid-high
+    lda wksp_new_ptr_mid_hi                                           ; b06e: ad 9c 10    ...            ; Get new PTR mid-high
     sta wksp_ch_ext_mh,x                                              ; b071: 9d 3e 11    .>.            ; Store as new EXT mid-high
-    lda l109d                                                         ; b074: ad 9d 10    ...            ; Get new PTR high
+    lda wksp_new_ptr_hi                                               ; b074: ad 9d 10    ...            ; Get new PTR high
     sta wksp_ch_ext_h,x                                               ; b077: 9d 34 11    .4.            ; Store as new EXT high
     jsr save_wksp_and_return                                          ; b07a: 20 d3 89     ..            ; Save workspace; Save workspace state and return result
 ; &b07d referenced 1 time by &aeb9
 .restore_drive_after_extend
-    lda l10bf                                                         ; b07d: ad bf 10    ...            ; Restore saved drive from temp
+    lda wksp_saved_drive_2                                            ; b07d: ad bf 10    ...            ; Restore saved drive from temp
     sta wksp_saved_drive                                              ; b080: 8d 2f 10    ./.            ; Set as saved drive
     ldx #2                                                            ; b083: a2 02       ..             ; X=2: restore 3 bytes of CSD
 ; &b085 referenced 1 time by &b08c
 .restore_csd_after_extend_loop
-    lda l10bc,x                                                       ; b085: bd bc 10    ...            ; Get saved CSD byte
+    lda wksp_osgbpb_wksp_bc,x                                         ; b085: bd bc 10    ...            ; Get saved CSD byte
     sta wksp_csd_drive_sector,x                                       ; b088: 9d 2c 10    .,.            ; Restore to CSD workspace
     dex                                                               ; b08b: ca          .              ; Next byte
     bpl restore_csd_after_extend_loop                                 ; b08c: 10 f7       ..             ; Loop for 3 bytes
@@ -9988,7 +9990,7 @@ la868 = check_dest_terminator+1
     pha                                                               ; b091: 48          H              ; Save byte to write on stack
     jsr check_set_channel_y                                           ; b092: 20 fe ac     ..            ; Validate file handle in Y; Validate and set channel number from Y
     ldy #0                                                            ; b095: a0 00       ..             ; Clear modification flag
-    sty l10cf                                                         ; b097: 8c cf 10    ...            ; Clear modification flag
+    sty wksp_modify_flag                                              ; b097: 8c cf 10    ...            ; Clear modification flag
     tay                                                               ; b09a: a8          .              ; Transfer channel flags to Y
     bmi check_buffer_state                                            ; b09b: 30 18       0.             ; Bit 7 set: file is writable
 ; &b09d referenced 2 times by &aa6c, &b5c5
@@ -10008,20 +10010,20 @@ la868 = check_dest_terminator+1
     lda wksp_ch_ptr_l,x                                               ; b0c2: bd 7a 11    .z.            ; Compute PTR+1 to check if extending
     sec                                                               ; b0c5: 38          8              ; Set carry for PTR+1 calculation
     adc #0                                                            ; b0c6: 69 00       i.             ; Add 1 (carry) to PTR low
-    sta l109a                                                         ; b0c8: 8d 9a 10    ...            ; Store next PTR low in workspace
+    sta wksp_new_ptr_lo                                               ; b0c8: 8d 9a 10    ...            ; Store next PTR low in workspace
     lda wksp_ch_ptr_ml,x                                              ; b0cb: bd 70 11    .p.            ; Get PTR mid-low
     adc #0                                                            ; b0ce: 69 00       i.             ; Add carry
-    sta l109b                                                         ; b0d0: 8d 9b 10    ...            ; Store next PTR mid-low
+    sta wksp_new_ptr_mid                                              ; b0d0: 8d 9b 10    ...            ; Store next PTR mid-low
     lda wksp_ch_ptr_mh,x                                              ; b0d3: bd 66 11    .f.            ; Get PTR mid-high
     adc #0                                                            ; b0d6: 69 00       i.             ; Add carry
-    sta l109c                                                         ; b0d8: 8d 9c 10    ...            ; Store next PTR mid-high
+    sta wksp_new_ptr_mid_hi                                           ; b0d8: 8d 9c 10    ...            ; Store next PTR mid-high
     lda wksp_ch_ptr_h,x                                               ; b0db: bd 5c 11    .\.            ; Get PTR high
     adc #0                                                            ; b0de: 69 00       i.             ; Add carry
-    sta l109d                                                         ; b0e0: 8d 9d 10    ...            ; Store next PTR high
+    sta wksp_new_ptr_hi                                               ; b0e0: 8d 9d 10    ...            ; Store next PTR high
     pla                                                               ; b0e3: 68          h              ; Restore byte to write
     jsr save_workspace_state                                          ; b0e4: 20 49 a7     I.            ; Save registers for restore; Save all registers and workspace
     pha                                                               ; b0e7: 48          H              ; Re-push byte to write
-    dec l10cf                                                         ; b0e8: ce cf 10    ...            ; Set modification flag
+    dec wksp_modify_flag                                              ; b0e8: ce cf 10    ...            ; Set modification flag
     jsr check_ptr_within_allocation                                   ; b0eb: 20 59 ae     Y.            ; Validate PTR and load sector
     ldx zp_channel_offset                                             ; b0ee: a6 cf       ..             ; Get channel index
 ; &b0f0 referenced 2 times by &b0bc, &b0c0
@@ -10029,13 +10031,13 @@ la868 = check_dest_terminator+1
     clc                                                               ; b0f0: 18          .              ; Clear carry for address calc
     lda wksp_ch_start_sec_ml,x                                        ; b0f1: bd ca 11    ...            ; Get channel start sector low
     adc wksp_ch_ptr_ml,x                                              ; b0f4: 7d 70 11    }p.            ; Add PTR to get current disc sector
-    sta l1096                                                         ; b0f7: 8d 96 10    ...            ; Store disc sector address low
+    sta wksp_osgbpb_sector_lo                                         ; b0f7: 8d 96 10    ...            ; Store disc sector address low
     lda wksp_ch_start_sec_mh,x                                        ; b0fa: bd c0 11    ...            ; Get channel start sector mid
     adc wksp_ch_ptr_mh,x                                              ; b0fd: 7d 66 11    }f.            ; Add PTR mid-high with carry
-    sta l1097                                                         ; b100: 8d 97 10    ...            ; Store disc sector address mid
+    sta wksp_osgbpb_sector_mid                                        ; b100: 8d 97 10    ...            ; Store disc sector address mid
     lda wksp_ch_start_sec_h,x                                         ; b103: bd b6 11    ...            ; Get channel start sector+drive
     adc wksp_ch_ptr_h,x                                               ; b106: 7d 5c 11    }\.            ; Add PTR high with carry
-    sta l1098                                                         ; b109: 8d 98 10    ...            ; Store disc sector address high
+    sta wksp_osgbpb_sector_hi                                         ; b109: 8d 98 10    ...            ; Store disc sector address high
     lda #&c0                                                          ; b10c: a9 c0       ..             ; A=&C0: buffer write mode
     jsr find_buffer_for_sector                                        ; b10e: 20 d8 ab     ..            ; Load sector into buffer; Find or allocate a buffer for a sector
     ldx zp_channel_offset                                             ; b111: a6 cf       ..             ; Get channel index
@@ -10063,7 +10065,7 @@ la868 = check_dest_terminator+1
     ldx zp_channel_offset                                             ; b123: a6 cf       ..             ; Get channel index
     inc wksp_ch_ptr_l,x                                               ; b125: fe 7a 11    .z.            ; Increment PTR low byte
     bne return_39                                                     ; b128: d0 f8       ..             ; No wrap: done
-    bit l10cf                                                         ; b12a: 2c cf 10    ,..            ; Check modification flag
+    bit wksp_modify_flag                                              ; b12a: 2c cf 10    ,..            ; Check modification flag
     bmi increment_ptr_mid_bytes                                       ; b12d: 30 03       0.             ; Not modified: skip workspace save
     jsr save_workspace_state                                          ; b12f: 20 49 a7     I.            ; Save workspace state; Save all registers and workspace
 ; &b132 referenced 1 time by &b12d
@@ -10206,7 +10208,7 @@ la868 = check_dest_terminator+1
 ; &b203 referenced 1 time by &b1e6
 .open_for_read_channel
     stx zp_channel_offset                                             ; b203: 86 cf       ..             ; Store channel index in zp_cf
-    sty l10a0                                                         ; b205: 8c a0 10    ...            ; Save open mode (Y) in workspace
+    sty wksp_ch_buf_sector                                            ; b205: 8c a0 10    ...            ; Save open mode (Y) in workspace
     tya                                                               ; b208: 98          .              ; Transfer mode to A
     bpl search_for_input_file                                         ; b209: 10 03       ..             ; Bit 7 set: open for output/random
     jmp check_random_access_mode                                      ; b20b: 4c e1 b2    L..            ; Output/random: jump to write path
@@ -10314,7 +10316,7 @@ la868 = check_dest_terminator+1
     sta wksp_ch_ptr_ml,x                                              ; b2c1: 9d 70 11    .p.            ; Clear PTR mid-low
     sta wksp_ch_ptr_mh,x                                              ; b2c4: 9d 66 11    .f.            ; Clear PTR mid-high
     sta wksp_ch_ptr_h,x                                               ; b2c7: 9d 5c 11    .\.            ; Clear PTR high
-    lda l10a0                                                         ; b2ca: ad a0 10    ...            ; Get open mode flags
+    lda wksp_ch_buf_sector                                            ; b2ca: ad a0 10    ...            ; Get open mode flags
     sta wksp_ch_flags,x                                               ; b2cd: 9d ac 11    ...            ; Store as channel flags
     txa                                                               ; b2d0: 8a          .              ; Transfer channel index to A
     clc                                                               ; b2d1: 18          .              ; Clear carry for addition
@@ -10331,7 +10333,7 @@ la868 = check_dest_terminator+1
 
 ; &b2e1 referenced 1 time by &b20b
 .check_random_access_mode
-    bit l10a0                                                         ; b2e1: 2c a0 10    ,..            ; Check open mode for random access
+    bit wksp_ch_buf_sector                                            ; b2e1: 2c a0 10    ,..            ; Check open mode for random access
     bvc open_for_output_new                                           ; b2e4: 50 18       P.             ; Bit 6 clear: open for output only
     jsr find_first_matching_entry                                     ; b2e6: 20 df 8f     ..            ; Random: search for existing file; Find first matching directory entry
     php                                                               ; b2e9: 08          .              ; Save search result flags
@@ -10377,9 +10379,9 @@ la868 = check_dest_terminator+1
     ora fsm_s0_end_of_list_ptr,x                                      ; b321: 1d fe 0e    ...            ; OR FSM entry address bytes
     ora fsm_s0_checksum,x                                             ; b324: 1d ff 0e    ...            ; Continue OR-ing
     ldy fsm_s0_boot_option,x                                          ; b327: bc fd 0e    ...            ; Get FSM entry length
-    cpy l104f                                                         ; b32a: cc 4f 10    .O.            ; Compare with current max
+    cpy wksp_osfile_end_addr_1                                        ; b32a: cc 4f 10    .O.            ; Compare with current max
     bcc store_default_allocation                                      ; b32d: 90 03       ..             ; Smaller: skip
-    sty l104f                                                         ; b32f: 8c 4f 10    .O.            ; Larger: update max
+    sty wksp_osfile_end_addr_1                                        ; b32f: 8c 4f 10    .O.            ; Larger: update max
 ; &b332 referenced 1 time by &b32d
 .store_default_allocation
     dex                                                               ; b332: ca          .              ; Back up 3 bytes to prev entry
@@ -10388,16 +10390,16 @@ la868 = check_dest_terminator+1
     bne find_best_free_space_loop                                     ; b335: d0 ea       ..             ; Loop for all entries
     tay                                                               ; b337: a8          .              ; Transfer A to Y (non-zero check)
     beq set_ffffffff_load_addr                                        ; b338: f0 07       ..             ; Zero: no free space at all
-    stx l104f                                                         ; b33a: 8e 4f 10    .O.            ; Store 0 as max (will use default)
+    stx wksp_osfile_end_addr_1                                        ; b33a: 8e 4f 10    .O.            ; Store 0 as max (will use default)
     inx                                                               ; b33d: e8          .              ; X=1
-    stx l1050                                                         ; b33e: 8e 50 10    .P.            ; Store default allocation
+    stx wksp_osfile_end_addr_2                                        ; b33e: 8e 50 10    .P.            ; Store default allocation
 ; &b341 referenced 1 time by &b338
 .set_ffffffff_load_addr
     lda #&ff                                                          ; b341: a9 ff       ..             ; A=&FF: fill OSFILE block
-    sta l1046                                                         ; b343: 8d 46 10    .F.            ; Set load addr to &FFFFFFFF
-    sta l1047                                                         ; b346: 8d 47 10    .G.            ; Second byte
-    sta l1048                                                         ; b349: 8d 48 10    .H.            ; Third byte
-    sta l1049                                                         ; b34c: 8d 49 10    .I.            ; Fourth byte
+    sta wksp_osfile_exec_addr                                         ; b343: 8d 46 10    .F.            ; Set load addr to &FFFFFFFF
+    sta wksp_osfile_exec_addr_1                                       ; b346: 8d 47 10    .G.            ; Second byte
+    sta wksp_osfile_exec_addr_2                                       ; b349: 8d 48 10    .H.            ; Third byte
+    sta wksp_osfile_exec_addr_3                                       ; b34c: 8d 49 10    .I.            ; Fourth byte
     ldx #&40 ; '@'                                                    ; b34f: a2 40       .@             ; X=&40: OSFILE block offset
     stx zp_osfile_ptr_lo                                              ; b351: 86 b8       ..             ; Store block pointer low
     ldy #&10                                                          ; b353: a0 10       ..             ; Y=&10: OSFILE block page
@@ -10583,7 +10585,7 @@ la868 = check_dest_terminator+1
     cmp wksp_1122,x                                                   ; b4a2: dd 22 11    .".            ; Compare with saved
     bne check_disc_id_changed                                         ; b4a5: d0 07       ..             ; Different: disc changed!
     jsr get_drive_bit_mask                                            ; b4a7: 20 10 b5     ..            ; Get channel bit mask; Get bit mask for drive slot
-    sta l10c2                                                         ; b4aa: 8d c2 10    ...            ; Store in workspace
+    sta wksp_search_result_2                                          ; b4aa: 8d c2 10    ...            ; Store in workspace
     rts                                                               ; b4ad: 60          `              ; Return
 
 ; &b4ae referenced 2 times by &b49d, &b4a5
@@ -10595,33 +10597,33 @@ la868 = check_dest_terminator+1
 ; &b4bf referenced 3 times by &b48e, &b4f5, &b525
 .read_clock_for_timing
     lda #osword_read_clock                                            ; b4bf: a9 01       ..             ; OSWORD 1: read system clock
-    ldx #<(l10c8)                                                     ; b4c1: a2 c8       ..             ; X: control block low
-    ldy #>(l10c8)                                                     ; b4c3: a0 10       ..             ; Y: control block high
+    ldx #<(wksp_path_drive)                                           ; b4c1: a2 c8       ..             ; X: control block low
+    ldy #>(wksp_path_drive)                                           ; b4c3: a0 10       ..             ; Y: control block high
     jsr osword                                                        ; b4c5: 20 f1 ff     ..            ; Read system clock
     ldx #0                                                            ; b4c8: a2 00       ..             ; X=0: compare 5 clock bytes
     ldy #4                                                            ; b4ca: a0 04       ..             ; Y=4: 5 bytes to compare
     sec                                                               ; b4cc: 38          8              ; Set carry for subtraction
 ; &b4cd referenced 1 time by &b4dd
 .compare_clock_bytes_loop
-    lda l10c8,x                                                       ; b4cd: bd c8 10    ...            ; Get current clock byte
+    lda wksp_path_drive,x                                             ; b4cd: bd c8 10    ...            ; Get current clock byte
     pha                                                               ; b4d0: 48          H              ; Save current value
-    sbc l10c3,x                                                       ; b4d1: fd c3 10    ...            ; Subtract previous value
-    sta l10c8,x                                                       ; b4d4: 9d c8 10    ...            ; Store difference
+    sbc wksp_search_result_3,x                                        ; b4d1: fd c3 10    ...            ; Subtract previous value
+    sta wksp_path_drive,x                                             ; b4d4: 9d c8 10    ...            ; Store difference
     pla                                                               ; b4d7: 68          h              ; Restore current value
-    sta l10c3,x                                                       ; b4d8: 9d c3 10    ...            ; Save as new previous
+    sta wksp_search_result_3,x                                        ; b4d8: 9d c3 10    ...            ; Save as new previous
     inx                                                               ; b4db: e8          .              ; Next byte
     dey                                                               ; b4dc: 88          .              ; Decrement counter
     bpl compare_clock_bytes_loop                                      ; b4dd: 10 ee       ..             ; Loop for 5 bytes
-    lda l10cc                                                         ; b4df: ad cc 10    ...            ; Check if elapsed time > threshold
-    ora l10cb                                                         ; b4e2: 0d cb 10    ...            ; OR with byte 3
-    ora l10ca                                                         ; b4e5: 0d ca 10    ...            ; OR with byte 2
+    lda wksp_path_wksp_cc                                             ; b4df: ad cc 10    ...            ; Check if elapsed time > threshold
+    ora wksp_path_sector_2                                            ; b4e2: 0d cb 10    ...            ; OR with byte 3
+    ora wksp_path_sector_1                                            ; b4e5: 0d ca 10    ...            ; OR with byte 2
     bne disc_probably_changed                                         ; b4e8: d0 07       ..             ; Non-zero high bytes: long time
-    lda l10c9                                                         ; b4ea: ad c9 10    ...            ; Check byte 1
+    lda wksp_path_sector                                              ; b4ea: ad c9 10    ...            ; Check byte 1
     cmp #2                                                            ; b4ed: c9 02       ..             ; Less than 2 ticks?
     bcc return_40                                                     ; b4ef: 90 03       ..             ; Yes: disc probably not changed
 ; &b4f1 referenced 1 time by &b4e8
 .disc_probably_changed
-    sty l10c2                                                         ; b4f1: 8c c2 10    ...            ; Long time: set change flag
+    sty wksp_search_result_2                                          ; b4f1: 8c c2 10    ...            ; Long time: set change flag
 ; &b4f4 referenced 2 times by &b4ef, &b504
 .return_40
     rts                                                               ; b4f4: 60          `              ; Return
@@ -10640,7 +10642,7 @@ la868 = check_dest_terminator+1
     lda wksp_current_drive                                            ; b4f8: ad 17 11    ...            ; Get current drive
     jsr convert_drive_to_slot                                         ; b4fb: 20 79 b5     y.            ; Get drive slot index; Convert drive number to slot index
     jsr get_drive_bit_mask                                            ; b4fe: 20 10 b5     ..            ; Get channel bit mask; Get bit mask for drive slot
-    eor l10c2                                                         ; b501: 4d c2 10    M..            ; XOR with stored mask
+    eor wksp_search_result_2                                          ; b501: 4d c2 10    M..            ; XOR with stored mask
     beq return_40                                                     ; b504: f0 ee       ..             ; Same: disc not changed
     ldx #&0c                                                          ; b506: a2 0c       ..             ; Changed: reload FSM
     ldy #&88                                                          ; b508: a0 88       ..             ; Y=&88: FSM control block
@@ -10664,7 +10666,7 @@ la868 = check_dest_terminator+1
     dex                                                               ; b514: ca          .              ; Decrement drive index by 2
     dex                                                               ; b515: ca          .              ; Continue
     bpl shift_drive_mask_loop                                         ; b516: 10 fb       ..             ; Loop until index < 0
-    and l10c2                                                         ; b518: 2d c2 10    -..            ; AND with current change flags
+    and wksp_search_result_2                                          ; b518: 2d c2 10    -..            ; AND with current change flags
     rts                                                               ; b51b: 60          `              ; Return bit mask in A
 
 ; ***************************************************************************************
@@ -10677,32 +10679,32 @@ la868 = check_dest_terminator+1
 ; &b51c referenced 3 times by &ab2a, &ac8f, &b5b8
 .set_drive_from_channel
     and #&e0                                                          ; b51c: 29 e0       ).             ; Isolate drive bits from A
-    sta l10cd                                                         ; b51e: 8d cd 10    ...            ; Store drive for later
+    sta wksp_path_wksp_cd                                             ; b51e: 8d cd 10    ...            ; Store drive for later
     txa                                                               ; b521: 8a          .              ; Save X
     pha                                                               ; b522: 48          H              ; Push on stack
     tya                                                               ; b523: 98          .              ; Save Y
     pha                                                               ; b524: 48          H              ; Push on stack
     jsr read_clock_for_timing                                         ; b525: 20 bf b4     ..            ; Read clock for timing check
-    lda l10cd                                                         ; b528: ad cd 10    ...            ; Get stored drive
+    lda wksp_path_wksp_cd                                             ; b528: ad cd 10    ...            ; Get stored drive
     jsr convert_drive_to_slot                                         ; b52b: 20 79 b5     y.            ; Get drive slot index; Convert drive number to slot index
     jsr get_drive_bit_mask                                            ; b52e: 20 10 b5     ..            ; Get bit mask for this drive; Get bit mask for drive slot
-    eor l10c2                                                         ; b531: 4d c2 10    M..            ; XOR with change flags
+    eor wksp_search_result_2                                          ; b531: 4d c2 10    M..            ; XOR with change flags
     beq restore_saved_drive                                           ; b534: f0 3e       .>             ; Same: disc hasn't changed
-    lda l10cd                                                         ; b536: ad cd 10    ...            ; Different: need to reload FSM
+    lda wksp_path_wksp_cd                                             ; b536: ad cd 10    ...            ; Different: need to reload FSM
     tax                                                               ; b539: aa          .              ; Transfer to X
     pha                                                               ; b53a: 48          H              ; Save drive on stack
     lda wksp_current_drive                                            ; b53b: ad 17 11    ...            ; Save current drive
-    sta l10cd                                                         ; b53e: 8d cd 10    ...            ; Store as temp drive
+    sta wksp_path_wksp_cd                                             ; b53e: 8d cd 10    ...            ; Store as temp drive
     ldy wksp_saved_drive                                              ; b541: ac 2f 10    ./.            ; Check saved drive
     cpy #&ff                                                          ; b544: c0 ff       ..             ; &FF: not set
     bne save_and_restore_drive                                        ; b546: d0 06       ..             ; Set: don't overwrite
     sta wksp_saved_drive                                              ; b548: 8d 2f 10    ./.            ; Save current as saved drive
-    sty l10cd                                                         ; b54b: 8c cd 10    ...            ; Set temp to &FF
+    sty wksp_path_wksp_cd                                             ; b54b: 8c cd 10    ...            ; Set temp to &FF
 ; &b54e referenced 1 time by &b546
 .save_and_restore_drive
     stx wksp_current_drive                                            ; b54e: 8e 17 11    ...            ; Set current to new drive
     jsr check_drive_and_reload_fsm                                    ; b551: 20 f5 b4     ..            ; Reload FSM for new drive; Check disc changed and reload FSM if needed
-    ldy l10cd                                                         ; b554: ac cd 10    ...            ; Get temp drive back
+    ldy wksp_path_wksp_cd                                             ; b554: ac cd 10    ...            ; Get temp drive back
     sty wksp_current_drive                                            ; b557: 8c 17 11    ...            ; Set as current drive
     cpy #&ff                                                          ; b55a: c0 ff       ..             ; Was it &FF?
     bne reload_fsm_for_drive                                          ; b55c: d0 09       ..             ; No: keep it
@@ -10749,8 +10751,8 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 .my_osgbpb
     jsr save_workspace_state                                          ; b57f: 20 49 a7     I.            ; Save registers for restore; Save all registers and workspace
-    sta l10b4                                                         ; b582: 8d b4 10    ...            ; Store OSGBPB function code
-    sta l10b5                                                         ; b585: 8d b5 10    ...            ; Store mode flag copy
+    sta wksp_osgbpb_func                                              ; b582: 8d b4 10    ...            ; Store OSGBPB function code
+    sta wksp_osgbpb_mode                                              ; b585: 8d b5 10    ...            ; Store mode flag copy
     sty zp_gspb_ptr_hi                                                ; b588: 84 c7       ..             ; Save control block pointer
     stx zp_gspb_ptr_lo                                                ; b58a: 86 c6       ..             ; Store control block pointer low
     ldy #1                                                            ; b58c: a0 01       ..             ; Y=1: copy 4 bytes of memory addr
@@ -10758,11 +10760,11 @@ la868 = check_dest_terminator+1
 ; &b590 referenced 1 time by &b597
 .copy_data_addr_loop
     lda (zp_gspb_ptr_lo),y                                            ; b590: b1 c6       ..             ; Copy data address from control blk
-    sta l10b7,y                                                       ; b592: 99 b7 10    ...            ; Store in workspace
+    sta wksp_osgbpb_end,y                                             ; b592: 99 b7 10    ...            ; Store in workspace
     iny                                                               ; b595: c8          .              ; Next byte
     dex                                                               ; b596: ca          .              ; Decrement counter
     bpl copy_data_addr_loop                                           ; b597: 10 f7       ..             ; Loop for 4 bytes
-    lda l10b4                                                         ; b599: ad b4 10    ...            ; Get function code
+    lda wksp_osgbpb_func                                              ; b599: ad b4 10    ...            ; Get function code
     cmp #5                                                            ; b59c: c9 05       ..             ; Function >= 5?
     bcc dispatch_dir_operations                                       ; b59e: 90 04       ..             ; No, file I/O operations (1-4)
     jmp dispatch_dir_info_handler                                     ; b5a0: 4c 90 b8    L..            ; Yes, directory operations (5-8)
@@ -10786,14 +10788,14 @@ la868 = check_dest_terminator+1
     jsr set_drive_from_channel                                        ; b5b8: 20 1c b5     ..            ; Check disc change for drive; Set current drive from channel's drive
     plp                                                               ; b5bb: 28          (              ; Restore flags from earlier
     bmi get_function_and_set_ptr                                      ; b5bc: 30 0a       0.             ; Bit 7 set: writable channel
-    lda l10b4                                                         ; b5be: ad b4 10    ...            ; Get function code
+    lda wksp_osgbpb_func                                              ; b5be: ad b4 10    ...            ; Get function code
     cmp #3                                                            ; b5c1: c9 03       ..             ; A >= 3 (read operation)?
     bcs get_function_and_set_ptr                                      ; b5c3: b0 03       ..             ; Yes: skip write check
     jmp not_open_for_update_error                                     ; b5c5: 4c 9d b0    L..            ; Write to read-only: error
 
 ; &b5c8 referenced 2 times by &b5bc, &b5c3
 .get_function_and_set_ptr
-    lda l10b4                                                         ; b5c8: ad b4 10    ...            ; Get function code
+    lda wksp_osgbpb_func                                              ; b5c8: ad b4 10    ...            ; Get function code
     and #1                                                            ; b5cb: 29 01       ).             ; Bit 0 set = use new PTR (A=1,3)
     beq set_ptr_from_temp                                             ; b5cd: f0 0e       ..             ; Bit 0 clear = use current PTR
     ldy #&0c                                                          ; b5cf: a0 0c       ..             ; Y=&0C: copy new PTR from block
@@ -10818,12 +10820,12 @@ la868 = check_dest_terminator+1
 .calc_end_position_loop
     lda (zp_gspb_ptr_lo),y                                            ; b5e9: b1 c6       ..             ; Get byte count byte
     adc zp_save_x,y                                                   ; b5eb: 79 c3 00    y..            ; Add to start PTR byte
-    sta l1095,y                                                       ; b5ee: 99 95 10    ...            ; Store end position
+    sta wksp_osgbpb_end_ptr,y                                         ; b5ee: 99 95 10    ...            ; Store end position
     iny                                                               ; b5f1: c8          .              ; Next byte
     dex                                                               ; b5f2: ca          .              ; Next count byte
     bpl calc_end_position_loop                                        ; b5f3: 10 f4       ..             ; Loop for 4 bytes
-    lda l10b4                                                         ; b5f5: ad b4 10    ...            ; Get function code
-    sta l10b5                                                         ; b5f8: 8d b5 10    ...            ; Store in mode flag
+    lda wksp_osgbpb_func                                              ; b5f5: ad b4 10    ...            ; Get function code
+    sta wksp_osgbpb_mode                                              ; b5f8: 8d b5 10    ...            ; Store in mode flag
     cmp #3                                                            ; b5fb: c9 03       ..             ; A >= 3 (read)?
     bcs store_new_ptr_in_channel                                      ; b5fd: b0 03       ..             ; Yes: skip extent check
     jsr extend_file_if_needed                                         ; b5ff: 20 5e ae     ^.            ; Write: extend file if needed
@@ -10831,22 +10833,22 @@ la868 = check_dest_terminator+1
 .store_new_ptr_in_channel
     ldy #9                                                            ; b602: a0 09       ..             ; Y=9: PTR offset in control block
     ldx zp_channel_offset                                             ; b604: a6 cf       ..             ; Get channel index
-    lda l109a                                                         ; b606: ad 9a 10    ...            ; Get new PTR low from workspace
+    lda wksp_new_ptr_lo                                               ; b606: ad 9a 10    ...            ; Get new PTR low from workspace
     sta wksp_ch_ptr_l,x                                               ; b609: 9d 7a 11    .z.            ; Store in channel PTR low
     sta (zp_gspb_ptr_lo),y                                            ; b60c: 91 c6       ..             ; Store in control block too
     iny                                                               ; b60e: c8          .              ; Y=&0A: next byte; Y=&0a
-    lda l109b                                                         ; b60f: ad 9b 10    ...            ; Get PTR mid-low
+    lda wksp_new_ptr_mid                                              ; b60f: ad 9b 10    ...            ; Get PTR mid-low
     sta wksp_ch_ptr_ml,x                                              ; b612: 9d 70 11    .p.            ; Store in channel
     sta (zp_gspb_ptr_lo),y                                            ; b615: 91 c6       ..             ; Store in control block
     iny                                                               ; b617: c8          .              ; Y=&0B; Y=&0b
-    lda l109c                                                         ; b618: ad 9c 10    ...            ; Get PTR mid-high
+    lda wksp_new_ptr_mid_hi                                           ; b618: ad 9c 10    ...            ; Get PTR mid-high
     sta wksp_ch_ptr_mh,x                                              ; b61b: 9d 66 11    .f.            ; Store in channel
     sta (zp_gspb_ptr_lo),y                                            ; b61e: 91 c6       ..             ; Store in control block
     iny                                                               ; b620: c8          .              ; Y=&0C; Y=&0c
-    lda l109d                                                         ; b621: ad 9d 10    ...            ; Get PTR high
+    lda wksp_new_ptr_hi                                               ; b621: ad 9d 10    ...            ; Get PTR high
     sta wksp_ch_ptr_h,x                                               ; b624: 9d 5c 11    .\.            ; Store in channel
     sta (zp_gspb_ptr_lo),y                                            ; b627: 91 c6       ..             ; Store in control block
-    lda l10b4                                                         ; b629: ad b4 10    ...            ; Get function code
+    lda wksp_osgbpb_func                                              ; b629: ad b4 10    ...            ; Get function code
     cmp #3                                                            ; b62c: c9 03       ..             ; A >= 3 (read)?
     bcs compare_ext_with_ptr                                          ; b62e: b0 14       ..             ; Yes: skip to byte transfer
 ; &b630 referenced 2 times by &b647, &b649
@@ -10870,7 +10872,7 @@ la868 = check_dest_terminator+1
     bcs save_byte_count_for_write                                     ; b647: b0 e7       ..             ; C set: EXT > PTR, data available
     beq save_byte_count_for_write                                     ; b649: f0 e5       ..             ; Equal: at EOF already
     lda #0                                                            ; b64b: a9 00       ..             ; A=0: clear mode flag (partial read)
-    sta l10b5                                                         ; b64d: 8d b5 10    ...            ; Store cleared mode
+    sta wksp_osgbpb_mode                                              ; b64d: 8d b5 10    ...            ; Store cleared mode
     ldx zp_channel_offset                                             ; b650: a6 cf       ..             ; Get channel index
     sec                                                               ; b652: 38          8              ; Calculate available = EXT - PTR
     lda wksp_ch_ext_l,x                                               ; b653: bd 52 11    .R.            ; EXT low - PTR low
@@ -10898,22 +10900,22 @@ la868 = check_dest_terminator+1
     bpl reduce_count_to_available_loop                                ; b681: 10 f5       ..             ; Loop for 4 bytes
     ldx zp_channel_offset                                             ; b683: a6 cf       ..             ; Get channel index
     lda wksp_ch_ext_l,x                                               ; b685: bd 52 11    .R.            ; Get EXT low
-    sta l109a                                                         ; b688: 8d 9a 10    ...            ; Store as new PTR low
+    sta wksp_new_ptr_lo                                               ; b688: 8d 9a 10    ...            ; Store as new PTR low
     sta wksp_ch_ptr_l,x                                               ; b68b: 9d 7a 11    .z.            ; Update channel PTR low
     sta (zp_gspb_ptr_lo),y                                            ; b68e: 91 c6       ..             ; Store in control block
     iny                                                               ; b690: c8          .              ; Y=next byte
     lda wksp_ch_ext_ml,x                                              ; b691: bd 48 11    .H.            ; Get EXT mid-low
-    sta l109b                                                         ; b694: 8d 9b 10    ...            ; Store as new PTR mid-low
+    sta wksp_new_ptr_mid                                              ; b694: 8d 9b 10    ...            ; Store as new PTR mid-low
     sta wksp_ch_ptr_ml,x                                              ; b697: 9d 70 11    .p.            ; Update channel PTR mid-low
     sta (zp_gspb_ptr_lo),y                                            ; b69a: 91 c6       ..             ; Store in control block
     iny                                                               ; b69c: c8          .              ; Y=next byte
     lda wksp_ch_ext_mh,x                                              ; b69d: bd 3e 11    .>.            ; Get EXT mid-high
-    sta l109c                                                         ; b6a0: 8d 9c 10    ...            ; Store as new PTR mid-high
+    sta wksp_new_ptr_mid_hi                                           ; b6a0: 8d 9c 10    ...            ; Store as new PTR mid-high
     sta wksp_ch_ptr_mh,x                                              ; b6a3: 9d 66 11    .f.            ; Update channel PTR mid-high
     sta (zp_gspb_ptr_lo),y                                            ; b6a6: 91 c6       ..             ; Store in control block
     iny                                                               ; b6a8: c8          .              ; Y=next byte
     lda wksp_ch_ext_h,x                                               ; b6a9: bd 34 11    .4.            ; Get EXT high
-    sta l109d                                                         ; b6ac: 8d 9d 10    ...            ; Store as new PTR high
+    sta wksp_new_ptr_hi                                               ; b6ac: 8d 9d 10    ...            ; Store as new PTR high
     sta wksp_ch_ptr_h,x                                               ; b6af: 9d 5c 11    .\.            ; Update channel PTR high
     sta (zp_gspb_ptr_lo),y                                            ; b6b2: 91 c6       ..             ; Store in control block
 ; &b6b4 referenced 1 time by &b641
@@ -10939,32 +10941,32 @@ la868 = check_dest_terminator+1
     clc                                                               ; b6cd: 18          .              ; Clear carry for sector addition
     lda wksp_ch_start_sec_ml,x                                        ; b6ce: bd ca 11    ...            ; Get channel start sector low
     adc zp_temp_ptr_1                                                 ; b6d1: 65 c9       e.             ; Add PTR mid-low for disc sector
-    sta l1096                                                         ; b6d3: 8d 96 10    ...            ; Store disc operation sector low
+    sta wksp_osgbpb_sector_lo                                         ; b6d3: 8d 96 10    ...            ; Store disc operation sector low
     lda wksp_ch_start_sec_mh,x                                        ; b6d6: bd c0 11    ...            ; Get channel start sector mid
     adc zp_temp_ptr_2                                                 ; b6d9: 65 ca       e.             ; Add PTR mid-high
-    sta l1097                                                         ; b6db: 8d 97 10    ...            ; Store disc operation sector mid
+    sta wksp_osgbpb_sector_mid                                        ; b6db: 8d 97 10    ...            ; Store disc operation sector mid
     lda wksp_ch_start_sec_h,x                                         ; b6de: bd b6 11    ...            ; Get channel start sector+drive
     adc zp_temp_ptr_3                                                 ; b6e1: 65 cb       e.             ; Add PTR high byte
-    sta l1098                                                         ; b6e3: 8d 98 10    ...            ; Store disc operation sector high
+    sta wksp_osgbpb_sector_hi                                         ; b6e3: 8d 98 10    ...            ; Store disc operation sector high
     lda #2                                                            ; b6e6: a9 02       ..             ; A=2: compare against function code
-    cmp l10b4                                                         ; b6e8: cd b4 10    ...            ; C set if A=1/2 (write), clear if 3/4
+    cmp wksp_osgbpb_func                                              ; b6e8: cd b4 10    ...            ; C set if A=1/2 (write), clear if 3/4
     lda #&80                                                          ; b6eb: a9 80       ..             ; A=&80: base for disc command
     ror a                                                             ; b6ed: 6a          j              ; Rotate C into bit 0: &40=read, &80=write
     jsr find_buffer_for_sector                                        ; b6ee: 20 d8 ab     ..            ; Find/load buffer for current sector; Find or allocate a buffer for a sector
     lda zp_temp_ptr                                                   ; b6f1: a5 c8       ..             ; Get current byte offset in sector
-    sta l10b6                                                         ; b6f3: 8d b6 10    ...            ; Store as transfer start position
+    sta wksp_osgbpb_start                                             ; b6f3: 8d b6 10    ...            ; Store as transfer start position
     lda #0                                                            ; b6f6: a9 00       ..             ; A=0: default end position
-    sta l10b7                                                         ; b6f8: 8d b7 10    ...            ; Clear transfer end position
+    sta wksp_osgbpb_end                                               ; b6f8: 8d b7 10    ...            ; Clear transfer end position
     ldx #2                                                            ; b6fb: a2 02       ..             ; X=2: compare 3-byte buffer sector
 ; &b6fd referenced 1 time by &b705
 .compare_buffer_sector_loop
-    lda l109b,x                                                       ; b6fd: bd 9b 10    ...            ; Get buffered sector address byte
+    lda wksp_new_ptr_mid,x                                            ; b6fd: bd 9b 10    ...            ; Get buffered sector address byte
     cmp zp_temp_ptr_1,x                                               ; b700: d5 c9       ..             ; Compare with requested sector byte
     bne handle_buffer_mismatch                                        ; b702: d0 1c       ..             ; Mismatch: different sector in buffer
     dex                                                               ; b704: ca          .              ; Next sector address byte
     bpl compare_buffer_sector_loop                                    ; b705: 10 f6       ..             ; Loop for 3-byte sector comparison
-    lda l109a                                                         ; b707: ad 9a 10    ...            ; Sector match: get bytes remaining
-    sta l10b7                                                         ; b70a: 8d b7 10    ...            ; Store as transfer end position
+    lda wksp_new_ptr_lo                                               ; b707: ad 9a 10    ...            ; Sector match: get bytes remaining
+    sta wksp_osgbpb_end                                               ; b70a: 8d b7 10    ...            ; Store as transfer end position
     jsr transfer_sector_bytes                                         ; b70d: 20 80 b9     ..            ; Transfer bytes within this sector; Transfer sector bytes between buffer and memory
 ; &b710 referenced 2 times by &b7e8, &b822
 .save_and_flush_after_transfer
@@ -10973,7 +10975,7 @@ la868 = check_dest_terminator+1
 ; &b716 referenced 1 time by &b8de
 .prepare_osgbpb_return
     lda #0                                                            ; b716: a9 00       ..             ; A=0: prepare return status
-    cmp l10b5                                                         ; b718: cd b5 10    ...            ; Compare against mode flag for C
+    cmp wksp_osgbpb_mode                                              ; b718: cd b5 10    ...            ; Compare against mode flag for C
     ldx zp_gspb_ptr_lo                                                ; b71b: a6 c6       ..             ; Restore control block pointer low
     ldy zp_gspb_ptr_hi                                                ; b71d: a4 c7       ..             ; Restore control block pointer high
     rts                                                               ; b71f: 60          `              ; Return to OSGBPB caller
@@ -10983,22 +10985,22 @@ la868 = check_dest_terminator+1
     jsr transfer_sector_bytes                                         ; b720: 20 80 b9     ..            ; Buffer mismatch: handle partial xfer; Transfer sector bytes between buffer and memory
     lda #0                                                            ; b723: a9 00       ..             ; A=0: compute bytes already done
     sec                                                               ; b725: 38          8              ; Set carry for subtraction
-    sbc l10b6                                                         ; b726: ed b6 10    ...            ; Subtract start position
-    sta l10b6                                                         ; b729: 8d b6 10    ...            ; Store bytes transferred this pass
+    sbc wksp_osgbpb_start                                             ; b726: ed b6 10    ...            ; Subtract start position
+    sta wksp_osgbpb_start                                             ; b729: 8d b6 10    ...            ; Store bytes transferred this pass
     clc                                                               ; b72c: 18          .              ; Clear carry for addition
-    adc l10b8                                                         ; b72d: 6d b8 10    m..            ; Add to cumulative data address low
-    sta l10b8                                                         ; b730: 8d b8 10    ...            ; Store updated address low
+    adc wksp_osgbpb_data_addr                                         ; b72d: 6d b8 10    m..            ; Add to cumulative data address low
+    sta wksp_osgbpb_data_addr                                         ; b730: 8d b8 10    ...            ; Store updated address low
     bcc adjust_remaining_count                                        ; b733: 90 0d       ..             ; No carry: skip higher bytes
-    inc l10b9                                                         ; b735: ee b9 10    ...            ; Propagate carry to address byte 2
+    inc wksp_osgbpb_data_addr_1                                       ; b735: ee b9 10    ...            ; Propagate carry to address byte 2
     bne adjust_remaining_count                                        ; b738: d0 08       ..             ; No carry: skip
-    inc l10ba                                                         ; b73a: ee ba 10    ...            ; Propagate carry to address byte 3
+    inc wksp_osgbpb_data_addr_2                                       ; b73a: ee ba 10    ...            ; Propagate carry to address byte 3
     bne adjust_remaining_count                                        ; b73d: d0 03       ..             ; No carry: skip
-    inc l10bb                                                         ; b73f: ee bb 10    ...            ; Propagate carry to address byte 4
+    inc wksp_osgbpb_data_addr_3                                       ; b73f: ee bb 10    ...            ; Propagate carry to address byte 4
 ; &b742 referenced 3 times by &b733, &b738, &b73d
 .adjust_remaining_count
     sec                                                               ; b742: 38          8              ; Subtract from remaining byte count
     lda wksp_osfile_block                                             ; b743: ad 40 10    .@.            ; Get remaining count low
-    sbc l10b6                                                         ; b746: ed b6 10    ...            ; Subtract bytes transferred
+    sbc wksp_osgbpb_start                                             ; b746: ed b6 10    ...            ; Subtract bytes transferred
     sta wksp_osfile_block                                             ; b749: 8d 40 10    .@.            ; Store updated remaining count
     bcs check_full_sectors_remain                                     ; b74c: b0 0f       ..             ; No borrow: count still positive
     ldy #1                                                            ; b74e: a0 01       ..             ; Y=1: propagate borrow to higher bytes
@@ -11025,12 +11027,12 @@ la868 = check_dest_terminator+1
     ldy #3                                                            ; b770: a0 03       ..             ; Y=3: copy 4-byte data address
 ; &b772 referenced 1 time by &b779
 .copy_data_addr_to_disc_op_loop
-    lda l10b8,y                                                       ; b772: b9 b8 10    ...            ; Get data address byte
+    lda wksp_osgbpb_data_addr,y                                       ; b772: b9 b8 10    ...            ; Get data address byte
     sta wksp_disc_op_mem_addr,y                                       ; b775: 99 16 10    ...            ; Store in disc op memory address
     dey                                                               ; b778: 88          .              ; Next byte (decreasing)
     bpl copy_data_addr_to_disc_op_loop                                ; b779: 10 f7       ..             ; Loop for 4 bytes
     lda #2                                                            ; b77b: a9 02       ..             ; A=2: compare against function code
-    cmp l10b4                                                         ; b77d: cd b4 10    ...            ; C set if write (A<=2), clear if read
+    cmp wksp_osgbpb_func                                              ; b77d: cd b4 10    ...            ; C set if write (A<=2), clear if read
     lda #2                                                            ; b780: a9 02       ..             ; A=2: base for disc command
     rol a                                                             ; b782: 2a          *              ; Rotate C into bit 0
     rol a                                                             ; b783: 2a          *              ; Shift to command position
@@ -11064,8 +11066,8 @@ la868 = check_dest_terminator+1
 .add_sector_count_loop
     lda wksp_osfile_block_1,y                                         ; b7bf: b9 41 10    .A.            ; Get remaining count byte
     sta wksp_disc_op_xfer_len_1,y                                     ; b7c2: 99 21 10    .!.            ; Copy to disc op transfer length
-    adc l10b9,y                                                       ; b7c5: 79 b9 10    y..            ; Add to cumulative address
-    sta l10b9,y                                                       ; b7c8: 99 b9 10    ...            ; Store updated address
+    adc wksp_osgbpb_data_addr_1,y                                     ; b7c5: 79 b9 10    y..            ; Add to cumulative address
+    sta wksp_osgbpb_data_addr_1,y                                     ; b7c8: 99 b9 10    ...            ; Store updated address
     iny                                                               ; b7cb: c8          .              ; Next byte
     dex                                                               ; b7cc: ca          .              ; Next sector byte
     bpl add_sector_count_loop                                         ; b7cd: 10 f0       ..             ; Loop for 3 bytes
@@ -11078,7 +11080,7 @@ la868 = check_dest_terminator+1
     sta wksp_alt_sector_hi                                            ; b7e0: 8d 2e 10    ...            ; Mark alt workspace as unused
 ; &b7e3 referenced 1 time by &b768
 .check_remaining_buffered
-    lda l109a                                                         ; b7e3: ad 9a 10    ...            ; Check for remaining buffered bytes
+    lda wksp_new_ptr_lo                                               ; b7e3: ad 9a 10    ...            ; Check for remaining buffered bytes
     bne calc_remaining_sector                                         ; b7e6: d0 03       ..             ; Non-zero: more bytes in buffer
     jmp save_and_flush_after_transfer                                 ; b7e8: 4c 10 b7    L..            ; Zero: finish via save and return
 
@@ -11087,23 +11089,23 @@ la868 = check_dest_terminator+1
     ldx zp_channel_offset                                             ; b7eb: a6 cf       ..             ; Get channel index
     clc                                                               ; b7ed: 18          .              ; Clear carry for sector addition
     lda wksp_ch_start_sec_ml,x                                        ; b7ee: bd ca 11    ...            ; Get channel start sector low
-    adc l109b                                                         ; b7f1: 6d 9b 10    m..            ; Add remaining PTR low
-    sta l1096                                                         ; b7f4: 8d 96 10    ...            ; Store result sector low
+    adc wksp_new_ptr_mid                                              ; b7f1: 6d 9b 10    m..            ; Add remaining PTR low
+    sta wksp_osgbpb_sector_lo                                         ; b7f4: 8d 96 10    ...            ; Store result sector low
     lda wksp_ch_start_sec_mh,x                                        ; b7f7: bd c0 11    ...            ; Get channel start sector mid
-    adc l109c                                                         ; b7fa: 6d 9c 10    m..            ; Add remaining PTR mid
-    sta l1097                                                         ; b7fd: 8d 97 10    ...            ; Store result sector mid
+    adc wksp_new_ptr_mid_hi                                           ; b7fa: 6d 9c 10    m..            ; Add remaining PTR mid
+    sta wksp_osgbpb_sector_mid                                        ; b7fd: 8d 97 10    ...            ; Store result sector mid
     lda wksp_ch_start_sec_h,x                                         ; b800: bd b6 11    ...            ; Get channel start sector+drive
-    adc l109d                                                         ; b803: 6d 9d 10    m..            ; Add remaining PTR high
-    sta l1098                                                         ; b806: 8d 98 10    ...            ; Store result sector high
+    adc wksp_new_ptr_hi                                               ; b803: 6d 9d 10    m..            ; Add remaining PTR high
+    sta wksp_osgbpb_sector_hi                                         ; b806: 8d 98 10    ...            ; Store result sector high
     lda #2                                                            ; b809: a9 02       ..             ; A=2: compare against function code
-    cmp l10b4                                                         ; b80b: cd b4 10    ...            ; C set if write, clear if read
+    cmp wksp_osgbpb_func                                              ; b80b: cd b4 10    ...            ; C set if write, clear if read
     lda #&80                                                          ; b80e: a9 80       ..             ; A=&80: base disc command
     ror a                                                             ; b810: 6a          j              ; Rotate C to form read/write command
     jsr find_buffer_for_sector                                        ; b811: 20 d8 ab     ..            ; Find/load buffer for remaining sector; Find or allocate a buffer for a sector
     lda #0                                                            ; b814: a9 00       ..             ; A=0: clear start position
-    sta l10b6                                                         ; b816: 8d b6 10    ...            ; Store start at beginning of sector
-    lda l109a                                                         ; b819: ad 9a 10    ...            ; Get bytes remaining in buffer
-    sta l10b7                                                         ; b81c: 8d b7 10    ...            ; Store as transfer end position
+    sta wksp_osgbpb_start                                             ; b816: 8d b6 10    ...            ; Store start at beginning of sector
+    lda wksp_new_ptr_lo                                               ; b819: ad 9a 10    ...            ; Get bytes remaining in buffer
+    sta wksp_osgbpb_end                                               ; b81c: 8d b7 10    ...            ; Store as transfer end position
     jsr transfer_sector_bytes                                         ; b81f: 20 80 b9     ..            ; Transfer remaining bytes in sector; Transfer sector bytes between buffer and memory
     jmp save_and_flush_after_transfer                                 ; b822: 4c 10 b7    L..            ; Finish via save and return
 
@@ -11118,10 +11120,10 @@ la868 = check_dest_terminator+1
 .setup_osgbpb_output_buffer
     bit zp_adfs_flags                                                 ; b825: 24 cd       $.             ; Tube in use (bit 7 of flags)?
     bpl setup_output_pointer                                          ; b827: 10 23       .#             ; No Tube: skip to buffer setup
-    lda l10ba                                                         ; b829: ad ba 10    ...            ; Get output address byte 3
+    lda wksp_osgbpb_data_addr_2                                       ; b829: ad ba 10    ...            ; Get output address byte 3
     cmp #&fe                                                          ; b82c: c9 fe       ..             ; Address < &FE00?
     bcc claim_tube_for_output                                         ; b82e: 90 07       ..             ; Yes: second processor, claim Tube
-    lda l10bb                                                         ; b830: ad bb 10    ...            ; Get output address byte 4
+    lda wksp_osgbpb_data_addr_3                                       ; b830: ad bb 10    ...            ; Get output address byte 4
     cmp #&ff                                                          ; b833: c9 ff       ..             ; Address = &FFxx (host memory)?
     beq setup_output_pointer                                          ; b835: f0 15       ..             ; Yes: skip Tube claim
 ; &b837 referenced 1 time by &b82e
@@ -11141,9 +11143,9 @@ la868 = check_dest_terminator+1
 .setup_output_pointer
     lda #0                                                            ; b84c: a9 00       ..             ; A=0: clear output byte counter
     sta zp_buf_src_hi                                                 ; b84e: 85 bd       ..             ; Store zero in output byte counter
-    lda l10b8                                                         ; b850: ad b8 10    ...            ; Get output address low byte
+    lda wksp_osgbpb_data_addr                                         ; b850: ad b8 10    ...            ; Get output address low byte
     sta zp_mem_ptr_lo                                                 ; b853: 85 b2       ..             ; Store in output pointer low
-    lda l10b9                                                         ; b855: ad b9 10    ...            ; Get output address high byte
+    lda wksp_osgbpb_data_addr_1                                       ; b855: ad b9 10    ...            ; Get output address high byte
     sta zp_mem_ptr_hi                                                 ; b858: 85 b3       ..             ; Store in output pointer high
     rts                                                               ; b85a: 60          `              ; Return (buffer ready)
 
@@ -11300,7 +11302,7 @@ la868 = check_dest_terminator+1
 .read_filenames_handler
     jsr setup_osgbpb_output_buffer                                    ; b920: 20 25 b8     %.            ; Set up output buffer/Tube; Set up OSGBPB output buffer
     ldy #0                                                            ; b923: a0 00       ..             ; Y=0: clear result counter
-    sty l10b5                                                         ; b925: 8c b5 10    ...            ; Clear result file count
+    sty wksp_osgbpb_mode                                              ; b925: 8c b5 10    ...            ; Clear result file count
     lda dir_master_sequence                                           ; b928: ad fa 16    ...            ; Get directory sequence number
     sta (zp_gspb_ptr_lo),y                                            ; b92b: 91 c6       ..             ; Store in control block byte 0
     ldy #5                                                            ; b92d: a0 05       ..             ; Y=5: get requested count from block
@@ -11334,7 +11336,7 @@ la868 = check_dest_terminator+1
 .output_entries_loop
     ldy #0                                                            ; b954: a0 00       ..             ; Y=0: check first byte of entry
     lda (zp_text_ptr_lo),y                                            ; b956: b1 b4       ..             ; Get entry name byte 0
-    sta l10b5                                                         ; b958: 8d b5 10    ...            ; Store as non-zero check for output
+    sta wksp_osgbpb_mode                                              ; b958: 8d b5 10    ...            ; Store as non-zero check for output
     beq store_remaining_count                                         ; b95b: f0 14       ..             ; Zero: end of directory entries
     jsr output_dir_entry_name                                         ; b95d: 20 72 b8     r.            ; Output 10-byte entry name; Output 10-byte directory entry name
     lda zp_text_ptr_lo                                                ; b960: a5 b4       ..             ; Get entry pointer low
@@ -11368,8 +11370,8 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &b980 referenced 3 times by &b70d, &b720, &b81f
 .transfer_sector_bytes
-    lda l10b6                                                         ; b980: ad b6 10    ...            ; Get transfer start position
-    cmp l10b7                                                         ; b983: cd b7 10    ...            ; Compare with end position
+    lda wksp_osgbpb_start                                             ; b980: ad b6 10    ...            ; Get transfer start position
+    cmp wksp_osgbpb_end                                               ; b983: cd b7 10    ...            ; Compare with end position
     bne claim_tube_for_sector                                         ; b986: d0 01       ..             ; Not equal: bytes to transfer
     rts                                                               ; b988: 60          `              ; Equal: no bytes to transfer, return
 
@@ -11379,10 +11381,10 @@ la868 = check_dest_terminator+1
     sei                                                               ; b98a: 78          x              ; Disable interrupts for Tube setup
     bit zp_adfs_flags                                                 ; b98b: 24 cd       $.             ; Tube in use (bit 7 of flags)?
     bpl setup_buffer_pointers                                         ; b98d: 10 26       .&             ; No Tube: skip to direct transfer
-    lda l10ba                                                         ; b98f: ad ba 10    ...            ; Get Tube address byte 3
+    lda wksp_osgbpb_data_addr_2                                       ; b98f: ad ba 10    ...            ; Get Tube address byte 3
     cmp #&fe                                                          ; b992: c9 fe       ..             ; Address < &FE00?
     bcc set_tube_transfer_flag                                        ; b994: 90 07       ..             ; Yes: Tube address, claim it
-    lda l10bb                                                         ; b996: ad bb 10    ...            ; Get Tube address byte 4
+    lda wksp_osgbpb_data_addr_3                                       ; b996: ad bb 10    ...            ; Get Tube address byte 4
     cmp #&ff                                                          ; b999: c9 ff       ..             ; Address = &FFxx (host memory)?
     beq setup_buffer_pointers                                         ; b99b: f0 18       ..             ; Yes: skip Tube claim
 ; &b99d referenced 1 time by &b994
@@ -11391,7 +11393,7 @@ la868 = check_dest_terminator+1
     ora #&40 ; '@'                                                    ; b99f: 09 40       .@             ; OR with &40 flag
     sta zp_adfs_flags                                                 ; b9a1: 85 cd       ..             ; Store updated flags
     jsr claim_tube_retry                                              ; b9a3: 20 3b 80     ;.            ; Claim Tube for transfer
-    lda l10b4                                                         ; b9a6: ad b4 10    ...            ; Get OSGBPB function code
+    lda wksp_osgbpb_func                                              ; b9a6: ad b4 10    ...            ; Get OSGBPB function code
     cmp #3                                                            ; b9a9: c9 03       ..             ; C set if A>=3 (read from file)
     lda #0                                                            ; b9ab: a9 00       ..             ; A=0: base for Tube direction
     rol a                                                             ; b9ad: 2a          *              ; Rotate C to set direction bit
@@ -11401,16 +11403,16 @@ la868 = check_dest_terminator+1
 ; &b9b5 referenced 2 times by &b98d, &b99b
 .setup_buffer_pointers
     plp                                                               ; b9b5: 28          (              ; Restore flags
-    lda l10b8                                                         ; b9b6: ad b8 10    ...            ; Get data address low
+    lda wksp_osgbpb_data_addr                                         ; b9b6: ad b8 10    ...            ; Get data address low
     sec                                                               ; b9b9: 38          8              ; Set carry for subtraction
-    sbc l10b6                                                         ; b9ba: ed b6 10    ...            ; Subtract start offset for buffer ptr
+    sbc wksp_osgbpb_start                                             ; b9ba: ed b6 10    ...            ; Subtract start offset for buffer ptr
     sta zp_mem_ptr_lo                                                 ; b9bd: 85 b2       ..             ; Store buffer pointer low
-    lda l10b9                                                         ; b9bf: ad b9 10    ...            ; Get data address high
+    lda wksp_osgbpb_data_addr_1                                       ; b9bf: ad b9 10    ...            ; Get data address high
     sbc #0                                                            ; b9c2: e9 00       ..             ; Subtract borrow
     sta zp_mem_ptr_hi                                                 ; b9c4: 85 b3       ..             ; Store buffer pointer high
-    lda l10b4                                                         ; b9c6: ad b4 10    ...            ; Get OSGBPB function code
+    lda wksp_osgbpb_func                                              ; b9c6: ad b4 10    ...            ; Get OSGBPB function code
     cmp #3                                                            ; b9c9: c9 03       ..             ; C set if A>=3 (read from file)
-    ldy l10b6                                                         ; b9cb: ac b6 10    ...            ; Get start position as byte index
+    ldy wksp_osgbpb_start                                             ; b9cb: ac b6 10    ...            ; Get start position as byte index
     php                                                               ; b9ce: 08          .              ; Save read/write direction flag
 ; &b9cf referenced 1 time by &b9f8
 .copy_byte_loop
@@ -11443,7 +11445,7 @@ la868 = check_dest_terminator+1
 .advance_byte_position
     iny                                                               ; b9f3: c8          .              ; Next byte position
     php                                                               ; b9f4: 08          .              ; Save direction flag for next byte
-    cpy l10b7                                                         ; b9f5: cc b7 10    ...            ; Reached end position?
+    cpy wksp_osgbpb_end                                               ; b9f5: cc b7 10    ...            ; Reached end position?
     bne copy_byte_loop                                                ; b9f8: d0 d5       ..             ; No: continue copying
     plp                                                               ; b9fa: 28          (              ; Restore flags
     jmp release_tube                                                  ; b9fb: 4c 43 80    LC.            ; Release Tube and return; Release Tube if in use
@@ -11476,7 +11478,7 @@ la868 = check_dest_terminator+1
 ; &ba0c referenced 1 time by &9bca
 .mark_partial_transfer
     lda #&ff                                                          ; ba0c: a9 ff       ..             ; A=&FF: mark transfer state
-    sta l10e4                                                         ; ba0e: 8d e4 10    ...            ; Store in transfer workspace
+    sta wksp_partial_xfer_state                                       ; ba0e: 8d e4 10    ...            ; Store in transfer workspace
 ; ***************************************************************************************
 ; Check floppy disc hardware present
 ; 
@@ -11513,7 +11515,7 @@ la868 = check_dest_terminator+1
     lda #&c0                                                          ; ba2a: a9 c0       ..             ; A=&C0: read direction flag
 ; &ba2c referenced 1 time by &ba28
 .store_direction_flag
-    sta l10e0                                                         ; ba2c: 8d e0 10    ...            ; Store direction in workspace
+    sta wksp_floppy_mode                                              ; ba2c: 8d e0 10    ...            ; Store direction in workspace
     txa                                                               ; ba2f: 8a          .              ; Transfer X to A
     tsx                                                               ; ba30: ba          .              ; Save current stack pointer
     stx wksp_stack_save                                               ; ba31: 8e e7 10    ...            ; For error recovery
@@ -11564,9 +11566,9 @@ la868 = check_dest_terminator+1
 ; &ba74 referenced 1 time by &ba70
 .set_read_write_command
     sta nmi_0d5e                                                      ; ba74: 8d 5e 0d    .^.            ; Store in NMI control byte
-    ror l10e4                                                         ; ba77: 6e e4 10    n..            ; Set head-loaded flag in state
+    ror wksp_partial_xfer_state                                       ; ba77: 6e e4 10    n..            ; Set head-loaded flag in state
     sec                                                               ; ba7a: 38          8              ; Set carry
-    rol l10e4                                                         ; ba7b: 2e e4 10    ...            ; Restore head-loaded flag
+    rol wksp_partial_xfer_state                                       ; ba7b: 2e e4 10    ...            ; Restore head-loaded flag
     lda wksp_1001,x                                                   ; ba7e: bd 01 10    ...            ; Get sector address from control blk
     pha                                                               ; ba81: 48          H              ; Save sector address on stack
     lda wksp_1002,x                                                   ; ba82: bd 02 10    ...            ; Get sector address mid byte
@@ -11588,17 +11590,17 @@ la868 = check_dest_terminator+1
     sta fdc_8271_command_or_status_or_1770_drive_control              ; ba9e: 8d 80 fe    ...            ; Write to FDC control register
     ror a                                                             ; baa1: 6a          j              ; Rotate drive select into carry
     bcc set_track_and_sector                                          ; baa2: 90 0c       ..             ; C=0: not last sector, continue
-    lda l10e5                                                         ; baa4: ad e5 10    ...            ; Get previous track for drive
+    lda wksp_partial_count_1                                          ; baa4: ad e5 10    ...            ; Get previous track for drive
     sta zp_floppy_track                                               ; baa7: 85 a3       ..             ; Store as target track
-    bit l10e4                                                         ; baa9: 2c e4 10    ,..            ; Check head-loaded state
+    bit wksp_partial_xfer_state                                       ; baa9: 2c e4 10    ,..            ; Check head-loaded state
     bpl setup_nmi_for_transfer                                        ; baac: 10 0f       ..             ; Head loaded: skip restore
     bmi seek_to_track_0                                               ; baae: 30 0a       0.             ; ALWAYS branch
 
 ; &bab0 referenced 1 time by &baa2
 .set_track_and_sector
-    lda l10e6                                                         ; bab0: ad e6 10    ...            ; Get alternative track for drive
+    lda wksp_partial_count_2                                          ; bab0: ad e6 10    ...            ; Get alternative track for drive
     sta zp_floppy_track                                               ; bab3: 85 a3       ..             ; Store as target track
-    bit l10e4                                                         ; bab5: 2c e4 10    ,..            ; Check head-loaded state
+    bit wksp_partial_xfer_state                                       ; bab5: 2c e4 10    ,..            ; Check head-loaded state
     bvc setup_nmi_for_transfer                                        ; bab8: 50 03       P.             ; Not loaded: skip restore
 ; &baba referenced 1 time by &baae
 .seek_to_track_0
@@ -11627,9 +11629,9 @@ la868 = check_dest_terminator+1
     jsr fdc_write_register_verify                                     ; bad3: 20 09 bb     ..            ; Write to WD1770 register with readback verify
     cmp zp_floppy_track                                               ; bad6: c5 a3       ..             ; Compare with target track
     beq retry_after_error                                             ; bad8: f0 1a       ..             ; Already on track: skip seek; Set up track for floppy retry
-    ror l10e4                                                         ; bada: 6e e4 10    n..            ; Set head-loaded flag
+    ror wksp_partial_xfer_state                                       ; bada: 6e e4 10    n..            ; Set head-loaded flag
     sec                                                               ; badd: 38          8              ; Set carry
-    rol l10e4                                                         ; bade: 2e e4 10    ...            ; Restore head-loaded flag
+    rol wksp_partial_xfer_state                                       ; bade: 2e e4 10    ...            ; Restore head-loaded flag
     lda #&14                                                          ; bae1: a9 14       ..             ; FDC seek command (&14)
     ora nmi_0d5c                                                      ; bae3: 0d 5c 0d    .\.            ; OR in drive select bits
     sta fdc_8271_data_or_1770_command_or_status                       ; bae6: 8d 84 fe    ...            ; Issue seek command to FDC
@@ -11693,13 +11695,13 @@ la868 = check_dest_terminator+1
     tsx                                                               ; bb14: ba          .              ; Save stack pointer for error recovery
     stx wksp_stack_save                                               ; bb15: 8e e7 10    ...            ; Save stack for error recovery
     lda #&10                                                          ; bb18: a9 10       ..             ; Set transfer mode flags
-    sta l10e0                                                         ; bb1a: 8d e0 10    ...            ; Store transfer mode
+    sta wksp_floppy_mode                                              ; bb1a: 8d e0 10    ...            ; Store transfer mode
     jsr floppy_init_transfer                                          ; bb1d: 20 42 bb     B.            ; Set up NMI handler and drive select; Initialise floppy disc transfer
     jsr issue_fdc_track_command                                       ; bb20: 20 a6 bd     ..            ; Execute the read/write operation
     beq check_floppy_error_code                                       ; bb23: f0 cc       ..             ; Error: jump to floppy error handler
 ; &bb25 referenced 1 time by &ba03
 .exec_floppy_partial_sector_buf
-    sta l10e2                                                         ; bb25: 8d e2 10    ...            ; Partial sector buffer: save count
+    sta wksp_format_page                                              ; bb25: 8d e2 10    ...            ; Partial sector buffer: save count
     tsx                                                               ; bb28: ba          .              ; Save stack for error recovery
     stx wksp_stack_save                                               ; bb29: 8e e7 10    ...            ; Save stack for error recovery
     lda #&10                                                          ; bb2c: a9 10       ..             ; Workspace page for control block
@@ -11707,7 +11709,7 @@ la868 = check_dest_terminator+1
     lda #&15                                                          ; bb30: a9 15       ..             ; Control block offset
     sta zp_ctrl_blk_lo                                                ; bb32: 85 b0       ..             ; Store in (&B0)
     lda #0                                                            ; bb34: a9 00       ..             ; Clear transfer mode flags
-    sta l10e0                                                         ; bb36: 8d e0 10    ...            ; Clear transfer mode for format
+    sta wksp_floppy_mode                                              ; bb36: 8d e0 10    ...            ; Clear transfer mode for format
     jsr floppy_init_transfer                                          ; bb39: 20 42 bb     B.            ; Set up NMI handler; Initialise floppy disc transfer
     jsr floppy_format_track                                           ; bb3c: 20 58 bd     X.            ; Execute format track operation; Format a floppy disc track
     jmp floppy_error                                                  ; bb3f: 4c ae bf    L..            ; Process result/error; Handle floppy disc error
@@ -11772,9 +11774,9 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &bb82 referenced 2 times by &bb70, &bb78
 .set_read_transfer_mode
-    rol l10e0                                                         ; bb82: 2e e0 10    ...            ; Set bit 7 of transfer mode
+    rol wksp_floppy_mode                                              ; bb82: 2e e0 10    ...            ; Set bit 7 of transfer mode
     sec                                                               ; bb85: 38          8              ; Set carry for rotate
-    ror l10e0                                                         ; bb86: 6e e0 10    n..            ; Restore bit 7 set
+    ror wksp_floppy_mode                                              ; bb86: 6e e0 10    n..            ; Restore bit 7 set
 ; &bb89 referenced 1 time by &bb74
 .setup_nmi_and_step_rate
     jsr floppy_get_step_rate                                          ; bb89: 20 b4 bb     ..            ; Get floppy step rate
@@ -11797,9 +11799,9 @@ la868 = check_dest_terminator+1
     lda #0                                                            ; bb9b: a9 00       ..             ; A=0: clear error flag
     sta zp_floppy_error                                               ; bb9d: 85 a0       ..             ; Clear error code
     sta zp_floppy_state                                               ; bb9f: 85 a2       ..             ; Clear transfer state
-    lda l10e0                                                         ; bba1: ad e0 10    ...            ; Get transfer mode flags
+    lda wksp_floppy_mode                                              ; bba1: ad e0 10    ...            ; Get transfer mode flags
     ora #&20 ; ' '                                                    ; bba4: 09 20       .              ; Set bit 5 (NMI active)
-    sta l10e0                                                         ; bba6: 8d e0 10    ...            ; Store updated mode
+    sta wksp_floppy_mode                                              ; bba6: 8d e0 10    ...            ; Store updated mode
     sta zp_floppy_control                                             ; bba9: 85 a1       ..             ; Store as control flags
     lda zp_adfs_flags                                                 ; bbab: a5 cd       ..             ; Get ADFS flags
     sta nmi_0d5d                                                      ; bbad: 8d 5d 0d    .].            ; Store in NMI workspace
@@ -11871,7 +11873,7 @@ la868 = check_dest_terminator+1
     ldx #&0c                                                          ; bbdc: a2 0c       ..             ; X=&0C: service 12 (NMI claim)
     ldy #&ff                                                          ; bbde: a0 ff       ..             ; Y = NMI owner return value
     jsr osbyte                                                        ; bbe0: 20 f4 ff     ..            ; Issue service call; Issue paged ROM service call, Reason X=12 - NMI claim
-    sty l10e1                                                         ; bbe3: 8c e1 10    ...            ; Save NMI owner for release; Y contains a return argument from the ROM service call
+    sty wksp_nmi_owner                                                ; bbe3: 8c e1 10    ...            ; Save NMI owner for release; Y contains a return argument from the ROM service call
     rts                                                               ; bbe6: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -11883,7 +11885,7 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &bbe7 referenced 1 time by &bfdd
 .release_nmi
-    ldy l10e1                                                         ; bbe7: ac e1 10    ...            ; Retrieve NMI owner
+    ldy wksp_nmi_owner                                                ; bbe7: ac e1 10    ...            ; Retrieve NMI owner
     lda #osbyte_issue_service_request                                 ; bbea: a9 8f       ..             ; OSBYTE &8F: issue service request
     ldx #&0b                                                          ; bbec: a2 0b       ..             ; X=&0B: service 11 (NMI released)
     jmp osbyte                                                        ; bbee: 4c f4 ff    L..            ; Issue service call; Issue paged ROM service call, Reason X=11 - NMI released
@@ -12235,13 +12237,13 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &bd4c referenced 2 times by &bd10, &be7d
 .apply_head_load_flag
-    ror l10e4                                                         ; bd4c: 6e e4 10    n..            ; Rotate head-loaded flag to carry
+    ror wksp_partial_xfer_state                                       ; bd4c: 6e e4 10    n..            ; Rotate head-loaded flag to carry
     bcc restore_head_flag                                             ; bd4f: 90 03       ..             ; Not loaded: skip
     ora #4                                                            ; bd51: 09 04       ..             ; Set bit 2: head load delay
     clc                                                               ; bd53: 18          .              ; Clear carry (was set by SEC)
 ; &bd54 referenced 1 time by &bd4f
 .restore_head_flag
-    rol l10e4                                                         ; bd54: 2e e4 10    ...            ; Restore head-loaded flag
+    rol wksp_partial_xfer_state                                       ; bd54: 2e e4 10    ...            ; Restore head-loaded flag
     rts                                                               ; bd57: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -12253,7 +12255,7 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &bd58 referenced 1 time by &bb3c
 .floppy_format_track
-    lda l10e2                                                         ; bd58: ad e2 10    ...            ; Get format page number
+    lda wksp_format_page                                              ; bd58: ad e2 10    ...            ; Get format page number
     sta nmi_0d0f                                                      ; bd5b: 8d 0f 0d    ...            ; Store as NMI buffer high byte
     lda #0                                                            ; bd5e: a9 00       ..             ; A=0: NMI buffer low byte
     sta nmi_0d0e                                                      ; bd60: 8d 0e 0d    ...            ; Store as NMI buffer low byte
@@ -12267,7 +12269,7 @@ la868 = check_dest_terminator+1
     sta zp_floppy_dest_page                                           ; bd74: 85 a6       ..             ; Store as dest address high
     lda #0                                                            ; bd76: a9 00       ..             ; Source address low = 0
     sta zp_floppy_track                                               ; bd78: 85 a3       ..             ; Store source low
-    lda l10e2                                                         ; bd7a: ad e2 10    ...            ; Get format buffer page
+    lda wksp_format_page                                              ; bd7a: ad e2 10    ...            ; Get format buffer page
     sta zp_floppy_sector                                              ; bd7d: 85 a4       ..             ; Store source high (format data page)
     bit zp_adfs_flags                                                 ; bd7f: 24 cd       $.             ; Is Tube active?
     bvc direct_format_copy                                            ; bd81: 50 14       P.             ; No Tube: use direct memory copy
@@ -12446,9 +12448,9 @@ la868 = check_dest_terminator+1
 .check_seek_error
     lda nmi_0d5a                                                      ; be9d: ad 5a 0d    .Z.            ; Get sector position counter
     bne step_inward                                                   ; bea0: d0 45       .E             ; Non-zero: continue processing
-    ror l10e4                                                         ; bea2: 6e e4 10    n..            ; Set head-loaded flag
+    ror wksp_partial_xfer_state                                       ; bea2: 6e e4 10    n..            ; Set head-loaded flag
     sec                                                               ; bea5: 38          8              ; Set carry
-    rol l10e4                                                         ; bea6: 2e e4 10    ...            ; Restore head-loaded flag
+    rol wksp_partial_xfer_state                                       ; bea6: 2e e4 10    ...            ; Restore head-loaded flag
     lda fdc_1770_track                                                ; bea9: ad 85 fe    ...            ; Read current track from FDC
     cmp #&4f ; 'O'                                                    ; beac: c9 4f       .O             ; Track >= 79 (&4F)?
     bcc begin_step_sequence                                           ; beae: 90 1f       ..             ; No: normal track step
@@ -12543,25 +12545,25 @@ la868 = check_dest_terminator+1
 ; &bf25 referenced 1 time by &bf21
 .issue_multi_sector_rw
     sta nmi_0d5e                                                      ; bf25: 8d 5e 0d    .^.            ; Store in NMI drive control
-    ror l10e4                                                         ; bf28: 6e e4 10    n..            ; Set head-loaded flag
+    ror wksp_partial_xfer_state                                       ; bf28: 6e e4 10    n..            ; Set head-loaded flag
     sec                                                               ; bf2b: 38          8              ; Set carry
-    rol l10e4                                                         ; bf2c: 2e e4 10    ...            ; Restore head-loaded flag
+    rol wksp_partial_xfer_state                                       ; bf2c: 2e e4 10    ...            ; Restore head-loaded flag
     jsr floppy_calc_track_sector_from_block_check_range               ; bf2f: 20 55 bf     U.            ; Calculate track/sector with range chk; Calculate track/sector from block with range check
     lda nmi_0d5e                                                      ; bf32: ad 5e 0d    .^.            ; Get NMI drive control byte
     sta fdc_8271_command_or_status_or_1770_drive_control              ; bf35: 8d 80 fe    ...            ; Write to FDC control register
     ror a                                                             ; bf38: 6a          j              ; Rotate bit 0 to carry
     bcc handle_sector_error                                           ; bf39: 90 0c       ..             ; C=0: last access was other drive
-    lda l10e5                                                         ; bf3b: ad e5 10    ...            ; Get saved track for this drive
+    lda wksp_partial_count_1                                          ; bf3b: ad e5 10    ...            ; Get saved track for this drive
     sta zp_floppy_track                                               ; bf3e: 85 a3       ..             ; Store as current track
-    bit l10e4                                                         ; bf40: 2c e4 10    ,..            ; Check head-loaded state
+    bit wksp_partial_xfer_state                                       ; bf40: 2c e4 10    ,..            ; Check head-loaded state
     bpl return_48                                                     ; bf43: 10 0f       ..             ; Head loaded: no seek needed
     bmi restore_track_zero                                            ; bf45: 30 0a       0.             ; Branch (always); ALWAYS branch
 
 ; &bf47 referenced 1 time by &bf39
 .handle_sector_error
-    lda l10e6                                                         ; bf47: ad e6 10    ...            ; Get saved track for other drive
+    lda wksp_partial_count_2                                          ; bf47: ad e6 10    ...            ; Get saved track for other drive
     sta zp_floppy_track                                               ; bf4a: 85 a3       ..             ; Store as current track
-    bit l10e4                                                         ; bf4c: 2c e4 10    ,..            ; Check head-loaded state
+    bit wksp_partial_xfer_state                                       ; bf4c: 2c e4 10    ,..            ; Check head-loaded state
     bvc return_48                                                     ; bf4f: 50 03       P.             ; Not loaded: need seek
 ; &bf51 referenced 1 time by &bf45
 .restore_track_zero
@@ -12673,24 +12675,24 @@ la868 = check_dest_terminator+1
 .floppy_error
     ldx wksp_stack_save                                               ; bfae: ae e7 10    ...            ; Restore stack pointer from saved val
     txs                                                               ; bfb1: 9a          .              ; Restore stack from saved pointer
-    lda l10e0                                                         ; bfb2: ad e0 10    ...            ; Check if NMI was in use
+    lda wksp_floppy_mode                                              ; bfb2: ad e0 10    ...            ; Check if NMI was in use
     and #&20 ; ' '                                                    ; bfb5: 29 20       )              ; Bit 5: NMI active?
     beq release_tube_after_floppy                                     ; bfb7: f0 27       .'             ; No NMI, skip to Tube release
     lda nmi_0d5e                                                      ; bfb9: ad 5e 0d    .^.            ; Get NMI status byte
     ror a                                                             ; bfbc: 6a          j              ; Rotate bit 0 into carry
     lda zp_floppy_track                                               ; bfbd: a5 a3       ..             ; Get partial transfer count
     bcc store_second_partial                                          ; bfbf: 90 0c       ..             ; C=0: store as second count
-    sta l10e5                                                         ; bfc1: 8d e5 10    ...            ; C=1: store as first count
-    rol l10e4                                                         ; bfc4: 2e e4 10    ...            ; Set bit 6 of transfer flag
+    sta wksp_partial_count_1                                          ; bfc1: 8d e5 10    ...            ; C=1: store as first count
+    rol wksp_partial_xfer_state                                       ; bfc4: 2e e4 10    ...            ; Set bit 6 of transfer flag
     clc                                                               ; bfc7: 18          .              ; Clear carry
-    ror l10e4                                                         ; bfc8: 6e e4 10    n..            ; Clear bit 0 of transfer flag
+    ror wksp_partial_xfer_state                                       ; bfc8: 6e e4 10    n..            ; Clear bit 0 of transfer flag
     bcs save_error_and_release_nmi                                    ; bfcb: b0 0b       ..             ; Branch if first partial sector
 ; &bfcd referenced 1 time by &bfbf
 .store_second_partial
-    sta l10e6                                                         ; bfcd: 8d e6 10    ...            ; Store as second count
-    lda l10e4                                                         ; bfd0: ad e4 10    ...            ; Get transfer state flags
+    sta wksp_partial_count_2                                          ; bfcd: 8d e6 10    ...            ; Store as second count
+    lda wksp_partial_xfer_state                                       ; bfd0: ad e4 10    ...            ; Get transfer state flags
     and #&bf                                                          ; bfd3: 29 bf       ).             ; Clear bit 6
-    sta l10e4                                                         ; bfd5: 8d e4 10    ...            ; Store updated flags
+    sta wksp_partial_xfer_state                                       ; bfd5: 8d e4 10    ...            ; Store updated flags
 ; &bfd8 referenced 1 time by &bfcb
 .save_error_and_release_nmi
     lda zp_floppy_error                                               ; bfd8: a5 a0       ..             ; Get error code from zp_a0
@@ -12704,7 +12706,7 @@ la868 = check_dest_terminator+1
     beq return_error_code                                             ; bfe8: f0 07       ..             ; Zero = no error, return success
     ora #&40 ; '@'                                                    ; bfea: 09 40       .@             ; Set bit 6: disc error flag
     ldy #&ff                                                          ; bfec: a0 ff       ..             ; Y=&FF: mark transfer incomplete
-    sty l10e4                                                         ; bfee: 8c e4 10    ...            ; Mark transfer as incomplete
+    sty wksp_partial_xfer_state                                       ; bfee: 8c e4 10    ...            ; Mark transfer as incomplete
 ; &bff1 referenced 1 time by &bfe8
 .return_error_code
     ldy zp_ctrl_blk_hi                                                ; bff1: a4 b1       ..             ; Restore control block ptr high
@@ -12728,7 +12730,6 @@ la868 = check_dest_terminator+1
     assert <(fsc0_star_opt-1) == &dc
     assert <(fsc6_new_filing_system-1) == &3b
     assert <(fsc7_read_handle_range-1) == &d7
-    assert <(l10c8) == &c8
     assert <(print_catalogue_entries-1) == &cd
     assert <(service_handler_0-1) == &b7
     assert <(service_handler_1-1) == &ce
@@ -12741,12 +12742,12 @@ la868 = check_dest_terminator+1
     assert <(star_run-1) == &98
     assert <(str_e_boot) == &85
     assert <(svc5_irq-1) == &77
+    assert <(wksp_path_drive) == &c8
     assert >(check_compaction_recommended-1) == &a0
     assert >(check_eof_for_handle-1) == &ad
     assert >(fsc0_star_opt-1) == &9f
     assert >(fsc6_new_filing_system-1) == &a9
     assert >(fsc7_read_handle_range-1) == &9f
-    assert >(l10c8) == &10
     assert >(print_catalogue_entries-1) == &93
     assert >(service_handler_0-1) == &9a
     assert >(service_handler_1-1) == &9a
@@ -12759,6 +12760,7 @@ la868 = check_dest_terminator+1
     assert >(star_run-1) == &a3
     assert >(str_e_boot) == &9a
     assert >(svc5_irq-1) == &ab
+    assert >(wksp_path_drive) == &10
     assert copyright - rom_header == &18
     assert osfile_delete_handler-1 == &9100
     assert osfile_load_handler-1 == &8f73
@@ -12791,17 +12793,17 @@ save pydis_start, pydis_end
 ;     wksp_saved_drive:                                  23
 ;     fred_hard_drive_0:                                 22
 ;     wksp_csd_drive_sector:                             21
-;     l10e4:                                             20
 ;     wksp_ch_flags:                                     20
+;     wksp_partial_xfer_state:                           20
 ;     zp_floppy_state:                                   20
 ;     fsm_s1_total_sectors_lo:                           19
 ;     print_inline_string:                               19
 ;     zp_mem_ptr_hi:                                     19
 ;     check_char_is_terminator:                          18
-;     l10a2:                                             18
 ;     wksp_ch_ext_h:                                     18
 ;     wksp_ch_ext_mh:                                    18
 ;     wksp_ch_ext_ml:                                    18
+;     wksp_copy_read_sector:                             18
 ;     zp_floppy_track:                                   18
 ;     osbyte:                                            17
 ;     romsel_copy:                                       17
@@ -12826,34 +12828,31 @@ save pydis_start, pydis_end
 ;     wksp_disc_op_sector:                               13
 ;     zp_name_ptr_lo:                                    13
 ;     zp_osfile_ptr_hi:                                  13
-;     l109a:                                             12
 ;     wksp_alt_sector_hi:                                12
 ;     wksp_compact_length:                               12
+;     wksp_new_ptr_lo:                                   12
 ;     wksp_object_size:                                  12
 ;     bad_compact_error:                                 11
 ;     brk_error_block:                                   11
 ;     fsm_sector_1:                                      11
-;     l109b:                                             11
-;     l109c:                                             11
-;     l109d:                                             11
-;     l10a8:                                             11
-;     l10b4:                                             11
 ;     nmi_0d5e:                                          11
 ;     skip_spaces:                                       11
 ;     tube_data_register_3:                              11
+;     wksp_copy_src_sector:                              11
 ;     wksp_disc_op_sector_lo:                            11
+;     wksp_new_ptr_hi:                                   11
+;     wksp_new_ptr_mid:                                  11
+;     wksp_new_ptr_mid_hi:                               11
+;     wksp_osgbpb_func:                                  11
 ;     zp_buf_dest_lo:                                    11
-;     l1098:                                             10
 ;     oswrch:                                            10
 ;     wksp_alloc_sector:                                 10
 ;     wksp_ch_start_sec_mh:                              10
 ;     wksp_ch_start_sec_ml:                              10
 ;     wksp_cur_channel:                                  10
+;     wksp_osgbpb_sector_hi:                             10
 ;     zp_ctrl_blk_hi:                                    10
 ;     dir_master_sequence:                                9
-;     l106f:                                              9
-;     l1096:                                              9
-;     l1097:                                              9
 ;     nmi_0d58:                                           9
 ;     output_byte_to_buffer:                              9
 ;     print_hex_byte:                                     9
@@ -12862,6 +12861,9 @@ save pydis_start, pydis_end
 ;     wksp_compact_start_page:                            9
 ;     wksp_disc_op_mem_addr:                              9
 ;     wksp_disc_op_sector_mid:                            9
+;     wksp_drive_number:                                  9
+;     wksp_osgbpb_sector_lo:                              9
+;     wksp_osgbpb_sector_mid:                             9
 ;     zp_user_ptr_0:                                      9
 ;     zp_user_ptr_1:                                      9
 ;     zp_user_ptr_2:                                      9
@@ -12871,24 +12873,23 @@ save pydis_start, pydis_end
 ;     exec_disc_command:                                  8
 ;     exec_disc_op_from_wksp:                             8
 ;     fdc_8271_data_or_1770_command_or_status:            8
-;     l10a5:                                              8
-;     l10b5:                                              8
-;     l10b6:                                              8
-;     l10d2:                                              8
-;     l10e0:                                              8
 ;     parse_path_and_load:                                8
 ;     print_space:                                        8
 ;     save_workspace_state:                               8
 ;     tube_entry:                                         8
+;     wksp_copy_write_sector:                             8
 ;     wksp_csd_sector_hi:                                 8
 ;     wksp_disc_op_mem_addr_2:                            8
+;     wksp_err_sector_hi:                                 8
+;     wksp_floppy_mode:                                   8
 ;     wksp_object_sector_mid:                             8
 ;     wksp_osfile_block_1:                                8
+;     wksp_osgbpb_mode:                                   8
+;     wksp_osgbpb_start:                                  8
 ;     bad_checksum_error:                                 7
 ;     check_first_char_wildcard:                          7
 ;     command_done:                                       7
 ;     floppy_error:                                       7
-;     l10a4:                                              7
 ;     nmi_0df0:                                           7
 ;     nmi_0dfd:                                           7
 ;     os_text_ptr:                                        7
@@ -12900,6 +12901,7 @@ save pydis_start, pydis_end
 ;     wksp_ch_alloc_h:                                    7
 ;     wksp_ch_alloc_mh:                                   7
 ;     wksp_ch_alloc_ml:                                   7
+;     wksp_copy_read_sector_2:                            7
 ;     wksp_csd_name:                                      7
 ;     wksp_csd_sector_mid:                                7
 ;     wksp_disc_op_xfer_len_1:                            7
@@ -12922,9 +12924,6 @@ save pydis_start, pydis_end
 ;     floppy_wait_nmi_finish:                             6
 ;     generate_disc_error:                                6
 ;     generate_error:                                     6
-;     l10a3:                                              6
-;     l10b7:                                              6
-;     l10cd:                                              6
 ;     next_conflict_check:                                6
 ;     nmi_0d59:                                           6
 ;     no_open_files_on_drive:                             6
@@ -12934,8 +12933,11 @@ save pydis_start, pydis_end
 ;     scsi_send_cmd_byte:                                 6
 ;     wksp_alloc_size:                                    6
 ;     wksp_ch_alloc_l:                                    6
+;     wksp_copy_read_sector_1:                            6
 ;     wksp_current_drive_hi:                              6
 ;     wksp_object_size_mid:                               6
+;     wksp_osgbpb_end:                                    6
+;     wksp_path_wksp_cd:                                  6
 ;     wksp_temp_sector:                                   6
 ;     xa_div_16_to_ya:                                    6
 ;     zp_retry_count:                                     6
@@ -12948,13 +12950,6 @@ save pydis_start, pydis_end
 ;     fdc_write_register_verify:                          5
 ;     fsm_s0_checksum:                                    5
 ;     fsm_s1_boot_option:                                 5
-;     l1095:                                              5
-;     l10a6:                                              5
-;     l10a7:                                              5
-;     l10aa:                                              5
-;     l10b8:                                              5
-;     l10b9:                                              5
-;     l10c2:                                              5
 ;     mark_directory_dirty:                               5
 ;     nmi_0d57:                                           5
 ;     nmi_0d5c:                                           5
@@ -12965,9 +12960,16 @@ save pydis_start, pydis_end
 ;     tbl_commands:                                       5
 ;     update_channel_flags_for_ptr:                       5
 ;     wait_data_phase:                                    5
+;     wksp_copy_src_sector_2:                             5
+;     wksp_copy_write_sector_1:                           5
+;     wksp_copy_write_sector_2:                           5
 ;     wksp_last_access_drive:                             5
 ;     wksp_object_size_hi:                                5
+;     wksp_osgbpb_data_addr:                              5
+;     wksp_osgbpb_data_addr_1:                            5
+;     wksp_osgbpb_end_ptr:                                5
 ;     wksp_prev_dir_sector_hi:                            5
+;     wksp_search_result_2:                               5
 ;     zp_buf_src_hi:                                      5
 ;     zp_buf_src_lo:                                      5
 ;     zp_osbyte_last_x:                                   5
@@ -12993,11 +12995,6 @@ save pydis_start, pydis_end
 ;     get_object_type_result:                             4
 ;     get_wksp_addr_ba:                                   4
 ;     init_channel_complete:                              4
-;     l1070:                                              4
-;     l10c0:                                              4
-;     l10ce:                                              4
-;     l10cf:                                              4
-;     l10d1:                                              4
 ;     multi_sector_disc_command:                          4
 ;     nmi_0d0e:                                           4
 ;     nmi_0d0f:                                           4
@@ -13026,8 +13023,13 @@ save pydis_start, pydis_end
 ;     wksp_disc_op_transfer_len:                          4
 ;     wksp_disc_op_xfer_len_2:                            4
 ;     wksp_err_number:                                    4
+;     wksp_err_sector_mid:                                4
+;     wksp_modify_flag:                                   4
+;     wksp_new_parent_sector:                             4
 ;     wksp_object_name:                                   4
 ;     wksp_osfile_load_addr:                              4
+;     wksp_path_wksp_ce:                                  4
+;     wksp_search_result:                                 4
 ;     wksp_stack_save:                                    4
 ;     write_dir_and_release:                              4
 ;     zp_osfind_y:                                        4
@@ -13063,23 +13065,6 @@ save pydis_start, pydis_end
 ;     hd_init_detect:                                     3
 ;     hex_digit:                                          3
 ;     invalidate_fsm_and_dir:                             3
-;     l104f:                                              3
-;     l1052:                                              3
-;     l1074:                                              3
-;     l1092:                                              3
-;     l1093:                                              3
-;     l1094:                                              3
-;     l109e:                                              3
-;     l109f:                                              3
-;     l10a0:                                              3
-;     l10ab:                                              3
-;     l10ba:                                              3
-;     l10bb:                                              3
-;     l10d6:                                              3
-;     l10d8:                                              3
-;     l10e2:                                              3
-;     l10e5:                                              3
-;     l10e6:                                              3
 ;     load_sector_to_buffer:                              3
 ;     mark_buffer_dirty:                                  3
 ;     nmi_0d0a:                                           3
@@ -13122,9 +13107,26 @@ save pydis_start, pydis_end
 ;     wksp_1122:                                          3
 ;     wksp_1131:                                          3
 ;     wksp_1132:                                          3
+;     wksp_ch_buf_sector:                                 3
+;     wksp_cmd_tail:                                      3
+;     wksp_copy_dest_sector:                              3
 ;     wksp_csd_drive_temp:                                3
+;     wksp_dest_name:                                     3
+;     wksp_entry_save:                                    3
+;     wksp_entry_save_hi:                                 3
 ;     wksp_fdc_cmd_step:                                  3
+;     wksp_filename_save_hi:                              3
+;     wksp_format_page:                                   3
+;     wksp_new_ptr_4:                                     3
+;     wksp_osfile_attr:                                   3
+;     wksp_osfile_end_addr_1:                             3
+;     wksp_osgbpb_data_addr_2:                            3
+;     wksp_osgbpb_data_addr_3:                            3
+;     wksp_osgbpb_wksp_9f:                                3
+;     wksp_partial_count_1:                               3
+;     wksp_partial_count_2:                               3
 ;     wksp_saved_count:                                   3
+;     wksp_screen_mode_save:                              3
 ;     wksp_shadow_save:                                   3
 ;     wksp_tube_transfer_addr_1:                          3
 ;     wksp_tube_xfer_addr_2:                              3
@@ -13223,20 +13225,6 @@ save pydis_start, pydis_end
 ;     init_root_dir_entries:                              2
 ;     insert_new_entry:                                   2
 ;     issue_fdc_command:                                  2
-;     l106c:                                              2
-;     l1089:                                              2
-;     l108c:                                              2
-;     l1091:                                              2
-;     l10a1:                                              2
-;     l10a9:                                              2
-;     l10bc:                                              2
-;     l10bf:                                              2
-;     l10c1:                                              2
-;     l10c3:                                              2
-;     l10c8:                                              2
-;     l10d4:                                              2
-;     l10e1:                                              2
-;     l10fe:                                              2
 ;     l9316:                                              2
 ;     l9dd3:                                              2
 ;     last_break_type:                                    2
@@ -13353,14 +13341,28 @@ save pydis_start, pydis_end
 ;     wksp:                                               2
 ;     wksp_100d:                                          2
 ;     wksp_alloc_size_hi:                                 2
+;     wksp_alt_csd_sector:                                2
+;     wksp_ch_buf_sector_1:                               2
+;     wksp_copy_osfile_exec:                              2
+;     wksp_copy_osfile_params:                            2
+;     wksp_copy_src_sector_1:                             2
 ;     wksp_csd_drive_sector_mid:                          2
+;     wksp_err_channel:                                   2
 ;     wksp_err_code:                                      2
+;     wksp_filename_save:                                 2
 ;     wksp_flags_save:                                    2
 ;     wksp_lib_name:                                      2
 ;     wksp_lib_sector_mid:                                2
+;     wksp_nmi_owner:                                     2
 ;     wksp_osfile_load_addr_1:                            2
+;     wksp_osgbpb_wksp_bc:                                2
+;     wksp_path_drive:                                    2
 ;     wksp_prev_dir_sector_mid:                           2
 ;     wksp_saved_count_1:                                 2
+;     wksp_saved_dir_sector:                              2
+;     wksp_saved_drive_2:                                 2
+;     wksp_search_result_1:                               2
+;     wksp_search_result_3:                               2
 ;     write_dirty_sector_to_disc:                         2
 ;     write_entry_sector_info:                            2
 ;     zp_buf_dest_hi:                                     2
@@ -13758,29 +13760,6 @@ save pydis_start, pydis_end
 ;     issue_multi_sector_rw:                              1
 ;     issue_step_command:                                 1
 ;     jmp_indirect_fscv:                                  1
-;     l1046:                                              1
-;     l1047:                                              1
-;     l1048:                                              1
-;     l1049:                                              1
-;     l104a:                                              1
-;     l104b:                                              1
-;     l104c:                                              1
-;     l104d:                                              1
-;     l1050:                                              1
-;     l1053:                                              1
-;     l1054:                                              1
-;     l1063:                                              1
-;     l1073:                                              1
-;     l107e:                                              1
-;     l107f:                                              1
-;     l1080:                                              1
-;     l108d:                                              1
-;     l10ac:                                              1
-;     l10ad:                                              1
-;     l10c9:                                              1
-;     l10ca:                                              1
-;     l10cb:                                              1
-;     l10cc:                                              1
 ;     l941f:                                              1
 ;     l9ee4:                                              1
 ;     l9ee5:                                              1
@@ -14184,9 +14163,32 @@ save pydis_start, pydis_end
 ;     wksp_access_accum_1:                                1
 ;     wksp_alloc_size_mid:                                1
 ;     wksp_ch_alloc_pad:                                  1
+;     wksp_copy_dest_params:                              1
+;     wksp_copy_dest_sector_1:                            1
+;     wksp_copy_dest_sector_2:                            1
+;     wksp_copy_name_ptr:                                 1
+;     wksp_copy_name_ptr_hi:                              1
+;     wksp_dest_drive:                                    1
+;     wksp_dest_filename_end:                             1
 ;     wksp_free_space_total:                              1
 ;     wksp_lib_sector_lo:                                 1
+;     wksp_object_name_1:                                 1
+;     wksp_osfile_attr_1:                                 1
+;     wksp_osfile_attr_2:                                 1
+;     wksp_osfile_end_addr_2:                             1
+;     wksp_osfile_exec_addr:                              1
+;     wksp_osfile_exec_addr_1:                            1
+;     wksp_osfile_exec_addr_2:                            1
+;     wksp_osfile_exec_addr_3:                            1
+;     wksp_osfile_start_addr:                             1
+;     wksp_osfile_start_addr_1:                           1
+;     wksp_osfile_start_addr_2:                           1
+;     wksp_osfile_start_addr_3:                           1
 ;     wksp_osword_block:                                  1
+;     wksp_path_sector:                                   1
+;     wksp_path_sector_1:                                 1
+;     wksp_path_sector_2:                                 1
+;     wksp_path_wksp_cc:                                  1
 ;     wksp_prev_dir_sector_lo:                            1
 ;     wksp_tube_transfer_addr:                            1
 ;     wksp_tube_xfer_addr_3:                              1
@@ -14218,93 +14220,6 @@ save pydis_start, pydis_end
 
 ; Automatically generated labels:
 ;     c8dab
-;     l1046
-;     l1047
-;     l1048
-;     l1049
-;     l104a
-;     l104b
-;     l104c
-;     l104d
-;     l104f
-;     l1050
-;     l1052
-;     l1053
-;     l1054
-;     l1063
-;     l106c
-;     l106f
-;     l1070
-;     l1073
-;     l1074
-;     l107e
-;     l107f
-;     l1080
-;     l1089
-;     l108c
-;     l108d
-;     l1091
-;     l1092
-;     l1093
-;     l1094
-;     l1095
-;     l1096
-;     l1097
-;     l1098
-;     l109a
-;     l109b
-;     l109c
-;     l109d
-;     l109e
-;     l109f
-;     l10a0
-;     l10a1
-;     l10a2
-;     l10a3
-;     l10a4
-;     l10a5
-;     l10a6
-;     l10a7
-;     l10a8
-;     l10a9
-;     l10aa
-;     l10ab
-;     l10ac
-;     l10ad
-;     l10b4
-;     l10b5
-;     l10b6
-;     l10b7
-;     l10b8
-;     l10b9
-;     l10ba
-;     l10bb
-;     l10bc
-;     l10bf
-;     l10c0
-;     l10c1
-;     l10c2
-;     l10c3
-;     l10c8
-;     l10c9
-;     l10ca
-;     l10cb
-;     l10cc
-;     l10cd
-;     l10ce
-;     l10cf
-;     l10d1
-;     l10d2
-;     l10d4
-;     l10d6
-;     l10d8
-;     l10e0
-;     l10e1
-;     l10e2
-;     l10e4
-;     l10e5
-;     l10e6
-;     l10fe
 ;     l941f
 ;     l9dd3
 ;     l9ee4
