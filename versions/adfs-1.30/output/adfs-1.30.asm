@@ -816,7 +816,7 @@ nmi_patched_addr            = &ffff
     bne hd_command                                                    ; 80ca: d0 21       .!             ; Yes, use hard drive command
 ; &80cc referenced 1 time by &80f4
 .command_exec_floppy_op
-    jsr do_floppy_scsi_command_ind                                    ; 80cc: 20 00 ba     ..            ; Floppy disc operation
+    jsr floppy_command_ind                                            ; 80cc: 20 00 ba     ..            ; Floppy disc operation
     beq return_4                                                      ; 80cf: f0 1b       ..             ; Success, return
     pha                                                               ; 80d1: 48          H              ; Save error code
     ldy #6                                                            ; 80d2: a0 06       ..             ; Byte 6: drive + sector high
@@ -11623,11 +11623,11 @@ la868 = check_dest_terminator+1
 ; Floppy disc command (indirect entry)
 ; 
 ; Indirect entry point for floppy disc operations.
-; Jumps through to do_floppy_scsi_command.
+; Jumps through to floppy_command.
 ; 
 ; &ba00 referenced 1 time by &80cc
-.do_floppy_scsi_command_ind
-    jmp do_floppy_scsi_command                                        ; ba00: 4c 14 bb    L..            ; Execute floppy disc command
+.floppy_command_ind
+    jmp floppy_command                                                ; ba00: 4c 14 bb    L..            ; Execute floppy disc command
 
 ; &ba03 referenced 1 time by &8b3e
 .exec_floppy_partial_sector_buf_ind
@@ -11861,7 +11861,7 @@ la868 = check_dest_terminator+1
 ; format operations.
 ; 
 ; &bb14 referenced 1 time by &ba00
-.do_floppy_scsi_command
+.floppy_command
     tsx                                                               ; bb14: ba          .              ; Save stack pointer for error recovery
     stx wksp_stack_save                                               ; bb15: 8e e7 10    ...            ; Save stack for error recovery
     lda #&10                                                          ; bb18: a9 10       ..             ; Set transfer mode flags
@@ -13798,8 +13798,6 @@ save pydis_start, pydis_end
 ;     dispatch_dir_info_handler:                1
 ;     dispatch_dir_operations:                  1
 ;     dispatch_service_call:                    1
-;     do_floppy_scsi_command:                   1
-;     do_floppy_scsi_command_ind:               1
 ;     end_of_command_name:                      1
 ;     end_of_dir_entries:                       1
 ;     end_of_table_name:                        1
@@ -13834,6 +13832,8 @@ save pydis_start, pydis_end
 ;     find_free_slot_loop:                      1
 ;     find_fsm_position:                        1
 ;     floppy_check_present:                     1
+;     floppy_command:                           1
+;     floppy_command_ind:                       1
 ;     floppy_format_track:                      1
 ;     floppy_partial_sector:                    1
 ;     floppy_ts_block_check_range:              1

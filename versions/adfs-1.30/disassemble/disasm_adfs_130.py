@@ -871,7 +871,7 @@ entry(0xB57F)
 label(0xB57F, "osgbpb_handler")
 
 # Floppy disc driver entry points (indirect jump table)
-label(0xBA00, "do_floppy_scsi_command_ind")
+label(0xBA00, "floppy_command_ind")
 label(0xBA03, "exec_floppy_partial_sector_buf_ind")
 label(0xBA06, "exec_floppy_write_bput_sector_ind")
 label(0xBA09, "exec_floppy_read_bput_sector_ind")
@@ -882,7 +882,7 @@ label(0xBA26, "exec_floppy_write_bput_sector")
 entry(0xBA2A)
 label(0xBA2A, "exec_floppy_read_bput_sector")
 entry(0xBB14)
-label(0xBB14, "do_floppy_scsi_command")
+label(0xBB14, "floppy_command")
 entry(0xBB25)
 label(0xBB25, "exec_floppy_partial_sector_buf")
 entry(0xBBB4)
@@ -4448,7 +4448,7 @@ comment(0xBBEA, "OSBYTE &8F: issue service request", inline=True)
 comment(0xBBEC, "X=&0B: service 11 (NMI released)", inline=True)
 comment(0xBBEE, "Issue service call", inline=True)
 
-# do_floppy_scsi_command (&BB14)
+# floppy_command (&BB14)
 # Main entry point for floppy disc operations. Saves the stack
 # for error recovery, sets up the control block, then dispatches
 # to the appropriate read/write/format handler.
@@ -4787,7 +4787,7 @@ comment(0x82FE, "Non-zero result: SCSI error", inline=True)
 label(0x8301, "scsi_send_byte_wrapper")
 comment(0x8301, "Send byte and return status", inline=True)
 
-# do_floppy_scsi_command_ind (&BA00)
+# floppy_command_ind (&BA00)
 # Indirect jump table for floppy disc operations.
 # These are called from the main command_exec code
 # and redirect to the actual floppy driver routines.
@@ -8871,7 +8871,7 @@ comment(0xA4F1, "No overflow, return", inline=True)
 comment(0xA4F3, "Increment pointer high on overflow", inline=True)
 comment(0xA4F5, "Return", inline=True)
 
-# do_floppy_scsi_command - remaining items
+# floppy_command - remaining items
 comment(0xBB15, "Save stack for error recovery", inline=True)
 comment(0xBB1A, "Store transfer mode", inline=True)
 comment(0xBB29, "Save stack for error recovery", inline=True)
@@ -11030,11 +11030,11 @@ filing system is being selected. Ensures all files are
 closed and workspace is saved.
 """)
 
-subroutine(0xBA00, "do_floppy_scsi_command_ind",
+subroutine(0xBA00, "floppy_command_ind",
     title="Floppy disc command (indirect entry)",
     description="""\
 Indirect entry point for floppy disc operations.
-Jumps through to do_floppy_scsi_command.
+Jumps through to floppy_command.
 """)
 
 subroutine(0xBA11, "floppy_check_present",
@@ -11046,7 +11046,7 @@ by probing its registers.
     on_exit={"a": "corrupted (C set if present, clear if not)",
              "x": "preserved", "y": "preserved"})
 
-subroutine(0xBB14, "do_floppy_scsi_command",
+subroutine(0xBB14, "floppy_command",
     title="Execute floppy disc command",
     description="""\
 Execute a disc operation on the floppy disc using the
