@@ -7158,8 +7158,8 @@ help_param_none = help_param_title+7
 ;     Y: &39 (highest handle)
 ; ***************************************************************************************
 .fsc7_read_handle_range
-    ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0             ; X=&30: lowest ADFS file handle; X=&30: *CAT address low
-    ldy #&39 ; '9'                                                    ; 9fda: a0 39       .9             ; Y=&39: highest ADFS file handle; Y=&39: *CAT address high
+    ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0             ; X=&30: lowest ADFS file handle; X=&30: lowest ADFS file handle
+    ldy #&39 ; '9'                                                    ; 9fda: a0 39       .9             ; Y=&39: highest ADFS file handle; Y=&39: highest ADFS file handle
     rts                                                               ; 9fdc: 60          `              ; Return X=&30, Y=&39 to MOS; Return to FSC dispatcher
 
 ; ***************************************************************************************
