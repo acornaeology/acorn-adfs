@@ -3815,12 +3815,12 @@ label(0x8F8E, "read_osfile_cat_fields_loop")
 label(0x8FDF, "find_first_matching_entry")
 label(0x8FEA, "validate_fsm_and_mark_dirty")
 label(0x8FFA, "bad_fs_map_error")
-label(0x9009, "print_newline_and_entry")
-label(0x9010, "print_entry_name_loop")
-label(0x902C, "print_space_after_name")
-label(0x902F, "print_padding_spaces_loop")
-label(0x903E, "print_access_flags_loop")
-label(0x904C, "print_no_access_flag")
+label(0x9009, "validate_fsm_entries")
+label(0x9010, "check_fsm_entry_loop")
+label(0x902C, "check_fsm_ordering")
+label(0x902F, "add_entry_size_loop")
+label(0x903E, "compare_with_next_entry_loop")
+label(0x904C, "discard_comparison_bytes")
 label(0x905C, "calc_fsm_checksums")
 label(0x9060, "checksum_s0_loop")
 label(0x906A, "checksum_s1_loop")
@@ -3854,7 +3854,7 @@ label(0x9212, "write_dir_and_release")
 label(0x921B, "check_csd_deleted")
 label(0x921F, "check_lib_deleted")
 label(0x9229, "check_prev_dir_deleted")
-label(0x927B, "setup_entry_name_ptr")
+label(0x927B, "setup_help_param_ptr")
 label(0x9287, "print_padded_name")
 label(0x9289, "print_name_char_loop")
 label(0x9299, "pad_with_spaces")
@@ -11533,8 +11533,8 @@ Iterate all channel entries, flushing dirty buffers to disc
 and clearing state flags. Used by OSARGS A=&FF.
 """)
 
-subroutine(0x927B, "setup_entry_name_ptr",
-    title="Set up entry name pointer for star commands",
+subroutine(0x927B, "setup_help_param_ptr",
+    title="Set up pointer to *HELP parameter format string",
     description="""\
 Point (zp_entry_ptr) to a pathname format string in ROM
 and prepare to print up to 12 characters.
@@ -12016,7 +12016,7 @@ Functions: 0=save, 1=write cat info, 2=write load addr,
 6=delete, 7=create.
 """)
 
-subroutine(0x9316, "l9316",
+subroutine(0x9316, "tbl_access_chars",
     title="Access attribute character table",
     description="""\
 Five-character table 'RWLDE' used to look up and display

@@ -3882,7 +3882,7 @@ nmi_patched_addr                                = &ffff
 ; &8f86 referenced 17 times by &897f, &8f80, &90fb, &9238, &96ac, &97d4, &99c3, &a007, &a273, &a5df, &a5f8, &a663, &a6c4, &a933, &af4f, &b35d, &b462
 .write_dir_and_validate
     jsr verify_dir_integrity                                          ; 8f86: 20 de a6     ..            ; Verify directory integrity
-    jsr print_newline_and_entry                                       ; 8f89: 20 09 90     ..            ; Get (&B6) pointer
+    jsr validate_fsm_entries                                          ; 8f89: 20 09 90     ..            ; Get (&B6) pointer
     ldx #&0a                                                          ; 8f8c: a2 0a       ..             ; Get (&B7) pointer
 ; &8f8e referenced 1 time by &8f95
 .read_osfile_cat_fields_loop
@@ -3951,7 +3951,7 @@ nmi_patched_addr                                = &ffff
 ; 
 ; &8fea referenced 5 times by &8fe4, &9ffa, &a255, &a754, &a872
 .validate_fsm_and_mark_dirty
-    jsr print_newline_and_entry                                       ; 8fea: 20 09 90     ..
+    jsr validate_fsm_entries                                          ; 8fea: 20 09 90     ..
     jsr calc_fsm_checksums                                            ; 8fed: 20 5c 90     \.            ; Mark directory as modified
     cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Verify directory
     bne bad_fs_map_error                                              ; 8ff3: d0 05       ..             ; Point to first entry
@@ -3970,12 +3970,12 @@ nmi_patched_addr                                = &ffff
     equs "Bad FS map", 0                                              ; 8ffe: 42 61 64... Bad
 
 ; &9009 referenced 2 times by &8f89, &8fea
-.print_newline_and_entry
+.validate_fsm_entries
     ldx fsm_s1_total_sectors_lo                                       ; 9009: ae fe 0f    ...            ; Get FSM end-of-list pointer
     beq return_18                                                     ; 900c: f0 db       ..             ; Empty: return OK
     lda #0                                                            ; 900e: a9 00       ..             ; A=0: init check accumulator
 ; &9010 referenced 1 time by &901d
-.print_entry_name_loop
+.check_fsm_entry_loop
     ora fsm_s0_pre1,x                                                 ; 9010: 1d ff 0d    ...            ; OR entry address high byte
     ora fsm_s0_checksum,x                                             ; 9013: 1d ff 0e    ...            ; OR entry length high byte
     dex                                                               ; 9016: ca          .              ; Back up one
@@ -3983,7 +3983,7 @@ nmi_patched_addr                                = &ffff
     dex                                                               ; 9019: ca          .              ; Back up more
     beq bad_fs_map_error                                              ; 901a: f0 de       ..             ; At entry 0: bad FS map
     dex                                                               ; 901c: ca          .              ; Back up more
-    bne print_entry_name_loop                                         ; 901d: d0 f1       ..             ; Loop for all entries
+    bne check_fsm_entry_loop                                          ; 901d: d0 f1       ..             ; Loop for all entries
     and #&e0                                                          ; 901f: 29 e0       ).             ; Check drive bits in accumulator
     bne bad_fs_map_error                                              ; 9021: d0 d7       ..             ; Non-zero: bad FS map
     ldx fsm_s1_total_sectors_lo                                       ; 9023: ae fe 0f    ...            ; Get end pointer again
@@ -3991,43 +3991,43 @@ nmi_patched_addr                                = &ffff
     bcc return_18                                                     ; 9028: 90 bf       ..             ; Not enough: return OK (empty disc)
     ldx #3                                                            ; 902a: a2 03       ..             ; X=3: check entry ordering
 ; &902c referenced 1 time by &9059
-.print_space_after_name
+.check_fsm_ordering
     ldy #2                                                            ; 902c: a0 02       ..             ; Y=2: compare 3-byte addresses
     clc                                                               ; 902e: 18          .              ; Clear carry for addition
 ; &902f referenced 1 time by &9038
-.print_padding_spaces_loop
+.add_entry_size_loop
     lda fsm_s0_pre3,x                                                 ; 902f: bd fd 0d    ...            ; Get prev entry address byte
     adc fsm_s0_boot_option,x                                          ; 9032: 7d fd 0e    }..            ; Add prev entry length byte
     pha                                                               ; 9035: 48          H              ; Push result on stack
     inx                                                               ; 9036: e8          .              ; Next byte
     dey                                                               ; 9037: 88          .              ; Next comparison byte
-    bpl print_padding_spaces_loop                                     ; 9038: 10 f5       ..             ; Loop for 3 bytes
+    bpl add_entry_size_loop                                           ; 9038: 10 f5       ..             ; Loop for 3 bytes
     bcs bad_fs_map_error                                              ; 903a: b0 be       ..             ; Carry set: overlap, bad FS map
     ldy #2                                                            ; 903c: a0 02       ..             ; Y=2: compare prev+size with next
 ; &903e referenced 1 time by &9048
-.print_access_flags_loop
+.compare_with_next_entry_loop
     pla                                                               ; 903e: 68          h              ; Pop result byte
     dex                                                               ; 903f: ca          .              ; Back up X
     cmp fsm_sector_0,x                                                ; 9040: dd 00 0e    ...            ; Compare with next entry address
-    bcc print_no_access_flag                                          ; 9043: 90 07       ..             ; Below: entries are ordered OK
+    bcc discard_comparison_bytes                                      ; 9043: 90 07       ..             ; Below: entries are ordered OK
     bne bad_fs_map_error                                              ; 9045: d0 b3       ..             ; Above: bad ordering, bad FS map
     dey                                                               ; 9047: 88          .              ; Next comparison byte
-    bpl print_access_flags_loop                                       ; 9048: 10 f4       ..             ; Loop for 3 bytes
+    bpl compare_with_next_entry_loop                                  ; 9048: 10 f4       ..             ; Loop for 3 bytes
     bmi bad_fs_map_error                                              ; 904a: 30 ae       0.             ; Raise Bad FS map error
 
 ; &904c referenced 2 times by &9043, &904f
-.print_no_access_flag
+.discard_comparison_bytes
     pla                                                               ; 904c: 68          h              ; Discard remaining stack bytes
     dex                                                               ; 904d: ca          .              ; Back up X
     dey                                                               ; 904e: 88          .              ; Decrement Y too
-    bpl print_no_access_flag                                          ; 904f: 10 fb       ..             ; More to discard
+    bpl discard_comparison_bytes                                      ; 904f: 10 fb       ..             ; More to discard
     pha                                                               ; 9051: 48          H              ; Push separator
     inx                                                               ; 9052: e8          .              ; Advance to next entry pair
     inx                                                               ; 9053: e8          .              ; Continue advancing
     inx                                                               ; 9054: e8          .              ; Continue advancing
     inx                                                               ; 9055: e8          .              ; Continue advancing
     cpx fsm_s1_total_sectors_lo                                       ; 9056: ec fe 0f    ...            ; Past end of list?
-    bcc print_space_after_name                                        ; 9059: 90 d1       ..             ; No: check next pair
+    bcc check_fsm_ordering                                            ; 9059: 90 d1       ..             ; No: check next pair
     rts                                                               ; 905b: 60          `              ; All entries OK: return
 
 ; ***************************************************************************************
@@ -4421,7 +4421,7 @@ nmi_patched_addr                                = &ffff
     equw osfile_read_cat_info-1                                       ; 9279: 7c 8f       |.
 
 ; ***************************************************************************************
-; Set up entry name pointer for star commands
+; Set up pointer to *HELP parameter format string
 ; 
 ; Point (zp_entry_ptr) to a pathname format string in ROM
 ; and prepare to print up to 12 characters.
@@ -4435,7 +4435,7 @@ nmi_patched_addr                                = &ffff
 ;     X: zero
 ;     Y: corrupted
 ; &927b referenced 2 times by &9e35, &9e3b
-.setup_entry_name_ptr
+.setup_help_param_ptr
     tax                                                               ; 927b: aa          .              ; Transfer index to X
     lda #&9f                                                          ; 927c: a9 9f       ..             ; Set up (&B6) to point to pathname
     sta zp_entry_ptr_hi                                               ; 927e: 85 b7       ..             ; Set pointer high byte
@@ -4560,7 +4560,7 @@ nmi_patched_addr                                = &ffff
     lda (zp_entry_ptr_lo),y                                           ; 92ea: b1 b6       ..             ; Get entry byte (name byte Y)
     rol a                                                             ; 92ec: 2a          *              ; Rotate bit 7 (attribute) into carry
     bcc print_access_space                                            ; 92ed: 90 07       ..             ; C=0: attribute not set
-    lda l9316,y                                                       ; 92ef: b9 16 93    ...            ; C=1: get attribute letter
+    lda tbl_access_chars,y                                            ; 92ef: b9 16 93    ...            ; C=1: get attribute letter
     jsr oswrch                                                        ; 92f2: 20 ee ff     ..            ; Write character
     dex                                                               ; 92f5: ca          .              ; Next attribute letter
 ; &92f6 referenced 1 time by &92ed
@@ -4592,7 +4592,7 @@ nmi_patched_addr                                = &ffff
 ; file access attributes. Indexed by attribute bit position.
 ; 
 ; &9316 referenced 2 times by &92ef, &99a7
-.l9316
+.tbl_access_chars
     equs "RWLDE"                                                      ; 9316: 52 57 4c... RWL
 
 ; ***************************************************************************************
@@ -5742,7 +5742,7 @@ nmi_patched_addr                                = &ffff
     ldx #2                                                            ; 99a5: a2 02       ..             ; X=2: check against "RWL" table
 ; &99a7 referenced 1 time by &99b2
 .match_rwl_loop
-    cmp l9316,x                                                       ; 99a7: dd 16 93    ...            ; Compare with R/W/L character
+    cmp tbl_access_chars,x                                            ; 99a7: dd 16 93    ...            ; Compare with R/W/L character
     beq set_rwl_attribute_bit                                         ; 99aa: f0 1d       ..             ; Match: set this attribute
     bit wksp_csd_sector_temp                                          ; 99ac: 2c 2b 10    ,+.            ; E already set? Only L allowed
     bmi check_attr_terminator                                         ; 99af: 30 03       0.             ; E already set: only L allowed
@@ -6706,10 +6706,10 @@ l9dd3 = check_help_adfs_keyword+1
     lsr a                                                             ; 9e32: 4a          J              ; Shift high nibble to low
     lsr a                                                             ; 9e33: 4a          J              ; 4 right shifts total
     lsr a                                                             ; 9e34: 4a          J              ; 4th shift
-    jsr setup_entry_name_ptr                                          ; 9e35: 20 7b 92     {.            ; Print as hex digit
+    jsr setup_help_param_ptr                                          ; 9e35: 20 7b 92     {.            ; Print as hex digit
     pla                                                               ; 9e38: 68          h              ; Restore address byte
     and #&0f                                                          ; 9e39: 29 0f       ).             ; Isolate low nibble
-    jsr setup_entry_name_ptr                                          ; 9e3b: 20 7b 92     {.            ; Print as hex digit
+    jsr setup_help_param_ptr                                          ; 9e3b: 20 7b 92     {.            ; Print as hex digit
     jsr osnewl                                                        ; 9e3e: 20 e7 ff     ..            ; Print newline
     pla                                                               ; 9e41: 68          h              ; Restore table index
     tax                                                               ; 9e42: aa          .              ; Restore table index to X
@@ -13285,6 +13285,7 @@ save pydis_start, pydis_end
 ;     dir_parent_sector:                                  2
 ;     disc_full_error:                                    2
 ;     disc_op_tpl_padding:                                2
+;     discard_comparison_bytes:                           2
 ;     dispatch_hd_or_floppy:                              2
 ;     divide_loop:                                        2
 ;     drive_to_ascii_digit:                               2
@@ -13316,7 +13317,6 @@ save pydis_start, pydis_end
 ;     init_root_dir_entries:                              2
 ;     insert_new_entry:                                   2
 ;     issue_fdc_command:                                  2
-;     l9316:                                              2
 ;     l9dd3:                                              2
 ;     last_break_type:                                    2
 ;     load_dir_for_drive:                                 2
@@ -13346,9 +13346,7 @@ save pydis_start, pydis_end
 ;     print_entry_name_and_access:                        2
 ;     print_help_command_list:                            2
 ;     print_info_loop:                                    2
-;     print_newline_and_entry:                            2
 ;     print_next_entry_loop:                              2
-;     print_no_access_flag:                               2
 ;     print_nonzero_digit:                                2
 ;     print_space_value:                                  2
 ;     proceed_with_delete:                                2
@@ -13393,7 +13391,7 @@ save pydis_start, pydis_end
 ;     setup_buffer_pointers:                              2
 ;     setup_cdir_dir_entry:                               2
 ;     setup_disc_read_for_dir:                            2
-;     setup_entry_name_ptr:                               2
+;     setup_help_param_ptr:                               2
 ;     setup_nmi_for_transfer:                             2
 ;     setup_output_pointer:                               2
 ;     single_sector_read:                                 2
@@ -13413,12 +13411,14 @@ save pydis_start, pydis_end
 ;     str_hugo:                                           2
 ;     sum_free_space:                                     2
 ;     switch_to_channel_drive:                            2
+;     tbl_access_chars:                                   2
 ;     tube_start_xfer_sei:                                2
 ;     update_dir_sequence:                                2
 ;     update_entry_from_osfile:                           2
 ;     update_moved_dir_parent:                            2
 ;     validate_disc_command:                              2
 ;     validate_disc_size:                                 2
+;     validate_fsm_entries:                               2
 ;     validate_sector_count:                              2
 ;     verify_dir_and_list:                                2
 ;     wait_format_nmi_complete:                           2
@@ -13458,6 +13458,7 @@ save pydis_start, pydis_end
 ;     zp_gspb_ptr_hi:                                     2
 ;     zp_wksp_ptr_hi:                                     2
 ;     access_bit_clear:                                   1
+;     add_entry_size_loop:                                1
 ;     add_sector_count_loop:                              1
 ;     add_size_to_prev_loop:                              1
 ;     adjacent_next_byte:                                 1
@@ -13542,6 +13543,8 @@ save pydis_start, pydis_end
 ;     check_for_on_channel:                               1
 ;     check_format_command:                               1
 ;     check_format_complete:                              1
+;     check_fsm_entry_loop:                               1
+;     check_fsm_ordering:                                 1
 ;     check_hex_af:                                       1
 ;     check_hex_digit_valid:                              1
 ;     check_host_memory:                                  1
@@ -13636,6 +13639,7 @@ save pydis_start, pydis_end
 ;     compare_size_bytes_loop:                            1
 ;     compare_src_dest_dir_loop:                          1
 ;     compare_total_vs_requested:                         1
+;     compare_with_next_entry_loop:                       1
 ;     complete_partial_op:                                1
 ;     complete_partial_write:                             1
 ;     confirm_destroy_loop:                               1
@@ -13935,7 +13939,6 @@ save pydis_start, pydis_end
 ;     print_aborted_error:                                1
 ;     print_access_chars_loop:                            1
 ;     print_access_done:                                  1
-;     print_access_flags_loop:                            1
 ;     print_access_space:                                 1
 ;     print_cat_header_and_entries:                       1
 ;     print_cat_newline:                                  1
@@ -13947,15 +13950,12 @@ save pydis_start, pydis_end
 ;     print_digit_loop:                                   1
 ;     print_entry_char_loop:                              1
 ;     print_entry_hex_loop:                               1
-;     print_entry_name_loop:                              1
 ;     print_fsm_entries_loop:                             1
 ;     print_help_data_commands:                           1
 ;     print_hex_nibble:                                   1
 ;     print_map_header:                                   1
 ;     print_name_char_loop:                               1
 ;     print_newline_return:                               1
-;     print_padding_spaces_loop:                          1
-;     print_space_after_name:                             1
 ;     print_used_space:                                   1
 ;     propagate_borrow_loop:                              1
 ;     push_valid_drive:                                   1
