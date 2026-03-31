@@ -3821,9 +3821,9 @@ label(0x902C, "print_space_after_name")
 label(0x902F, "print_padding_spaces_loop")
 label(0x903E, "print_access_flags_loop")
 label(0x904C, "print_no_access_flag")
-label(0x905C, "setup_print_hex_field")
-label(0x9060, "print_field_hex_loop")
-label(0x906A, "print_hex_field_pair_loop")
+label(0x905C, "calc_fsm_checksums")
+label(0x9060, "checksum_s0_loop")
+label(0x906A, "checksum_s1_loop")
 label(0x907C, "osfile_write_load_addr")
 label(0x9087, "osfile_write_load_search")
 label(0x9092, "copy_load_to_entry_loop")
@@ -11674,7 +11674,7 @@ Search directory using wildcards for an existing entry
 matching the save filename.
 """)
 
-subroutine(0x905C, "setup_print_hex_field",
+subroutine(0x905C, "calc_fsm_checksums",
     title="Calculate FSM sector checksums",
     description="""\
 Compute 8-bit checksums of FSM sectors 0 and 1 by

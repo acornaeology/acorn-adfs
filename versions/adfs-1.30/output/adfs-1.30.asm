@@ -3905,7 +3905,7 @@ nmi_patched_addr                                = &ffff
     lda system_via_t1c_l                                              ; 8fbd: ad 44 fe    .D.            ; Clear FSM modification flag
     sta wksp_disc_id_lo,x                                             ; 8fc0: 9d 21 11    .!.            ; Y=&FF: calculate FSM checksums
     sta fsm_s1_disc_id_lo                                             ; 8fc3: 8d fb 0f    ...
-    jsr setup_print_hex_field                                         ; 8fc6: 20 5c 90     \.            ; Next byte
+    jsr calc_fsm_checksums                                            ; 8fc6: 20 5c 90     \.            ; Next byte
     stx fsm_s0_checksum                                               ; 8fc9: 8e ff 0e    ...            ; Store sector 0 checksum
     sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1
     ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; X=&71: validate FSM entry count
@@ -3951,7 +3951,7 @@ nmi_patched_addr                                = &ffff
 ; &8fea referenced 5 times by &8fe4, &9ffa, &a255, &a754, &a872
 .mark_directory_dirty
     jsr print_newline_and_entry                                       ; 8fea: 20 09 90     ..
-    jsr setup_print_hex_field                                         ; 8fed: 20 5c 90     \.            ; Mark directory as modified
+    jsr calc_fsm_checksums                                            ; 8fed: 20 5c 90     \.            ; Mark directory as modified
     cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Verify directory
     bne check_first_char_wildcard                                     ; 8ff3: d0 05       ..             ; Point to first entry
     cpx fsm_s0_checksum                                               ; 8ff5: ec ff 0e    ...            ; X=FSM sector 0 checksum
@@ -4042,24 +4042,24 @@ nmi_patched_addr                                = &ffff
 ;     X: FSM sector 0 checksum
 ;     Y: corrupted
 ; &905c referenced 2 times by &8fc6, &8fed
-.setup_print_hex_field
+.calc_fsm_checksums
     clc                                                               ; 905c: 18          .              ; Clear carry for checksum
     ldy #&ff                                                          ; 905d: a0 ff       ..             ; Y=&FF: sum 255 bytes
     tya                                                               ; 905f: 98          .              ; A=&ff
 ; &9060 referenced 1 time by &9064
-.print_field_hex_loop
+.checksum_s0_loop
     adc fsm_s0_pre1,y                                                 ; 9060: 79 ff 0d    y..            ; Add FSM sector 0 byte
     dey                                                               ; 9063: 88          .              ; Next byte
-    bne print_field_hex_loop                                          ; 9064: d0 fa       ..             ; Loop for 255 bytes
+    bne checksum_s0_loop                                              ; 9064: d0 fa       ..             ; Loop for 255 bytes
     tax                                                               ; 9066: aa          .              ; Save sector 0 checksum in X
     dey                                                               ; 9067: 88          .              ; Y=&FF for sector 1
     tya                                                               ; 9068: 98          .              ; Transfer to A
     clc                                                               ; 9069: 18          .              ; Clear carry
 ; &906a referenced 1 time by &906e
-.print_hex_field_pair_loop
+.checksum_s1_loop
     adc fsm_s0_checksum,y                                             ; 906a: 79 ff 0e    y..            ; Add FSM sector 1 byte
     dey                                                               ; 906d: 88          .              ; Next byte
-    bne print_hex_field_pair_loop                                     ; 906e: d0 fa       ..             ; Loop for 255 bytes
+    bne checksum_s1_loop                                              ; 906e: d0 fa       ..             ; Loop for 255 bytes
     rts                                                               ; 9070: 60          `              ; Return (X=chk0, A=chk1)
 
 ; ***************************************************************************************
@@ -13243,6 +13243,7 @@ save pydis_start, pydis_end
 ;     calc_buffer_address:                                2
 ;     calc_buffer_page_from_offset:                       2
 ;     calc_buffer_sector_addr:                            2
+;     calc_fsm_checksums:                                 2
 ;     calc_multi_sector_count:                            2
 ;     calc_partial_end_sector:                            2
 ;     calc_partial_start_sector:                          2
@@ -13396,7 +13397,6 @@ save pydis_start, pydis_end
 ;     setup_entry_name_ptr:                               2
 ;     setup_nmi_for_transfer:                             2
 ;     setup_output_pointer:                               2
-;     setup_print_hex_field:                              2
 ;     single_sector_read:                                 2
 ;     skip_filename:                                      2
 ;     skip_separator_spaces:                              2
@@ -13591,6 +13591,8 @@ save pydis_start, pydis_end
 ;     check_write_ext:                                    1
 ;     check_write_or_read:                                1
 ;     check_write_ptr:                                    1
+;     checksum_s0_loop:                                   1
+;     checksum_s1_loop:                                   1
 ;     claim_filing_system:                                1
 ;     claim_nmi:                                          1
 ;     claim_tube_for_output:                              1
@@ -13946,10 +13948,8 @@ save pydis_start, pydis_end
 ;     print_entry_char_loop:                              1
 ;     print_entry_hex_loop:                               1
 ;     print_entry_name_loop:                              1
-;     print_field_hex_loop:                               1
 ;     print_fsm_entries_loop:                             1
 ;     print_help_data_commands:                           1
-;     print_hex_field_pair_loop:                          1
 ;     print_hex_nibble:                                   1
 ;     print_map_header:                                   1
 ;     print_name_char_loop:                               1
