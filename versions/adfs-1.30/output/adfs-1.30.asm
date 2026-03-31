@@ -4484,10 +4484,10 @@ nmi_patched_addr                                = &ffff
 ; ***************************************************************************************
 ; &9269 referenced 1 time by &9256
 .osfile_dispatch_lo
-    equb 4                                                            ; 9269: 04          .              ; A=0 low: <(save_check_existing-1)
+    equb <(osfile_save_check_existing-1)                              ; 9269: 04          .              ; A=0 lo-1: OSFILE save
 ; &926a referenced 1 time by &9252
 .osfile_dispatch_hi
-    equb &8c                                                          ; 926a: 8c          .              ; A=0 high: >(save_check_existing-1)
+    equb >(osfile_save_check_existing-1)                              ; 926a: 8c          .              ; A=0 hi-1: OSFILE save
     equw osfile_load_handler-1                                        ; 926b: 73 8f       s.
     equw osfile_write_load_addr-1                                     ; 926d: 7b 90       {.
     equw osfile_write_load_addr-1                                     ; 926f: 7b 90       {.
@@ -6036,10 +6036,11 @@ nmi_patched_addr                                = &ffff
 ; 
 ; ***************************************************************************************
 .boot_option_addr_table
-    equb &7b                                                          ; 9a78: 7b          {              ; Option 1: &7B -> &9A7B 'L.$.!BOOT' (Load)
-    equb &7d                                                          ; 9a79: 7d          }              ; Option 2: &7D -> &9A7D '$.!BOOT' (*RUN)
-    equb &85                                                          ; 9a7a: 85          .              ; Option 3: &85 -> &9A85 'E.$.!BOOT' (Exec)
+    equb <(str_l_boot)                                                ; 9a78: 7b          {              ; Option 1: *LOAD $.!BOOT
+    equb <(str_run_boot)                                              ; 9a79: 7d          }              ; Option 2: *RUN $.!BOOT
+    equb <(str_e_boot)                                                ; 9a7a: 85          .              ; Option 3: *EXEC $.!BOOT
 .str_l_boot
+str_run_boot = str_l_boot+2
     equs "L.$.!BOOT", &0d                                             ; 9a7b: 4c 2e 24... L.$            ; "L.$.!BOOT" + CR: load boot file
 .str_e_boot
     equs "E.$.!BOOT", &0d                                             ; 9a85: 45 2e 24... E.$            ; "E.$.!BOOT" + CR: exec boot file; E.$.!BOOT (exec boot file)
@@ -6854,14 +6855,14 @@ l9dd3 = check_help_adfs_keyword+1
 ; ***************************************************************************************
 ; &9e48 referenced 1 time by &9280
 .tbl_help_param_ptrs
-    equb &d7                                                          ; 9e48: d7          .              ; 0: &D7 -> &9FD7 "" (no parameter)
-    equb &8d                                                          ; 9e49: 8d          .              ; 1: &8D -> &9F8D "<List Spec>"
-    equb &99                                                          ; 9e4a: 99          .              ; 2: &99 -> &9F99 "<Ob Spec>"
-    equb &a3                                                          ; 9e4b: a3          .              ; 3: &A3 -> &9FA3 "<*Ob Spec*>"
-    equb &af                                                          ; 9e4c: af          .              ; 4: &AF -> &9FAF "(<Drive>)"
-    equb &b9                                                          ; 9e4d: b9          .              ; 5: &B9 -> &9FB9 "<SP> <LP>"
-    equb &c3                                                          ; 9e4e: c3          .              ; 6: &C3 -> &9FC3 "(L)(W)(R)(E)"
-    equb &d0                                                          ; 9e4f: d0          .              ; 7: &D0 -> &9FD0 "<Title>"
+    equb <(help_param_none)                                           ; 9e48: d7          .              ; (no parameter)
+    equb <(help_param_list_spec)                                      ; 9e49: 8d          .              ; "<List Spec>"
+    equb <(help_param_ob_spec)                                        ; 9e4a: 99          .              ; "<Ob Spec>"
+    equb <(help_param_wild_ob_spec)                                   ; 9e4b: a3          .              ; "<*Ob Spec*>"
+    equb <(help_param_drive)                                          ; 9e4c: af          .              ; "(<Drive>)"
+    equb <(help_param_sp_lp)                                          ; 9e4d: b9          .              ; "<SP> <LP>"
+    equb <(help_param_access)                                         ; 9e4e: c3          .              ; "(L)(W)(R)(E)"
+    equb <(help_param_title)                                          ; 9e4f: d0          .              ; "<Title>"
 
 ; ***************************************************************************************
 ; Filing system control vector handler
@@ -7127,13 +7128,20 @@ l9ee5 = tbl_commands+2
 ;   7: "<Title>"         Directory title string
 ; 
 ; ***************************************************************************************
-.tbl_help_param_strings
+.help_param_list_spec
     equs "<List Spec>", 0                                             ; 9f8d: 3c 4c 69... <Li            ; Index 1: file list specification
+.help_param_ob_spec
     equs "<Ob Spec>", 0                                               ; 9f99: 3c 4f 62... <Ob            ; Index 2: object specification
+.help_param_wild_ob_spec
     equs "<*Ob Spec*>", 0                                             ; 9fa3: 3c 2a 4f... <*O            ; Index 3: wildcard object specification
+.help_param_drive
     equs "(<Drive>)", 0                                               ; 9faf: 28 3c 44... (<D            ; Index 4: optional drive number
+.help_param_sp_lp
     equs "<SP> <LP>", 0                                               ; 9fb9: 3c 53 50... <SP            ; Index 5: *COMPACT start/length pages
+.help_param_access
     equs "(L)(W)(R)(E)", 0                                            ; 9fc3: 28 4c 29... (L)            ; Index 6: access attribute flags
+.help_param_title
+help_param_none = help_param_title+7
     equs "<Title>", 0                                                 ; 9fd0: 3c 54 69... <Ti            ; Index 7: directory title string
 
 ; ***************************************************************************************
@@ -12986,6 +12994,15 @@ la868 = check_dest_terminator+1
     assert <(fsc0_star_opt-1) == &dc
     assert <(fsc6_new_filing_system-1) == &3b
     assert <(fsc7_read_handle_range-1) == &d7
+    assert <(help_param_access) == &c3
+    assert <(help_param_drive) == &af
+    assert <(help_param_list_spec) == &8d
+    assert <(help_param_none) == &d7
+    assert <(help_param_ob_spec) == &99
+    assert <(help_param_sp_lp) == &b9
+    assert <(help_param_title) == &d0
+    assert <(help_param_wild_ob_spec) == &a3
+    assert <(osfile_save_check_existing-1) == &04
     assert <(print_catalogue_entries-1) == &cd
     assert <(service_handler_0-1) == &b7
     assert <(service_handler_1-1) == &ce
@@ -13019,6 +13036,8 @@ la868 = check_dest_terminator+1
     assert <(star_run-1) == &98
     assert <(star_title-1) == &51
     assert <(str_e_boot) == &85
+    assert <(str_l_boot) == &7b
+    assert <(str_run_boot) == &7d
     assert <(svc5_irq-1) == &77
     assert <(wksp_clock) == &c8
     assert >(check_compaction_recommended-1) == &a0
@@ -13026,6 +13045,7 @@ la868 = check_dest_terminator+1
     assert >(fsc0_star_opt-1) == &9f
     assert >(fsc6_new_filing_system-1) == &a9
     assert >(fsc7_read_handle_range-1) == &9f
+    assert >(osfile_save_check_existing-1) == &8c
     assert >(print_catalogue_entries-1) == &93
     assert >(service_handler_0-1) == &9a
     assert >(service_handler_1-1) == &9a

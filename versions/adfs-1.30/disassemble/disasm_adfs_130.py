@@ -731,9 +731,11 @@ for i in range(10):
 label(0x9269, "osfile_dispatch_lo")
 label(0x926A, "osfile_dispatch_hi")
 byte(0x9269)
-comment(0x9269, "A=0 low: <(save_check_existing-1)", inline=True)
+expr(0x9269, "<(osfile_save_check_existing-1)")
+comment(0x9269, "A=0 lo-1: OSFILE save", inline=True)
 byte(0x926A)
-comment(0x926A, "A=0 high: >(save_check_existing-1)", inline=True)
+expr(0x926A, ">(osfile_save_check_existing-1)")
+comment(0x926A, "A=0 hi-1: OSFILE save", inline=True)
 for i in range(8):
     rts_code_ptr(0x9269 + 2 + i*2, 0x926A + 2 + i*2)
 
@@ -1395,11 +1397,14 @@ comment(0x9A62, "Previous dir sector low: 2 (root dir)", inline=True)
 label(0x9A78, "boot_option_addr_table")
 entry(0x9A78)
 byte(0x9A78)
-comment(0x9A78, "Option 1: &7B -> &9A7B 'L.$.!BOOT' (Load)", inline=True)
+expr(0x9A78, "<(str_l_boot)")
+comment(0x9A78, "Option 1: *LOAD $.!BOOT", inline=True)
 byte(0x9A79)
-comment(0x9A79, "Option 2: &7D -> &9A7D '$.!BOOT' (*RUN)", inline=True)
+expr(0x9A79, "<(str_run_boot)")
+comment(0x9A79, "Option 2: *RUN $.!BOOT", inline=True)
 byte(0x9A7A)
-comment(0x9A7A, "Option 3: &85 -> &9A85 'E.$.!BOOT' (Exec)", inline=True)
+expr(0x9A7A, "<(str_e_boot)")
+comment(0x9A7A, "Option 3: *EXEC $.!BOOT", inline=True)
 entry(0x9A8F)
 label(0x9CB3, "tbl_fs_vectors")
 entry(0x9CB3)
@@ -1451,22 +1456,20 @@ comment(0x9CD5, "ROM: &FF", inline=True)
 entry(0x9CD6)
 label(0x9E48, "tbl_help_param_ptrs")
 entry(0x9E48)
-byte(0x9E48)
-comment(0x9E48, '0: &D7 -> &9FD7 "" (no parameter)', inline=True)
-byte(0x9E49)
-comment(0x9E49, '1: &8D -> &9F8D "<List Spec>"', inline=True)
-byte(0x9E4A)
-comment(0x9E4A, '2: &99 -> &9F99 "<Ob Spec>"', inline=True)
-byte(0x9E4B)
-comment(0x9E4B, '3: &A3 -> &9FA3 "<*Ob Spec*>"', inline=True)
-byte(0x9E4C)
-comment(0x9E4C, '4: &AF -> &9FAF "(<Drive>)"', inline=True)
-byte(0x9E4D)
-comment(0x9E4D, '5: &B9 -> &9FB9 "<SP> <LP>"', inline=True)
-byte(0x9E4E)
-comment(0x9E4E, '6: &C3 -> &9FC3 "(L)(W)(R)(E)"', inline=True)
-byte(0x9E4F)
-comment(0x9E4F, '7: &D0 -> &9FD0 "<Title>"', inline=True)
+_help_param_ptrs = [
+    (0x9E48, "help_param_none",         '(no parameter)'),
+    (0x9E49, "help_param_list_spec",    '"<List Spec>"'),
+    (0x9E4A, "help_param_ob_spec",      '"<Ob Spec>"'),
+    (0x9E4B, "help_param_wild_ob_spec", '"<*Ob Spec*>"'),
+    (0x9E4C, "help_param_drive",        '"(<Drive>)"'),
+    (0x9E4D, "help_param_sp_lp",        '"<SP> <LP>"'),
+    (0x9E4E, "help_param_access",       '"(L)(W)(R)(E)"'),
+    (0x9E4F, "help_param_title",        '"<Title>"'),
+]
+for addr, target, desc in _help_param_ptrs:
+    byte(addr)
+    expr(addr, f"<({target})")
+    comment(addr, desc, inline=True)
 entry(0x9E6D)
 entry(0x9EE3)
 
@@ -1522,22 +1525,29 @@ label(0xBFF6, "str_rom_footer")
 entry(0xBFF6)
 
 # *HELP parameter format strings (referenced by tbl_help_param_ptrs)
-label(0x9F8D, "tbl_help_param_strings")
+label(0x9F8D, "help_param_list_spec")
 entry(0x9F8D)
 stringz(0x9F8D)
 comment(0x9F8D, "Index 1: file list specification", inline=True)
+label(0x9F99, "help_param_ob_spec")
 stringz(0x9F99)
 comment(0x9F99, "Index 2: object specification", inline=True)
+label(0x9FA3, "help_param_wild_ob_spec")
 stringz(0x9FA3)
 comment(0x9FA3, "Index 3: wildcard object specification", inline=True)
+label(0x9FAF, "help_param_drive")
 stringz(0x9FAF)
 comment(0x9FAF, "Index 4: optional drive number", inline=True)
+label(0x9FB9, "help_param_sp_lp")
 stringz(0x9FB9)
 comment(0x9FB9, "Index 5: *COMPACT start/length pages", inline=True)
+label(0x9FC3, "help_param_access")
 stringz(0x9FC3)
 comment(0x9FC3, "Index 6: access attribute flags", inline=True)
+label(0x9FD0, "help_param_title")
 stringz(0x9FD0)
 comment(0x9FD0, "Index 7: directory title string", inline=True)
+label(0x9FD7, "help_param_none")  # NUL terminator of help_param_title doubles as empty string
 
 # FSC 7: read file handle range
 label(0x9FD8, "fsc7_read_handle_range")
@@ -8194,6 +8204,7 @@ comment(0xBD22, "Set side select flag", inline=True)
 # Boot file strings (label and byte directives for boot_option_addr_table
 # are in the interstitial data section near the entry() calls)
 label(0x9A7B, "str_l_boot")
+label(0x9A7D, "str_run_boot")     # inside str_l_boot: "$.!BOOT" for *RUN
 stringcr(0x9A7B)
 comment(0x9A7B, '"L.$.!BOOT" + CR: load boot file', inline=True)
 label(0x9A85, "str_e_boot")
@@ -12206,7 +12217,7 @@ the target address. The stored address is therefore the
 handler address minus one.
 """)
 
-subroutine(0x9F8D, "tbl_help_param_strings",
+subroutine(0x9F8D, "help_param_list_spec",
     title="*HELP parameter format strings",
     description="""\
 Seven NUL-terminated strings displayed after command names in
