@@ -11693,6 +11693,15 @@ patches the command byte from &08 (read) to &0A (write).
 This template may be a remnant from an earlier code revision.
 """)
 
+subroutine(0x907C, "osfile_write_load_addr",
+    title="OSFILE write catalogue info handler",
+    description="""\
+Handle OSFILE A=1 (write all catalogue info), A=2 (write
+load address) and A=3 (write execution address). Finds the
+file, validates access, then updates the directory entry
+fields from the OSFILE parameter block.
+""")
+
 subroutine(0x9945, "clear_rwl_attributes",
     title="Clear R, W, L attribute bits in entry",
     description="""\

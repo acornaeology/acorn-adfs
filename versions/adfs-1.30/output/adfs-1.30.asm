@@ -4084,6 +4084,14 @@ nmi_patched_addr                                = &ffff
     equb 2                                                            ; 907a: 02          .              ; Sector count: &02 (2 sectors for FSM)
     equb 0                                                            ; 907b: 00          .              ; Control: &00
 
+; ***************************************************************************************
+; OSFILE write catalogue info handler
+; 
+; Handle OSFILE A=1 (write all catalogue info), A=2 (write
+; load address) and A=3 (write execution address). Finds the
+; file, validates access, then updates the directory entry
+; fields from the OSFILE parameter block.
+; 
 .osfile_write_load_addr
     sta wksp_disc_op_xfer_len_3                                       ; 907c: 8d 23 10    .#.            ; Store function code
     jsr find_file_and_validate                                        ; 907f: 20 e5 8b     ..            ; Find file, check access
