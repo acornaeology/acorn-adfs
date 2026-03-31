@@ -129,27 +129,27 @@ last_break_type                                 = &028d
 tube_entry                                      = &0406
 ext_vec_fsc_lo                                  = &06a9
 nmi_workspace                                   = &0d00
-nmi_0d05                                        = &0d05
-nmi_0d0a                                        = &0d0a
-nmi_0d0b                                        = &0d0b
-nmi_0d0c                                        = &0d0c
-nmi_0d0e                                        = &0d0e
-nmi_0d0f                                        = &0d0f
+nmi_rw_opcode                                   = &0d05
+nmi_rw_code                                     = &0d0a
+nmi_write_addr_lo                               = &0d0b
+nmi_write_addr_hi                               = &0d0c
+nmi_read_addr_lo                                = &0d0e
+nmi_read_addr_hi                                = &0d0f
 nmi_transfer_done                               = &0d18
-nmi_0d34                                        = &0d34
-nmi_0d56                                        = &0d56
-nmi_0d57                                        = &0d57
-nmi_0d58                                        = &0d58
-nmi_0d59                                        = &0d59
-nmi_0d5a                                        = &0d5a
-nmi_0d5c                                        = &0d5c
-nmi_0d5d                                        = &0d5d
-nmi_0d5e                                        = &0d5e
-nmi_0d5f                                        = &0d5f
-nmi_0df0                                        = &0df0
-nmi_0dfa                                        = &0dfa
-nmi_0dfd                                        = &0dfd
-nmi_0dff                                        = &0dff
+nmi_saved_rom                                   = &0d34
+nmi_step_rate                                   = &0d56
+nmi_tracks_remaining                            = &0d57
+nmi_secs_this_track                             = &0d58
+nmi_secs_last_track                             = &0d59
+nmi_sec_position                                = &0d5a
+nmi_drive_cmd                                   = &0d5c
+nmi_adfs_flags                                  = &0d5d
+nmi_drive_ctrl                                  = &0d5e
+nmi_completion                                  = &0d5f
+rom_wksp_table                                  = &0df0
+fsm_s0_pre6                                     = &0dfa
+fsm_s0_pre3                                     = &0dfd
+fsm_s0_pre1                                     = &0dff
 fsm_sector_0                                    = &0e00
 fsm_s0_first_length                             = &0e03
 fsm_s0_reserved                                 = &0efa
@@ -413,9 +413,9 @@ nmi_patched_addr                                = &ffff
 ; &bcdf referenced 3 times by &bc49, &bc55, &bc65
     lda nmi_patched_addr                                              ; bcdf: ad ff ff    ... :0d0a[1]   ; Read byte from transfer address
     sta fdc_1770_data                                                 ; bce2: 8d 87 fe    ... :0d0d[1]   ; Write to WD1770 data register
-    inc nmi_0d0b                                                      ; bce5: ee 0b 0d    ... :0d10[1]   ; Increment transfer address low
+    inc nmi_write_addr_lo                                             ; bce5: ee 0b 0d    ... :0d10[1]   ; Increment transfer address low
     bne nmi_transfer_done                                             ; bce8: d0 03       ..  :0d13[1]   ; No wrap: skip high byte increment
-    inc nmi_0d0c                                                      ; bcea: ee 0c 0d    ... :0d15[1]   ; Increment transfer address high
+    inc nmi_write_addr_hi                                             ; bcea: ee 0c 0d    ... :0d15[1]   ; Increment transfer address high
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -1654,7 +1654,7 @@ nmi_patched_addr                                = &ffff
 ; &850c referenced 1 time by &8523
 .check_adjacent_to_prev_loop
     plp                                                               ; 850c: 28          (              ; Restore carry
-    lda nmi_0dfd,x                                                    ; 850d: bd fd 0d    ...            ; Get prev entry address byte
+    lda fsm_s0_pre3,x                                                 ; 850d: bd fd 0d    ...            ; Get prev entry address byte
     adc fsm_s0_boot_option,x                                          ; 8510: 7d fd 0e    }..            ; Add prev entry length byte
     php                                                               ; 8513: 08          .              ; Save carry
     cmp wksp_object_sector,y                                          ; 8514: d9 34 10    .4.            ; Compare prev+size with object sector
@@ -1704,7 +1704,7 @@ nmi_patched_addr                                = &ffff
     lda fsm_sector_1,x                                                ; 8555: bd 00 0f    ...            ; Get next entry length
     sta fsm_s0_boot_option,x                                          ; 8558: 9d fd 0e    ...            ; Store over current (shift down)
     lda fsm_sector_0,x                                                ; 855b: bd 00 0e    ...            ; Get next entry address
-    sta nmi_0dfd,x                                                    ; 855e: 9d fd 0d    ...            ; Store over current (shift down)
+    sta fsm_s0_pre3,x                                                 ; 855e: 9d fd 0d    ...            ; Store over current (shift down)
     inx                                                               ; 8561: e8          .              ; Next entry
     bne shift_entries_down_loop                                       ; 8562: d0 ec       ..             ; Loop shifting entries
 ; &8564 referenced 1 time by &8553
@@ -1754,7 +1754,7 @@ nmi_patched_addr                                = &ffff
 ; &8590 referenced 1 time by &85a5
 .compare_prev_plus_size_loop
     plp                                                               ; 8590: 28          (              ; Restore carry
-    lda nmi_0dfd,x                                                    ; 8591: bd fd 0d    ...            ; Get prev entry address byte
+    lda fsm_s0_pre3,x                                                 ; 8591: bd fd 0d    ...            ; Get prev entry address byte
     adc fsm_s0_boot_option,x                                          ; 8594: 7d fd 0e    }..            ; Add prev entry length byte
     php                                                               ; 8597: 08          .              ; Save carry
     cmp wksp_object_sector,y                                          ; 8598: d9 34 10    .4.            ; Compare with object sector byte
@@ -1933,9 +1933,9 @@ nmi_patched_addr                                = &ffff
 ; &868d referenced 1 time by &869c
 .advance_entry_addr_loop
     plp                                                               ; 868d: 28          (              ; Restore carry
-    lda nmi_0dfd,x                                                    ; 868e: bd fd 0d    ...            ; Get entry address byte
+    lda fsm_s0_pre3,x                                                 ; 868e: bd fd 0d    ...            ; Get entry address byte
     adc wksp_alloc_size,y                                             ; 8691: 79 3d 10    y=.            ; Add requested size to advance addr
-    sta nmi_0dfd,x                                                    ; 8694: 9d fd 0d    ...            ; Store updated entry address
+    sta fsm_s0_pre3,x                                                 ; 8694: 9d fd 0d    ...            ; Store updated entry address
     php                                                               ; 8697: 08          .              ; Save carry
     inx                                                               ; 8698: e8          .              ; Next entry byte
     iny                                                               ; 8699: c8          .              ; Next requested byte
@@ -1991,7 +1991,7 @@ nmi_patched_addr                                = &ffff
     cpx fsm_s1_total_sectors_lo                                       ; 86dd: ec fe 0f    ...            ; Past end of entries?
     bcs shrink_list_after_exact                                       ; 86e0: b0 0f       ..             ; Yes: shrink list
     lda fsm_sector_0,x                                                ; 86e2: bd 00 0e    ...            ; Shift entries down
-    sta nmi_0dfd,x                                                    ; 86e5: 9d fd 0d    ...            ; Store 3 bytes lower (addresses)
+    sta fsm_s0_pre3,x                                                 ; 86e5: 9d fd 0d    ...            ; Store 3 bytes lower (addresses)
     lda fsm_sector_1,x                                                ; 86e8: bd 00 0f    ...            ; Get length entry to shift
     sta fsm_s0_boot_option,x                                          ; 86eb: 9d fd 0e    ...            ; Store 3 bytes lower (lengths)
     inx                                                               ; 86ee: e8          .              ; Next entry
@@ -3917,7 +3917,7 @@ nmi_patched_addr                                = &ffff
     lda #0                                                            ; 900e: a9 00       ..             ; A=0: init check accumulator
 ; &9010 referenced 1 time by &901d
 .print_entry_name_loop
-    ora nmi_0dff,x                                                    ; 9010: 1d ff 0d    ...            ; OR entry address high byte
+    ora fsm_s0_pre1,x                                                 ; 9010: 1d ff 0d    ...            ; OR entry address high byte
     ora fsm_s0_checksum,x                                             ; 9013: 1d ff 0e    ...            ; OR entry length high byte
     dex                                                               ; 9016: ca          .              ; Back up one
     beq check_first_char_wildcard                                     ; 9017: f0 e1       ..             ; At entry 0: bad FS map; Validate FSM map checksums
@@ -3937,7 +3937,7 @@ nmi_patched_addr                                = &ffff
     clc                                                               ; 902e: 18          .              ; Clear carry for addition
 ; &902f referenced 1 time by &9038
 .print_padding_spaces_loop
-    lda nmi_0dfd,x                                                    ; 902f: bd fd 0d    ...            ; Get prev entry address byte
+    lda fsm_s0_pre3,x                                                 ; 902f: bd fd 0d    ...            ; Get prev entry address byte
     adc fsm_s0_boot_option,x                                          ; 9032: 7d fd 0e    }..            ; Add prev entry length byte
     pha                                                               ; 9035: 48          H              ; Push result on stack
     inx                                                               ; 9036: e8          .              ; Next byte
@@ -3985,7 +3985,7 @@ nmi_patched_addr                                = &ffff
     tya                                                               ; 905f: 98          .              ; A=&ff
 ; &9060 referenced 1 time by &9064
 .print_field_hex_loop
-    adc nmi_0dff,y                                                    ; 9060: 79 ff 0d    y..            ; Add FSM sector 0 byte
+    adc fsm_s0_pre1,y                                                 ; 9060: 79 ff 0d    y..            ; Add FSM sector 0 byte
     dey                                                               ; 9063: 88          .              ; Next byte
     bne print_field_hex_loop                                          ; 9064: d0 fa       ..             ; Loop for 255 bytes
     tax                                                               ; 9066: aa          .              ; Save sector 0 checksum in X
@@ -5440,7 +5440,7 @@ nmi_patched_addr                                = &ffff
 ; &985b referenced 1 time by &9870
 .init_workspace_for_root
     plp                                                               ; 985b: 28          (              ; Restore carry
-    lda nmi_0dfa,x                                                    ; 985c: bd fa 0d    ...            ; Get previous entry end address
+    lda fsm_s0_pre6,x                                                 ; 985c: bd fa 0d    ...            ; Get previous entry end address
     adc fsm_s0_reserved,x                                             ; 985f: 7d fa 0e    }..            ; Add previous entry length
     php                                                               ; 9862: 08          .              ; Save carry
     cmp wksp_copy_read_sector,y                                       ; 9863: d9 a2 10    ...            ; Compare with source sector
@@ -5921,12 +5921,12 @@ nmi_patched_addr                                = &ffff
     pha                                                               ; 9aa3: 48          H              ; Save service call number
     cmp #1                                                            ; 9aa4: c9 01       ..             ; Service 1: absolute workspace claim?
     bne check_workspace_claimed                                       ; 9aa6: d0 08       ..             ; Not service 1, continue
-    lda nmi_0df0,x                                                    ; 9aa8: bd f0 0d    ...            ; Read our ROM status byte
+    lda rom_wksp_table,x                                              ; 9aa8: bd f0 0d    ...            ; Read our ROM status byte
     and #&bf                                                          ; 9aab: 29 bf       ).             ; Clear bit 6 (ADFS workspace claimed)
-    sta nmi_0df0,x                                                    ; 9aad: 9d f0 0d    ...            ; Store updated status
+    sta rom_wksp_table,x                                              ; 9aad: 9d f0 0d    ...            ; Store updated status
 ; &9ab0 referenced 1 time by &9aa6
 .check_workspace_claimed
-    lda nmi_0df0,x                                                    ; 9ab0: bd f0 0d    ...            ; Read ROM status byte
+    lda rom_wksp_table,x                                              ; 9ab0: bd f0 0d    ...            ; Read ROM status byte
     cmp #&40 ; '@'                                                    ; 9ab3: c9 40       .@             ; Bit 6 set (workspace claimed)?
     bcc dispatch_service_call                                         ; 9ab5: 90 02       ..             ; No, continue with dispatch
     pla                                                               ; 9ab7: 68          h              ; Yes, discard call and return
@@ -5969,7 +5969,7 @@ nmi_patched_addr                                = &ffff
     beq adfs_hardware_found                                           ; 9ada: f0 0a       ..             ; Not present, skip ADFS init; Claim workspace for ADFS
     lda #&40 ; '@'                                                    ; 9adc: a9 40       .@             ; Mark ROM as having ADFS workspace
     ldx romsel_copy                                                   ; 9ade: a6 f4       ..             ; Get our ROM number
-    sta nmi_0df0,x                                                    ; 9ae0: 9d f0 0d    ...            ; Store flag in ROM status table
+    sta rom_wksp_table,x                                              ; 9ae0: 9d f0 0d    ...            ; Store flag in ROM status table
     lda #1                                                            ; 9ae3: a9 01       ..             ; Return A=1: service handled
     rts                                                               ; 9ae5: 60          `              ; Return A=1 (claim 1 page)
 
@@ -6003,7 +6003,7 @@ nmi_patched_addr                                = &ffff
 ; ***************************************************************************************
 .service_handler_2
     tya                                                               ; 9af1: 98          .              ; Save workspace page in ROM table
-    sta nmi_0df0,x                                                    ; 9af2: 9d f0 0d    ...            ; Store workspace page in ROM table
+    sta rom_wksp_table,x                                              ; 9af2: 9d f0 0d    ...            ; Store workspace page in ROM table
     pha                                                               ; 9af5: 48          H              ; Save Y on stack
     lda last_break_type                                               ; 9af6: ad 8d 02    ...            ; Check break type
     beq verify_workspace_checksum                                     ; 9af9: f0 15       ..             ; Soft break, skip workspace init
@@ -7653,7 +7653,7 @@ la154 = sub_ca153+1
     beq check_hex_digit_valid                                         ; a322: f0 fb       ..             ; Also zero: bad compact
     sta wksp_compact_length                                           ; a324: 8d 61 10    .a.            ; Store as buffer length in pages
     ldx romsel_copy                                                   ; a327: a6 f4       ..             ; Get our ROM number
-    lda nmi_0df0,x                                                    ; a329: bd f0 0d    ...            ; Get workspace page from ROM table
+    lda rom_wksp_table,x                                              ; a329: bd f0 0d    ...            ; Get workspace page from ROM table
     cmp wksp_compact_start_page                                       ; a32c: cd 60 10    .`.            ; Start page below workspace?
     bcc combine_hex_nibbles                                           ; a32f: 90 03       ..             ; Yes: buffer doesn't overlap
     jmp bad_compact_error                                             ; a331: 4c 9b a2    L..            ; No: bad compact (overlaps workspace); Raise Bad compact error
@@ -8414,7 +8414,7 @@ la154 = sub_ca153+1
 ; &a70e referenced 4 times by &8a22, &9afb, &a71a, &a93c
 .get_wksp_addr_ba
     ldx romsel_copy                                                   ; a70e: a6 f4       ..             ; Get our ROM number
-    lda nmi_0df0,x                                                    ; a710: bd f0 0d    ...            ; Read workspace page from ROM table
+    lda rom_wksp_table,x                                              ; a710: bd f0 0d    ...            ; Read workspace page from ROM table
     sta zp_wksp_ptr_hi                                                ; a713: 85 bb       ..             ; Store as high byte of (&BA)
     lda #0                                                            ; a715: a9 00       ..             ; Low byte = 0 (page-aligned)
     sta zp_wksp_ptr_lo                                                ; a717: 85 ba       ..             ; Store low byte
@@ -11527,16 +11527,16 @@ la868 = check_dest_terminator+1
     bit zp_floppy_control                                             ; ba3d: 24 a1       $.             ; Check read/write direction
     bmi set_buffer_addr_for_read                                      ; ba3f: 30 0c       0.             ; Reading: set up read buffer address
     lda zp_buf_src_lo                                                 ; ba41: a5 bc       ..             ; Writing: use zp_bc,bd as buffer
-    sta nmi_0d0b                                                      ; ba43: 8d 0b 0d    ...            ; Patch NMI handler buffer addr low
+    sta nmi_write_addr_lo                                             ; ba43: 8d 0b 0d    ...            ; Patch NMI handler buffer addr low
     lda zp_buf_src_hi                                                 ; ba46: a5 bd       ..             ; Buffer address high byte
-    sta nmi_0d0c                                                      ; ba48: 8d 0c 0d    ...            ; Patch NMI handler buffer addr high
+    sta nmi_write_addr_hi                                             ; ba48: 8d 0c 0d    ...            ; Patch NMI handler buffer addr high
     bne get_sector_count                                              ; ba4b: d0 0a       ..             ; Always branch (high byte non-zero)
 ; &ba4d referenced 1 time by &ba3f
 .set_buffer_addr_for_read
     lda zp_buf_dest_lo                                                ; ba4d: a5 be       ..             ; Reading: use zp_be,bf as buffer
-    sta nmi_0d0e                                                      ; ba4f: 8d 0e 0d    ...            ; Patch NMI read buffer addr low
+    sta nmi_read_addr_lo                                              ; ba4f: 8d 0e 0d    ...            ; Patch NMI read buffer addr low
     lda zp_buf_dest_hi                                                ; ba52: a5 bf       ..             ; Get read buffer addr high
-    sta nmi_0d0f                                                      ; ba54: 8d 0f 0d    ...            ; Patch NMI read buffer addr high
+    sta nmi_read_addr_hi                                              ; ba54: 8d 0f 0d    ...            ; Patch NMI read buffer addr high
 ; &ba57 referenced 1 time by &ba4b
 .get_sector_count
     lda wksp_buf_sec_hi,x                                             ; ba57: bd 03 10    ...            ; Get sector count from control block
@@ -11565,7 +11565,7 @@ la868 = check_dest_terminator+1
     lda #&22 ; '"'                                                    ; ba72: a9 22       ."             ; Verify: seek+read (&22)
 ; &ba74 referenced 1 time by &ba70
 .set_read_write_command
-    sta nmi_0d5e                                                      ; ba74: 8d 5e 0d    .^.            ; Store in NMI control byte
+    sta nmi_drive_ctrl                                                ; ba74: 8d 5e 0d    .^.            ; Store in NMI control byte
     ror wksp_fdc_head_state                                           ; ba77: 6e e4 10    n..            ; Set head-loaded flag in state
     sec                                                               ; ba7a: 38          8              ; Set carry
     rol wksp_fdc_head_state                                           ; ba7b: 2e e4 10    ...            ; Restore head-loaded flag
@@ -11586,7 +11586,7 @@ la868 = check_dest_terminator+1
     jsr floppy_set_side_1                                             ; ba98: 20 22 bd     ".            ; Select side 1; Select floppy disc side 1
 ; &ba9b referenced 1 time by &ba94
 .set_fdc_control_byte
-    lda nmi_0d5e                                                      ; ba9b: ad 5e 0d    .^.            ; Get NMI control byte
+    lda nmi_drive_ctrl                                                ; ba9b: ad 5e 0d    .^.            ; Get NMI control byte
     sta fdc_8271_command_or_status_or_1770_drive_control              ; ba9e: 8d 80 fe    ...            ; Write to FDC control register
     ror a                                                             ; baa1: 6a          j              ; Rotate drive select into carry
     bcc set_track_and_sector                                          ; baa2: 90 0c       ..             ; C=0: not last sector, continue
@@ -11633,7 +11633,7 @@ la868 = check_dest_terminator+1
     sec                                                               ; badd: 38          8              ; Set carry
     rol wksp_fdc_head_state                                           ; bade: 2e e4 10    ...            ; Restore head-loaded flag
     lda #&14                                                          ; bae1: a9 14       ..             ; FDC seek command (&14)
-    ora nmi_0d5c                                                      ; bae3: 0d 5c 0d    .\.            ; OR in drive select bits
+    ora nmi_drive_cmd                                                 ; bae3: 0d 5c 0d    .\.            ; OR in drive select bits
     sta fdc_8271_data_or_1770_command_or_status                       ; bae6: 8d 84 fe    ...            ; Issue seek command to FDC
     jsr floppy_wait_nmi_finish                                        ; bae9: 20 c2 bc     ..            ; Wait for floppy NMI transfer to complete
     lda zp_floppy_control                                             ; baec: a5 a1       ..             ; Get control flags
@@ -11795,7 +11795,7 @@ la868 = check_dest_terminator+1
 .claim_nmi_and_init
     jsr claim_nmi                                                     ; bb92: 20 da bb     ..            ; Claim NMI via service call 12
     lda wksp_fdc_cmd_step                                             ; bb95: ad e8 10    ...            ; Get FDC step rate setting
-    sta nmi_0d5c                                                      ; bb98: 8d 5c 0d    .\.            ; Store in NMI control byte
+    sta nmi_drive_cmd                                                 ; bb98: 8d 5c 0d    .\.            ; Store in NMI control byte
     lda #0                                                            ; bb9b: a9 00       ..             ; A=0: clear error flag
     sta zp_floppy_error                                               ; bb9d: 85 a0       ..             ; Clear error code
     sta zp_floppy_state                                               ; bb9f: 85 a2       ..             ; Clear transfer state
@@ -11804,7 +11804,7 @@ la868 = check_dest_terminator+1
     sta wksp_fdc_xfer_mode                                            ; bba6: 8d e0 10    ...            ; Store updated mode
     sta zp_floppy_control                                             ; bba9: 85 a1       ..             ; Store as control flags
     lda zp_adfs_flags                                                 ; bbab: a5 cd       ..             ; Get ADFS flags
-    sta nmi_0d5d                                                      ; bbad: 8d 5d 0d    .].            ; Store in NMI workspace
+    sta nmi_adfs_flags                                                ; bbad: 8d 5d 0d    .].            ; Store in NMI workspace
     jsr copy_code_to_nmi_space                                        ; bbb0: 20 f1 bb     ..            ; Copy NMI handler code to NMI workspace
     rts                                                               ; bbb3: 60          `              ; Return
 
@@ -11818,7 +11818,7 @@ la868 = check_dest_terminator+1
 ; &bbb4 referenced 2 times by &ba35, &bb89
 .floppy_get_step_rate
     lda #0                                                            ; bbb4: a9 00       ..             ; Clear side select flag
-    sta nmi_0d56                                                      ; bbb6: 8d 56 0d    .V.            ; Store in NMI side select
+    sta nmi_step_rate                                                 ; bbb6: 8d 56 0d    .V.            ; Store in NMI side select
     sta wksp_fdc_cmd_step                                             ; bbb9: 8d e8 10    ...            ; Clear FDC step rate command bits
     lda #osbyte_read_write_startup_options                            ; bbbc: a9 ff       ..             ; OSBYTE &FF: read startup options
     ldx #0                                                            ; bbbe: a2 00       ..             ; X=0: read current value
@@ -11854,7 +11854,7 @@ la868 = check_dest_terminator+1
     and #&10                                                          ; bbd0: 29 10       ).             ; Test bit 4 (settle time)
     beq return_43                                                     ; bbd2: f0 05       ..             ; Clear: short settle
     lda #2                                                            ; bbd4: a9 02       ..             ; Bit 4 set: long settle (rate=2)
-    sta nmi_0d56                                                      ; bbd6: 8d 56 0d    .V.            ; Store in NMI workspace
+    sta nmi_step_rate                                                 ; bbd6: 8d 56 0d    .V.            ; Store in NMI workspace
 ; &bbd9 referenced 1 time by &bbd2
 .return_43
     rts                                                               ; bbd9: 60          `              ; Return
@@ -11909,14 +11909,14 @@ la868 = check_dest_terminator+1
     bpl copy_nmi_code_loop                                            ; bbfa: 10 f7       ..             ; Loop until all bytes copied
     ldy #1                                                            ; bbfc: a0 01       ..             ; Y=1: get memory address low from blk
     lda (zp_ctrl_blk_lo),y                                            ; bbfe: b1 b0       ..             ; Get transfer address low byte
-    sta nmi_0d0e                                                      ; bc00: 8d 0e 0d    ...            ; Patch NMI handler with address low
+    sta nmi_read_addr_lo                                              ; bc00: 8d 0e 0d    ...            ; Patch NMI handler with address low
     iny                                                               ; bc03: c8          .              ; Y=&02
     lda (zp_ctrl_blk_lo),y                                            ; bc04: b1 b0       ..             ; Get transfer address high byte
-    sta nmi_0d0f                                                      ; bc06: 8d 0f 0d    ...            ; Patch NMI handler with address high
+    sta nmi_read_addr_hi                                              ; bc06: 8d 0f 0d    ...            ; Patch NMI handler with address high
     bit zp_floppy_control                                             ; bc09: 24 a1       $.             ; Check control flags
     bmi check_tube_for_nmi                                            ; bc0b: 30 05       0.             ; Bit 7 set: reading from disc
     lda #&5f ; '_'                                                    ; bc0d: a9 5f       ._             ; Writing: patch NMI with STA opcode
-    sta nmi_0d05                                                      ; bc0f: 8d 05 0d    ...            ; Store at NMI read/write instruction
+    sta nmi_rw_opcode                                                 ; bc0f: 8d 05 0d    ...            ; Store at NMI read/write instruction
 ; &bc12 referenced 1 time by &bc0b
 .check_tube_for_nmi
     bit zp_adfs_flags                                                 ; bc12: 24 cd       $.             ; Tube in use?
@@ -11931,9 +11931,9 @@ la868 = check_dest_terminator+1
     jsr setup_direct_write_nmi                                        ; bc21: 20 5c bc     \.            ; Set up direct memory NMI handler
 ; &bc24 referenced 1 time by &bc1f
 .store_nmi_completion
-    sta nmi_0d5f                                                      ; bc24: 8d 5f 0d    ._.            ; Store NMI completion flag
+    sta nmi_completion                                                ; bc24: 8d 5f 0d    ._.            ; Store NMI completion flag
     lda romsel_copy                                                   ; bc27: a5 f4       ..             ; Get current ROM number
-    sta nmi_0d34                                                      ; bc29: 8d 34 0d    .4.            ; Patch NMI handler with ROM number
+    sta nmi_saved_rom                                                 ; bc29: 8d 34 0d    .4.            ; Patch NMI handler with ROM number
     rts                                                               ; bc2c: 60          `              ; Return
 
 ; &bc2d referenced 1 time by &bc1c
@@ -11954,7 +11954,7 @@ la868 = check_dest_terminator+1
 ; &bc46 referenced 1 time by &bc4d
 .copy_tube_write_nmi_loop
     lda nmi_tube_write_code,y                                         ; bc46: b9 ed bc    ...            ; Get Tube write NMI handler byte
-    sta nmi_0d0a,y                                                    ; bc49: 99 0a 0d    ...            ; Copy to NMI workspace
+    sta nmi_rw_code,y                                                 ; bc49: 99 0a 0d    ...            ; Copy to NMI workspace
     dey                                                               ; bc4c: 88          .              ; Next byte
     bpl copy_tube_write_nmi_loop                                      ; bc4d: 10 f7       ..             ; Loop for 8 bytes
 ; &bc4f referenced 1 time by &bc3e
@@ -11967,7 +11967,7 @@ la868 = check_dest_terminator+1
 ; &bc52 referenced 1 time by &bc59
 .copy_tube_read_nmi_loop
     lda nmi_tube_read_code,y                                          ; bc52: b9 f5 bc    ...            ; Get Tube read NMI handler byte
-    sta nmi_0d0a,y                                                    ; bc55: 99 0a 0d    ...            ; Copy to NMI workspace
+    sta nmi_rw_code,y                                                 ; bc55: 99 0a 0d    ...            ; Copy to NMI workspace
     dey                                                               ; bc58: 88          .              ; Next byte
     bpl copy_tube_read_nmi_loop                                       ; bc59: 10 f7       ..             ; Loop for 8 bytes
     rts                                                               ; bc5b: 60          `              ; Return
@@ -11980,15 +11980,15 @@ la868 = check_dest_terminator+1
 ; &bc62 referenced 1 time by &bc69
 .copy_write_nmi_loop
     lda nmi_write_code,y                                              ; bc62: b9 df bc    ...            ; Get direct memory write NMI byte
-    sta nmi_0d0a,y                                                    ; bc65: 99 0a 0d    ...            ; Copy to NMI workspace
+    sta nmi_rw_code,y                                                 ; bc65: 99 0a 0d    ...            ; Copy to NMI workspace
     dey                                                               ; bc68: 88          .              ; Next byte
     bpl copy_write_nmi_loop                                           ; bc69: 10 f7       ..             ; Loop for 14 bytes
     ldy #1                                                            ; bc6b: a0 01       ..             ; Y=1: patch transfer address
     lda (zp_ctrl_blk_lo),y                                            ; bc6d: b1 b0       ..             ; Get transfer addr low from block
-    sta nmi_0d0b                                                      ; bc6f: 8d 0b 0d    ...            ; Patch NMI handler with addr low
+    sta nmi_write_addr_lo                                             ; bc6f: 8d 0b 0d    ...            ; Patch NMI handler with addr low
     iny                                                               ; bc72: c8          .              ; Y=&02
     lda (zp_ctrl_blk_lo),y                                            ; bc73: b1 b0       ..             ; Get transfer addr high from block
-    sta nmi_0d0c                                                      ; bc75: 8d 0c 0d    ...            ; Patch NMI handler with addr high
+    sta nmi_write_addr_hi                                             ; bc75: 8d 0c 0d    ...            ; Patch NMI handler with addr high
 ; &bc78 referenced 1 time by &bc5e
 .return_45
     rts                                                               ; bc78: 60          `              ; Return
@@ -12028,9 +12028,9 @@ la868 = check_dest_terminator+1
 .nmi_code_rw
     lda fdc_1770_data                                                 ; bc83: ad 87 fe    ...            ; Read byte from WD1770 data register
     sta nmi_patched_addr                                              ; bc86: 8d ff ff    ...            ; Store at transfer address (patched)
-    inc nmi_0d0e                                                      ; bc89: ee 0e 0d    ...            ; Increment transfer address low byte
+    inc nmi_read_addr_lo                                              ; bc89: ee 0e 0d    ...            ; Increment transfer address low byte
     bne nmi_restore_and_return                                        ; bc8c: d0 03       ..             ; No page crossing: skip high byte
-    inc nmi_0d0f                                                      ; bc8e: ee 0f 0d    ...            ; Increment transfer address high byte
+    inc nmi_read_addr_hi                                              ; bc8e: ee 0f 0d    ...            ; Increment transfer address high byte
 ; &bc91 referenced 1 time by &bc8c
 .nmi_restore_and_return
     pla                                                               ; bc91: 68          h              ; Restore A
@@ -12108,7 +12108,7 @@ la868 = check_dest_terminator+1
 
 ; &bcc8 referenced 1 time by &bcc5
 .poll_nmi_complete
-    lda nmi_0d5d                                                      ; bcc8: ad 5d 0d    .].            ; Read NMI completion flag
+    lda nmi_adfs_flags                                                ; bcc8: ad 5d 0d    .].            ; Read NMI completion flag
     and #&10                                                          ; bccb: 29 10       ).             ; Bit 4 set = DRQ complete?
     beq floppy_wait_nmi_finish                                        ; bccd: f0 f3       ..             ; Not yet, keep waiting; Wait for floppy NMI transfer to complete
     bit zp_escape_flag                                                ; bccf: 24 ff       $.             ; Check for Escape condition
@@ -12138,7 +12138,7 @@ la868 = check_dest_terminator+1
     cmp #&14                                                          ; bd03: c9 14       ..             ; Track >= 20?
     lda #&a0                                                          ; bd05: a9 a0       ..             ; A=&A0: write command base
     bcc issue_fdc_command                                             ; bd07: 90 07       ..             ; Track < 20: no step rate delay
-    ora nmi_0d56                                                      ; bd09: 0d 56 0d    .V.            ; OR in step rate from settings
+    ora nmi_step_rate                                                 ; bd09: 0d 56 0d    .V.            ; OR in step rate from settings
     bne issue_fdc_command                                             ; bd0c: d0 02       ..             ; Always branch (non-zero result)
 ; &bd0e referenced 1 time by &bcff
 .set_read_command
@@ -12160,9 +12160,9 @@ la868 = check_dest_terminator+1
 ; 
 ; ***************************************************************************************
 .floppy_set_side_0_unused
-    lda nmi_0d5e                                                      ; bd19: ad 5e 0d    .^.            ; Get NMI drive control byte
+    lda nmi_drive_ctrl                                                ; bd19: ad 5e 0d    .^.            ; Get NMI drive control byte
     and #&fb                                                          ; bd1c: 29 fb       ).             ; Clear bit 2 (select side 0)
-    sta nmi_0d5e                                                      ; bd1e: 8d 5e 0d    .^.            ; Store updated control byte
+    sta nmi_drive_ctrl                                                ; bd1e: 8d 5e 0d    .^.            ; Store updated control byte
     rts                                                               ; bd21: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -12174,9 +12174,9 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; &bd22 referenced 4 times by &ba98, &be5c, &bec0, &bf9f
 .floppy_set_side_1
-    lda nmi_0d5e                                                      ; bd22: ad 5e 0d    .^.            ; Set side select flag
+    lda nmi_drive_ctrl                                                ; bd22: ad 5e 0d    .^.            ; Set side select flag
     ora #4                                                            ; bd25: 09 04       ..             ; Set bit 2 (side 1 flag)
-    sta nmi_0d5e                                                      ; bd27: 8d 5e 0d    .^.            ; Store in NMI drive control byte
+    sta nmi_drive_ctrl                                                ; bd27: 8d 5e 0d    .^.            ; Store in NMI drive control byte
     rts                                                               ; bd2a: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -12223,7 +12223,7 @@ la868 = check_dest_terminator+1
 .floppy_restore_track_0
     lda #0                                                            ; bd3f: a9 00       ..             ; A=0: target track number = 0
     sta zp_floppy_track                                               ; bd41: 85 a3       ..             ; Store as target track
-    ora nmi_0d5c                                                      ; bd43: 0d 5c 0d    .\.            ; OR with drive select bits
+    ora nmi_drive_cmd                                                 ; bd43: 0d 5c 0d    .\.            ; OR with drive select bits
     sta fdc_8271_data_or_1770_command_or_status                       ; bd46: 8d 84 fe    ...            ; Issue restore command to WD1770
     jmp floppy_wait_nmi_finish                                        ; bd49: 4c c2 bc    L..            ; Wait for command to complete; Wait for floppy NMI transfer to complete
 
@@ -12256,9 +12256,9 @@ la868 = check_dest_terminator+1
 ; &bd58 referenced 1 time by &bb3c
 .floppy_format_track
     lda wksp_format_page                                              ; bd58: ad e2 10    ...            ; Get format page number
-    sta nmi_0d0f                                                      ; bd5b: 8d 0f 0d    ...            ; Store as NMI buffer high byte
+    sta nmi_read_addr_hi                                              ; bd5b: 8d 0f 0d    ...            ; Store as NMI buffer high byte
     lda #0                                                            ; bd5e: a9 00       ..             ; A=0: NMI buffer low byte
-    sta nmi_0d0e                                                      ; bd60: 8d 0e 0d    ...            ; Store as NMI buffer low byte
+    sta nmi_read_addr_lo                                              ; bd60: 8d 0e 0d    ...            ; Store as NMI buffer low byte
     jsr process_floppy_result                                         ; bd63: 20 c6 ba     ..            ; Set up FDC registers for operation; Set up FDC registers and seek to track
     jsr select_fdc_rw_command                                         ; bd66: 20 fd bc     ..            ; Set up FDC command and issue; Select and issue FDC read/write command
     lda zp_floppy_track                                               ; bd69: a5 a3       ..             ; Save current track
@@ -12312,20 +12312,20 @@ la868 = check_dest_terminator+1
     sta zp_floppy_state                                               ; bdad: 85 a2       ..             ; Store updated state
     ldy #7                                                            ; bdaf: a0 07       ..             ; Y=7: get sector address from block
     lda (zp_ctrl_blk_lo),y                                            ; bdb1: b1 b0       ..             ; Get sector address mid byte
-    sta nmi_0d58                                                      ; bdb3: 8d 58 0d    .X.            ; Store in NMI workspace
+    sta nmi_secs_this_track                                           ; bdb3: 8d 58 0d    .X.            ; Store in NMI workspace
     iny                                                               ; bdb6: c8          .              ; Y=8: sector address low; Y=&08
     lda (zp_ctrl_blk_lo),y                                            ; bdb7: b1 b0       ..             ; Get sector address low
     iny                                                               ; bdb9: c8          .              ; Y=9: sector count; Y=&09
     clc                                                               ; bdba: 18          .              ; Clear carry for addition
     adc (zp_ctrl_blk_lo),y                                            ; bdbb: 71 b0       q.             ; Add sector count to start sector
-    sta nmi_0d59                                                      ; bdbd: 8d 59 0d    .Y.            ; Store end sector in NMI workspace
+    sta nmi_secs_last_track                                           ; bdbd: 8d 59 0d    .Y.            ; Store end sector in NMI workspace
     bcc wait_format_track_complete                                    ; bdc0: 90 03       ..             ; No carry: no wrap
-    inc nmi_0d58                                                      ; bdc2: ee 58 0d    .X.            ; Increment mid byte on carry
+    inc nmi_secs_this_track                                           ; bdc2: ee 58 0d    .X.            ; Increment mid byte on carry
 ; &bdc5 referenced 1 time by &bdc0
 .wait_format_track_complete
-    lda nmi_0d58                                                      ; bdc5: ad 58 0d    .X.            ; Get end sector mid byte
+    lda nmi_secs_this_track                                           ; bdc5: ad 58 0d    .X.            ; Get end sector mid byte
     tax                                                               ; bdc8: aa          .              ; Transfer to X
-    lda nmi_0d59                                                      ; bdc9: ad 59 0d    .Y.            ; Get end sector low byte
+    lda nmi_secs_last_track                                           ; bdc9: ad 59 0d    .Y.            ; Get end sector low byte
     ldy #&ff                                                          ; bdcc: a0 ff       ..             ; Y=&FF: init for divide
     jsr xa_div_16_to_ya                                               ; bdce: 20 a2 bf     ..            ; Divide end sector by 16; Divide X:A by 16, result in Y:A
     cmp #0                                                            ; bdd1: c9 00       ..             ; Remainder = 0?
@@ -12340,37 +12340,37 @@ la868 = check_dest_terminator+1
     lda #&10                                                          ; bdde: a9 10       ..             ; Need to cross track boundary
     sec                                                               ; bde0: 38          8              ; Set carry for subtraction
     sbc zp_floppy_sector                                              ; bde1: e5 a4       ..             ; Subtract start sector position
-    sta nmi_0d58                                                      ; bde3: 8d 58 0d    .X.            ; Store sectors remaining this track
+    sta nmi_secs_this_track                                           ; bde3: 8d 58 0d    .X.            ; Store sectors remaining this track
     lda (zp_ctrl_blk_lo),y                                            ; bde6: b1 b0       ..             ; Get sector count from block
     sec                                                               ; bde8: 38          8              ; Set carry
-    sbc nmi_0d58                                                      ; bde9: ed 58 0d    .X.            ; Subtract sectors done this track
+    sbc nmi_secs_this_track                                           ; bde9: ed 58 0d    .X.            ; Subtract sectors done this track
     ldx #0                                                            ; bdec: a2 00       ..             ; X=0: init result
     ldy #&ff                                                          ; bdee: a0 ff       ..             ; Y=&FF: init for divide
     jsr xa_div_16_to_ya                                               ; bdf0: 20 a2 bf     ..            ; Divide remaining by 16; Divide X:A by 16, result in Y:A
-    sty nmi_0d57                                                      ; bdf3: 8c 57 0d    .W.            ; Store full tracks to process
-    sta nmi_0d59                                                      ; bdf6: 8d 59 0d    .Y.            ; Store partial sectors on last track
+    sty nmi_tracks_remaining                                          ; bdf3: 8c 57 0d    .W.            ; Store full tracks to process
+    sta nmi_secs_last_track                                           ; bdf6: 8d 59 0d    .Y.            ; Store partial sectors on last track
     bpl set_format_sector_id                                          ; bdf9: 10 11       ..             ; Branch always (positive)
 ; &bdfb referenced 1 time by &bddc
 .format_double_sided
     ldy #9                                                            ; bdfb: a0 09       ..             ; Y=9: get sector count
     lda (zp_ctrl_blk_lo),y                                            ; bdfd: b1 b0       ..             ; Get sector count from block
-    sta nmi_0d58                                                      ; bdff: 8d 58 0d    .X.            ; Store in NMI workspace
+    sta nmi_secs_this_track                                           ; bdff: 8d 58 0d    .X.            ; Store in NMI workspace
     lda #&ff                                                          ; be02: a9 ff       ..             ; A=&FF: no additional tracks
-    sta nmi_0d57                                                      ; be04: 8d 57 0d    .W.            ; Store track count
+    sta nmi_tracks_remaining                                          ; be04: 8d 57 0d    .W.            ; Store track count
     lda #0                                                            ; be07: a9 00       ..             ; A=0: no partial sectors
-    sta nmi_0d59                                                      ; be09: 8d 59 0d    .Y.            ; Store partial count
+    sta nmi_secs_last_track                                           ; be09: 8d 59 0d    .Y.            ; Store partial count
 ; &be0c referenced 1 time by &bdf9
 .set_format_sector_id
     lda #0                                                            ; be0c: a9 00       ..             ; Clear sector position counter
-    sta nmi_0d5a                                                      ; be0e: 8d 5a 0d    .Z.            ; Store in NMI workspace
-    inc nmi_0d57                                                      ; be11: ee 57 0d    .W.            ; Increment full track count
-    dec nmi_0d58                                                      ; be14: ce 58 0d    .X.            ; Decrement sectors this track
+    sta nmi_sec_position                                              ; be0e: 8d 5a 0d    .Z.            ; Store in NMI workspace
+    inc nmi_tracks_remaining                                          ; be11: ee 57 0d    .W.            ; Increment full track count
+    dec nmi_secs_this_track                                           ; be14: ce 58 0d    .X.            ; Decrement sectors this track
     ldx #1                                                            ; be17: a2 01       ..             ; X=1: write sector register
     jsr fdc_write_register_verify                                     ; be19: 20 09 bb     ..            ; Write sector to FDC with verify; Write to WD1770 register with readback verify
     bit zp_floppy_control                                             ; be1c: 24 a1       $.             ; Check read/write direction
     bmi check_format_complete                                         ; be1e: 30 07       0.             ; Reading: use read command
     lda #&a0                                                          ; be20: a9 a0       ..             ; A=&A0: write command base
-    ora nmi_0d56                                                      ; be22: 0d 56 0d    .V.            ; OR in step rate
+    ora nmi_step_rate                                                 ; be22: 0d 56 0d    .V.            ; OR in step rate
     bne format_track_loop                                             ; be25: d0 02       ..             ; Branch (always non-zero)
 ; &be27 referenced 1 time by &be1e
 .check_format_complete
@@ -12390,7 +12390,7 @@ la868 = check_dest_terminator+1
     jsr clear_transfer_complete                                       ; be3c: 20 2b bd     +.            ; Clear seek flag; Clear floppy transfer complete flag
     jsr clear_seek_flag                                               ; be3f: 20 38 bd     8.            ; Clear track-step flag; Clear floppy seek-in-progress flag
     lda #&54 ; 'T'                                                    ; be42: a9 54       .T             ; FDC step-in command (&54)
-    ora nmi_0d5c                                                      ; be44: 0d 5c 0d    .\.            ; OR in drive select bits
+    ora nmi_drive_cmd                                                 ; be44: 0d 5c 0d    .\.            ; OR in drive select bits
     sta fdc_8271_data_or_1770_command_or_status                       ; be47: 8d 84 fe    ...            ; Issue step-in command
     inc zp_floppy_track                                               ; be4a: e6 a3       ..             ; Increment current track
     bne wait_format_nmi_complete                                      ; be4c: d0 e5       ..             ; Continue multi-sector loop
@@ -12404,7 +12404,7 @@ la868 = check_dest_terminator+1
     inc zp_floppy_track                                               ; be5a: e6 a3       ..             ; Increment track for side 1
     jsr floppy_set_side_1                                             ; be5c: 20 22 bd     ".            ; Select side 1; Select floppy disc side 1
     lda #0                                                            ; be5f: a9 00       ..             ; FDC restore command (seek to trk 0)
-    ora nmi_0d5c                                                      ; be61: 0d 5c 0d    .\.            ; OR in drive select
+    ora nmi_drive_cmd                                                 ; be61: 0d 5c 0d    .\.            ; OR in drive select
     sta fdc_8271_data_or_1770_command_or_status                       ; be64: 8d 84 fe    ...            ; Issue restore command
     bpl wait_format_nmi_complete                                      ; be67: 10 ca       ..             ; Continue loop (always branches)
 ; &be69 referenced 1 time by &bcb5
@@ -12430,23 +12430,23 @@ la868 = check_dest_terminator+1
 
 ; &be84 referenced 1 time by &be6c
 .execute_fdc_seek
-    lda nmi_0d58                                                      ; be84: ad 58 0d    .X.            ; Get sectors remaining this track
+    lda nmi_secs_this_track                                           ; be84: ad 58 0d    .X.            ; Get sectors remaining this track
     bne issue_step_command                                            ; be87: d0 64       .d             ; Non-zero: not at boundary
-    lda nmi_0d57                                                      ; be89: ad 57 0d    .W.            ; Get full tracks remaining
+    lda nmi_tracks_remaining                                          ; be89: ad 57 0d    .W.            ; Get full tracks remaining
     bne check_seek_error                                              ; be8c: d0 0f       ..             ; Non-zero: need track step
-    lda nmi_0d59                                                      ; be8e: ad 59 0d    .Y.            ; Get partial sectors on last track
+    lda nmi_secs_last_track                                           ; be8e: ad 59 0d    .Y.            ; Get partial sectors on last track
     bne wait_seek_complete                                            ; be91: d0 04       ..             ; Non-zero: still have partial track
     ldx #0                                                            ; be93: a2 00       ..             ; X=0: all done
     beq return_47                                                     ; be95: f0 67       .g             ; Branch to return; ALWAYS branch
 
 ; &be97 referenced 1 time by &be91
 .wait_seek_complete
-    dec nmi_0d59                                                      ; be97: ce 59 0d    .Y.            ; Decrement partial sector count
+    dec nmi_secs_last_track                                           ; be97: ce 59 0d    .Y.            ; Decrement partial sector count
     jmp step_track_counter                                            ; be9a: 4c f0 be    L..            ; Jump to update sector position
 
 ; &be9d referenced 1 time by &be8c
 .check_seek_error
-    lda nmi_0d5a                                                      ; be9d: ad 5a 0d    .Z.            ; Get sector position counter
+    lda nmi_sec_position                                              ; be9d: ad 5a 0d    .Z.            ; Get sector position counter
     bne step_inward                                                   ; bea0: d0 45       .E             ; Non-zero: continue processing
     ror wksp_fdc_head_state                                           ; bea2: 6e e4 10    n..            ; Set head-loaded flag
     sec                                                               ; bea5: 38          8              ; Set carry
@@ -12454,7 +12454,7 @@ la868 = check_dest_terminator+1
     lda fdc_1770_track                                                ; bea9: ad 85 fe    ...            ; Read current track from FDC
     cmp #&4f ; 'O'                                                    ; beac: c9 4f       .O             ; Track >= 79 (&4F)?
     bcc begin_step_sequence                                           ; beae: 90 1f       ..             ; No: normal track step
-    lda nmi_0d5e                                                      ; beb0: ad 5e 0d    .^.            ; Get NMI control byte
+    lda nmi_drive_ctrl                                                ; beb0: ad 5e 0d    .^.            ; Get NMI control byte
     and #4                                                            ; beb3: 29 04       ).             ; Bit 2 set (double-sided)?
     beq seek_with_stepping                                            ; beb5: f0 05       ..             ; Not set: single-sided disc
     ldx #0                                                            ; beb7: a2 00       ..             ; X=0: operation ending
@@ -12465,7 +12465,7 @@ la868 = check_dest_terminator+1
     lda #&ff                                                          ; bebc: a9 ff       ..             ; Track &4F: switch to side 1
     sta zp_floppy_track                                               ; bebe: 85 a3       ..             ; Set track to &FF (will be 0 after inc)
     jsr floppy_set_side_1                                             ; bec0: 20 22 bd     ".            ; Select side 1; Select floppy disc side 1
-    lda nmi_0d5e                                                      ; bec3: ad 5e 0d    .^.            ; Get NMI drive control byte
+    lda nmi_drive_ctrl                                                ; bec3: ad 5e 0d    .^.            ; Get NMI drive control byte
     sta fdc_8271_command_or_status_or_1770_drive_control              ; bec6: 8d 80 fe    ...            ; Write to FDC control register
     lda zp_floppy_state                                               ; bec9: a5 a2       ..             ; Get transfer state
     ora #8                                                            ; becb: 09 08       ..             ; Set bit 3 (side switch flag)
@@ -12478,10 +12478,10 @@ la868 = check_dest_terminator+1
 ; &bed3 referenced 1 time by &becd
 .check_step_direction
     sta zp_floppy_state                                               ; bed3: 85 a2       ..             ; Store updated state
-    dec nmi_0d57                                                      ; bed5: ce 57 0d    .W.            ; Decrement full track count
+    dec nmi_tracks_remaining                                          ; bed5: ce 57 0d    .W.            ; Decrement full track count
     beq step_outward                                                  ; bed8: f0 05       ..             ; Zero: check for partial track
     lda #&10                                                          ; beda: a9 10       ..             ; Sectors per track = &10 (16)
-    sta nmi_0d5a                                                      ; bedc: 8d 5a 0d    .Z.            ; Store in sector counter
+    sta nmi_sec_position                                              ; bedc: 8d 5a 0d    .Z.            ; Store in sector counter
 ; &bedf referenced 1 time by &bed8
 .step_outward
     lda #&fe                                                          ; bedf: a9 fe       ..             ; A=&FE: sector position reset
@@ -12491,12 +12491,12 @@ la868 = check_dest_terminator+1
 
 ; &bee7 referenced 1 time by &bea0
 .step_inward
-    dec nmi_0d5a                                                      ; bee7: ce 5a 0d    .Z.            ; Decrement sector position counter
+    dec nmi_sec_position                                              ; bee7: ce 5a 0d    .Z.            ; Decrement sector position counter
     jmp step_track_counter                                            ; beea: 4c f0 be    L..            ; Jump to update sector position
 
 ; &beed referenced 1 time by &be87
 .issue_step_command
-    dec nmi_0d58                                                      ; beed: ce 58 0d    .X.            ; Decrement sectors this track
+    dec nmi_secs_this_track                                           ; beed: ce 58 0d    .X.            ; Decrement sectors this track
 ; &bef0 referenced 2 times by &be9a, &beea
 .step_track_counter
     ldx #&ff                                                          ; bef0: a2 ff       ..             ; X=&FF: more sectors to do
@@ -12544,12 +12544,12 @@ la868 = check_dest_terminator+1
     lda #&22 ; '"'                                                    ; bf23: a9 22       ."             ; Drive 0: control byte &22
 ; &bf25 referenced 1 time by &bf21
 .issue_multi_sector_rw
-    sta nmi_0d5e                                                      ; bf25: 8d 5e 0d    .^.            ; Store in NMI drive control
+    sta nmi_drive_ctrl                                                ; bf25: 8d 5e 0d    .^.            ; Store in NMI drive control
     ror wksp_fdc_head_state                                           ; bf28: 6e e4 10    n..            ; Set head-loaded flag
     sec                                                               ; bf2b: 38          8              ; Set carry
     rol wksp_fdc_head_state                                           ; bf2c: 2e e4 10    ...            ; Restore head-loaded flag
     jsr floppy_calc_track_sector_from_block_check_range               ; bf2f: 20 55 bf     U.            ; Calculate track/sector with range chk; Calculate track/sector from block with range check
-    lda nmi_0d5e                                                      ; bf32: ad 5e 0d    .^.            ; Get NMI drive control byte
+    lda nmi_drive_ctrl                                                ; bf32: ad 5e 0d    .^.            ; Get NMI drive control byte
     sta fdc_8271_command_or_status_or_1770_drive_control              ; bf35: 8d 80 fe    ...            ; Write to FDC control register
     ror a                                                             ; bf38: 6a          j              ; Rotate bit 0 to carry
     bcc handle_sector_error                                           ; bf39: 90 0c       ..             ; C=0: last access was other drive
@@ -12678,7 +12678,7 @@ la868 = check_dest_terminator+1
     lda wksp_fdc_xfer_mode                                            ; bfb2: ad e0 10    ...            ; Check if NMI was in use
     and #&20 ; ' '                                                    ; bfb5: 29 20       )              ; Bit 5: NMI active?
     beq release_tube_after_floppy                                     ; bfb7: f0 27       .'             ; No NMI, skip to Tube release
-    lda nmi_0d5e                                                      ; bfb9: ad 5e 0d    .^.            ; Get NMI status byte
+    lda nmi_drive_ctrl                                                ; bfb9: ad 5e 0d    .^.            ; Get NMI status byte
     ror a                                                             ; bfbc: 6a          j              ; Rotate bit 0 into carry
     lda zp_floppy_track                                               ; bfbd: a5 a3       ..             ; Get partial transfer count
     bcc store_second_partial                                          ; bfbf: 90 0c       ..             ; C=0: store as second count
@@ -12835,7 +12835,7 @@ save pydis_start, pydis_end
 ;     bad_compact_error:                                 11
 ;     brk_error_block:                                   11
 ;     fsm_sector_1:                                      11
-;     nmi_0d5e:                                          11
+;     nmi_drive_ctrl:                                    11
 ;     skip_spaces:                                       11
 ;     tube_data_register_3:                              11
 ;     wksp_copy_src_sector:                              11
@@ -12853,7 +12853,7 @@ save pydis_start, pydis_end
 ;     wksp_osgbpb_sector_hi:                             10
 ;     zp_ctrl_blk_hi:                                    10
 ;     dir_master_sequence:                                9
-;     nmi_0d58:                                           9
+;     nmi_secs_this_track:                                9
 ;     output_byte_to_buffer:                              9
 ;     print_hex_byte:                                     9
 ;     wait_ensuring:                                      9
@@ -12890,10 +12890,10 @@ save pydis_start, pydis_end
 ;     check_first_char_wildcard:                          7
 ;     command_done:                                       7
 ;     floppy_error:                                       7
-;     nmi_0df0:                                           7
-;     nmi_0dfd:                                           7
+;     fsm_s0_pre3:                                        7
 ;     os_text_ptr:                                        7
 ;     osnewl:                                             7
+;     rom_wksp_table:                                     7
 ;     scsi_send_byte_a:                                   7
 ;     wksp_access_accum:                                  7
 ;     wksp_buf_sec_lo:                                    7
@@ -12925,7 +12925,7 @@ save pydis_start, pydis_end
 ;     generate_disc_error:                                6
 ;     generate_error:                                     6
 ;     next_conflict_check:                                6
-;     nmi_0d59:                                           6
+;     nmi_secs_last_track:                                6
 ;     no_open_files_on_drive:                             6
 ;     not_found_error:                                    6
 ;     print_padded_name:                                  6
@@ -12951,8 +12951,8 @@ save pydis_start, pydis_end
 ;     fsm_s0_checksum:                                    5
 ;     fsm_s1_boot_option:                                 5
 ;     mark_directory_dirty:                               5
-;     nmi_0d57:                                           5
-;     nmi_0d5c:                                           5
+;     nmi_drive_cmd:                                      5
+;     nmi_tracks_remaining:                               5
 ;     release_disc_space:                                 5
 ;     release_tube:                                       5
 ;     scsi_get_status:                                    5
@@ -12996,10 +12996,10 @@ save pydis_start, pydis_end
 ;     get_wksp_addr_ba:                                   4
 ;     init_channel_complete:                              4
 ;     multi_sector_disc_command:                          4
-;     nmi_0d0e:                                           4
-;     nmi_0d0f:                                           4
-;     nmi_0d56:                                           4
-;     nmi_0d5a:                                           4
+;     nmi_read_addr_hi:                                   4
+;     nmi_read_addr_lo:                                   4
+;     nmi_sec_position:                                   4
+;     nmi_step_rate:                                      4
 ;     parse_second_filename:                              4
 ;     read_single_hd_sector:                              4
 ;     restore_csd:                                        4
@@ -13067,10 +13067,10 @@ save pydis_start, pydis_end
 ;     invalidate_fsm_and_dir:                             3
 ;     load_sector_to_buffer:                              3
 ;     mark_buffer_dirty:                                  3
-;     nmi_0d0a:                                           3
-;     nmi_0d0b:                                           3
-;     nmi_0d0c:                                           3
+;     nmi_rw_code:                                        3
 ;     nmi_transfer_done:                                  3
+;     nmi_write_addr_hi:                                  3
+;     nmi_write_addr_lo:                                  3
 ;     osasci:                                             3
 ;     osbyte_y_ff_x_00:                                   3
 ;     oscli:                                              3
@@ -13211,6 +13211,7 @@ save pydis_start, pydis_end
 ;     format_init_dir:                                    2
 ;     format_init_fsm:                                    2
 ;     fred_hard_drive_1:                                  2
+;     fsm_s0_pre1:                                        2
 ;     fsm_s1_checksum:                                    2
 ;     generate_error_no_suffix:                           2
 ;     generate_error_suffix_x:                            2
@@ -13237,8 +13238,7 @@ save pydis_start, pydis_end
 ;     my_osfind:                                          2
 ;     next_attr_char:                                     2
 ;     next_command_entry:                                 2
-;     nmi_0d5d:                                           2
-;     nmi_0dff:                                           2
+;     nmi_adfs_flags:                                     2
 ;     nmi_patched_addr:                                   2
 ;     not_open_for_update_error:                          2
 ;     output_printable_char:                              2
@@ -13729,6 +13729,7 @@ save pydis_start, pydis_end
 ;     fsm_s0_disc_id_lo:                                  1
 ;     fsm_s0_end_of_list_ptr:                             1
 ;     fsm_s0_first_length:                                1
+;     fsm_s0_pre6:                                        1
 ;     fsm_s0_reserved:                                    1
 ;     fsm_s1_first_length:                                1
 ;     full_pathname_parser:                               1
@@ -13789,14 +13790,13 @@ save pydis_start, pydis_end
 ;     next_digit:                                         1
 ;     next_entry_byte:                                    1
 ;     next_entry_not_found:                               1
-;     nmi_0d05:                                           1
-;     nmi_0d34:                                           1
-;     nmi_0d5f:                                           1
-;     nmi_0dfa:                                           1
 ;     nmi_check_end_of_operation:                         1
 ;     nmi_check_status_error:                             1
 ;     nmi_code_start:                                     1
+;     nmi_completion:                                     1
 ;     nmi_restore_and_return:                             1
+;     nmi_rw_opcode:                                      1
+;     nmi_saved_rom:                                      1
 ;     nmi_set_transfer_complete:                          1
 ;     nmi_tube_read_code:                                 1
 ;     nmi_tube_write_code:                                1

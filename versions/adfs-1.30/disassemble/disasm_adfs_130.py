@@ -525,26 +525,31 @@ label(0x1BFA, "dir2_master_sequence")
 # ---------------------------------------------------------------------------
 
 label(0x0D00, "nmi_workspace")
-label(0x0D05, "nmi_0d05")
-label(0x0D0A, "nmi_0d0a")
-label(0x0D0B, "nmi_0d0b")
-label(0x0D0C, "nmi_0d0c")
-label(0x0D0E, "nmi_0d0e")
-label(0x0D0F, "nmi_0d0f")
-label(0x0D34, "nmi_0d34")
-label(0x0D56, "nmi_0d56")
-label(0x0D57, "nmi_0d57")
-label(0x0D58, "nmi_0d58")
-label(0x0D59, "nmi_0d59")
-label(0x0D5A, "nmi_0d5a")
-label(0x0D5C, "nmi_0d5c")
-label(0x0D5D, "nmi_0d5d")
-label(0x0D5E, "nmi_0d5e")
-label(0x0D5F, "nmi_0d5f")
-label(0x0DF0, "nmi_0df0")
-label(0x0DFA, "nmi_0dfa")
-label(0x0DFD, "nmi_0dfd")
-label(0x0DFF, "nmi_0dff")
+label(0x0D05, "nmi_rw_opcode")         # self-modified LDA/STA for read/write direction
+label(0x0D0A, "nmi_rw_code")           # variable NMI code block (Tube/direct handlers copied here)
+label(0x0D0B, "nmi_write_addr_lo")     # write handler: self-modified transfer address low
+label(0x0D0C, "nmi_write_addr_hi")     # write handler: self-modified transfer address high
+label(0x0D0E, "nmi_read_addr_lo")      # read handler: self-modified transfer address low
+label(0x0D0F, "nmi_read_addr_hi")      # read handler: self-modified transfer address high
+label(0x0D34, "nmi_saved_rom")         # patched ROM number for multi-sector NMI handler
+label(0x0D56, "nmi_step_rate")         # FDC step rate / settle delay value
+label(0x0D57, "nmi_tracks_remaining")  # full tracks remaining in multi-sector op
+label(0x0D58, "nmi_secs_this_track")   # sectors remaining on current track
+label(0x0D59, "nmi_secs_last_track")   # partial sectors remaining on last track
+label(0x0D5A, "nmi_sec_position")      # current sector position counter within track
+label(0x0D5C, "nmi_drive_cmd")         # drive select + step rate command bits
+label(0x0D5D, "nmi_adfs_flags")        # copy of ADFS flags for NMI completion polling
+label(0x0D5E, "nmi_drive_ctrl")        # FDC drive control byte (side/drive select)
+label(0x0D5F, "nmi_completion")        # NMI transfer completion flag
+
+# ---------------------------------------------------------------------------
+# ROM workspace table and FSM indexed bases (&0DF0-&0DFF)
+# ---------------------------------------------------------------------------
+
+label(0x0DF0, "rom_wksp_table")        # per-ROM workspace page table (standard Acorn)
+label(0x0DFA, "fsm_s0_pre6")           # X-indexed base: +6 reaches FSM sector 0 start
+label(0x0DFD, "fsm_s0_pre3")           # X-indexed base: +3 reaches FSM sector 0 start
+label(0x0DFF, "fsm_s0_pre1")           # X/Y-indexed base: +1 reaches FSM sector 0
 
 # ---------------------------------------------------------------------------
 # MOS vectors and system variables
