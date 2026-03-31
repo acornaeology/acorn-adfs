@@ -889,10 +889,20 @@ entry(0xBBB4)
 label(0xBBB4, "floppy_get_step_rate")
 entry(0xBBF1)
 label(0xBBF1, "copy_code_to_nmi_space")
-label(0xBC79, "nmi_code_start")
-label(0xBC83, "nmi_code_rw")
-entry(0xBC93)  # NMI status/error handler (after RTI)
-entry(0xBCA5)  # NMI end-of-operation handler (after RTI)
+# Main NMI handler: 73 bytes at &BC79-&BCC1 copied to &0D00-&0D48
+# at runtime by copy_code_to_nmi_space.
+nmi_main_move_id = move(0x0D00, 0xBC79, 0x49)
+with nmi_main_move_id:
+    entry(0x0D00)
+    entry(0x0D0A)
+    entry(0x0D18)
+    label(0x0D1A, "nmi_check_status_error")
+    entry(0x0D1A)
+    label(0x0D25, "nmi_set_transfer_complete")
+    entry(0x0D25)
+    label(0x0D2C, "nmi_check_end_of_operation")
+    entry(0x0D2C)
+
 entry(0xBCC2)
 label(0xBCC2, "floppy_wait_nmi_finish")
 
@@ -4532,10 +4542,6 @@ label(0xBC50, "setup_tube_read_nmi")
 label(0xBC52, "copy_tube_read_nmi_loop")
 label(0xBC5C, "setup_direct_write_nmi")
 label(0xBC62, "copy_write_nmi_loop")
-label(0xBC91, "nmi_restore_and_return")
-label(0xBC93, "nmi_check_status_error")
-label(0xBC9E, "nmi_set_transfer_complete")
-label(0xBCA5, "nmi_check_end_of_operation")
 label(0xBCC8, "poll_nmi_complete")
 label(0xBCFD, "select_fdc_rw_command")
 label(0xBD0E, "set_read_command")
@@ -12185,7 +12191,7 @@ option in the free space map.
     on_entry={"x": "first *OPT parameter (option number)",
               "y": "second *OPT parameter (value)"})
 
-subroutine(0xBC79, "nmi_code_start",
+subroutine(0x0D00, "nmi_workspace",
     title="NMI handler code (copied to &0D00)",
     description="""\
 NMI handler for floppy disc byte-by-byte data transfer.
@@ -12210,7 +12216,7 @@ The handler has three paths:
      the next sector. Otherwise mark transfer complete.
 """)
 
-subroutine(0xBC93, "nmi_check_status_error",
+subroutine(0x0D1A, "nmi_check_status_error",
     title="NMI status/error handler",
     description="""\
 Not a DRQ: check WD1770 status for error bits. Bits 6
@@ -12219,7 +12225,7 @@ are tested via AND #&58. If any are set, store the error
 code and set the error flag in the control byte.
 """)
 
-subroutine(0xBCA5, "nmi_check_end_of_operation",
+subroutine(0x0D2C, "nmi_check_end_of_operation",
     title="NMI end-of-operation handler",
     description="""\
 No error and no DRQ: the WD1770 command has completed.

@@ -399,18 +399,134 @@ osbyte                      = &fff4
 oscli                       = &fff7
 nmi_patched_addr            = &ffff
 
+    org &bc79
+
+.cbc79
+
+; Move 1: &bc79 to &0d00 for length 73
+    org &0d00
+; ***************************************************************************************
+; NMI handler code (copied to &0D00)
+; 
+; NMI handler for floppy disc byte-by-byte data transfer.
+; Copied from ROM to the NMI workspace at &0D00 before each
+; floppy operation. The WD1770 fires an NMI on each byte
+; transferred (DRQ) and on command completion.
+; 
+; The handler has three paths:
+;   1. DRQ (status & &1F = 3): transfer one byte between
+;      the WD1770 data register and memory. The code at
+;      &0D0A-&0D17 is patched with one of three variants:
+;      nmi_write_code (direct memory write to disc),
+;      nmi_tube_write_code (Tube to disc), or
+;      nmi_tube_read_code (disc to Tube). The default
+;      (nmi_code_rw) is direct memory read from disc.
+;   2. Error (status & &58 != 0): store the error status
+;      and set bit 0 of zp_floppy_control and
+;      zp_floppy_state to signal the error to the caller.
+;   3. Completion (no DRQ, no error): if multi-sector mode
+;      is active (bit 6 of zp_floppy_state), switch to
+;      ROM 0 and call the track-stepping routine to set up
+;      the next sector. Otherwise mark transfer complete.
+; 
+; &bc79 referenced 1 time by &bbf6
+    pha                                                               ; bc79: 48          H   :0d00[1]
+    lda fdc_1770_command_or_status                                    ; bc7a: ad 84 fe    ... :0d01[1]
+    and #&1f                                                          ; bc7d: 29 1f       ).  :0d04[1]
+; &bc7e referenced 1 time by &bc0f
+    cmp #3                                                            ; bc7f: c9 03       ..  :0d06[1]
+    bne nmi_check_status_error                                        ; bc81: d0 10       ..  :0d08[1]   ; NMI status/error handler
+; &bc83 referenced 3 times by &bc49, &bc55, &bc65
+    lda fdc_1770_data                                                 ; bc83: ad 87 fe    ... :0d0a[1]
+    sta nmi_patched_addr                                              ; bc86: 8d ff ff    ... :0d0d[1]
+    inc nmi_read_addr_lo                                              ; bc89: ee 0e 0d    ... :0d10[1]
+    bne nmi_transfer_done                                             ; bc8c: d0 03       ..  :0d13[1]
+    inc nmi_read_addr_hi                                              ; bc8e: ee 0f 0d    ... :0d15[1]
+; &bc91 referenced 4 times by &0d10[3], &0d10[4], &0d13[1], &0d13[2]
+    pla                                                               ; bc91: 68          h   :0d18[1]
+    rti                                                               ; bc92: 40          @   :0d19[1]
+
+; ***************************************************************************************
+; NMI status/error handler
+; 
+; Not a DRQ: check WD1770 status for error bits. Bits 6
+; (write protect), 4 (record not found), and 3 (CRC error)
+; are tested via AND #&58. If any are set, store the error
+; code and set the error flag in the control byte.
+; 
+; &bc93 referenced 1 time by &0d08[1]
+.nmi_check_status_error
+    and #&58 ; 'X'                                                    ; bc93: 29 58       )X  :0d1a[1]
+    beq nmi_check_end_of_operation                                    ; bc95: f0 0e       ..  :0d1c[1]   ; NMI end-of-operation handler
+    sta zp_floppy_error                                               ; bc97: 85 a0       ..  :0d1e[1]
+    ror zp_floppy_control                                             ; bc99: 66 a1       f.  :0d20[1]
+    sec                                                               ; bc9b: 38          8   :0d22[1]
+    rol zp_floppy_control                                             ; bc9c: 26 a1       &.  :0d23[1]
+; &bc9e referenced 1 time by &0d2e[1]
+.nmi_set_transfer_complete
+    ror zp_floppy_state                                               ; bc9e: 66 a2       f.  :0d25[1]
+    sec                                                               ; bca0: 38          8   :0d27[1]
+    rol zp_floppy_state                                               ; bca1: 26 a2       &.  :0d28[1]
+    pla                                                               ; bca3: 68          h   :0d2a[1]
+    rti                                                               ; bca4: 40          @   :0d2b[1]
+
+; ***************************************************************************************
+; NMI end-of-operation handler
+; 
+; No error and no DRQ: the WD1770 command has completed.
+; If multi-sector mode (bit 6 of zp_floppy_state) is not
+; active, just mark the transfer complete. Otherwise, save
+; the current ROM state, switch to ROM 0, and call the
+; track-stepping routine to prepare the next sector for
+; transfer.
+; 
+; &bca5 referenced 1 time by &0d1c[1]
+.nmi_check_end_of_operation
+    bit zp_floppy_state                                               ; bca5: 24 a2       $.  :0d2c[1]
+    bvc nmi_set_transfer_complete                                     ; bca7: 50 f5       P.  :0d2e[1]
+    lda romsel_copy                                                   ; bca9: a5 f4       ..  :0d30[1]
+    pha                                                               ; bcab: 48          H   :0d32[1]
+    lda #0                                                            ; bcac: a9 00       ..  :0d33[1]
+; &bcad referenced 1 time by &bc29
+    sta romsel_copy                                                   ; bcae: 85 f4       ..  :0d35[1]
+    sta romsel                                                        ; bcb0: 8d 30 fe    .0. :0d37[1]
+    txa                                                               ; bcb3: 8a          .   :0d3a[1]
+    pha                                                               ; bcb4: 48          H   :0d3b[1]
+    jsr sub_cbe69                                                     ; bcb5: 20 69 be     i. :0d3c[1]
+    pla                                                               ; bcb8: 68          h   :0d3f[1]
+    tax                                                               ; bcb9: aa          .   :0d40[1]
+    pla                                                               ; bcba: 68          h   :0d41[1]
+    sta romsel_copy                                                   ; bcbb: 85 f4       ..  :0d42[1]
+    sta romsel                                                        ; bcbd: 8d 30 fe    .0. :0d44[1]
+    pla                                                               ; bcc0: 68          h   :0d47[1]
+    rti                                                               ; bcc1: 40          @   :0d48[1]
+
+
+    ; Copy the newly assembled block of code back to it's proper place in the binary
+    ; file.
+    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
+    copyblock &0d00, *, cbc79
+
+    ; Clear the area of memory we just temporarily used to assemble the new block,
+    ; allowing us to assemble there again if needed
+    clear &0d00, &0d49
+
+    ; Set the program counter to the next position in the binary file.
+    org cbc79 + (* - &0d00)
+
+.floppy_wait_nmi_finish
+
     org &bcdf
 
 .nmi_write_code
 
-; Move 1: &bcdf to &0d0a for length 14
+; Move 2: &bcdf to &0d0a for length 14
     org &0d0a
-; &bcdf referenced 3 times by &bc49, &bc55, &bc65
-    lda nmi_patched_addr                                              ; bcdf: ad ff ff    ... :0d0a[1]
-    sta fdc_1770_data                                                 ; bce2: 8d 87 fe    ... :0d0d[1]
-    inc nmi_write_addr_lo                                             ; bce5: ee 0b 0d    ... :0d10[1]
-    bne nmi_transfer_done                                             ; bce8: d0 03       ..  :0d13[1]
-    inc nmi_write_addr_hi                                             ; bcea: ee 0c 0d    ... :0d15[1]
+    lda nmi_patched_addr                                              ; bcdf: ad ff ff    ... :0d0a[2]
+    sta fdc_1770_data                                                 ; bce2: 8d 87 fe    ... :0d0d[2]
+    inc nmi_write_addr_lo                                             ; bce5: ee 0b 0d    ... :0d10[2]
+    bne nmi_transfer_done                                             ; bce8: d0 03       ..  :0d13[2]
+    inc nmi_write_addr_hi                                             ; bcea: ee 0c 0d    ... :0d15[2]
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -426,11 +542,11 @@ nmi_patched_addr            = &ffff
 
 .nmi_tube_write_code
 
-; Move 2: &bced to &0d0a for length 8
+; Move 3: &bced to &0d0a for length 8
     org &0d0a
-    lda tube_data_register_3                                          ; bced: ad e5 fe    ... :0d0a[2]
-    sta fdc_1770_data                                                 ; bcf0: 8d 87 fe    ... :0d0d[2]
-    bcs nmi_transfer_done                                             ; bcf3: b0 06       ..  :0d10[2]
+    lda tube_data_register_3                                          ; bced: ad e5 fe    ... :0d0a[3]
+    sta fdc_1770_data                                                 ; bcf0: 8d 87 fe    ... :0d0d[3]
+    bcs nmi_transfer_done                                             ; bcf3: b0 06       ..  :0d10[3]
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -446,11 +562,11 @@ nmi_patched_addr            = &ffff
 
 .nmi_tube_read_code
 
-; Move 3: &bcf5 to &0d0a for length 8
+; Move 4: &bcf5 to &0d0a for length 8
     org &0d0a
-    lda fdc_1770_data                                                 ; bcf5: ad 87 fe    ... :0d0a[3]
-    sta tube_data_register_3                                          ; bcf8: 8d e5 fe    ... :0d0d[3]
-    bcs nmi_transfer_done                                             ; bcfb: b0 06       ..  :0d10[3]
+    lda fdc_1770_data                                                 ; bcf5: ad 87 fe    ... :0d0a[4]
+    sta tube_data_register_3                                          ; bcf8: 8d e5 fe    ... :0d0d[4]
+    bcs nmi_transfer_done                                             ; bcfb: b0 06       ..  :0d10[4]
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -11909,7 +12025,7 @@ la868 = check_dest_terminator+1
     ldy #&48 ; 'H'                                                    ; bbf1: a0 48       .H             ; Y=&48: copy 73 bytes of NMI code
 ; &bbf3 referenced 1 time by &bbfa
 .copy_nmi_code_loop
-    lda nmi_code_start,y                                              ; bbf3: b9 79 bc    .y.            ; Read NMI handler byte from ROM
+    lda cbc79,y                                                       ; bbf3: b9 79 bc    .y.            ; Read NMI handler byte from ROM
     sta nmi_workspace,y                                               ; bbf6: 99 00 0d    ...            ; Write to NMI workspace
     dey                                                               ; bbf9: 88          .              ; Next byte (loop back)
     bpl copy_nmi_code_loop                                            ; bbfa: 10 f7       ..             ; Loop until all bytes copied
@@ -11999,101 +12115,9 @@ la868 = check_dest_terminator+1
 .return_45
     rts                                                               ; bc78: 60          `              ; Return
 
-; ***************************************************************************************
-; NMI handler code (copied to &0D00)
-; 
-; NMI handler for floppy disc byte-by-byte data transfer.
-; Copied from ROM to the NMI workspace at &0D00 before each
-; floppy operation. The WD1770 fires an NMI on each byte
-; transferred (DRQ) and on command completion.
-; 
-; The handler has three paths:
-;   1. DRQ (status & &1F = 3): transfer one byte between
-;      the WD1770 data register and memory. The code at
-;      &0D0A-&0D17 is patched with one of three variants:
-;      nmi_write_code (direct memory write to disc),
-;      nmi_tube_write_code (Tube to disc), or
-;      nmi_tube_read_code (disc to Tube). The default
-;      (nmi_code_rw) is direct memory read from disc.
-;   2. Error (status & &58 != 0): store the error status
-;      and set bit 0 of zp_floppy_control and
-;      zp_floppy_state to signal the error to the caller.
-;   3. Completion (no DRQ, no error): if multi-sector mode
-;      is active (bit 6 of zp_floppy_state), switch to
-;      ROM 0 and call the track-stepping routine to set up
-;      the next sector. Otherwise mark transfer complete.
-; 
 ; &bc79 referenced 1 time by &bbf3
-.nmi_code_start
-    pha                                                               ; bc79: 48          H              ; Save A (NMI must preserve all regs)
-    lda fdc_1770_command_or_status                                    ; bc7a: ad 84 fe    ...            ; Read WD1770 status register
-    and #&1f                                                          ; bc7d: 29 1f       ).             ; Mask to low 5 status bits
-    cmp #3                                                            ; bc7f: c9 03       ..             ; Status = 3 (data request)?
-    bne nmi_check_status_error                                        ; bc81: d0 10       ..             ; No: check for error or completion
-.nmi_code_rw
-    lda fdc_1770_data                                                 ; bc83: ad 87 fe    ...            ; Read byte from WD1770 data register
-    sta nmi_patched_addr                                              ; bc86: 8d ff ff    ...            ; Store at transfer address (patched)
-    inc nmi_read_addr_lo                                              ; bc89: ee 0e 0d    ...            ; Increment transfer address low byte
-    bne nmi_restore_and_return                                        ; bc8c: d0 03       ..             ; No page crossing: skip high byte
-    inc nmi_read_addr_hi                                              ; bc8e: ee 0f 0d    ...            ; Increment transfer address high byte
-; &bc91 referenced 1 time by &bc8c
-.nmi_restore_and_return
-    pla                                                               ; bc91: 68          h              ; Restore A
-    rti                                                               ; bc92: 40          @              ; Return from NMI
 
-; ***************************************************************************************
-; NMI status/error handler
-; 
-; Not a DRQ: check WD1770 status for error bits. Bits 6
-; (write protect), 4 (record not found), and 3 (CRC error)
-; are tested via AND #&58. If any are set, store the error
-; code and set the error flag in the control byte.
-; 
-; &bc93 referenced 1 time by &bc81
-.nmi_check_status_error
-    and #&58 ; 'X'                                                    ; bc93: 29 58       )X             ; Test error bits: WP, RNF, CRC (&58)
-    beq nmi_check_end_of_operation                                    ; bc95: f0 0e       ..             ; No errors: check for end of operation
-    sta zp_floppy_error                                               ; bc97: 85 a0       ..             ; Store error status for later reporting
-    ror zp_floppy_control                                             ; bc99: 66 a1       f.             ; Set bit 0 of control flags (error)
-    sec                                                               ; bc9b: 38          8              ; (continued)
-    rol zp_floppy_control                                             ; bc9c: 26 a1       &.             ; (continued)
-; &bc9e referenced 1 time by &bca7
-.nmi_set_transfer_complete
-    ror zp_floppy_state                                               ; bc9e: 66 a2       f.             ; Set bit 0 of state (transfer complete)
-    sec                                                               ; bca0: 38          8              ; (continued)
-    rol zp_floppy_state                                               ; bca1: 26 a2       &.             ; (continued)
-    pla                                                               ; bca3: 68          h              ; Restore A
-    rti                                                               ; bca4: 40          @              ; Return from NMI
-
-; ***************************************************************************************
-; NMI end-of-operation handler
-; 
-; No error and no DRQ: the WD1770 command has completed.
-; If multi-sector mode (bit 6 of zp_floppy_state) is not
-; active, just mark the transfer complete. Otherwise, save
-; the current ROM state, switch to ROM 0, and call the
-; track-stepping routine to prepare the next sector for
-; transfer.
-; 
-; &bca5 referenced 1 time by &bc95
-.nmi_check_end_of_operation
-    bit zp_floppy_state                                               ; bca5: 24 a2       $.             ; Bit 6 of state: multi-sector mode?
-    bvc nmi_set_transfer_complete                                     ; bca7: 50 f5       P.             ; No: mark complete and return
-    lda romsel_copy                                                   ; bca9: a5 f4       ..             ; Save current ROM number
-    pha                                                               ; bcab: 48          H              ; Push ROM number on stack
-    lda #0                                                            ; bcac: a9 00       ..             ; Select ROM 0 for floppy driver
-    sta romsel_copy                                                   ; bcae: 85 f4       ..             ; Store in ROM select shadow
-    sta romsel                                                        ; bcb0: 8d 30 fe    .0.            ; Write to ROM select register
-    txa                                                               ; bcb3: 8a          .              ; Save X
-    pha                                                               ; bcb4: 48          H              ; Push X on stack
-    jsr sub_cbe69                                                     ; bcb5: 20 69 be     i.            ; Call track-stepping routine
-    pla                                                               ; bcb8: 68          h              ; Restore X
-    tax                                                               ; bcb9: aa          .              ; Transfer to X
-    pla                                                               ; bcba: 68          h              ; Restore original ROM number
-    sta romsel_copy                                                   ; bcbb: 85 f4       ..             ; Store in ROM select shadow
-    sta romsel                                                        ; bcbd: 8d 30 fe    .0.            ; Write to ROM select register
-    pla                                                               ; bcc0: 68          h              ; Restore A
-    rti                                                               ; bcc1: 40          @              ; Return from NMI
+    org &bcc2
 
 ; ***************************************************************************************
 ; Wait for floppy NMI transfer to complete
@@ -12102,7 +12126,6 @@ la868 = check_dest_terminator+1
 ; a data transfer. Polls the controller status register.
 ; 
 ; &bcc2 referenced 6 times by &bae9, &bccd, &bcd1, &bd16, &bd49, &be33
-.floppy_wait_nmi_finish
     lda zp_floppy_state                                               ; bcc2: a5 a2       ..             ; Check if transfer already complete
     ror a                                                             ; bcc4: 6a          j              ; Bit 0 of zp_a2 into carry
     bcc poll_nmi_complete                                             ; bcc5: 90 01       ..             ; Carry set: already done
@@ -12409,7 +12432,7 @@ la868 = check_dest_terminator+1
     ora nmi_drive_cmd                                                 ; be61: 0d 5c 0d    .\.            ; OR in drive select
     sta fdc_1770_command_or_status                                    ; be64: 8d 84 fe    ...            ; Issue restore command
     bpl wait_format_nmi_complete                                      ; be67: 10 ca       ..             ; Continue loop (always branches)
-; &be69 referenced 1 time by &bcb5
+; &be69 referenced 1 time by &0d3c[1]
 .sub_cbe69
     jsr clear_transfer_complete                                       ; be69: 20 2b bd     +.            ; Clear seek flag
     jsr execute_fdc_seek                                              ; be6c: 20 84 be     ..            ; Check for next track boundary
@@ -13065,6 +13088,7 @@ save pydis_start, pydis_end
 ;     nmi_read_addr_lo:                         4
 ;     nmi_sec_position:                         4
 ;     nmi_step_rate:                            4
+;     nmi_transfer_done:                        4
 ;     parse_second_filename:                    4
 ;     read_single_hd_sector:                    4
 ;     restore_csd:                              4
@@ -13133,7 +13157,6 @@ save pydis_start, pydis_end
 ;     load_sector_to_buffer:                    3
 ;     mark_buffer_dirty:                        3
 ;     nmi_rw_code:                              3
-;     nmi_transfer_done:                        3
 ;     nmi_write_addr_hi:                        3
 ;     nmi_write_addr_lo:                        3
 ;     osasci:                                   3
@@ -13487,6 +13510,7 @@ save pydis_start, pydis_end
 ;     calc_remaining_sector:                    1
 ;     calc_zero_fill_start:                     1
 ;     calculate_total_sectors:                  1
+;     cbc79:                                    1
 ;     channel_on_same_drive:                    1
 ;     check_4byte_addrs:                        1
 ;     check_access_is_dir_loop:                 1
@@ -13862,9 +13886,7 @@ save pydis_start, pydis_end
 ;     next_entry_not_found:                     1
 ;     nmi_check_end_of_operation:               1
 ;     nmi_check_status_error:                   1
-;     nmi_code_start:                           1
 ;     nmi_completion:                           1
-;     nmi_restore_and_return:                   1
 ;     nmi_rw_opcode:                            1
 ;     nmi_saved_rom:                            1
 ;     nmi_set_transfer_complete:                1
@@ -14285,6 +14307,7 @@ save pydis_start, pydis_end
 
 ; Automatically generated labels:
 ;     c8dab
+;     cbc79
 ;     l941f
 ;     l9dd3
 ;     l9ee4
