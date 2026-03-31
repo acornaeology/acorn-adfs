@@ -61,40 +61,40 @@ consistent with the subroutine's title and description.
 
 ## Batch &8800-&8FFF: Directory operations, entry manipulation (34 subs)
 
-- [ ] &880C `disc_op_tpl_read_fsm` — "Disc operation templates for FSM and directory reads"
-- [ ] &8822 `parse_drive_from_ascii` — "Parse drive number from ASCII character"
-- [ ] &8849 `bad_drive_name` — "Raise Bad name error for invalid drive"
-- [ ] &884C `parse_filename_from_cmdline` — "Parse filename from command line"
-- [ ] &8905 `save_text_ptr_after_match` — "Save text pointer and determine object type"
-- [ ] &895E `advance_dir_entry_ptr` — "Advance to next matching directory entry"
-- [ ] &89D0 `get_object_type_result` — "Load object type and save workspace"
-- [ ] &89D3 `save_wksp_and_return` — "Save workspace state and return result"
-- [ ] &8A3D `multi_sector_disc_command` — "Execute multi-sector disc command"
-- [ ] &8A45 `check_disc_command_type` — "Check command type and adjust sector count"
-- [ ] &8A63 `adjust_for_partial_xfer` — "Execute disc transfer in batches"
-- [ ] &8B1E `floppy_partial_sector` — "Floppy disc partial sector transfer"
-- [ ] &8B41 `hd_command_partial_sector` — "Hard drive partial sector transfer"
-- [ ] &8BB3 `exec_disc_and_check_error` — "Search for non-directory file"
-- [ ] &8BC8 `not_found_error` — "Generate Not found error"
-- [ ] &8C05 `osfile_save_check_existing` — "OSFILE A=0: check for existing file before save"
-- [ ] &8C62 `search_dir_for_file` — "Search directory for matching file"
-- [ ] &8CC3 `check_existing_for_save` — "Check for existing file before save"
-- [ ] &8CC9 `setup_disc_write` — "Parse filename from OSFILE block and search"
-- [ ] &8D10 `check_file_not_open` — "Check file is not locked or open"
-- [ ] &8D21 `check_open` — "Check if file is open"
-- [ ] &8D69 `no_open_files_on_drive` — "No open file conflict found"
-- [ ] &8D6E `set_up_directory_search` — "Validate path and check for wildcards"
-- [ ] &8DD6 `parse_and_search_dir` — "Check next path character is terminator"
-- [ ] &8DDE `mark_saved_drive_unset` — "Raise Wild cards error"
-- [ ] &8DED `tbl_forbidden_chars` — "Forbidden filename characters"
-- [ ] &8DF3 `check_file_not_open2` — "Copy OSFILE addresses and search for empty entry"
-- [ ] &8E6F `allocate_disc_space_for_file` — "Allocate disc space and store in entry"
-- [ ] &8E8B `copy_entry_from_template` — "Copy OSFILE template into directory entry"
-- [ ] &8F4C `validate_not_locked` — "Validate file is not locked then create entry"
-- [ ] &8F86 `write_dir_and_validate` — "Write directory and FSM back to disc"
-- [ ] &8FDF `find_first_matching_entry` — "Find first matching directory entry"
-- [ ] &8FEA `mark_directory_dirty` — "Validate FSM checksums and mark directory dirty"
-- [ ] &8FFA `check_first_char_wildcard` — "Validate FSM map checksums"
+- [x] &880C `disc_op_tpl_read_fsm` — "Disc operation templates for FSM and directory reads"
+- [x] &8822 `parse_drive_from_ascii` — "Parse drive number from ASCII character"
+- [x] &8849 `bad_drive_name` — "Raise Bad name error for invalid drive"
+- [x] &884C `parse_filename_from_cmdline` — "Parse filename from command line"
+- [x] &8905 `save_text_ptr_after_match` — "Save text pointer and determine object type"
+- [x] &895E `advance_dir_entry_ptr` — "Advance to next matching directory entry"
+- [x] &89D0 `get_object_type_result` — "Load object type and save workspace"
+- [x] &89D3 `save_wksp_and_return` — "Save workspace state and return result"
+- [x] &8A3D `multi_sector_disc_command` — "Execute multi-sector disc command"
+- [x] &8A45 `check_disc_command_type` — "Check command type and adjust sector count"
+- [!] &8A63 `adjust_for_partial_xfer` — "Execute disc transfer in batches" → `exec_disc_transfer_batched`
+- [x] &8B1E `floppy_partial_sector` — "Floppy disc partial sector transfer"
+- [x] &8B41 `hd_command_partial_sector` — "Hard drive partial sector transfer"
+- [!] &8BB3 `exec_disc_and_check_error` — "Search for non-directory file" → `search_for_file`
+- [x] &8BC8 `not_found_error` — "Generate Not found error"
+- [x] &8C05 `osfile_save_check_existing` — "OSFILE A=0: check for existing file before save"
+- [x] &8C62 `search_dir_for_file` — "Search directory for matching file"
+- [x] &8CC3 `check_existing_for_save` — "Check for existing file before save"
+- [!] &8CC9 `setup_disc_write` — "Parse filename from OSFILE block and search" → `parse_osfile_and_search`
+- [x] &8D10 `check_file_not_open` — "Check file is not locked or open"
+- [x] &8D21 `check_open` — "Check if file is open"
+- [x] &8D69 `no_open_files_on_drive` — "No open file conflict found"
+- [x] &8D6E `set_up_directory_search` — "Validate path and check for wildcards"
+- [!] &8DD6 `parse_and_search_dir` — "Check next path character is terminator" → `check_path_terminator`
+- [!] &8DDE `mark_saved_drive_unset` — "Raise Wild cards error" → `wild_cards_error`
+- [x] &8DED `tbl_forbidden_chars` — "Forbidden filename characters"
+- [!] &8DF3 `check_file_not_open2` — "Copy OSFILE addresses and search for empty entry" → `copy_addrs_and_find_empty_entry`
+- [x] &8E6F `allocate_disc_space_for_file` — "Allocate disc space and store in entry"
+- [x] &8E8B `copy_entry_from_template` — "Copy OSFILE template into directory entry"
+- [x] &8F4C `validate_not_locked` — "Validate file is not locked then create entry"
+- [x] &8F86 `write_dir_and_validate` — "Write directory and FSM back to disc"
+- [x] &8FDF `find_first_matching_entry` — "Find first matching directory entry"
+- [!] &8FEA `mark_directory_dirty` — "Validate FSM checksums and mark directory dirty" → `validate_fsm_and_mark_dirty`
+- [!] &8FFA `check_first_char_wildcard` — "Raise Bad FS map error" → `bad_fs_map_error`
 
 ## Batch &9000-&95FF: Catalogue, path resolution, star commands (24 subs)
 

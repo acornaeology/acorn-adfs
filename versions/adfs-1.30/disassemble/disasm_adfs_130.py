@@ -3701,7 +3701,7 @@ label(0x8A1D, "save_workspace_checksum")
 label(0x8A27, "save_wksp_page_loop")
 label(0x8A3D, "multi_sector_disc_command")
 label(0x8A45, "check_disc_command_type")
-label(0x8A63, "adjust_for_partial_xfer")
+label(0x8A63, "exec_disc_transfer_batched")
 label(0x8A6C, "single_sector_read")
 label(0x8A8C, "calc_partial_start_sector")
 label(0x8A9F, "calc_partial_end_sector")
@@ -3722,7 +3722,7 @@ label(0x8BAA, "check_write_or_read")
 label(0x8BAC, "partial_write_to_disc")
 label(0x8BAD, "partial_read_from_disc")
 label(0x8BB0, "execute_partial_disc_op")
-label(0x8BB3, "exec_disc_and_check_error")
+label(0x8BB3, "search_for_file")
 label(0x8BBA, "copy_partial_read_loop")
 label(0x8BBF, "complete_partial_op")
 label(0x8BC5, "check_partial_sectors_done")
@@ -3748,7 +3748,7 @@ label(0x8C86, "build_filename_loop")
 label(0x8CA8, "osfile_save_handler")
 label(0x8CC3, "check_existing_for_save")
 label(0x8CC6, "delete_existing_before_save")
-label(0x8CC9, "setup_disc_write")
+label(0x8CC9, "parse_osfile_and_search")
 label(0x8CE2, "build_osfile_control_block")
 label(0x8CE9, "copy_osfile_addrs")
 label(0x8CEE, "check_4byte_addrs")
@@ -3771,10 +3771,10 @@ label(0x8DA4, "check_special_chars_loop")
 label(0x8DB2, "valid_name_continue_loop")
 label(0x8DBD, "set_up_gsinit_path")
 label(0x8DC0, "gsinit_scan_loop")
-label(0x8DD6, "parse_and_search_dir")
+label(0x8DD6, "check_path_terminator")
 label(0x8DDB, "bad_name_in_path")
-label(0x8DDE, "mark_saved_drive_unset")
-label(0x8DF3, "check_file_not_open2")
+label(0x8DDE, "wild_cards_error")
+label(0x8DF3, "copy_addrs_and_find_empty_entry")
 label(0x8DF6, "search_dir_for_new_entry")
 label(0x8E00, "scan_entry_bytes_loop")
 label(0x8E0F, "find_empty_entry_loop")
@@ -3813,8 +3813,8 @@ label(0x8F80, "search_for_osfile_target")
 label(0x8F86, "write_dir_and_validate")
 label(0x8F8E, "read_osfile_cat_fields_loop")
 label(0x8FDF, "find_first_matching_entry")
-label(0x8FEA, "mark_directory_dirty")
-label(0x8FFA, "check_first_char_wildcard")
+label(0x8FEA, "validate_fsm_and_mark_dirty")
+label(0x8FFA, "bad_fs_map_error")
 label(0x9009, "print_newline_and_entry")
 label(0x9010, "print_entry_name_loop")
 label(0x902C, "print_space_after_name")
@@ -11201,7 +11201,7 @@ then generate a BRK error. The inline error number and
 message string follow the JSR instruction.
 """)
 
-subroutine(0x8FEA, "mark_directory_dirty",
+subroutine(0x8FEA, "validate_fsm_and_mark_dirty",
     title="Validate FSM checksums and mark directory dirty",
     description="""\
 Validate the in-memory free space map by checking both
@@ -11235,7 +11235,7 @@ BRK on error.
     on_exit={"a": "0 on success (Z set)",
              "x": "corrupted", "y": "corrupted"})
 
-subroutine(0x8BB3, "exec_disc_and_check_error",
+subroutine(0x8BB3, "search_for_file",
     title="Search for non-directory file",
     description="""\
 Parse a filename and search the current directory for
@@ -11323,7 +11323,7 @@ position and determine whether the entry is a file
 (type 1) or directory (type 2).
 """)
 
-subroutine(0x8CC9, "setup_disc_write",
+subroutine(0x8CC9, "parse_osfile_and_search",
     title="Parse filename from OSFILE block and search",
     description="""\
 Extract filename from the OSFILE control block, parse
@@ -11398,7 +11398,7 @@ file size, then store the allocated sector address
 in the directory entry at (&B6).
 """)
 
-subroutine(0x8DD6, "parse_and_search_dir",
+subroutine(0x8DD6, "check_path_terminator",
     title="Check next path character is terminator",
     description="""\
 Read the character at (&B4),Y and generate a Bad name
@@ -11747,7 +11747,7 @@ Save registers, validate workspace checksum, check FSM
 integrity, and store workspace with updated checksum.
 """)
 
-subroutine(0x8DDE, "mark_saved_drive_unset",
+subroutine(0x8DDE, "wild_cards_error",
     title="Raise Wild cards error",
     description="""\
 Reload FSM and directory then raise error &FD: Wild cards.
@@ -11760,12 +11760,11 @@ Generate disc error with state recovery, then raise
 error &A8: Broken directory.
 """)
 
-subroutine(0x8FFA, "check_first_char_wildcard",
-    title="Validate FSM map checksums",
+subroutine(0x8FFA, "bad_fs_map_error",
+    title="Raise Bad FS map error",
     description="""\
-Recalculate FSM sector 0 and sector 1 checksums and
-compare with stored values. Raises Bad FS map error
-if either checksum does not match.
+Generate a Bad FS map error (&A9) via generate_disc_error.
+Called when FSM checksum validation fails.
 """)
 
 subroutine(0xBAF4, "retry_after_error",
@@ -11809,7 +11808,7 @@ the correct sorted position.
     on_entry={"note": "zp_mem_ptr_lo = insertion point index in FSM"},
     on_exit={"a": "corrupted", "x": "corrupted", "y": "corrupted"})
 
-subroutine(0x8A63, "adjust_for_partial_xfer",
+subroutine(0x8A63, "exec_disc_transfer_batched",
     title="Execute disc transfer in batches",
     description="""\
 For transfers exceeding 255 sectors, loop with full
@@ -12249,7 +12248,7 @@ validator at set_up_directory_search loops through this table,
 rejecting any filename containing these characters.
 """)
 
-subroutine(0x8DF3, "check_file_not_open2",
+subroutine(0x8DF3, "copy_addrs_and_find_empty_entry",
     title="Copy OSFILE addresses and search for empty entry",
     description="""\
 Copy the load and exec addresses from the OSFILE control

@@ -2850,15 +2850,15 @@ nmi_patched_addr                                = &ffff
 .check_disc_command_type
     lda wksp_disc_op_command                                          ; 8a45: ad 1a 10    ...            ; Get disc op command
     cmp #8                                                            ; 8a48: c9 08       ..             ; Command 8 (read)?
-    beq adjust_for_partial_xfer                                       ; 8a4a: f0 17       ..             ; Yes: check sector count
+    beq exec_disc_transfer_batched                                    ; 8a4a: f0 17       ..             ; Yes: check sector count
     lda wksp_disc_op_transfer_len                                     ; 8a4c: ad 20 10    . .            ; Get partial transfer count
-    beq adjust_for_partial_xfer                                       ; 8a4f: f0 12       ..             ; Zero: no partial, skip adjust
+    beq exec_disc_transfer_batched                                    ; 8a4f: f0 12       ..             ; Zero: no partial, skip adjust
     lda #0                                                            ; 8a51: a9 00       ..             ; Clear partial transfer count
     sta wksp_disc_op_transfer_len                                     ; 8a53: 8d 20 10    . .            ; Store zero
     inc wksp_disc_op_xfer_len_1                                       ; 8a56: ee 21 10    .!.            ; Increment full sector count
-    bne adjust_for_partial_xfer                                       ; 8a59: d0 08       ..             ; No wrap
+    bne exec_disc_transfer_batched                                    ; 8a59: d0 08       ..             ; No wrap
     inc wksp_disc_op_xfer_len_2                                       ; 8a5b: ee 22 10    .".            ; Wrap: increment mid byte
-    bne adjust_for_partial_xfer                                       ; 8a5e: d0 03       ..             ; No wrap
+    bne exec_disc_transfer_batched                                    ; 8a5e: d0 03       ..             ; No wrap
     inc wksp_disc_op_xfer_len_3                                       ; 8a60: ee 23 10    .#.            ; Wrap: increment high byte
 ; ***************************************************************************************
 ; Execute disc transfer in batches
@@ -2867,7 +2867,7 @@ nmi_patched_addr                                = &ffff
 ; batches. For the final batch, use the remaining count.
 ; 
 ; &8a63 referenced 4 times by &8a4a, &8a4f, &8a59, &8a5e
-.adjust_for_partial_xfer
+.exec_disc_transfer_batched
     ldx #&15                                                          ; 8a63: a2 15       ..             ; X=&15: disc op block offset
     ldy #&10                                                          ; 8a65: a0 10       ..             ; Y=&10: disc op block page
     lda #&ff                                                          ; 8a67: a9 ff       ..             ; Set sector count to &FF (max)
@@ -3084,7 +3084,7 @@ nmi_patched_addr                                = &ffff
 ;     X: corrupted
 ;     Y: corrupted
 ; &8bb3 referenced 5 times by &8c05, &a3a1, &a3b4, &a40e, &a82f
-.exec_disc_and_check_error
+.search_for_file
     jsr parse_filename_from_cmdline                                   ; 8bb3: 20 4c 88     L.            ; Search for file in directory
     beq complete_partial_op                                           ; 8bb6: f0 07       ..             ; Found? Check if it's a directory
     bne return_15                                                     ; 8bb8: d0 0d       ..             ; Not found: return Z clear
@@ -3158,7 +3158,7 @@ nmi_patched_addr                                = &ffff
 ;   Falls through to osfile_save_handler if file is valid
 ; 
 .osfile_save_check_existing
-    jsr exec_disc_and_check_error                                     ; 8c05: 20 b3 8b     ..            ; Search for matching non-directory file
+    jsr search_for_file                                               ; 8c05: 20 b3 8b     ..            ; Search for matching non-directory file
     bne not_found_error                                               ; 8c08: d0 be       ..             ; Not found: report Not found error
     ldy #0                                                            ; 8c0a: a0 00       ..             ; Y=0: check first entry name byte
     lda (zp_entry_ptr_lo),y                                           ; 8c0c: b1 b6       ..             ; Get first byte of found entry
@@ -3318,7 +3318,7 @@ nmi_patched_addr                                = &ffff
 ;     X: corrupted
 ;     Y: corrupted
 ; &8cc9 referenced 3 times by &8ce2, &8ce9, &911e
-.setup_disc_write
+.parse_osfile_and_search
     ldy #0                                                            ; 8cc9: a0 00       ..             ; Y=0: get filename from block
     lda (zp_osfile_ptr_lo),y                                          ; 8ccb: b1 b8       ..             ; Get filename address low
     sta zp_text_ptr_lo                                                ; 8ccd: 85 b4       ..             ; Store in (&B4)
@@ -3336,13 +3336,13 @@ nmi_patched_addr                                = &ffff
 
 ; &8ce2 referenced 1 time by &a552
 .build_osfile_control_block
-    jsr setup_disc_write                                              ; 8ce2: 20 c9 8c     ..            ; Parse filename and search
+    jsr parse_osfile_and_search                                       ; 8ce2: 20 c9 8c     ..            ; Parse filename and search
     beq check_file_not_open                                           ; 8ce5: f0 29       .)             ; Found: proceed to delete
     bne check_4byte_addrs                                             ; 8ce7: d0 05       ..             ; ALWAYS branch
 
 ; &8ce9 referenced 1 time by &8df3
 .copy_osfile_addrs
-    jsr setup_disc_write                                              ; 8ce9: 20 c9 8c     ..            ; Parse filename and search
+    jsr parse_osfile_and_search                                       ; 8ce9: 20 c9 8c     ..            ; Parse filename and search
     beq write_entry_metadata                                          ; 8cec: f0 19       ..             ; Found: check if directory
 ; &8cee referenced 1 time by &8ce7
 .check_4byte_addrs
@@ -3470,7 +3470,7 @@ nmi_patched_addr                                = &ffff
     cmp #&2e ; '.'                                                    ; 8d85: c9 2e       ..             ; Is it '.'?
     bne return_17                                                     ; 8d87: d0 4c       .L             ; No dot after drive: return
     iny                                                               ; 8d89: c8          .              ; Skip past dot
-    jsr parse_and_search_dir                                          ; 8d8a: 20 d6 8d     ..            ; Get next character
+    jsr check_path_terminator                                         ; 8d8a: 20 d6 8d     ..            ; Get next character
 ; &8d8d referenced 1 time by &8d7c
 .skip_dot_in_path
     and #&fd                                                          ; 8d8d: 29 fd       ).             ; Strip to check for '$'
@@ -3478,7 +3478,7 @@ nmi_patched_addr                                = &ffff
     beq scan_name_bytes_loop                                          ; 8d91: f0 ec       ..             ; Yes: continue past root specifier
 ; &8d93 referenced 1 time by &8da9
 .scan_name_alpha_loop
-    jsr parse_and_search_dir                                          ; 8d93: 20 d6 8d     ..            ; Get next path character
+    jsr check_path_terminator                                         ; 8d93: 20 d6 8d     ..            ; Get next path character
     cmp #&5e ; '^'                                                    ; 8d96: c9 5e       .^             ; Is it '^' (parent)?
     beq check_bad_name_char                                           ; 8d98: f0 04       ..             ; Yes: skip past it
     cmp #&40 ; '@'                                                    ; 8d9a: c9 40       .@             ; Is it '@' (current)?
@@ -3515,9 +3515,9 @@ nmi_patched_addr                                = &ffff
     lda (zp_text_ptr_lo),y                                            ; 8dc0: b1 b4       ..             ; Save text pointer high
     and #&7f                                                          ; 8dc2: 29 7f       ).             ; Push on stack
     cmp #&2a ; '*'                                                    ; 8dc4: c9 2a       .*
-    beq mark_saved_drive_unset                                        ; 8dc6: f0 16       ..             ; Raise Wild cards error
+    beq wild_cards_error                                              ; 8dc6: f0 16       ..             ; Raise Wild cards error
     cmp #&23 ; '#'                                                    ; 8dc8: c9 23       .#
-    beq mark_saved_drive_unset                                        ; 8dca: f0 12       ..             ; Raise Wild cards error
+    beq wild_cards_error                                              ; 8dca: f0 12       ..             ; Raise Wild cards error
     cmp #&2e ; '.'                                                    ; 8dcc: c9 2e       ..             ; Is it '.'?
     beq return_17                                                     ; 8dce: f0 05       ..             ; Restore text pointer high
     dey                                                               ; 8dd0: 88          .              ; Decrement index
@@ -3534,7 +3534,7 @@ nmi_patched_addr                                = &ffff
 ; error if it is not a filename terminator.
 ; 
 ; &8dd6 referenced 2 times by &8d8a, &8d93
-.parse_and_search_dir
+.check_path_terminator
     jsr check_char_is_terminator                                      ; 8dd6: 20 1a 87     ..            ; Get character at (&B4),Y
     bne return_17                                                     ; 8dd9: d0 fa       ..
 ; &8ddb referenced 4 times by &8d77, &8d83, &8da2, &8db5
@@ -3547,7 +3547,7 @@ nmi_patched_addr                                = &ffff
 ; Reload FSM and directory then raise error &FD: Wild cards.
 ; 
 ; &8dde referenced 2 times by &8dc6, &8dca
-.mark_saved_drive_unset
+.wild_cards_error
     jsr reload_fsm_and_dir_then_brk                                   ; 8dde: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &fd                                                          ; 8de1: fd          .              ; Error &FD: Wild cards
     equs "Wild cards", 0                                              ; 8de2: 57 69 6c... Wil
@@ -3578,7 +3578,7 @@ nmi_patched_addr                                = &ffff
 ; *CDIR, *RENAME, and *COPY.
 ; 
 ; &8df3 referenced 4 times by &8f4c, &9594, &a649, &a8dc
-.check_file_not_open2
+.copy_addrs_and_find_empty_entry
     jsr copy_osfile_addrs                                             ; 8df3: 20 e9 8c     ..            ; A=&FF: mark saved drive as unset
 ; &8df6 referenced 1 time by &a556
 .search_dir_for_new_entry
@@ -3832,7 +3832,7 @@ nmi_patched_addr                                = &ffff
 ; 
 ; &8f4c referenced 3 times by &8f74, &8f7d, &b35a
 .validate_not_locked
-    jsr check_file_not_open2                                          ; 8f4c: 20 f3 8d     ..            ; Save (&B6) for restore
+    jsr copy_addrs_and_find_empty_entry                               ; 8f4c: 20 f3 8d     ..            ; Save (&B6) for restore
     jsr allocate_disc_space_for_file                                  ; 8f4f: 20 6f 8e     o.            ; Save (&B7)
 ; &8f52 referenced 2 times by &95ca, &a8e2
 .write_entry_sector_info
@@ -3935,7 +3935,7 @@ nmi_patched_addr                                = &ffff
     jsr parse_filename_from_cmdline                                   ; 8fdf: 20 4c 88     L.            ; Set up search with wildcards
     php                                                               ; 8fe2: 08          .              ; Point to first dir entry
     pha                                                               ; 8fe3: 48          H              ; Save A on stack
-    jsr mark_directory_dirty                                          ; 8fe4: 20 ea 8f     ..            ; Validate FSM checksums and mark directory dirty
+    jsr validate_fsm_and_mark_dirty                                   ; 8fe4: 20 ea 8f     ..            ; Validate FSM checksums and mark directory dirty
     pla                                                               ; 8fe7: 68          h              ; Restore A
     plp                                                               ; 8fe8: 28          (              ; Search for matching entry
 ; &8fe9 referenced 3 times by &8ff8, &900c, &9028
@@ -3950,22 +3950,21 @@ nmi_patched_addr                                = &ffff
 ; checksums do not match.
 ; 
 ; &8fea referenced 5 times by &8fe4, &9ffa, &a255, &a754, &a872
-.mark_directory_dirty
+.validate_fsm_and_mark_dirty
     jsr print_newline_and_entry                                       ; 8fea: 20 09 90     ..
     jsr calc_fsm_checksums                                            ; 8fed: 20 5c 90     \.            ; Mark directory as modified
     cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Verify directory
-    bne check_first_char_wildcard                                     ; 8ff3: d0 05       ..             ; Point to first entry
+    bne bad_fs_map_error                                              ; 8ff3: d0 05       ..             ; Point to first entry
     cpx fsm_s0_checksum                                               ; 8ff5: ec ff 0e    ...            ; X=FSM sector 0 checksum
     beq return_18                                                     ; 8ff8: f0 ef       ..
 ; ***************************************************************************************
-; Validate FSM map checksums
+; Raise Bad FS map error
 ; 
-; Recalculate FSM sector 0 and sector 1 checksums and
-; compare with stored values. Raises Bad FS map error
-; if either checksum does not match.
+; Generate a Bad FS map error (&A9) via generate_disc_error.
+; Called when FSM checksum validation fails.
 ; 
 ; &8ffa referenced 7 times by &8ff3, &9017, &901a, &9021, &903a, &9045, &904a
-.check_first_char_wildcard
+.bad_fs_map_error
     jsr generate_disc_error                                           ; 8ffa: 20 2b 83     +.            ; Bad FS map error
     equb &a9                                                          ; 8ffd: a9          .              ; Error &A9: Bad FS map
     equs "Bad FS map", 0                                              ; 8ffe: 42 61 64... Bad
@@ -3980,13 +3979,13 @@ nmi_patched_addr                                = &ffff
     ora fsm_s0_pre1,x                                                 ; 9010: 1d ff 0d    ...            ; OR entry address high byte
     ora fsm_s0_checksum,x                                             ; 9013: 1d ff 0e    ...            ; OR entry length high byte
     dex                                                               ; 9016: ca          .              ; Back up one
-    beq check_first_char_wildcard                                     ; 9017: f0 e1       ..             ; At entry 0: bad FS map
+    beq bad_fs_map_error                                              ; 9017: f0 e1       ..             ; At entry 0: bad FS map
     dex                                                               ; 9019: ca          .              ; Back up more
-    beq check_first_char_wildcard                                     ; 901a: f0 de       ..             ; At entry 0: bad FS map
+    beq bad_fs_map_error                                              ; 901a: f0 de       ..             ; At entry 0: bad FS map
     dex                                                               ; 901c: ca          .              ; Back up more
     bne print_entry_name_loop                                         ; 901d: d0 f1       ..             ; Loop for all entries
     and #&e0                                                          ; 901f: 29 e0       ).             ; Check drive bits in accumulator
-    bne check_first_char_wildcard                                     ; 9021: d0 d7       ..             ; Non-zero: bad FS map
+    bne bad_fs_map_error                                              ; 9021: d0 d7       ..             ; Non-zero: bad FS map
     ldx fsm_s1_total_sectors_lo                                       ; 9023: ae fe 0f    ...            ; Get end pointer again
     cpx #6                                                            ; 9026: e0 06       ..             ; Need at least 2 entries (>= 6)
     bcc return_18                                                     ; 9028: 90 bf       ..             ; Not enough: return OK (empty disc)
@@ -4003,7 +4002,7 @@ nmi_patched_addr                                = &ffff
     inx                                                               ; 9036: e8          .              ; Next byte
     dey                                                               ; 9037: 88          .              ; Next comparison byte
     bpl print_padding_spaces_loop                                     ; 9038: 10 f5       ..             ; Loop for 3 bytes
-    bcs check_first_char_wildcard                                     ; 903a: b0 be       ..             ; Carry set: overlap, bad FS map
+    bcs bad_fs_map_error                                              ; 903a: b0 be       ..             ; Carry set: overlap, bad FS map
     ldy #2                                                            ; 903c: a0 02       ..             ; Y=2: compare prev+size with next
 ; &903e referenced 1 time by &9048
 .print_access_flags_loop
@@ -4011,10 +4010,10 @@ nmi_patched_addr                                = &ffff
     dex                                                               ; 903f: ca          .              ; Back up X
     cmp fsm_sector_0,x                                                ; 9040: dd 00 0e    ...            ; Compare with next entry address
     bcc print_no_access_flag                                          ; 9043: 90 07       ..             ; Below: entries are ordered OK
-    bne check_first_char_wildcard                                     ; 9045: d0 b3       ..             ; Above: bad ordering, bad FS map
+    bne bad_fs_map_error                                              ; 9045: d0 b3       ..             ; Above: bad ordering, bad FS map
     dey                                                               ; 9047: 88          .              ; Next comparison byte
     bpl print_access_flags_loop                                       ; 9048: 10 f4       ..             ; Loop for 3 bytes
-    bmi check_first_char_wildcard                                     ; 904a: 30 ae       0.             ; Validate FSM map checksums
+    bmi bad_fs_map_error                                              ; 904a: 30 ae       0.             ; Raise Bad FS map error
 
 ; &904c referenced 2 times by &9043, &904f
 .print_no_access_flag
@@ -4208,7 +4207,7 @@ nmi_patched_addr                                = &ffff
     lda #&10                                                          ; 911a: a9 10       ..             ; Control block page = &10
     sta zp_osfile_ptr_hi                                              ; 911c: 85 b9       ..             ; Store control block pointer high
 .search_and_delete_entry
-    jsr setup_disc_write                                              ; 911e: 20 c9 8c     ..            ; Search directory for the file
+    jsr parse_osfile_and_search                                       ; 911e: 20 c9 8c     ..            ; Search directory for the file
     beq check_and_delete_found                                        ; 9121: f0 05       ..             ; Found? Proceed to delete
     lda #0                                                            ; 9123: a9 00       ..             ; Not found: A=0 (no error)
     jmp save_wksp_and_return                                          ; 9125: 4c d3 89    L..            ; Save workspace and return
@@ -5083,7 +5082,7 @@ nmi_patched_addr                                = &ffff
     sta zp_osfile_ptr_lo                                              ; 958e: 85 b8       ..             ; Store block pointer low
     lda #&10                                                          ; 9590: a9 10       ..             ; Block page = &10
     sta zp_osfile_ptr_hi                                              ; 9592: 85 b9       ..             ; Store block pointer high
-    jsr check_file_not_open2                                          ; 9594: 20 f3 8d     ..            ; Search for existing entry
+    jsr copy_addrs_and_find_empty_entry                               ; 9594: 20 f3 8d     ..            ; Search for existing entry
     ldy #9                                                            ; 9597: a0 09       ..             ; Y=9: check if entry has size > 0
     lda wksp_object_size                                              ; 9599: ad 37 10    .7.            ; Check size bytes for non-zero
     ora wksp_object_size_mid                                          ; 959c: 0d 38 10    .8.            ; OR size mid byte
@@ -7072,7 +7071,7 @@ help_param_none = help_param_title+7
 .check_opt4_boot
     cpx #3                                                            ; 9ff6: e0 03       ..             ; Check for *OPT 4 (boot option)
     bne bad_opt_error                                                 ; 9ff8: d0 10       ..             ; Not *OPT 4: bad opt error
-    jsr mark_directory_dirty                                          ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified
+    jsr validate_fsm_and_mark_dirty                                   ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified
     jsr check_drive_and_reload_fsm                                    ; 9ffd: 20 f5 b4     ..            ; Ensure dir loaded and writable
     lda zp_text_ptr_hi                                                ; a000: a5 b5       ..             ; Get boot option value (second param)
     and #3                                                            ; a002: 29 03       ).             ; Mask to 2 bits (options 0-3)
@@ -7557,7 +7556,7 @@ la154 = sub_ca153+1
 ; 
 .star_title
     jsr check_drive_and_reload_fsm                                    ; a252: 20 f5 b4     ..            ; Ensure dir is loaded and writable
-    jsr mark_directory_dirty                                          ; a255: 20 ea 8f     ..            ; Mark directory as modified
+    jsr validate_fsm_and_mark_dirty                                   ; a255: 20 ea 8f     ..            ; Mark directory as modified
     jsr skip_spaces                                                   ; a258: 20 cf a4     ..            ; Skip leading spaces in argument
     ldy #0                                                            ; a25b: a0 00       ..             ; Y=0: index into title string
 ; &a25d referenced 1 time by &a271
@@ -7792,7 +7791,7 @@ la154 = sub_ca153+1
     sta zp_name_ptr_lo                                                ; a39b: 85 c0       ..             ; Store in save area low
     lda zp_text_ptr_hi                                                ; a39d: a5 b5       ..             ; Get filename high byte
     sta zp_name_ptr_hi                                                ; a39f: 85 c1       ..             ; Store in save area high
-    jsr exec_disc_and_check_error                                     ; a3a1: 20 b3 8b     ..            ; Try to find file in CSD
+    jsr search_for_file                                               ; a3a1: 20 b3 8b     ..            ; Try to find file in CSD
     beq search_lib_for_command                                        ; a3a4: f0 16       ..             ; Found in CSD, proceed to load
     jsr save_wksp_and_return                                          ; a3a6: 20 d3 89     ..            ; Not found: save workspace state
     lda zp_name_ptr_lo                                                ; a3a9: a5 c0       ..             ; Restore filename pointer
@@ -7800,7 +7799,7 @@ la154 = sub_ca153+1
     lda zp_name_ptr_hi                                                ; a3ad: a5 c1       ..             ; Get saved high byte
     sta zp_text_ptr_hi                                                ; a3af: 85 b5       ..             ; Restore filename high
     jsr switch_to_library                                             ; a3b1: 20 60 a4     `.            ; Switch CSD to library directory
-    jsr exec_disc_and_check_error                                     ; a3b4: 20 b3 8b     ..            ; Try to find file in library
+    jsr search_for_file                                               ; a3b4: 20 b3 8b     ..            ; Try to find file in library
     bne restore_csd_and_error                                         ; a3b7: d0 cd       ..             ; Not in library either: Not found
     jsr restore_csd                                                   ; a3b9: 20 73 a4     s.            ; Restore CSD after library search
 ; &a3bc referenced 1 time by &a3a4
@@ -7851,7 +7850,7 @@ la154 = sub_ca153+1
     ldy #&10                                                          ; a408: a0 10       ..             ; Y=&10: OSFILE block page
     stx zp_osfile_ptr_lo                                              ; a40a: 86 b8       ..             ; Store block pointer low
     sty zp_osfile_ptr_hi                                              ; a40c: 84 b9       ..             ; Store block pointer high
-    jsr exec_disc_and_check_error                                     ; a40e: 20 b3 8b     ..            ; Load the file
+    jsr search_for_file                                               ; a40e: 20 b3 8b     ..            ; Load the file
     ldy #4                                                            ; a411: a0 04       ..             ; Y=4: check if Tube/IO address
     lda (zp_entry_ptr_lo),y                                           ; a413: b1 b6       ..             ; Get exec addr high byte
     ldy #0                                                            ; a415: a0 00       ..             ; Y=0: check low byte of exec addr
@@ -8306,7 +8305,7 @@ la154 = sub_ca153+1
     sta zp_osfile_ptr_lo                                              ; a643: 85 b8       ..             ; Store block pointer low
     lda #&10                                                          ; a645: a9 10       ..             ; Block page = &10
     sta zp_osfile_ptr_hi                                              ; a647: 85 b9       ..             ; Store block pointer high
-    jsr check_file_not_open2                                          ; a649: 20 f3 8d     ..            ; Create entry in dest directory
+    jsr copy_addrs_and_find_empty_entry                               ; a649: 20 f3 8d     ..            ; Create entry in dest directory
     jsr allocate_disc_space_for_file                                  ; a64c: 20 6f 8e     o.            ; Allocate disc space
     ldy #3                                                            ; a64f: a0 03       ..             ; Y=3: copy attributes back to entry
 ; &a651 referenced 1 time by &a65b
@@ -8520,7 +8519,7 @@ la154 = sub_ca153+1
     pha                                                               ; a74e: 48          H              ; Save X
     lda wksp_error_suppress                                           ; a74f: ad ce 10    ...            ; Check error flag
     bne bad_checksum_error                                            ; a752: d0 e4       ..             ; Non-zero: workspace corrupt, error
-    jsr mark_directory_dirty                                          ; a754: 20 ea 8f     ..            ; Mark directory as modified
+    jsr validate_fsm_and_mark_dirty                                   ; a754: 20 ea 8f     ..            ; Mark directory as modified
     clc                                                               ; a757: 18          .              ; Clear carry for scan
     ldx #&10                                                          ; a758: a2 10       ..             ; X=&10: scan open channel table
 ; &a75a referenced 1 time by &a76b
@@ -8692,7 +8691,7 @@ la154 = sub_ca153+1
     sta wksp_copy_name_ptr                                            ; a827: 8d 7f 10    ...            ; Store source name offset
     lda #&10                                                          ; a82a: a9 10       ..             ; Source name page = &10
     sta wksp_copy_name_ptr_hi                                         ; a82c: 8d 80 10    ...            ; Store source name page
-    jsr exec_disc_and_check_error                                     ; a82f: 20 b3 8b     ..            ; Find source file
+    jsr search_for_file                                               ; a82f: 20 b3 8b     ..            ; Find source file
     beq source_file_found                                             ; a832: f0 03       ..             ; Found?
     jmp not_found_error                                               ; a834: 4c c8 8b    L..            ; Not found: report error
 
@@ -8732,7 +8731,7 @@ la868 = check_dest_terminator+1
 ; &a86f referenced 1 time by &a86a
 .load_dest_directory
     jsr parse_path_and_load                                           ; a86f: 20 7f 94     ..            ; Load destination directory
-    jsr mark_directory_dirty                                          ; a872: 20 ea 8f     ..            ; Mark destination dir as modified
+    jsr validate_fsm_and_mark_dirty                                   ; a872: 20 ea 8f     ..            ; Mark destination dir as modified
     ldy #3                                                            ; a875: a0 03       ..             ; Y=3: save dest dir sector
 ; &a877 referenced 1 time by &a87e
 .save_dest_dir_sector_loop
@@ -8792,7 +8791,7 @@ la868 = check_dest_terminator+1
     lda #&0d                                                          ; a8d4: a9 0d       ..             ; A=CR: terminate filename
     sta wksp_dest_filename_end                                        ; a8d6: 8d 7e 10    .~.            ; Store terminator
     jsr setup_fsm_read                                                ; a8d9: 20 f5 a7     ..            ; Set up disc read for source file
-    jsr check_file_not_open2                                          ; a8dc: 20 f3 8d     ..            ; Check if file is open
+    jsr copy_addrs_and_find_empty_entry                               ; a8dc: 20 f3 8d     ..            ; Check if file is open
     jsr allocate_disc_space_for_file                                  ; a8df: 20 6f 8e     o.            ; Allocate space for dest file
     jsr write_entry_sector_info                                       ; a8e2: 20 52 8f     R.            ; Write dest directory entry
     ldy #2                                                            ; a8e5: a0 02       ..             ; Y=2: copy sector addresses
@@ -12976,7 +12975,7 @@ save pydis_start, pydis_end
 ;     wksp_osgbpb_mode:                                   8
 ;     wksp_osgbpb_start:                                  8
 ;     bad_checksum_error:                                 7
-;     check_first_char_wildcard:                          7
+;     bad_fs_map_error:                                   7
 ;     command_done:                                       7
 ;     floppy_error:                                       7
 ;     fsm_s0_pre3:                                        7
@@ -13033,21 +13032,21 @@ save pydis_start, pydis_end
 ;     zp_save_y:                                          6
 ;     check_file_not_open:                                5
 ;     convert_drive_to_slot:                              5
-;     exec_disc_and_check_error:                          5
 ;     fdc_1770_track:                                     5
 ;     fdc_8271_command_or_status_or_1770_drive_control:   5
 ;     fdc_write_register_verify:                          5
 ;     fsm_s0_checksum:                                    5
 ;     fsm_s1_boot_option:                                 5
-;     mark_directory_dirty:                               5
 ;     nmi_drive_cmd:                                      5
 ;     nmi_tracks_remaining:                               5
 ;     release_disc_space:                                 5
 ;     release_tube:                                       5
 ;     scsi_get_status:                                    5
+;     search_for_file:                                    5
 ;     sync_ext_to_ptr:                                    5
 ;     tbl_commands:                                       5
 ;     update_channel_flags_for_ptr:                       5
+;     validate_fsm_and_mark_dirty:                        5
 ;     wait_data_phase:                                    5
 ;     wksp_copy_src_sector_2:                             5
 ;     wksp_copy_write_sector_1:                           5
@@ -13064,20 +13063,20 @@ save pydis_start, pydis_end
 ;     zp_osbyte_last_x:                                   5
 ;     zp_osfind_x:                                        5
 ;     zp_temp_ptr:                                        5
-;     adjust_for_partial_xfer:                            4
 ;     bad_drive_name:                                     4
 ;     bad_name_in_path:                                   4
 ;     boot_shift_pressed:                                 4
 ;     brk_error_block_1:                                  4
 ;     check_drive_and_reload_fsm:                         4
-;     check_file_not_open2:                               4
 ;     claim_tube_retry:                                   4
 ;     command_exec_start_exec:                            4
 ;     command_set_retries:                                4
 ;     compare_ext_to_ptr:                                 4
+;     copy_addrs_and_find_empty_entry:                    4
 ;     copy_default_dir_name:                              4
 ;     dir_name:                                           4
 ;     disc_op_tpl_read_dir:                               4
+;     exec_disc_transfer_batched:                         4
 ;     execute_sector_copy:                                4
 ;     fdc_1770_data:                                      4
 ;     floppy_set_side_1:                                  4
@@ -13165,6 +13164,7 @@ save pydis_start, pydis_end
 ;     oscli:                                              3
 ;     oscli_at_x:                                         3
 ;     output_dir_entry_name:                              3
+;     parse_osfile_and_search:                            3
 ;     print_catalogue_header:                             3
 ;     print_entry_info:                                   3
 ;     print_next_command:                                 3
@@ -13179,7 +13179,6 @@ save pydis_start, pydis_end
 ;     scsi_start_command:                                 3
 ;     set_drive_from_channel:                             3
 ;     set_up_gsinit_path:                                 3
-;     setup_disc_write:                                   3
 ;     skip_spaces_before_attrs:                           3
 ;     step_ensure_offset_loop:                            3
 ;     switch_to_library:                                  3
@@ -13266,6 +13265,7 @@ save pydis_start, pydis_end
 ;     check_lib_deleted:                                  2
 ;     check_name_ended:                                   2
 ;     check_open:                                         2
+;     check_path_terminator:                              2
 ;     check_read_conflicts:                               2
 ;     check_rwl_char:                                     2
 ;     check_trailing_star:                                2
@@ -13321,7 +13321,6 @@ save pydis_start, pydis_end
 ;     last_break_type:                                    2
 ;     load_dir_for_drive:                                 2
 ;     load_tube_workspace_ptr:                            2
-;     mark_saved_drive_unset:                             2
 ;     mask_error_code:                                    2
 ;     match_command_char:                                 2
 ;     mount_read_root_dir:                                2
@@ -13333,7 +13332,6 @@ save pydis_start, pydis_end
 ;     not_open_for_update_error:                          2
 ;     output_printable_char:                              2
 ;     pad_with_spaces:                                    2
-;     parse_and_search_dir:                               2
 ;     parse_and_setup_search:                             2
 ;     parse_attr_char:                                    2
 ;     parse_dir_argument:                                 2
@@ -13427,6 +13425,7 @@ save pydis_start, pydis_end
 ;     wait_req_and_transfer:                              2
 ;     wait_tube_data_phase:                               2
 ;     wait_write_data_phase:                              2
+;     wild_cards_error:                                   2
 ;     wksp:                                               2
 ;     wksp_alloc_size_hi:                                 2
 ;     wksp_alt_csd_sector:                                2
