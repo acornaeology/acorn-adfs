@@ -1294,14 +1294,14 @@ nmi_patched_addr                                = &ffff
     bcs check_colon_suffix                                            ; 8374: b0 06       ..             ; Yes, check for colon
 ; &8376 referenced 1 time by &837e
 .append_hex_suffix
-    jsr hex_number_error_100_y                                        ; 8376: 20 2d 84     -.            ; Append as hex number
+    jsr error_append_hex                                              ; 8376: 20 2d 84     -.            ; Append as hex number
     jmp append_drive_sector_suffix                                    ; 8379: 4c 83 83    L..            ; Jump to hex formatting
 
 ; &837c referenced 1 time by &8374
 .check_colon_suffix
     cmp #&3a ; ':'                                                    ; 837c: c9 3a       .:             ; Suffix value >= ':'?
     bcs append_hex_suffix                                             ; 837e: b0 f6       ..             ; Yes, append as hex
-    jsr dec_number_error_100_y                                        ; 8380: 20 49 84     I.            ; Append as decimal number
+    jsr error_append_dec                                              ; 8380: 20 49 84     I.            ; Append as decimal number
 ; &8383 referenced 1 time by &8379
 .append_drive_sector_suffix
     ldx #4                                                            ; 8383: a2 04       ..             ; Copy reversed ' at :' suffix
@@ -1333,7 +1333,7 @@ nmi_patched_addr                                = &ffff
     lda wksp_err_sector,x                                             ; 83ac: bd d0 10    ...            ; Get next sector byte from workspace
 ; &83af referenced 1 time by &83aa
 .append_sector_hex
-    jsr hex_number_error_100_y                                        ; 83af: 20 2d 84     -.            ; Append as two hex digits
+    jsr error_append_hex                                              ; 83af: 20 2d 84     -.            ; Append as two hex digits
     dex                                                               ; 83b2: ca          .              ; Next byte
     bpl append_sector_bytes_loop                                      ; 83b3: 10 f7       ..             ; Loop for 3 sector bytes
     iny                                                               ; 83b5: c8          .              ; Advance past suffix
@@ -1353,7 +1353,7 @@ nmi_patched_addr                                = &ffff
     dex                                                               ; 83ca: ca          .              ; Next character in reversed string
     bpl append_channel_suffix_loop                                    ; 83cb: 10 f6       ..             ; Loop for 12 chars
     lda wksp_cur_channel                                              ; 83cd: ad d5 10    ...            ; Get channel number
-    jsr dec_number_error_100_y                                        ; 83d0: 20 49 84     I.            ; Append as decimal digits
+    jsr error_append_dec                                              ; 83d0: 20 49 84     I.            ; Append as decimal digits
     tya                                                               ; 83d3: 98          .              ; Save current position
     pha                                                               ; 83d4: 48          H              ; Push Y on stack
     lda #&c6                                                          ; 83d5: a9 c6       ..             ; Close SPOOL file if open
@@ -1413,10 +1413,10 @@ nmi_patched_addr                                = &ffff
     equs " lennahc no "                                               ; 8421: 20 6c 65...  le
 
 ; ***************************************************************************************
-; Parse hex number or raise error
+; Append byte as two hex digits to error block
 ; 
-; Parse a hexadecimal number from the command line. Raises
-; an error if the number is invalid.
+; Write the byte in A as two ASCII hex digits into the
+; error block at the current position Y.
 ; 
 ; 
 ; On Entry:
@@ -1428,7 +1428,7 @@ nmi_patched_addr                                = &ffff
 ;     X: preserved
 ;     Y: advanced by 2
 ; &842d referenced 2 times by &8376, &83af
-.hex_number_error_100_y
+.error_append_hex
     pha                                                               ; 842d: 48          H              ; Save byte value
     lsr a                                                             ; 842e: 4a          J              ; Shift high nibble to low nibble
     lsr a                                                             ; 842f: 4a          J              ; (continued)
@@ -1469,10 +1469,11 @@ nmi_patched_addr                                = &ffff
     rts                                                               ; 8448: 60          `              ; Return
 
 ; ***************************************************************************************
-; Parse decimal number or raise error
+; Append byte as decimal digits to error block
 ; 
-; Parse a decimal number from the command line. Raises an
-; error if the number is invalid.
+; Write the byte in A as up to three decimal digits into
+; the error block at the current position Y, suppressing
+; leading zeros.
 ; 
 ; 
 ; On Entry:
@@ -1484,7 +1485,7 @@ nmi_patched_addr                                = &ffff
 ;     X: corrupted
 ;     Y: advanced past decimal digits
 ; &8449 referenced 2 times by &8380, &83d0
-.dec_number_error_100_y
+.error_append_dec
     bit divide_loop                                                   ; 8449: 2c 5f 84    ,_.            ; Set V flag for leading zero suppress
     ldx #&64 ; 'd'                                                    ; 844c: a2 64       .d             ; X=100: divide by hundreds
     jsr print_decimal_digit                                           ; 844e: 20 59 84     Y.            ; Output hundreds digit
@@ -13280,7 +13281,6 @@ save pydis_start, pydis_end
 ;     continue_scanning:                                  2
 ;     copy_entry_from_template:                           2
 ;     copy_sector_to_transfer:                            2
-;     dec_number_error_100_y:                             2
 ;     dir2_title:                                         2
 ;     dir_parent_sector:                                  2
 ;     disc_full_error:                                    2
@@ -13291,6 +13291,8 @@ save pydis_start, pydis_end
 ;     end_of_data_command:                                2
 ;     end_of_spaces:                                      2
 ;     eof_error:                                          2
+;     error_append_dec:                                   2
+;     error_append_hex:                                   2
 ;     fdc_1770_sector:                                    2
 ;     find_last_path_component:                           2
 ;     floppy_get_step_rate:                               2
@@ -13308,7 +13310,6 @@ save pydis_start, pydis_end
 ;     hd_bput_write_sector:                               2
 ;     hd_command_bget_bput_sector:                        2
 ;     help_print_header:                                  2
-;     hex_number_error_100_y:                             2
 ;     increment_ptr_after_write:                          2
 ;     increment_tube_xfer_addr:                           2
 ;     init_fsm_zeros_loop:                                2

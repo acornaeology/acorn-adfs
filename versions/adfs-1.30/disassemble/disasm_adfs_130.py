@@ -643,11 +643,11 @@ label(0x8421, "str_on_channel")
 
 # Number parsing
 entry(0x842D)
-label(0x842D, "hex_number_error_100_y")
+label(0x842D, "error_append_hex")
 entry(0x843E)
 label(0x843E, "hex_digit")
 entry(0x8449)
-label(0x8449, "dec_number_error_100_y")
+label(0x8449, "error_append_dec")
 
 # FSM/directory invalidation and reload
 entry(0x8476)
@@ -8293,7 +8293,7 @@ comment(0x8323, "A=0: success", inline=True)
 comment(0x8326, "Pop 2 return addresses from stack", inline=True)
 comment(0x8328, "Jump to status/message phase handler", inline=True)
 
-# hex_number_error_100_y (&842D)
+# error_append_hex (&842D)
 comment(0x842D, "Save byte value", inline=True)
 comment(0x842E, "Shift high nibble to low nibble", inline=True)
 comment(0x8432, "Output high nibble as hex digit", inline=True)
@@ -8309,7 +8309,7 @@ comment(0x8442, "Result > '9' (i.e. A-F)?", inline=True)
 comment(0x8444, "No, digit is 0-9, done", inline=True)
 comment(0x8446, "Add 7 to get 'A'-'F' (6 + carry)", inline=True)
 
-# dec_number_error_100_y (&8449)
+# error_append_dec (&8449)
 comment(0x8449, "Set V flag for leading zero suppress", inline=True)
 comment(0x844C, "X=100: divide by hundreds", inline=True)
 comment(0x844E, "Output hundreds digit", inline=True)
@@ -8702,7 +8702,7 @@ comment(0x833F, "Next byte", inline=True)
 comment(0x8340, "Loop for 3 bytes", inline=True)
 comment(0x8345, "Save current drive for error msg", inline=True)
 
-# hex_number_error_100_y - remaining items
+# error_append_hex - remaining items
 comment(0x842F, "(continued)", inline=True)
 comment(0x8430, "(continued)", inline=True)
 comment(0x8431, "(continued)", inline=True)
@@ -10629,11 +10629,11 @@ Read sectors 0 and 1 from the current drive into the free
 space map workspace at &0E00-&0FFF. Validates the checksum.
 """)
 
-subroutine(0x842D, "hex_number_error_100_y",
-    title="Parse hex number or raise error",
+subroutine(0x842D, "error_append_hex",
+    title="Append byte as two hex digits to error block",
     description="""\
-Parse a hexadecimal number from the command line. Raises
-an error if the number is invalid.
+Write the byte in A as two ASCII hex digits into the
+error block at the current position Y.
 """,
     on_entry={"a": "byte value to convert to hex", "y": "index into brk_error_block"},
     on_exit={"a": "ASCII hex digit of low nibble", "x": "preserved", "y": "advanced by 2"})
@@ -10647,11 +10647,12 @@ Convert a 4-bit value in A to an ASCII hex character
     on_entry={"a": "value with hex digit in low nibble"},
     on_exit={"a": "ASCII hex character ('0'-'9' or 'A'-'F')", "x": "preserved", "y": "preserved"})
 
-subroutine(0x8449, "dec_number_error_100_y",
-    title="Parse decimal number or raise error",
+subroutine(0x8449, "error_append_dec",
+    title="Append byte as decimal digits to error block",
     description="""\
-Parse a decimal number from the command line. Raises an
-error if the number is invalid.
+Write the byte in A as up to three decimal digits into
+the error block at the current position Y, suppressing
+leading zeros.
 """,
     on_entry={"a": "byte value to convert to decimal", "y": "index into brk_error_block"},
     on_exit={"a": "corrupted", "x": "corrupted", "y": "advanced past decimal digits"})
