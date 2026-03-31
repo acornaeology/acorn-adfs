@@ -12248,29 +12248,32 @@ track-stepping routine to prepare the next sector for
 transfer.
 """)
 
-subroutine(0x0D0A, "nmi_write_code",
+subroutine(0xBCDF, "nmi_write_code",
     title="NMI patch: write memory to disc",
+    at_binary_addr=True,
     description="""\
 Patched into &0D0A when writing to floppy disc from host
 memory. Reads a byte from the self-modifying transfer
 address and writes it to the WD1770 data register.
-""", move_id=nmi_write_move_id)
+""")
 
-subroutine(0x0D0A, "nmi_tube_write_code",
+subroutine(0xBCED, "nmi_tube_write_code",
     title="NMI patch: write Tube to disc",
+    at_binary_addr=True,
     description="""\
 Patched into &0D0A when writing to floppy disc via the
 Tube. Reads a byte from Tube data register 3 and writes
 it to the WD1770 data register.
-""", move_id=nmi_tube_write_move_id)
+""")
 
-subroutine(0x0D0A, "nmi_tube_read_code",
+subroutine(0xBCF5, "nmi_tube_read_code",
     title="NMI patch: read disc to Tube",
+    at_binary_addr=True,
     description="""\
 Patched into &0D0A when reading from floppy disc via the
 Tube. Reads a byte from the WD1770 data register and
 writes it to Tube data register 3.
-""", move_id=nmi_tube_read_move_id)
+""")
 
 subroutine(0xBFF6, "str_rom_footer",
     title="ROM footer text",

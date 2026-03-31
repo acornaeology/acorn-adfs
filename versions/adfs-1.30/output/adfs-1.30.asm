@@ -519,11 +519,6 @@ nmi_patched_addr            = &ffff
 
     org &bcdf
 
-; &bcdf referenced 1 time by &bc62
-.cbcdf
-
-; Move 2: &bcdf to &0d0a for length 14
-    org &0d0a
 ; ***************************************************************************************
 ; NMI patch: write memory to disc
 ; 
@@ -531,7 +526,11 @@ nmi_patched_addr            = &ffff
 ; memory. Reads a byte from the self-modifying transfer
 ; address and writes it to the WD1770 data register.
 ; 
+; &bcdf referenced 1 time by &bc62
 .nmi_write_code
+
+; Move 2: &bcdf to &0d0a for length 14
+    org &0d0a
     lda nmi_patched_addr                                              ; bcdf: ad ff ff    ... :0d0a[2]   ; Read byte from transfer address
     sta fdc_1770_data                                                 ; bce2: 8d 87 fe    ... :0d0d[2]   ; Write to WD1770 data register
     inc nmi_write_addr_lo                                             ; bce5: ee 0b 0d    ... :0d10[2]   ; Increment transfer address low
@@ -541,20 +540,16 @@ nmi_patched_addr            = &ffff
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock nmi_write_code, *, cbcdf
+    copyblock &0d0a, *, nmi_write_code
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
-    clear nmi_write_code, &0d18
+    clear &0d0a, &0d18
 
     ; Set the program counter to the next position in the binary file.
-    org cbcdf + (* - nmi_write_code)
+    org nmi_write_code + (* - &0d0a)
 
-.cbced
-; &bced referenced 1 time by &bc46
-
-; Move 3: &bced to &0d0a for length 8
-    org &0d0a
+.nmi_tube_write_code
 ; ***************************************************************************************
 ; NMI patch: write Tube to disc
 ; 
@@ -562,7 +557,10 @@ nmi_patched_addr            = &ffff
 ; Tube. Reads a byte from Tube data register 3 and writes
 ; it to the WD1770 data register.
 ; 
-.nmi_tube_write_code
+; &bced referenced 1 time by &bc46
+
+; Move 3: &bced to &0d0a for length 8
+    org &0d0a
     lda tube_data_register_3                                          ; bced: ad e5 fe    ... :0d0a[3]   ; Read byte from Tube R3
     sta fdc_1770_data                                                 ; bcf0: 8d 87 fe    ... :0d0d[3]   ; Write to WD1770 data register
     bcs nmi_transfer_done                                             ; bcf3: b0 06       ..  :0d10[3]   ; Always branch: done
@@ -570,20 +568,16 @@ nmi_patched_addr            = &ffff
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock nmi_write_code, *, cbced
+    copyblock &0d0a, *, nmi_tube_write_code
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
-    clear nmi_write_code, &0d12
+    clear &0d0a, &0d12
 
     ; Set the program counter to the next position in the binary file.
-    org cbced + (* - nmi_write_code)
+    org nmi_tube_write_code + (* - &0d0a)
 
-.cbcf5
-; &bcf5 referenced 1 time by &bc52
-
-; Move 4: &bcf5 to &0d0a for length 8
-    org &0d0a
+.nmi_tube_read_code
 ; ***************************************************************************************
 ; NMI patch: read disc to Tube
 ; 
@@ -591,7 +585,10 @@ nmi_patched_addr            = &ffff
 ; Tube. Reads a byte from the WD1770 data register and
 ; writes it to Tube data register 3.
 ; 
-.nmi_tube_read_code
+; &bcf5 referenced 1 time by &bc52
+
+; Move 4: &bcf5 to &0d0a for length 8
+    org &0d0a
     lda fdc_1770_data                                                 ; bcf5: ad 87 fe    ... :0d0a[4]   ; Read byte from WD1770
     sta tube_data_register_3                                          ; bcf8: 8d e5 fe    ... :0d0d[4]   ; Write to Tube R3
     bcs nmi_transfer_done                                             ; bcfb: b0 06       ..  :0d10[4]   ; Always branch: done
@@ -599,14 +596,14 @@ nmi_patched_addr            = &ffff
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock nmi_write_code, *, cbcf5
+    copyblock &0d0a, *, nmi_tube_read_code
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
-    clear nmi_write_code, &0d12
+    clear &0d0a, &0d12
 
     ; Set the program counter to the next position in the binary file.
-    org cbcf5 + (* - nmi_write_code)
+    org nmi_tube_read_code + (* - &0d0a)
 
 .select_fdc_rw_command
 
@@ -12103,7 +12100,7 @@ la868 = check_dest_terminator+1
     ldy #7                                                            ; bc44: a0 07       ..             ; Y=7: copy 8 bytes of Tube write NMI
 ; &bc46 referenced 1 time by &bc4d
 .copy_tube_write_nmi_loop
-    lda cbced,y                                                       ; bc46: b9 ed bc    ...            ; Get Tube write NMI handler byte
+    lda nmi_tube_write_code,y                                         ; bc46: b9 ed bc    ...            ; Get Tube write NMI handler byte
     sta nmi_rw_code,y                                                 ; bc49: 99 0a 0d    ...            ; Copy to NMI workspace
     dey                                                               ; bc4c: 88          .              ; Next byte
     bpl copy_tube_write_nmi_loop                                      ; bc4d: 10 f7       ..             ; Loop for 8 bytes
@@ -12116,7 +12113,7 @@ la868 = check_dest_terminator+1
     ldy #7                                                            ; bc50: a0 07       ..             ; Y=7: copy 8 bytes of Tube read NMI
 ; &bc52 referenced 1 time by &bc59
 .copy_tube_read_nmi_loop
-    lda cbcf5,y                                                       ; bc52: b9 f5 bc    ...            ; Get Tube read NMI handler byte
+    lda nmi_tube_read_code,y                                          ; bc52: b9 f5 bc    ...            ; Get Tube read NMI handler byte
     sta nmi_rw_code,y                                                 ; bc55: 99 0a 0d    ...            ; Copy to NMI workspace
     dey                                                               ; bc58: 88          .              ; Next byte
     bpl copy_tube_read_nmi_loop                                       ; bc59: 10 f7       ..             ; Loop for 8 bytes
@@ -12129,7 +12126,7 @@ la868 = check_dest_terminator+1
     ldy #&0d                                                          ; bc60: a0 0d       ..             ; Y=&0D: copy 14 bytes of write NMI
 ; &bc62 referenced 1 time by &bc69
 .copy_write_nmi_loop
-    lda cbcdf,y                                                       ; bc62: b9 df bc    ...            ; Get direct memory write NMI byte
+    lda nmi_write_code,y                                              ; bc62: b9 df bc    ...            ; Get direct memory write NMI byte
     sta nmi_rw_code,y                                                 ; bc65: 99 0a 0d    ...            ; Copy to NMI workspace
     dey                                                               ; bc68: 88          .              ; Next byte
     bpl copy_write_nmi_loop                                           ; bc69: 10 f7       ..             ; Loop for 14 bytes
@@ -12196,6 +12193,13 @@ la868 = check_dest_terminator+1
     sta zp_floppy_error                                               ; bcda: 85 a0       ..             ; Store drive overrun error code
     jmp floppy_error                                                  ; bcdc: 4c ae bf    L..            ; Handle floppy error
 
+; ***************************************************************************************
+; NMI patch: write memory to disc
+; 
+; Patched into &0D0A when writing to floppy disc from host
+; memory. Reads a byte from the self-modifying transfer
+; address and writes it to the WD1770 data register.
+; 
 ; &bcdf referenced 1 time by &bc62
 
     org &bcfd
@@ -13209,11 +13213,8 @@ save pydis_start, pydis_end
 ;     load_sector_to_buffer:                    3
 ;     mark_buffer_dirty:                        3
 ;     nmi_rw_code:                              3
-;     nmi_tube_read_code:                       3
-;     nmi_tube_write_code:                      3
 ;     nmi_write_addr_hi:                        3
 ;     nmi_write_addr_lo:                        3
-;     nmi_write_code:                           3
 ;     osasci:                                   3
 ;     osbyte_y_ff_x_00:                         3
 ;     oscli:                                    3
@@ -13565,9 +13566,6 @@ save pydis_start, pydis_end
 ;     calc_remaining_sector:                    1
 ;     calc_zero_fill_start:                     1
 ;     calculate_total_sectors:                  1
-;     cbcdf:                                    1
-;     cbced:                                    1
-;     cbcf5:                                    1
 ;     channel_on_same_drive:                    1
 ;     check_4byte_addrs:                        1
 ;     check_access_is_dir_loop:                 1
@@ -13948,7 +13946,10 @@ save pydis_start, pydis_end
 ;     nmi_rw_opcode:                            1
 ;     nmi_saved_rom:                            1
 ;     nmi_set_transfer_complete:                1
+;     nmi_tube_read_code:                       1
+;     nmi_tube_write_code:                      1
 ;     nmi_workspace:                            1
+;     nmi_write_code:                           1
 ;     no_channels_on_drive:                     1
 ;     no_empty_entry_found:                     1
 ;     no_match_cleanup_loop:                    1
@@ -14362,9 +14363,6 @@ save pydis_start, pydis_end
 
 ; Automatically generated labels:
 ;     c8dab
-;     cbcdf
-;     cbced
-;     cbcf5
 ;     l941f
 ;     l9dd3
 ;     l9ee4
