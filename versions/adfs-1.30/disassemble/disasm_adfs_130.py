@@ -254,17 +254,17 @@ label(0x0FFF, "fsm_s1_checksum")
 # ---------------------------------------------------------------------------
 
 label(0x1000, "wksp")
-label(0x1001, "wksp_1001")
-label(0x1002, "wksp_1002")
-label(0x1003, "wksp_1003")
-label(0x1004, "wksp_1004")
-label(0x1008, "wksp_1008")
-label(0x100C, "wksp_100c")
-label(0x100D, "wksp_100d")
-label(0x100E, "wksp_100e")
+label(0x1001, "wksp_buf_sec_lo")        # per-channel buffer sector addr low (X-indexed, 4-byte stride)
+label(0x1002, "wksp_buf_sec_mid")       # per-channel buffer sector addr mid
+label(0x1003, "wksp_buf_sec_hi")        # per-channel buffer sector addr high + drive bits
+label(0x1004, "wksp_buf_flag")          # per-channel buffer state/dirty flags
+label(0x1008, "wksp_buf_flag_1")        # buffer flag slot 1 (absolute init alias for wksp_buf_flag+4)
+label(0x100C, "wksp_buf_flag_2")        # buffer flag slot 2 (absolute init alias for wksp_buf_flag+8)
+label(0x100D, "wksp_entry_field_base")  # Y-indexed base: +Y reaches disc op/OSFILE fields
+label(0x100E, "wksp_entry_len_base")    # Y-indexed base: +&12 reaches disc_op_transfer_len
 label(0x1010, "wksp_osword_block")
-label(0x1011, "wksp_1011")
-label(0x1014, "wksp_1014")
+label(0x1011, "wksp_entry_calc_base")   # Y-indexed base: +Y reaches sector calculation area
+label(0x1014, "wksp_disc_op_block")     # disc op block base; also buffer flag slot 4
 label(0x1015, "wksp_disc_op_result")
 label(0x1016, "wksp_disc_op_mem_addr")
 label(0x1017, "wksp_disc_op_mem_addr_1")
@@ -280,7 +280,7 @@ label(0x1020, "wksp_disc_op_transfer_len")  # little-endian
 label(0x1021, "wksp_disc_op_xfer_len_1")
 label(0x1022, "wksp_disc_op_xfer_len_2")
 label(0x1023, "wksp_disc_op_xfer_len_3")
-label(0x1024, "wksp_1024")
+label(0x1024, "wksp_entry_size_base")   # Y-indexed base: +Y reaches object sector/size fields
 label(0x1026, "wksp_tube_transfer_addr")
 label(0x1027, "wksp_tube_transfer_addr_1")
 label(0x1028, "wksp_tube_xfer_addr_2")
@@ -416,10 +416,10 @@ label(0x111D, "wksp_prev_dir_sector_lo")
 label(0x111E, "wksp_prev_dir_sector_mid")
 label(0x111F, "wksp_prev_dir_sector_hi")
 label(0x1120, "wksp_flags_save")
-label(0x1121, "wksp_1121")
-label(0x1122, "wksp_1122")
-label(0x1131, "wksp_1131")
-label(0x1132, "wksp_1132")
+label(0x1121, "wksp_disc_id_lo")       # per-drive disc ID low (X-indexed by slot)
+label(0x1122, "wksp_disc_id_hi")       # per-drive disc ID high
+label(0x1131, "wksp_scsi_status")      # SCSI combined status byte
+label(0x1132, "wksp_exec_handle")      # stored EXEC file handle for *RUN/boot
 label(0x1133, "wksp_current_drive_hi")  # drive/LUN info
 
 # Per-channel EXT tables (10 channels, 4 bytes each across 4 tables)
@@ -462,8 +462,8 @@ label(0x10D2, "wksp_err_sector_hi")
 label(0x10D3, "wksp_err_code")
 label(0x10D4, "wksp_err_handle")    # file handle for error messages
 label(0x10D5, "wksp_cur_channel")
-label(0x10D6, "wksp_cmd_tail")      # saved command tail pointer
-label(0x10D7, "wksp_shadow_save")
+label(0x10D6, "wksp_cmd_tail")      # saved command tail pointer low
+label(0x10D7, "wksp_cmd_tail_hi")   # saved command tail pointer high
 label(0x10D8, "wksp_screen_mode_save") # saved screen mode for shadow
 label(0x10E0, "wksp_fdc_xfer_mode") # FDC transfer mode (bit 7=read, bit 5=NMI)
 label(0x10E1, "wksp_nmi_owner")     # NMI owner ID for release
