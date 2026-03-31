@@ -6,7 +6,7 @@
     "links": [
         {
             "label": "Disassembly source on GitHub",
-            "url": "https://github.com/acornaeology/acorn-adfs/tree/master/versions/adfs-1.30",
+            "url": "https://github.com/acornaeology/acorn-adfs/blob/master/versions/adfs-1.30/output/adfs-1.30.asm",
             "icon": "github"
         },
         {
