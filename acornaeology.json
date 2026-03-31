@@ -21,9 +21,9 @@
             "note": "A BBC BASIC-embedded disassembly with informative block comments and entry/exit documentation for key routines."
         },
         {
-            "label": "Acorn ADFS User Guide",
+            "label": "Stardot forum thread on ADFS internals",
             "url": "https://stardot.org.uk/forums/viewtopic.php?t=13082",
-            "note": "Stardot forum thread discussing ADFS 1.30 disassembly with technical details on SCSI protocol, workspace layout, and retry mechanisms."
+            "note": "Stardot forum thread discussing ADFS internals with technical details on SCSI protocol, workspace layout, and retry mechanisms."
         }
     ]
 }

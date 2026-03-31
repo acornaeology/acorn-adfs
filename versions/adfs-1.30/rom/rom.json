@@ -10,9 +10,29 @@
             "icon": "github"
         },
         {
-            "label": "ROM in BBC Micro ROM Library",
+            "label": "Acorn ADFS 1.30 in The BBC Micro ROM Library",
             "url": "https://tobylobster.github.io/rom_library/?md5=831ee90ac5d49ba5507252faf0c12536",
             "icon": "chip"
+        },
+        {
+            "label": "Acorn ADFS User Guide (PDF)",
+            "url": "https://chrisacorns.computinghistory.org.uk/docs/Acorn/Manuals/Acorn_ADFSUG.pdf",
+            "icon": "doc"
+        },
+        {
+            "label": "Hoglet's ADFS 1.30 disassembly (BeebAsm, byte-identical reassembly)",
+            "url": "https://github.com/hoglet67/ADFS130",
+            "icon": "ref"
+        },
+        {
+            "label": "Dominic Beesley's ADFS multi-target reassembly (ca65, multiple ADFS versions)",
+            "url": "https://github.com/dominicbeesley/ADFS-multi-target",
+            "icon": "ref"
+        },
+        {
+            "label": "J.G. Harston's ADFS disassembly (BBC BASIC, annotated)",
+            "url": "https://mdfs.net/Info/Comp/BBC/ADFS/",
+            "icon": "ref"
         }
     ]
 }
