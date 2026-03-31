@@ -7020,92 +7020,92 @@ l9ee5 = tbl_commands+2
     equs "ACCESS"                                                     ; 9ee3: 41 43 43... ACC            ; "ACCESS" command name
 ; &9ee4 referenced 1 time by &9ede
 ; &9ee5 referenced 1 time by &9e2d
-    equb HI(star_access-1)                                            ; 9ee9: 99          .              ; Dispatch hi-1 -> star_access
-    equb LO(star_access-1)                                            ; 9eea: 3c          <              ; Dispatch lo-1 -> star_access
+    equb >(star_access-1)                                             ; 9ee9: 99          .              ; Dispatch hi-1 -> star_access
+    equb <(star_access-1)                                             ; 9eea: 3c          <              ; Dispatch lo-1 -> star_access
     equb &16                                                          ; 9eeb: 16          .              ; Params &16: <List Spec> (L)(W)(R)(E)
     equs "BACK"                                                       ; 9eec: 42 41 43... BAC            ; "BACK" command name
-    equb HI(star_back-1)                                              ; 9ef0: a4          .              ; Dispatch hi-1 -> star_back
-    equb LO(star_back-1)                                              ; 9ef1: 96          .              ; Dispatch lo-1 -> star_back
+    equb >(star_back-1)                                               ; 9ef0: a4          .              ; Dispatch hi-1 -> star_back
+    equb <(star_back-1)                                               ; 9ef1: 96          .              ; Dispatch lo-1 -> star_back
     equb 0                                                            ; 9ef2: 00          .              ; Params &00: (none)
     equs "BYE"                                                        ; 9ef3: 42 59 45    BYE            ; "BYE" command name
-    equb HI(star_bye-1)                                               ; 9ef6: a0          .              ; Dispatch hi-1 -> star_bye
-    equb LO(star_bye-1)                                               ; 9ef7: c2          .              ; Dispatch lo-1 -> star_bye
+    equb >(star_bye-1)                                                ; 9ef6: a0          .              ; Dispatch hi-1 -> star_bye
+    equb <(star_bye-1)                                                ; 9ef7: c2          .              ; Dispatch lo-1 -> star_bye
     equb 0                                                            ; 9ef8: 00          .              ; Params &00: (none)
     equs "CDIR"                                                       ; 9ef9: 43 44 49... CDI            ; "CDIR" command name
-    equb HI(star_cdir-1)                                              ; 9efd: 95          .              ; Dispatch hi-1 -> star_cdir
-    equb LO(star_cdir-1)                                              ; 9efe: 6f          o              ; Dispatch lo-1 -> star_cdir
+    equb >(star_cdir-1)                                               ; 9efd: 95          .              ; Dispatch hi-1 -> star_cdir
+    equb <(star_cdir-1)                                               ; 9efe: 6f          o              ; Dispatch lo-1 -> star_cdir
     equb &20                                                          ; 9eff: 20                         ; Params &20: <Ob Spec>
     equs "CLOSE"                                                      ; 9f00: 43 4c 4f... CLO            ; "CLOSE" command name
-    equb HI(star_close-1)                                             ; 9f05: b1          .              ; Dispatch hi-1 -> star_close
-    equb LO(star_close-1)                                             ; 9f06: b2          .              ; Dispatch lo-1 -> star_close
+    equb >(star_close-1)                                              ; 9f05: b1          .              ; Dispatch hi-1 -> star_close
+    equb <(star_close-1)                                              ; 9f06: b2          .              ; Dispatch lo-1 -> star_close
     equb 0                                                            ; 9f07: 00          .              ; Params &00: (none)
     equs "COMPACT"                                                    ; 9f08: 43 4f 4d... COM            ; "COMPACT" command name
-    equb HI(star_compact-1)                                           ; 9f0f: a2          .              ; Dispatch hi-1 -> star_compact
-    equb LO(star_compact-1)                                           ; 9f10: 75          u              ; Dispatch lo-1 -> star_compact
+    equb >(star_compact-1)                                            ; 9f0f: a2          .              ; Dispatch hi-1 -> star_compact
+    equb <(star_compact-1)                                            ; 9f10: 75          u              ; Dispatch lo-1 -> star_compact
     equb &50                                                          ; 9f11: 50          P              ; Params &50: <SP> <LP>
     equs "COPY"                                                       ; 9f12: 43 4f 50... COP            ; "COPY" command name
-    equb HI(star_copy-1)                                              ; 9f16: a8          .              ; Dispatch hi-1 -> star_copy
-    equb LO(star_copy-1)                                              ; 9f17: 1c          .              ; Dispatch lo-1 -> star_copy
+    equb >(star_copy-1)                                               ; 9f16: a8          .              ; Dispatch hi-1 -> star_copy
+    equb <(star_copy-1)                                               ; 9f17: 1c          .              ; Dispatch lo-1 -> star_copy
     equb &13                                                          ; 9f18: 13          .              ; Params &13: <List Spec> <*Ob Spec*>
     equs "DELETE"                                                     ; 9f19: 44 45 4c... DEL            ; "DELETE" command name
-    equb HI(star_delete-1)                                            ; 9f1f: a0          .              ; Dispatch hi-1 -> star_delete
-    equb LO(star_delete-1)                                            ; 9f20: ba          .              ; Dispatch lo-1 -> star_delete
+    equb >(star_delete-1)                                             ; 9f1f: a0          .              ; Dispatch hi-1 -> star_delete
+    equb <(star_delete-1)                                             ; 9f20: ba          .              ; Dispatch lo-1 -> star_delete
     equb &20                                                          ; 9f21: 20                         ; Params &20: <Ob Spec>
     equs "DESTROY"                                                    ; 9f22: 44 45 53... DES            ; "DESTROY" command name
-    equb HI(star_destroy-1)                                           ; 9f29: 99          .              ; Dispatch hi-1 -> star_destroy
-    equb LO(star_destroy-1)                                           ; 9f2a: e5          .              ; Dispatch lo-1 -> star_destroy
+    equb >(star_destroy-1)                                            ; 9f29: 99          .              ; Dispatch hi-1 -> star_destroy
+    equb <(star_destroy-1)                                            ; 9f2a: e5          .              ; Dispatch lo-1 -> star_destroy
     equb &10                                                          ; 9f2b: 10          .              ; Params &10: <List Spec>
     equs "DIR"                                                        ; 9f2c: 44 49 52    DIR            ; "DIR" command name
-    equb HI(star_dir-1)                                               ; 9f2f: 95          .              ; Dispatch hi-1 -> star_dir
-    equb LO(star_dir-1)                                               ; 9f30: 3e          >              ; Dispatch lo-1 -> star_dir
+    equb >(star_dir-1)                                                ; 9f2f: 95          .              ; Dispatch hi-1 -> star_dir
+    equb <(star_dir-1)                                                ; 9f30: 3e          >              ; Dispatch lo-1 -> star_dir
     equb &20                                                          ; 9f31: 20                         ; Params &20: <Ob Spec>
     equs "DISMOUNT"                                                   ; 9f32: 44 49 53... DIS            ; "DISMOUNT" command name
-    equb HI(star_dismount-1)                                          ; 9f3a: a1          .              ; Dispatch hi-1 -> star_dismount
-    equb LO(star_dismount-1)                                          ; 9f3b: 10          .              ; Dispatch lo-1 -> star_dismount
+    equb >(star_dismount-1)                                           ; 9f3a: a1          .              ; Dispatch hi-1 -> star_dismount
+    equb <(star_dismount-1)                                           ; 9f3b: 10          .              ; Dispatch lo-1 -> star_dismount
     equb &40                                                          ; 9f3c: 40          @              ; Params &40: (<Drive>)
     equs "EX"                                                         ; 9f3d: 45 58       EX             ; "EX" command name
-    equb HI(star_ex-1)                                                ; 9f3f: 94          .              ; Dispatch hi-1 -> star_ex
-    equb LO(star_ex-1)                                                ; 9f40: 32          2              ; Dispatch lo-1 -> star_ex
+    equb >(star_ex-1)                                                 ; 9f3f: 94          .              ; Dispatch hi-1 -> star_ex
+    equb <(star_ex-1)                                                 ; 9f40: 32          2              ; Dispatch lo-1 -> star_ex
     equb &30                                                          ; 9f41: 30          0              ; Params &30: <*Ob Spec*>
     equs "FREE"                                                       ; 9f42: 46 52 45... FRE            ; "FREE" command name
-    equb HI(star_free-1)                                              ; 9f46: a0          .              ; Dispatch hi-1 -> star_free
-    equb LO(star_free-1)                                              ; 9f47: 1a          .              ; Dispatch lo-1 -> star_free
+    equb >(star_free-1)                                               ; 9f46: a0          .              ; Dispatch hi-1 -> star_free
+    equb <(star_free-1)                                               ; 9f47: 1a          .              ; Dispatch lo-1 -> star_free
     equb 0                                                            ; 9f48: 00          .              ; Params &00: (none)
     equs "INFO"                                                       ; 9f49: 49 4e 46... INF            ; "INFO" command name
-    equb HI(star_info-1)                                              ; 9f4d: 94          .              ; Dispatch hi-1 -> star_info
-    equb LO(star_info-1)                                              ; 9f4e: e6          .              ; Dispatch lo-1 -> star_info
+    equb >(star_info-1)                                               ; 9f4d: 94          .              ; Dispatch hi-1 -> star_info
+    equb <(star_info-1)                                               ; 9f4e: e6          .              ; Dispatch lo-1 -> star_info
     equb &10                                                          ; 9f4f: 10          .              ; Params &10: <List Spec>
     equs "LCAT"                                                       ; 9f50: 4c 43 41... LCA            ; "LCAT" command name
-    equb HI(star_lcat-1)                                              ; 9f54: a4          .              ; Dispatch hi-1 -> star_lcat
-    equb LO(star_lcat-1)                                              ; 9f55: 7e          ~              ; Dispatch lo-1 -> star_lcat
+    equb >(star_lcat-1)                                               ; 9f54: a4          .              ; Dispatch hi-1 -> star_lcat
+    equb <(star_lcat-1)                                               ; 9f55: 7e          ~              ; Dispatch lo-1 -> star_lcat
     equb 0                                                            ; 9f56: 00          .              ; Params &00: (none)
     equs "LEX"                                                        ; 9f57: 4c 45 58    LEX            ; "LEX" command name
-    equb HI(star_lex-1)                                               ; 9f5a: a4          .              ; Dispatch hi-1 -> star_lex
-    equb LO(star_lex-1)                                               ; 9f5b: 8a          .              ; Dispatch lo-1 -> star_lex
+    equb >(star_lex-1)                                                ; 9f5a: a4          .              ; Dispatch hi-1 -> star_lex
+    equb <(star_lex-1)                                                ; 9f5b: 8a          .              ; Dispatch lo-1 -> star_lex
     equb 0                                                            ; 9f5c: 00          .              ; Params &00: (none)
     equs "LIB"                                                        ; 9f5d: 4c 49 42    LIB            ; "LIB" command name
-    equb HI(star_lib-1)                                               ; 9f60: a4          .              ; Dispatch hi-1 -> star_lib
-    equb LO(star_lib-1)                                               ; 9f61: 43          C              ; Dispatch lo-1 -> star_lib
+    equb >(star_lib-1)                                                ; 9f60: a4          .              ; Dispatch hi-1 -> star_lib
+    equb <(star_lib-1)                                                ; 9f61: 43          C              ; Dispatch lo-1 -> star_lib
     equb &30                                                          ; 9f62: 30          0              ; Params &30: <*Ob Spec*>
     equs "MAP"                                                        ; 9f63: 4d 41 50    MAP            ; "MAP" command name
-    equb HI(star_map-1)                                               ; 9f66: a0          .              ; Dispatch hi-1 -> star_map
-    equb LO(star_map-1)                                               ; 9f67: 49          I              ; Dispatch lo-1 -> star_map
+    equb >(star_map-1)                                                ; 9f66: a0          .              ; Dispatch hi-1 -> star_map
+    equb <(star_map-1)                                                ; 9f67: 49          I              ; Dispatch lo-1 -> star_map
     equb 0                                                            ; 9f68: 00          .              ; Params &00: (none)
     equs "MOUNT"                                                      ; 9f69: 4d 4f 55... MOU            ; "MOUNT" command name
-    equb HI(star_mount-1)                                             ; 9f6e: a1          .              ; Dispatch hi-1 -> star_mount
-    equb LO(star_mount-1)                                             ; 9f6f: 5d          ]              ; Dispatch lo-1 -> star_mount
+    equb >(star_mount-1)                                              ; 9f6e: a1          .              ; Dispatch hi-1 -> star_mount
+    equb <(star_mount-1)                                              ; 9f6f: 5d          ]              ; Dispatch lo-1 -> star_mount
     equb &40                                                          ; 9f70: 40          @              ; Params &40: (<Drive>)
     equs "REMOVE"                                                     ; 9f71: 52 45 4d... REM            ; "REMOVE" command name
-    equb HI(star_remove-1)                                            ; 9f77: 91          .              ; Dispatch hi-1 -> star_remove
-    equb LO(star_remove-1)                                            ; 9f78: 08          .              ; Dispatch lo-1 -> star_remove
+    equb >(star_remove-1)                                             ; 9f77: 91          .              ; Dispatch hi-1 -> star_remove
+    equb <(star_remove-1)                                             ; 9f78: 08          .              ; Dispatch lo-1 -> star_remove
     equb &20                                                          ; 9f79: 20                         ; Params &20: <Ob Spec>
     equs "RENAME"                                                     ; 9f7a: 52 45 4e... REN            ; "RENAME" command name
-    equb HI(star_rename-1)                                            ; 9f80: a5          .              ; Dispatch hi-1 -> star_rename
-    equb LO(star_rename-1)                                            ; 9f81: 02          .              ; Dispatch lo-1 -> star_rename
+    equb >(star_rename-1)                                             ; 9f80: a5          .              ; Dispatch hi-1 -> star_rename
+    equb <(star_rename-1)                                             ; 9f81: 02          .              ; Dispatch lo-1 -> star_rename
     equb &22                                                          ; 9f82: 22          "              ; Params &22: <Ob Spec> <Ob Spec>
     equs "TITLE"                                                      ; 9f83: 54 49 54... TIT            ; "TITLE" command name
-    equb HI(star_title-1)                                             ; 9f88: a2          .              ; Dispatch hi-1 -> star_title
-    equb LO(star_title-1)                                             ; 9f89: 51          Q              ; Dispatch lo-1 -> star_title
+    equb >(star_title-1)                                              ; 9f88: a2          .              ; Dispatch hi-1 -> star_title
+    equb <(star_title-1)                                              ; 9f89: 51          Q              ; Dispatch lo-1 -> star_title
     equb &70                                                          ; 9f8a: 70          p              ; Params &70: <Title>
     equb HI(star_run-1)                                               ; 9f8b: a3          .              ; End: dispatch hi-1 -> star_run
     equb LO(star_run-1)                                               ; 9f8c: 98          .              ; End: dispatch lo-1 -> star_run
@@ -12994,8 +12994,30 @@ la868 = check_dest_terminator+1
     assert <(service_handler_4-1) == &d9
     assert <(service_handler_8-1) == &18
     assert <(service_handler_9-1) == &bd
+    assert <(star_access-1) == &3c
+    assert <(star_back-1) == &96
+    assert <(star_bye-1) == &c2
+    assert <(star_cdir-1) == &6f
+    assert <(star_close-1) == &b2
     assert <(star_cmd-1) == &7e
+    assert <(star_compact-1) == &75
+    assert <(star_copy-1) == &1c
+    assert <(star_delete-1) == &ba
+    assert <(star_destroy-1) == &e5
+    assert <(star_dir-1) == &3e
+    assert <(star_dismount-1) == &10
+    assert <(star_ex-1) == &32
+    assert <(star_free-1) == &1a
+    assert <(star_info-1) == &e6
+    assert <(star_lcat-1) == &7e
+    assert <(star_lex-1) == &8a
+    assert <(star_lib-1) == &43
+    assert <(star_map-1) == &49
+    assert <(star_mount-1) == &5d
+    assert <(star_remove-1) == &08
+    assert <(star_rename-1) == &02
     assert <(star_run-1) == &98
+    assert <(star_title-1) == &51
     assert <(str_e_boot) == &85
     assert <(svc5_irq-1) == &77
     assert <(wksp_clock) == &c8
@@ -13012,57 +13034,35 @@ la868 = check_dest_terminator+1
     assert >(service_handler_4-1) == &9c
     assert >(service_handler_8-1) == &9d
     assert >(service_handler_9-1) == &9d
+    assert >(star_access-1) == &99
+    assert >(star_back-1) == &a4
+    assert >(star_bye-1) == &a0
+    assert >(star_cdir-1) == &95
+    assert >(star_close-1) == &b1
     assert >(star_cmd-1) == &9e
+    assert >(star_compact-1) == &a2
+    assert >(star_copy-1) == &a8
+    assert >(star_delete-1) == &a0
+    assert >(star_destroy-1) == &99
+    assert >(star_dir-1) == &95
+    assert >(star_dismount-1) == &a1
+    assert >(star_ex-1) == &94
+    assert >(star_free-1) == &a0
+    assert >(star_info-1) == &94
+    assert >(star_lcat-1) == &a4
+    assert >(star_lex-1) == &a4
+    assert >(star_lib-1) == &a4
+    assert >(star_map-1) == &a0
+    assert >(star_mount-1) == &a1
+    assert >(star_remove-1) == &91
+    assert >(star_rename-1) == &a5
     assert >(star_run-1) == &a3
+    assert >(star_title-1) == &a2
     assert >(str_e_boot) == &9a
     assert >(svc5_irq-1) == &ab
     assert >(wksp_clock) == &10
-    assert HI(star_access-1) == &99
-    assert HI(star_back-1) == &a4
-    assert HI(star_bye-1) == &a0
-    assert HI(star_cdir-1) == &95
-    assert HI(star_close-1) == &b1
-    assert HI(star_compact-1) == &a2
-    assert HI(star_copy-1) == &a8
-    assert HI(star_delete-1) == &a0
-    assert HI(star_destroy-1) == &99
-    assert HI(star_dir-1) == &95
-    assert HI(star_dismount-1) == &a1
-    assert HI(star_ex-1) == &94
-    assert HI(star_free-1) == &a0
-    assert HI(star_info-1) == &94
-    assert HI(star_lcat-1) == &a4
-    assert HI(star_lex-1) == &a4
-    assert HI(star_lib-1) == &a4
-    assert HI(star_map-1) == &a0
-    assert HI(star_mount-1) == &a1
-    assert HI(star_remove-1) == &91
-    assert HI(star_rename-1) == &a5
     assert HI(star_run-1) == &a3
-    assert HI(star_title-1) == &a2
-    assert LO(star_access-1) == &3c
-    assert LO(star_back-1) == &96
-    assert LO(star_bye-1) == &c2
-    assert LO(star_cdir-1) == &6f
-    assert LO(star_close-1) == &b2
-    assert LO(star_compact-1) == &75
-    assert LO(star_copy-1) == &1c
-    assert LO(star_delete-1) == &ba
-    assert LO(star_destroy-1) == &e5
-    assert LO(star_dir-1) == &3e
-    assert LO(star_dismount-1) == &10
-    assert LO(star_ex-1) == &32
-    assert LO(star_free-1) == &1a
-    assert LO(star_info-1) == &e6
-    assert LO(star_lcat-1) == &7e
-    assert LO(star_lex-1) == &8a
-    assert LO(star_lib-1) == &43
-    assert LO(star_map-1) == &49
-    assert LO(star_mount-1) == &5d
-    assert LO(star_remove-1) == &08
-    assert LO(star_rename-1) == &02
     assert LO(star_run-1) == &98
-    assert LO(star_title-1) == &51
     assert copyright - rom_header == &18
     assert osfile_delete_handler-1 == &9100
     assert osfile_load_handler-1 == &8f73
