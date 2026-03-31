@@ -12230,6 +12230,7 @@ The handler has three paths:
 
 subroutine(0x0D1A, "nmi_check_status_error",
     title="NMI status/error handler",
+    move_id=nmi_main_move_id,
     description="""\
 Not a DRQ: check WD1770 status for error bits. Bits 6
 (write protect), 4 (record not found), and 3 (CRC error)
@@ -12239,6 +12240,7 @@ code and set the error flag in the control byte.
 
 subroutine(0x0D2C, "nmi_check_end_of_operation",
     title="NMI end-of-operation handler",
+    move_id=nmi_main_move_id,
     description="""\
 No error and no DRQ: the WD1770 command has completed.
 If multi-sector mode (bit 6 of zp_floppy_state) is not
