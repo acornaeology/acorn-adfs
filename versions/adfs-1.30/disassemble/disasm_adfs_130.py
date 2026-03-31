@@ -60,11 +60,8 @@ constant(0xFC42, "scsi_select")
 constant(0xFC43, "scsi_irq_enable")
 
 # WD1770 floppy disc controller registers
-constant(0xFE80, "fdc_command_status")
-constant(0xFE81, "fdc_track")
-constant(0xFE82, "fdc_sector")
-constant(0xFE83, "fdc_data")
-constant(0xFE84, "fdc_control")
+label(0xFE80, "fdc_1770_drive_control")
+label(0xFE84, "fdc_1770_command_or_status")
 
 # System VIA
 constant(0xFE44, "via_t1c_h")
