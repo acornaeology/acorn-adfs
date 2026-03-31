@@ -385,19 +385,19 @@ label(0x10BD, "wksp_osgbpb_byte_count")   # output byte counter
 label(0x10BE, "wksp_osgbpb_name_offset")  # name offset for A=8
 label(0x10BF, "wksp_saved_drive_2")       # saved drive for extension
 
-# Path/search workspace (&10C0-&10CF)
-label(0x10C0, "wksp_search_result")        # pathname search result (4 bytes)
-label(0x10C1, "wksp_search_result_1")
-label(0x10C2, "wksp_search_result_2")
-label(0x10C3, "wksp_search_result_3")
-label(0x10C8, "wksp_path_drive")           # pathname drive number
-label(0x10C9, "wksp_path_sector")          # pathname sector (3 bytes)
-label(0x10CA, "wksp_path_sector_1")
-label(0x10CB, "wksp_path_sector_2")
-label(0x10CC, "wksp_path_wksp_cc")
-label(0x10CD, "wksp_path_wksp_cd")
-label(0x10CE, "wksp_path_wksp_ce")
-label(0x10CF, "wksp_modify_flag")          # buffer modification flag
+# Search/timing/disc-change workspace (&10C0-&10CF)
+label(0x10C0, "wksp_search_flag")          # search/catalogue display flag
+label(0x10C1, "wksp_workspace_checksum")   # workspace integrity checksum
+label(0x10C2, "wksp_drive_change_mask")    # one bit per drive slot
+label(0x10C3, "wksp_prev_clock")           # previous clock reading (5 bytes)
+label(0x10C8, "wksp_clock")               # current/delta clock (5 bytes)
+label(0x10C9, "wksp_clock_1")             # OSWORD 1 block byte 2
+label(0x10CA, "wksp_clock_2")
+label(0x10CB, "wksp_clock_3")
+label(0x10CC, "wksp_clock_4")
+label(0x10CD, "wksp_clock_5")
+label(0x10CE, "wksp_error_suppress")       # non-zero suppresses wksp reload
+label(0x10CF, "wksp_bput_modified")        # BPUT modification flag
 
 # Workspace page &1100
 label(0x1100, "wksp_csd_name")      # 10 bytes
@@ -460,18 +460,18 @@ label(0x10D0, "wksp_err_sector")   # error sector (little-endian)
 label(0x10D1, "wksp_err_sector_mid")
 label(0x10D2, "wksp_err_sector_hi")
 label(0x10D3, "wksp_err_code")
-label(0x10D4, "wksp_err_channel")   # file handle for error context
+label(0x10D4, "wksp_err_handle")    # file handle for error messages
 label(0x10D5, "wksp_cur_channel")
 label(0x10D6, "wksp_cmd_tail")      # saved command tail pointer
 label(0x10D7, "wksp_shadow_save")
 label(0x10D8, "wksp_screen_mode_save") # saved screen mode for shadow
-label(0x10E0, "wksp_floppy_mode")   # floppy transfer mode flags
+label(0x10E0, "wksp_fdc_xfer_mode") # FDC transfer mode (bit 7=read, bit 5=NMI)
 label(0x10E1, "wksp_nmi_owner")     # NMI owner ID for release
 label(0x10E2, "wksp_format_page")   # format buffer page number
 label(0x10E3, "wksp_err_number")
-label(0x10E4, "wksp_partial_xfer_state") # partial sector transfer state
-label(0x10E5, "wksp_partial_count_1")
-label(0x10E6, "wksp_partial_count_2")
+label(0x10E4, "wksp_fdc_head_state")  # head-loaded / drive state flags
+label(0x10E5, "wksp_fdc_track_0")    # saved track for drive 0
+label(0x10E6, "wksp_fdc_track_1")    # saved track for drive 1
 label(0x10E7, "wksp_stack_save")
 label(0x10E8, "wksp_fdc_cmd_step")
 label(0x10FE, "wksp_alt_csd_sector")  # alt workspace CSD sector
