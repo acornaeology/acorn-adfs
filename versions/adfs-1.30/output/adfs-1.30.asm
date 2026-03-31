@@ -11838,16 +11838,9 @@ la868 = check_dest_terminator+1
 ; ***************************************************************************************
 ; Get floppy step rate
 ; 
-; Read OSBYTE &FF startup options and extract bits 4-5
-; for the FDC step rate and head settle time.
-; 
-; WD1770 and WD1772 timings (ms):
-;   b5 b4 | 1770 step | 1770 settle | 1772 step | 1772 settle
-;   ------+-----------+-------------+-----------+------------
-;    0  0 |         6 |          30 |         6 |          15
-;    0  1 |        12 |          30 |        12 |          15
-;    1  0 |        20 |          30 |         2 |          15
-;    1  1 |        30 |          30 |         3 |          15
+; Fetch the startup options byte via OSBYTE &FF and use
+; bits 4 and 5 to set the FDC step rate and head settle
+; time in milliseconds.
 ; 
 ; &bbb4 referenced 2 times by &ba35, &bb89
 .floppy_get_step_rate
