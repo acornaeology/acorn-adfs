@@ -312,7 +312,7 @@ wksp_err_handle                                 = &10d4
 wksp_cur_channel                                = &10d5
 wksp_cmd_tail                                   = &10d6
 wksp_cmd_tail_hi                                = &10d7
-wksp_screen_mode_save                           = &10d8
+wksp_compaction_reported                        = &10d8
 wksp_fdc_xfer_mode                              = &10e0
 wksp_nmi_owner                                  = &10e1
 wksp_format_page                                = &10e2
@@ -1356,22 +1356,22 @@ nmi_patched_addr                                = &ffff
     jsr error_append_dec                                              ; 83d0: 20 49 84     I.            ; Append as decimal digits
     tya                                                               ; 83d3: 98          .              ; Save current position
     pha                                                               ; 83d4: 48          H              ; Push Y on stack
-    lda #&c6                                                          ; 83d5: a9 c6       ..             ; Close SPOOL file if open
-    sta wksp_screen_mode_save                                         ; 83d7: 8d d8 10    ...            ; Store SPOOL/EXEC flag
+    lda #&c6                                                          ; 83d5: a9 c6       ..             ; OSBYTE &C6: read EXEC file handle
+    sta wksp_compaction_reported                                      ; 83d7: 8d d8 10    ...            ; Store OSBYTE number in workspace
     jsr osbyte_y_ff_x_00                                              ; 83da: 20 a0 84     ..            ; OSBYTE &C6: read/write EXEC handle
     cpx wksp_cur_channel                                              ; 83dd: ec d5 10    ...            ; Is EXEC on this channel?
     php                                                               ; 83e0: 08          .              ; Save flags for comparison result
     ldx #&99                                                          ; 83e1: a2 99       ..             ; X=&99: EXEC string address
     plp                                                               ; 83e3: 28          (              ; Restore flags
-    beq check_shadow_save                                             ; 83e4: f0 07       ..             ; Yes, close EXEC file
+    beq close_exec_or_spool                                           ; 83e4: f0 07       ..             ; Yes, close EXEC file
     cpy wksp_cur_channel                                              ; 83e6: cc d5 10    ...            ; Is SPOOL on this channel?
-    bne restore_shadow_screen                                         ; 83e9: d0 05       ..             ; No, skip
+    bne restore_error_position                                        ; 83e9: d0 05       ..             ; No, skip
     ldx #&9c                                                          ; 83eb: a2 9c       ..             ; Close SPOOL file (ptr at &9C)
 ; &83ed referenced 1 time by &83e4
-.check_shadow_save
+.close_exec_or_spool
     jsr oscli_at_x                                                    ; 83ed: 20 a7 84     ..            ; Execute close via OSCLI
 ; &83f0 referenced 1 time by &83e9
-.restore_shadow_screen
+.restore_error_position
     pla                                                               ; 83f0: 68          h              ; Restore Y (position)
     tay                                                               ; 83f1: a8          .              ; Transfer back to Y
 ; &83f2 referenced 1 time by &83be
@@ -7180,7 +7180,7 @@ help_param_none = help_param_title+7
 ; message if the free space list pointer exceeds &E1.
 ; 
 .check_compaction_recommended
-    ldx wksp_screen_mode_save                                         ; a094: ae d8 10    ...            ; Check if already reported
+    ldx wksp_compaction_reported                                      ; a094: ae d8 10    ...            ; Check if already reported
     bne return_27                                                     ; a097: d0 b0       ..             ; Already done, skip
     ldx fsm_s1_total_sectors_lo                                       ; a099: ae fe 0f    ...            ; Get FSM end-of-list pointer
     cpx #&e1                                                          ; a09c: e0 e1       ..             ; Pointer >= &E1 (many fragments)?
@@ -8592,7 +8592,7 @@ la154 = sub_ca153+1
     jsr restore_wksp_from_save                                        ; a7a8: 20 97 a7     ..            ; Calculate channel checksum
     sta wksp_workspace_checksum                                       ; a7ab: 8d c1 10    ...            ; Store checksum in workspace
     lda #0                                                            ; a7ae: a9 00       ..             ; A=0: clear flags
-    sta wksp_screen_mode_save                                         ; a7b0: 8d d8 10    ...            ; Clear SPOOL/EXEC tracking
+    sta wksp_compaction_reported                                      ; a7b0: 8d d8 10    ...            ; Clear compaction-reported flag
     sta wksp_error_suppress                                           ; a7b3: 8d ce 10    ...            ; Clear error flag
     sta wksp_cur_channel                                              ; a7b6: 8d d5 10    ...            ; Clear current channel
     pla                                                               ; a7b9: 68          h              ; Restore X
@@ -13192,6 +13192,7 @@ save pydis_start, pydis_end
 ;     wksp_ch_buf_sector:                                 3
 ;     wksp_cmd_tail:                                      3
 ;     wksp_cmd_tail_hi:                                   3
+;     wksp_compaction_reported:                           3
 ;     wksp_copy_dest_sector:                              3
 ;     wksp_csd_drive_temp:                                3
 ;     wksp_dest_name:                                     3
@@ -13213,7 +13214,6 @@ save pydis_start, pydis_end
 ;     wksp_osgbpb_data_addr_3:                            3
 ;     wksp_osgbpb_wksp_9f:                                3
 ;     wksp_saved_count:                                   3
-;     wksp_screen_mode_save:                              3
 ;     wksp_scsi_status:                                   3
 ;     wksp_tube_transfer_addr_1:                          3
 ;     wksp_tube_xfer_addr_2:                              3
@@ -13578,7 +13578,6 @@ save pydis_start, pydis_end
 ;     check_sector_mid:                                   1
 ;     check_sectors_remaining:                            1
 ;     check_seek_error:                                   1
-;     check_shadow_save:                                  1
 ;     check_special_chars_loop:                           1
 ;     check_special_dir:                                  1
 ;     check_special_dir_in_path:                          1
@@ -13616,6 +13615,7 @@ save pydis_start, pydis_end
 ;     close_and_update_dir:                               1
 ;     close_drive_channels_loop:                          1
 ;     close_each_drive_loop:                              1
+;     close_exec_or_spool:                                1
 ;     close_file_handler:                                 1
 ;     close_next_channel_loop:                            1
 ;     close_single_channel:                               1
@@ -14002,8 +14002,8 @@ save pydis_start, pydis_end
 ;     restore_csd_sector_loop2:                           1
 ;     restore_drive_after_extend:                         1
 ;     restore_drive_digit:                                1
+;     restore_error_position:                             1
 ;     restore_head_flag:                                  1
-;     restore_shadow_screen:                              1
 ;     restore_track_zero:                                 1
 ;     restore_wksp_byte_loop:                             1
 ;     restore_workspace_state:                            1
