@@ -303,9 +303,18 @@ label(0x1062, "wksp_object_name")   # current object name buffer
 label(0x1100, "wksp_csd_name")      # 10 bytes
 label(0x110A, "wksp_lib_name")      # 10 bytes
 label(0x1113, "wksp_csd_sector")    # 4 bytes (3 sector + 1 drive*32)
+label(0x1114, "wksp_csd_sector_lo")
+label(0x1115, "wksp_csd_sector_mid")
+label(0x1116, "wksp_csd_sector_hi")
 label(0x1117, "wksp_current_drive")
 label(0x1118, "wksp_lib_sector")    # 4 bytes
+label(0x1119, "wksp_lib_sector_lo")
+label(0x111A, "wksp_lib_sector_mid")
+label(0x111B, "wksp_lib_sector_hi")
 label(0x111C, "wksp_prev_dir_sector")  # 4 bytes
+label(0x111D, "wksp_prev_dir_sector_lo")
+label(0x111E, "wksp_prev_dir_sector_mid")
+label(0x111F, "wksp_prev_dir_sector_hi")
 label(0x1120, "wksp_flags_save")
 label(0x1121, "wksp_1121")
 label(0x1122, "wksp_1122")
@@ -326,7 +335,27 @@ label(0x1170, "wksp_ch_ptr_ml")
 label(0x117A, "wksp_ch_ptr_l")     # PTR low byte per channel
 
 # Per-channel state tables
+# Per-channel allocation tables (10 channels, 4 bytes each)
+label(0x1183, "wksp_ch_alloc_pad")   # padding byte before table
+label(0x1184, "wksp_ch_alloc_h")     # allocation high byte
+label(0x118E, "wksp_ch_alloc_mh")    # allocation mid-high
+label(0x1198, "wksp_ch_alloc_ml")    # allocation mid-low
+label(0x11A2, "wksp_ch_alloc_l")     # allocation low byte
+
 label(0x11AC, "wksp_ch_flags")     # channel flags per channel
+
+# Per-channel start sector + drive tables (10 channels, 3 bytes each)
+label(0x11B6, "wksp_ch_start_sec_h")   # start sector high + drive
+label(0x11C0, "wksp_ch_start_sec_mh")  # start sector mid-high
+label(0x11CA, "wksp_ch_start_sec_ml")  # start sector mid-low
+
+# Per-channel parent directory sector (10 channels, 3 bytes each)
+label(0x11D4, "wksp_ch_dir_sec_h")    # dir sector high + drive
+label(0x11DE, "wksp_ch_dir_sec_mh")   # dir sector mid-high
+label(0x11E8, "wksp_ch_dir_sec_ml")   # dir sector mid-low
+
+# Per-channel sequence number (10 channels, 1 byte each)
+label(0x11F2, "wksp_ch_seq_num")
 label(0x10D0, "wksp_err_sector")   # error sector (little-endian)
 label(0x10D3, "wksp_err_code")
 label(0x10D5, "wksp_cur_channel")
