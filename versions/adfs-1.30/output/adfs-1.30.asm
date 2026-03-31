@@ -2133,14 +2133,20 @@ nmi_patched_addr                                = &ffff
 ; Parse argument and set up directory search
 ; 
 ; Skip leading spaces, set up directory search state,
-; and clear the search result workspace.
+; and clear the search result workspace. Falls through
+; to check_char_is_terminator.
 ; 
+; 
+; On Exit:
+;     A: first non-space character (Z set if terminator)
+;     X: 0 if terminator, else preserved
+;     Y: 0
 ; ***************************************************************************************
 ; &870f referenced 2 times by &884c, &8851
 .parse_and_setup_search
     jsr skip_spaces                                                   ; 870f: 20 cf a4     ..            ; Skip leading spaces in command argument
     jsr set_up_directory_search                                       ; 8712: 20 6e 8d     n.            ; Set up directory for search; Validate path and check for wildcards
-    ldy #0                                                            ; 8715: a0 00       ..             ; Y=0: clear search flag
+    ldy #0                                                            ; 8715: a0 00       ..             ; Y=0: clear search flag; Y=index into text at (&B4)
     sty wksp_search_flag                                              ; 8717: 8c c0 10    ...            ; Store in workspace
 ; ***************************************************************************************
 ; Check if character is a filename terminator
@@ -2148,13 +2154,14 @@ nmi_patched_addr                                = &ffff
 ; Test whether the character at (&B4),Y is a filename
 ; terminator: space, dot, double-quote, or control character.
 ; 
-; On entry:
-;   (&B4),Y points to character to test
-; On exit:
-;   X = 0 if terminator (dot, quote, or control char)
-;   C set if printable non-terminator (>= space)
-;   C clear if control character
 ; 
+; On Entry:
+;     Y: index into text at (&B4)
+; 
+; On Exit:
+;     A: character with bit 7 stripped (Z set if terminator)
+;     X: 0 if terminator, else preserved
+;     Y: preserved
 ; ***************************************************************************************
 ; &871a referenced 18 times by &872f, &8767, &8782, &8787, &879c, &8869, &88ba, &88c6, &88db, &893b, &8d70, &8d80, &8d9f, &8dab, &8dd6, &a4b9, &a534, &a867
 .check_char_is_terminator
@@ -2181,10 +2188,15 @@ nmi_patched_addr                                = &ffff
 ; Then copies the directory entry name to the object name
 ; workspace.
 ; 
+; 
+; On Exit:
+;     A: corrupted (Z set if match after compare)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &872d referenced 2 times by &87f6, &896f
 .check_filename_length
-    ldy #&0a                                                          ; 872d: a0 0a       ..             ; Y=&0A: check up to 10 characters
+    ldy #&0a                                                          ; 872d: a0 0a       ..             ; Y=&0A: check up to 10 characters; Y=index into text at (&B4)
 ; &872f referenced 1 time by &8735
 .check_name_char_loop
     jsr check_char_is_terminator                                      ; 872f: 20 1a 87     ..            ; Check next character; Check if character is a filename terminator
@@ -2207,8 +2219,8 @@ nmi_patched_addr                                = &ffff
     sta wksp_object_name,y                                            ; 874a: 99 62 10    .b.            ; Store in object name workspace
     dey                                                               ; 874d: 88          .              ; Next byte in entry name
     bpl copy_entry_name_loop                                          ; 874e: 10 f6       ..             ; Loop for 10 bytes
-    iny                                                               ; 8750: c8          .              ; Y=1: start of object name
-    ldx #0                                                            ; 8751: a2 00       ..             ; X=0: pattern index
+    iny                                                               ; 8750: c8          .              ; Y=1: start of object name; Y=index into pattern at (&B4)
+    ldx #0                                                            ; 8751: a2 00       ..             ; X=0: pattern index; X=index into wksp_object_name
 ; ***************************************************************************************
 ; Compare filename against pattern with wildcards
 ; 
@@ -2216,13 +2228,15 @@ nmi_patched_addr                                = &ffff
 ; at (&B4),Y. Supports '#' (match one char) and '*' (match
 ; rest) wildcards. Case-insensitive comparison.
 ; 
-; On entry:
-;   Object name in wksp_object_name (10 bytes)
-;   (&B4),Y points to pattern string
-;   X = index into object name
-; On exit:
-;   Z set if match, Z clear if no match
 ; 
+; On Entry:
+;     X: index into wksp_object_name
+;     Y: index into pattern at (&B4)
+; 
+; On Exit:
+;     A: corrupted (Z set if match)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &8753 referenced 2 times by &877f, &87ba
 .compare_filename
@@ -2237,7 +2251,7 @@ nmi_patched_addr                                = &ffff
     bcs check_pattern_exhausted                                       ; 8765: b0 1b       ..             ; Yes, check if pattern terminated
     jsr check_char_is_terminator                                      ; 8767: 20 1a 87     ..            ; Check if pattern char is terminator; Check if character is a filename terminator
     beq check_hash_wildcard                                           ; 876a: f0 1b       ..             ; Yes, compare lengths
-    cmp #&2a ; '*'                                                    ; 876c: c9 2a       .*             ; Pattern char is '*' wildcard?
+    cmp #&2a ; '*'                                                    ; 876c: c9 2a       .*             ; Pattern char is '*' wildcard?; A=character with bit 7 stripped (Z set if terminator)
     beq begin_star_match                                              ; 876e: f0 38       .8             ; Yes, match rest of name; Begin wildcard '*' matching
     cmp #&23 ; '#'                                                    ; 8770: c9 23       .#             ; Pattern char is '#' wildcard?
     beq advance_pattern_index                                         ; 8772: f0 09       ..             ; Yes, match any single char
@@ -2247,8 +2261,8 @@ nmi_patched_addr                                = &ffff
     bne return_10                                                     ; 877b: d0 04       ..             ; Pattern != name? No match
 ; &877d referenced 1 time by &8772
 .advance_pattern_index
-    inx                                                               ; 877d: e8          .              ; Match: advance both pointers
-    iny                                                               ; 877e: c8          .              ; Advance Y (pattern index)
+    inx                                                               ; 877d: e8          .              ; Match: advance both pointers; X=index into wksp_object_name
+    iny                                                               ; 877e: c8          .              ; Advance Y (pattern index); Y=index into pattern at (&B4)
     bne compare_filename                                              ; 877f: d0 d2       ..             ; Compare filename against pattern with wildcards
 ; &8781 referenced 3 times by &877b, &879a, &879f
 .return_10
@@ -2261,7 +2275,7 @@ nmi_patched_addr                                = &ffff
 ; &8787 referenced 3 times by &876a, &8779, &8793
 .check_hash_wildcard
     jsr check_char_is_terminator                                      ; 8787: 20 1a 87     ..            ; Check if character is a filename terminator
-    cmp #&23 ; '#'                                                    ; 878a: c9 23       .#             ; Trailing '#' in pattern?
+    cmp #&23 ; '#'                                                    ; 878a: c9 23       .#             ; Trailing '#' in pattern?; A=character with bit 7 stripped (Z set if terminator)
     beq check_trailing_star                                           ; 878c: f0 17       ..             ; Yes: match (name shorter than pattern)
     cmp #&2a ; '*'                                                    ; 878e: c9 2a       .*             ; Trailing '*' in pattern?
     beq check_trailing_star                                           ; 8790: f0 13       ..             ; Yes: match (wildcard eats rest)
@@ -2283,7 +2297,7 @@ nmi_patched_addr                                = &ffff
     beq return_10                                                     ; 879a: f0 e5       ..             ; Both at 10: exact match
     jsr check_char_is_terminator                                      ; 879c: 20 1a 87     ..            ; Check if pattern char is terminator; Check if character is a filename terminator
     beq return_10                                                     ; 879f: f0 e0       ..             ; Terminator: name matches
-    cmp #&2a ; '*'                                                    ; 87a1: c9 2a       .*             ; Trailing '*': match
+    cmp #&2a ; '*'                                                    ; 87a1: c9 2a       .*             ; Trailing '*': match; A=character with bit 7 stripped (Z set if terminator)
     beq begin_star_match                                              ; 87a3: f0 03       ..             ; Is it '*'? Match rest; Begin wildcard '*' matching
 ; &87a5 referenced 2 times by &878c, &8790
 .check_trailing_star
@@ -2507,7 +2521,7 @@ nmi_patched_addr                                = &ffff
 .full_pathname_parser
     jsr parse_and_setup_search                                        ; 8851: 20 0f 87     ..            ; Get first path character; Parse argument and set up directory search
     beq check_drive_initialised                                       ; 8854: f0 1f       ..             ; Empty: use current directory
-    cmp #&3a ; ':'                                                    ; 8856: c9 3a       .:             ; Is it ':' (drive specifier)?
+    cmp #&3a ; ':'                                                    ; 8856: c9 3a       .:             ; Is it ':' (drive specifier)?; A=first non-space character (Z set if terminator)
     bne check_root_specifier                                          ; 8858: d0 6a       .j             ; No colon: check for $ or path
     jsr advance_text_ptr                                              ; 885a: 20 08 87     ..            ; Advance past ':'; Advance text pointer by one character
     ldx wksp_saved_drive                                              ; 885d: ae 2f 10    ./.            ; Check if drive already saved
@@ -2560,14 +2574,14 @@ nmi_patched_addr                                = &ffff
     sta wksp_csd_sector_mid                                           ; 88af: 8d 15 11    ...            ; Clear sector mid byte
     sta wksp_csd_sector_hi                                            ; 88b2: 8d 16 11    ...            ; Clear sector high byte
     jsr check_channels_on_drive                                       ; 88b5: 20 68 b4     h.            ; Validate FSM checksums
-    ldy #0                                                            ; 88b8: a0 00       ..             ; Y=0: check next path character
+    ldy #0                                                            ; 88b8: a0 00       ..             ; Y=0: check next path character; Y=index into text at (&B4)
     jsr check_char_is_terminator                                      ; 88ba: 20 1a 87     ..            ; Get next character; Check if character is a filename terminator
-    cmp #&2e ; '.'                                                    ; 88bd: c9 2e       ..             ; Is it '.' (path separator)?
+    cmp #&2e ; '.'                                                    ; 88bd: c9 2e       ..             ; Is it '.' (path separator)?; A=character with bit 7 stripped (Z set if terminator)
     bne set_root_dir_entry                                            ; 88bf: d0 24       .$             ; No dot: this is the final component
     jsr advance_text_ptr                                              ; 88c1: 20 08 87     ..            ; Skip past dot separator; Advance text pointer by one character
 ; &88c4 referenced 1 time by &8858
 .check_root_specifier
-    ldy #0                                                            ; 88c4: a0 00       ..             ; Y=0: check for $ or path component
+    ldy #0                                                            ; 88c4: a0 00       ..             ; Y=0: check for $ or path component; Y=index into text at (&B4)
     jsr check_char_is_terminator                                      ; 88c6: 20 1a 87     ..            ; Get character; Check if character is a filename terminator
     and #&fd                                                          ; 88c9: 29 fd       ).             ; Mask to check for $ (ignore bit 1)
     cmp #&24 ; '$'                                                    ; 88cb: c9 24       .$             ; Is it '$' (root directory)?
@@ -2577,10 +2591,10 @@ nmi_patched_addr                                = &ffff
 .check_special_dir_in_path
     jsr check_special_dir_char                                        ; 88d2: 20 4f 94     O.            ; Check for ^ or @ specifiers; Check for ^ (parent) or @ (current) directory
     bne search_current_dir                                            ; 88d5: d0 28       .(             ; Not special: regular path component
-    iny                                                               ; 88d7: c8          .              ; Advance past ^ or @ character
+    iny                                                               ; 88d7: c8          .              ; Advance past ^ or @ character; Y=index into text at (&B4)
     sty wksp_copy_read_sector                                         ; 88d8: 8c a2 10    ...            ; Store length marker
     jsr check_char_is_terminator                                      ; 88db: 20 1a 87     ..            ; Get next character; Check if character is a filename terminator
-    cmp #&2e ; '.'                                                    ; 88de: c9 2e       ..             ; Is it '.' (more path follows)?
+    cmp #&2e ; '.'                                                    ; 88de: c9 2e       ..             ; Is it '.' (more path follows)?; A=character with bit 7 stripped (Z set if terminator)
     bne return_12                                                     ; 88e0: d0 22       ."             ; No: this is the final component
     jmp advance_text_past_component                                   ; 88e2: 4c 91 89    L..            ; Jump to subdirectory descent
 
@@ -2650,11 +2664,11 @@ nmi_patched_addr                                = &ffff
 
 ; &8939 referenced 1 time by &8902
 .check_if_dir_entry
-    ldy #0                                                            ; 8939: a0 00       ..             ; Y=0: scan for end of component
+    ldy #0                                                            ; 8939: a0 00       ..             ; Y=0: scan for end of component; Y=index into text at (&B4)
 ; &893b referenced 1 time by &894b
 .scan_component_chars_loop
     jsr check_char_is_terminator                                      ; 893b: 20 1a 87     ..            ; Check next character; Check if character is a filename terminator
-    cmp #&21 ; '!'                                                    ; 893e: c9 21       .!             ; Control char? End of component
+    cmp #&21 ; '!'                                                    ; 893e: c9 21       .!             ; Control char? End of component; A=character with bit 7 stripped (Z set if terminator)
     bcc save_text_ptr_after_match                                     ; 8940: 90 c3       ..             ; Yes: set up result; Save text pointer and determine object type
     cmp #&22 ; '"'                                                    ; 8942: c9 22       ."             ; Double-quote? End of component
     beq save_text_ptr_after_match                                     ; 8944: f0 bf       ..             ; Yes: set up result; Save text pointer and determine object type
@@ -3478,10 +3492,10 @@ nmi_patched_addr                                = &ffff
 ; ***************************************************************************************
 ; &8d6e referenced 2 times by &8712, &8dbd
 .set_up_directory_search
-    ldy #0                                                            ; 8d6e: a0 00       ..             ; Y=0: scan filename
+    ldy #0                                                            ; 8d6e: a0 00       ..             ; Y=0: scan filename; Y=index into text at (&B4)
     jsr check_char_is_terminator                                      ; 8d70: 20 1a 87     ..            ; Check if character is a filename terminator
     bne begin_pathname_scan                                           ; 8d73: d0 05       ..             ; Non-terminator: check for wildcards
-    cmp #&2e ; '.'                                                    ; 8d75: c9 2e       ..             ; Is it '.'?
+    cmp #&2e ; '.'                                                    ; 8d75: c9 2e       ..             ; Is it '.'?; A=character with bit 7 stripped (Z set if terminator)
     beq bad_name_in_path                                              ; 8d77: f0 62       .b             ; Dot: wild cards error
     rts                                                               ; 8d79: 60          `              ; Return (no wildcards)
 
@@ -3492,10 +3506,10 @@ nmi_patched_addr                                = &ffff
     iny                                                               ; 8d7e: c8          .              ; Skip past ':D' drive specifier
 ; &8d7f referenced 1 time by &8d91
 .scan_name_bytes_loop
-    iny                                                               ; 8d7f: c8          .              ; Skip past drive number
+    iny                                                               ; 8d7f: c8          .              ; Skip past drive number; Y=index into text at (&B4)
     jsr check_char_is_terminator                                      ; 8d80: 20 1a 87     ..            ; Check if character is a filename terminator
     bne bad_name_in_path                                              ; 8d83: d0 56       .V             ; Non-zero: wild cards error
-    cmp #&2e ; '.'                                                    ; 8d85: c9 2e       ..             ; Is it '.'?
+    cmp #&2e ; '.'                                                    ; 8d85: c9 2e       ..             ; Is it '.'?; A=character with bit 7 stripped (Z set if terminator)
     bne return_17                                                     ; 8d87: d0 4c       .L             ; No dot after drive: return
     iny                                                               ; 8d89: c8          .              ; Skip past dot
     jsr parse_and_search_dir                                          ; 8d8a: 20 d6 8d     ..            ; Get next character; Check next path character is terminator
@@ -3513,14 +3527,14 @@ nmi_patched_addr                                = &ffff
     bne c8dab                                                         ; 8d9c: d0 0d       ..             ; No: check for wildcards in name
 ; &8d9e referenced 1 time by &8d98
 .check_bad_name_char
-    iny                                                               ; 8d9e: c8          .              ; Skip past ^ or @ specifier
+    iny                                                               ; 8d9e: c8          .              ; Skip past ^ or @ specifier; Y=index into text at (&B4)
     jsr check_char_is_terminator                                      ; 8d9f: 20 1a 87     ..            ; Check if character is a filename terminator
     bne bad_name_in_path                                              ; 8da2: d0 37       .7             ; Non-terminator: wild cards error
 ; &8da4 referenced 1 time by &8dae
 .check_special_chars_loop
-    cmp #&2e ; '.'                                                    ; 8da4: c9 2e       ..             ; Is it '.'?
+    cmp #&2e ; '.'                                                    ; 8da4: c9 2e       ..             ; Is it '.'?; A=character with bit 7 stripped (Z set if terminator)
     bne return_17                                                     ; 8da6: d0 2d       .-             ; No dot: return
-    iny                                                               ; 8da8: c8          .              ; Skip past dot
+    iny                                                               ; 8da8: c8          .              ; Skip past dot; Y=index into text at (&B4)
     bne scan_name_alpha_loop                                          ; 8da9: d0 e8       ..             ; Continue scanning
 ; &8dab referenced 2 times by &8d9c, &8dbb
 .c8dab
@@ -8063,7 +8077,7 @@ la154 = sub_ca153+1
 ; ***************************************************************************************
 ; &a4b7 referenced 2 times by &a365, &a36e
 .skip_filename
-    ldy #0                                                            ; a4b7: a0 00       ..             ; Y=0: start scanning
+    ldy #0                                                            ; a4b7: a0 00       ..             ; Y=0: start scanning; Y=index into text at (&B4)
 ; &a4b9 referenced 1 time by &a4bf
 .scan_filename_loop
     jsr check_char_is_terminator                                      ; a4b9: 20 1a 87     ..            ; Check if char is a terminator; Check if character is a filename terminator
@@ -8074,7 +8088,7 @@ la154 = sub_ca153+1
     bne scan_filename_loop                                            ; a4bf: d0 f8       ..             ; Loop scanning characters
 ; &a4c1 referenced 1 time by &a4bc
 .check_dot_separator
-    cmp #&2e ; '.'                                                    ; a4c1: c9 2e       ..             ; Is terminator a dot?
+    cmp #&2e ; '.'                                                    ; a4c1: c9 2e       ..             ; Is terminator a dot?; A=character with bit 7 stripped (Z set if terminator)
     beq advance_past_char                                             ; a4c3: f0 f9       ..             ; Yes, skip dot and continue
     tya                                                               ; a4c5: 98          .              ; Y = number of chars scanned
     clc                                                               ; a4c6: 18          .              ; Clear carry for addition
@@ -8184,7 +8198,7 @@ la154 = sub_ca153+1
     txa                                                               ; a526: 8a          .              ; Get saved high byte from X
     sta zp_text_ptr_hi                                                ; a527: 85 b5       ..             ; Store in (&B5)
     pha                                                               ; a529: 48          H              ; Save on stack
-    ldy #0                                                            ; a52a: a0 00       ..             ; Y=0: check path for $ root ref
+    ldy #0                                                            ; a52a: a0 00       ..             ; Y=0: check path for $ root ref; Y=index into text at (&B4)
     lda (zp_text_ptr_lo),y                                            ; a52c: b1 b4       ..             ; Check for '$' (root specifier)
     and #&7d ; '}'                                                    ; a52e: 29 7d       )}             ; Mask to ignore L and D bits
     cmp #&24 ; '$'                                                    ; a530: c9 24       .$             ; Is it '$'?
@@ -8193,7 +8207,7 @@ la154 = sub_ca153+1
 .scan_dest_for_parent_ref
     jsr check_char_is_terminator                                      ; a534: 20 1a 87     ..            ; Scan for '^' in destination path; Check if character is a filename terminator
     beq check_dot_in_dest                                             ; a537: f0 07       ..             ; Terminator found, check type
-    cmp #&5e ; '^'                                                    ; a539: c9 5e       .^             ; Is it '^' (parent)?
+    cmp #&5e ; '^'                                                    ; a539: c9 5e       .^             ; Is it '^' (parent)?; A=character with bit 7 stripped (Z set if terminator)
     beq parse_drive_specifier                                         ; a53b: f0 c3       ..             ; Parent ref in dest: Bad rename error
 ; &a53d referenced 1 time by &a542
 .advance_dest_scan

@@ -3587,7 +3587,9 @@ Scan up to 10 characters of filename at (&B4),Y. Raises
 Bad name error if no terminator found within 10 characters.
 Then copies the directory entry name to the object name
 workspace.
-""")
+""",
+    on_exit={"a": "corrupted (Z set if match after compare)",
+             "x": "corrupted", "y": "corrupted"})
 comment(0x872D, "Y=&0A: check up to 10 characters", inline=True)
 comment(0x872F, "Check next character", inline=True)
 comment(0x8732, "Terminator found, ok", inline=True)
@@ -3610,14 +3612,11 @@ subroutine(0x8753, "compare_filename",
 Compare the object name in workspace against the pattern
 at (&B4),Y. Supports '#' (match one char) and '*' (match
 rest) wildcards. Case-insensitive comparison.
-
-On entry:
-  Object name in wksp_object_name (10 bytes)
-  (&B4),Y points to pattern string
-  X = index into object name
-On exit:
-  Z set if match, Z clear if no match
-""")
+""",
+    on_entry={"x": "index into wksp_object_name",
+              "y": "index into pattern at (&B4)"},
+    on_exit={"a": "corrupted (Z set if match)",
+             "x": "corrupted", "y": "corrupted"})
 comment(0x8753, "X >= 10? End of name reached", inline=True)
 comment(0x8755, "Yes, check pattern is also done", inline=True)
 comment(0x8757, "Get object name character", inline=True)
@@ -10923,14 +10922,11 @@ subroutine(0x871A, "check_char_is_terminator",
     description="""\
 Test whether the character at (&B4),Y is a filename
 terminator: space, dot, double-quote, or control character.
-
-On entry:
-  (&B4),Y points to character to test
-On exit:
-  X = 0 if terminator (dot, quote, or control char)
-  C set if printable non-terminator (>= space)
-  C clear if control character
-""")
+""",
+    on_entry={"y": "index into text at (&B4)"},
+    on_exit={"a": "character with bit 7 stripped (Z set if terminator)",
+             "x": "0 if terminator, else preserved",
+             "y": "preserved"})
 
 subroutine(0x8B1E, "floppy_partial_sector",
     title="Floppy disc partial sector transfer",
@@ -11491,8 +11487,12 @@ subroutine(0x870F, "parse_and_setup_search",
     title="Parse argument and set up directory search",
     description="""\
 Skip leading spaces, set up directory search state,
-and clear the search result workspace.
-""")
+and clear the search result workspace. Falls through
+to check_char_is_terminator.
+""",
+    on_exit={"a": "first non-space character (Z set if terminator)",
+             "x": "0 if terminator, else preserved",
+             "y": "0"})
 
 subroutine(0x8822, "parse_drive_from_ascii",
     title="Parse drive number from ASCII character",
