@@ -11,7 +11,12 @@ This repository contains annotated disassemblies of the Acorn ADFS ROM, produced
 - **Acorn ADFS 1.30**
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-adfs/1.30.html)
   - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-adfs/tree/master/versions/adfs-1.30)
-  - [ROM in BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=831ee90ac5d49ba5507252faf0c12536)
+  - [Acorn ADFS 1.30 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=831ee90ac5d49ba5507252faf0c12536)
+  - [Acorn ADFS User Guide (PDF)](https://chrisacorns.computinghistory.org.uk/docs/Acorn/Manuals/Acorn_ADFSUG.pdf)
+  - [A Stardot request for a disassembly of ADFS 1.30](https://stardot.org.uk/forums/viewtopic.php?t=13082)
+  - [Hoglet's ADFS 1.30 disassembly (BeebAsm, byte-identical reassembly)](https://github.com/hoglet67/ADFS130)
+  - [Dominic Beesley's ADFS multi-target reassembly (ca65, multiple ADFS versions)](https://github.com/dominicbeesley/ADFS-multi-target)
+  - [J.G. Harston's ADFS disassembly (BBC BASIC, annotated)](https://mdfs.net/Info/Comp/BBC/ADFS/)
 
 ## How it works
 
@@ -45,8 +50,8 @@ beebasm -i versions/adfs-1.30/output/adfs-1.30.asm -o adfs-1.30.rom
   A ca65-based multi-target reassembly covering many ADFS versions with well-named labels and modular driver separation.
 - [J.G. Harston's ADFS 1.30 disassembly](https://mdfs.net/Info/Comp/BBC/ADFS/)
   A BBC BASIC-embedded disassembly with informative block comments and entry/exit documentation for key routines.
-- [Acorn ADFS User Guide](https://stardot.org.uk/forums/viewtopic.php?t=13082)
-  Stardot forum thread discussing ADFS 1.30 disassembly with technical details on SCSI protocol, workspace layout, and retry mechanisms.
+- [Stardot forum thread on ADFS internals](https://stardot.org.uk/forums/viewtopic.php?t=13082)
+  Stardot forum thread discussing ADFS internals with technical details on SCSI protocol, workspace layout, and retry mechanisms.
 
 ## Credits
 
