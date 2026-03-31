@@ -924,10 +924,10 @@ label(0xBD22, "floppy_set_side_1")
 entry(0xBD3F)
 label(0xBD3F, "floppy_restore_track_0")
 entry(0xBF55)
-label(0xBF55, "floppy_calc_track_sector_from_block_check_range")
+label(0xBF55, "floppy_ts_block_check_range")
 entry(0xBF86)
-label(0xBF86, "floppy_calc_track_sector_from_b0_block")
-label(0xBF8E, "floppy_calc_track_sector_from_xa")
+label(0xBF86, "floppy_ts_b0_block")
+label(0xBF8E, "floppy_ts_xa")
 entry(0xBFA2)
 label(0xBFA2, "xa_div_16_to_ya")
 entry(0xBFAE)
@@ -4604,7 +4604,7 @@ comment(0xBCD5, "Write 0 to FDC control", inline=True)
 comment(0xBCD8, "Error &6F: drive overrun/Escape", inline=True)
 comment(0xBCDC, "Handle floppy error", inline=True)
 
-# floppy_calc_track_sector_from_block_check_range (&BF55)
+# floppy_ts_block_check_range (&BF55)
 # Validates sector address < &0A00 (640K disc limit).
 # Error &61 = bad address, &63 = volume error.
 comment(0xBF55, "Y=7: offset to sector mid byte", inline=True)
@@ -4633,7 +4633,7 @@ comment(0xBF80, "Error &63: volume error", inline=True)
 comment(0xBF82, "Store error code", inline=True)
 comment(0xBF84, "Branch to floppy error handler", inline=True)
 
-# floppy_calc_track_sector_from_b0_block (&BF86)
+# floppy_ts_b0_block (&BF86)
 # Block address at (&B0)+7,+8. Divides by 16 sectors/track.
 # Track in Y (zp_a5), sector in A (zp_a4).
 # If track >= 80, subtracts 80 and selects side 1.
@@ -11082,7 +11082,7 @@ Issue a restore command to the WD1770 to seek the
 read/write head to track 0.
 """)
 
-subroutine(0xBF55, "floppy_calc_track_sector_from_block_check_range",
+subroutine(0xBF55, "floppy_ts_block_check_range",
     title="Calculate track/sector from block with range check",
     description="""\
 Convert a logical block number to a physical track and
@@ -11090,7 +11090,7 @@ sector number for the floppy disc, checking that the
 block is within the valid range for the disc.
 """)
 
-subroutine(0xBF86, "floppy_calc_track_sector_from_b0_block",
+subroutine(0xBF86, "floppy_ts_b0_block",
     title="Calculate track/sector from block at &B0",
     description="""\
 Convert the logical block number at (&B0) to a physical
