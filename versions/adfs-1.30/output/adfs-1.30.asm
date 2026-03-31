@@ -1129,7 +1129,7 @@ nmi_patched_addr                                = &ffff
     cmp #&40 ; '@'                                                    ; 82d1: c9 40       .@             ; Error code &40 = write protected?
     beq store_error_sector                                            ; 82d3: f0 13       ..             ; Yes, generate Disc protected error
     jsr save_wksp_and_return                                          ; 82d5: 20 d3 89     ..            ; Convert SCSI error to disc error; Save workspace state and return result
-    tax                                                               ; 82d8: aa          .              ; X = suffix control; X=non-zero to append drive:sector suffix
+    tax                                                               ; 82d8: aa          .              ; X = suffix control; A=result value from entry (preserved); X=non-zero to append drive:sector suffix
     jsr generate_error_suffix_x                                       ; 82d9: 20 53 83     S.            ; Generate error with suffix control in X
     equb &c7                                                          ; 82dc: c7          .              ; Error &C7: Disc error
     equs "Disc error", 0                                              ; 82dd: 44 69 73... Dis
@@ -1255,7 +1255,7 @@ nmi_patched_addr                                = &ffff
     bpl copy_error_string_loop                                        ; 8340: 10 f7       ..             ; Loop for 3 bytes
 ; &8342 referenced 1 time by &8335
 .check_for_on_channel
-    lda wksp_current_drive                                            ; 8342: ad 17 11    ...            ; Save current drive for error message
+    lda wksp_current_drive                                            ; 8342: ad 17 11    ...            ; Save current drive for error message; A=result value to preserve across save
     sta wksp_saved_drive                                              ; 8345: 8d 2f 10    ./.            ; Save current drive for error msg
 ; ***************************************************************************************
 ; Reload FSM and directory then raise error
@@ -2459,6 +2459,14 @@ nmi_patched_addr                                = &ffff
 ; to a 3-bit drive ID in bits 5-7 of A. Limits to
 ; drives 0-3 if no hard drive present.
 ; 
+; 
+; On Entry:
+;     A: ASCII drive character ('0'-'7' or 'A'-'H')
+; 
+; On Exit:
+;     A: drive ID (bits 5-7)
+;     X: preserved
+;     Y: preserved
 ; ***************************************************************************************
 ; &8822 referenced 2 times by &886c, &a10a
 .parse_drive_from_ascii
@@ -2508,10 +2516,11 @@ nmi_patched_addr                                = &ffff
 ; Parse a filename from (&B4) including drive specifier,
 ; root, and parent directory references.
 ; 
-; On exit:
-;   Z set if found, (&B6) points to entry
-;   Z clear if not found
 ; 
+; On Exit:
+;     A: corrupted (Z set if found, (&B6) points to entry)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &884c referenced 2 times by &8bb3, &8fdf
 .parse_filename_from_cmdline
@@ -2533,7 +2542,7 @@ nmi_patched_addr                                = &ffff
 .get_first_path_char
     jsr check_char_is_terminator                                      ; 8869: 20 1a 87     ..            ; Get drive character; Check if character is a filename terminator
     jsr parse_drive_from_ascii                                        ; 886c: 20 22 88     ".            ; Parse drive number from ASCII; Parse drive number from ASCII character
-    sta wksp_current_drive                                            ; 886f: 8d 17 11    ...            ; Store as new current drive
+    sta wksp_current_drive                                            ; 886f: 8d 17 11    ...            ; Store as new current drive; A=drive ID (bits 5-7)
 ; &8872 referenced 1 time by &88cd
 .advance_past_colon
     jsr advance_text_ptr                                              ; 8872: 20 08 87     ..            ; Advance past drive number; Advance text pointer by one character
@@ -2697,10 +2706,11 @@ nmi_patched_addr                                = &ffff
 ; Advance (&B6) by 26 bytes to the next directory entry,
 ; then check whether it matches the current search pattern.
 ; 
-; On exit:
-;   Z set if match found, (&B6) points to it
-;   Z clear if end of directory reached
 ; 
+; On Exit:
+;     A: corrupted (Z set if match, (&B6) points to entry)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &895e referenced 8 times by &8956, &8972, &8bba, &948a, &94f2, &99be, &9c4e, &a88c
 .advance_dir_entry_ptr
@@ -2781,13 +2791,15 @@ nmi_patched_addr                                = &ffff
 ; Load object type from workspace and fall through to
 ; save_wksp_and_return.
 ; 
-; On exit:
-;   A = object type (0=not found, 1=file, 2=directory)
 ; 
+; On Exit:
+;     A: object type (0=not found, 1=file, 2=directory)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &89d0 referenced 4 times by &8c5f, &8cc6, &923b, &b360
 .get_object_type_result
-    lda wksp_search_flag                                              ; 89d0: ad c0 10    ...            ; Get object type result
+    lda wksp_search_flag                                              ; 89d0: ad c0 10    ...            ; Get object type result; A=result value to preserve across save
 ; ***************************************************************************************
 ; Save workspace state and return result
 ; 
@@ -2795,6 +2807,14 @@ nmi_patched_addr                                = &ffff
 ; restore alternative workspace if set, and save workspace
 ; with checksum. Return value passed via A on stack.
 ; 
+; 
+; On Entry:
+;     A: result value to preserve across save
+; 
+; On Exit:
+;     A: result value from entry (preserved)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &89d3 referenced 34 times by &82d5, &8348, &8cc0, &9125, &914b, &941c, &94f7, &956d, &9938, &99c6, &9a40, &9c1d, &9c74, &9ff3, &a3a6, &a45d, &a488, &a494, &a4a8, &a51b, &a579, &a5e5, &a63e, &a669, &a682, &a856, &a891, &a94e, &adf2, &b07a, &b2d9, &b357, &b3e7, &b710
 .save_wksp_and_return
@@ -2858,11 +2878,14 @@ nmi_patched_addr                                = &ffff
 ; Execute multi-sector disc command
 ; 
 ; Set up sector count and execute a disc read or write
-; command. Rounds up partial counts for writes.
+; command. Rounds up partial counts for writes. Generates
+; BRK on error.
 ; 
-; On exit:
-;   Z set on success
 ; 
+; On Exit:
+;     A: 0 on success (Z set)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &8a3d referenced 4 times by &8c59, &8f77, &962c, &b7d2
 .multi_sector_disc_command
@@ -3112,10 +3135,11 @@ nmi_patched_addr                                = &ffff
 ; Parse a filename and search the current directory for
 ; a matching non-directory entry.
 ; 
-; On exit:
-;   Z set if found, (&B6) points to entry
-;   Z clear if not found
 ; 
+; On Exit:
+;     A: corrupted (Z set if found, (&B6) points to entry)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &8bb3 referenced 5 times by &8c05, &a3a1, &a3b4, &a40e, &a82f
 .exec_disc_and_check_error
@@ -3327,7 +3351,7 @@ nmi_patched_addr                                = &ffff
     ldy #4                                                            ; 8cb8: a0 04       ..             ; Y=4: check E attribute
     lda (zp_entry_ptr_lo),y                                           ; 8cba: b1 b6       ..             ; Get E attribute byte
     bpl check_existing_for_save                                       ; 8cbc: 10 05       ..             ; Bit 7 clear: not E, copy info; Check for existing file before save
-    lda #&ff                                                          ; 8cbe: a9 ff       ..             ; E attribute: return A=&FF
+    lda #&ff                                                          ; 8cbe: a9 ff       ..             ; E attribute: return A=&FF; A=result value to preserve across save
     jmp save_wksp_and_return                                          ; 8cc0: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; ***************************************************************************************
@@ -3350,10 +3374,11 @@ nmi_patched_addr                                = &ffff
 ; Extract filename from the OSFILE control block, parse
 ; the path, and search the current directory.
 ; 
-; On exit:
-;   Z set if found, (&B6) points to entry
-;   Z clear if not found
 ; 
+; On Exit:
+;     A: corrupted (Z set if found, (&B6) points to entry)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &8cc9 referenced 3 times by &8ce2, &8ce9, &911e
 .setup_disc_write
@@ -3975,16 +4000,17 @@ nmi_patched_addr                                = &ffff
 ; current directory for the first entry matching the
 ; parsed filename pattern.
 ; 
-; On exit:
-;   Z set if found, (&B6) points to matching entry
-;   Z clear if not found
 ; 
+; On Exit:
+;     A: corrupted (Z set if found, (&B6) points to entry)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &8fdf referenced 13 times by &8be5, &8cb3, &8cd7, &94e7, &993d, &9a2d, &9c43, &a586, &a672, &b20e, &b2e6, &b301, &b36d
 .find_first_matching_entry
     jsr parse_filename_from_cmdline                                   ; 8fdf: 20 4c 88     L.            ; Set up search with wildcards; Parse filename from command line
     php                                                               ; 8fe2: 08          .              ; Point to first dir entry
-    pha                                                               ; 8fe3: 48          H              ; Save A on stack
+    pha                                                               ; 8fe3: 48          H              ; Save A on stack; A=corrupted (Z set if found, (&B6) points to entry)
     jsr mark_directory_dirty                                          ; 8fe4: 20 ea 8f     ..            ; Validate FSM checksums and mark directory dirty; Verify directory integrity
     pla                                                               ; 8fe7: 68          h              ; Restore A
     plp                                                               ; 8fe8: 28          (              ; Search for matching entry
@@ -4252,7 +4278,7 @@ nmi_patched_addr                                = &ffff
 .search_and_delete_entry
     jsr setup_disc_write                                              ; 911e: 20 c9 8c     ..            ; Search directory for the file; Parse filename from OSFILE block and search
     beq check_and_delete_found                                        ; 9121: f0 05       ..             ; Found? Proceed to delete; Validate and delete a directory entry
-    lda #0                                                            ; 9123: a9 00       ..             ; Not found: A=0 (no error)
+    lda #0                                                            ; 9123: a9 00       ..             ; Not found: A=0 (no error); A=result value to preserve across save
     jmp save_wksp_and_return                                          ; 9125: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; ***************************************************************************************
@@ -4279,7 +4305,7 @@ nmi_patched_addr                                = &ffff
     sta wksp_alt_sector_hi                                            ; 913e: 8d 2e 10    ...            ; Mark alternative workspace as unset
     sta wksp_saved_drive                                              ; 9141: 8d 2f 10    ./.            ; Mark saved drive as unset
     jsr parse_path_and_load                                           ; 9144: 20 7f 94     ..            ; Load the subdirectory to check; Parse path and load target directory
-    lda dir_first_entry                                               ; 9147: ad 05 12    ...            ; Is first entry empty (dir empty)?
+    lda dir_first_entry                                               ; 9147: ad 05 12    ...            ; Is first entry empty (dir empty)?; A=result value to preserve across save
     php                                                               ; 914a: 08          .              ; Save result (empty flag)
     jsr save_wksp_and_return                                          ; 914b: 20 d3 89     ..            ; Restore CSD and directory; Save workspace state and return result
     ldy #3                                                            ; 914e: a0 03       ..             ; Y=3: restore 4 bytes of CSD sector
@@ -4608,7 +4634,7 @@ nmi_patched_addr                                = &ffff
     lda #&28 ; '('                                                    ; 9302: a9 28       .(             ; Print '(' before sequence number
     jsr oswrch                                                        ; 9304: 20 ee ff     ..            ; Write character 40
     ldy #&19                                                          ; 9307: a0 19       ..             ; Y=&19: offset to sequence number
-    lda (zp_entry_ptr_lo),y                                           ; 9309: b1 b6       ..             ; Get sequence number byte
+    lda (zp_entry_ptr_lo),y                                           ; 9309: b1 b6       ..             ; Get sequence number byte; A=byte value to print as hex
     jsr print_hex_byte                                                ; 930b: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     lda #&29 ; ')'                                                    ; 930e: a9 29       .)             ; Print ')' after sequence number
     jsr oswrch                                                        ; 9310: 20 ee ff     ..            ; Write character 41
@@ -4631,6 +4657,9 @@ nmi_patched_addr                                = &ffff
 ; Print the value in A as two hexadecimal ASCII digits
 ; via OSWRCH, high nibble first.
 ; 
+; 
+; On Entry:
+;     A: byte value to print as hex
 ; ***************************************************************************************
 ; &931b referenced 9 times by &930b, &9342, &9376, &9521, &a071, &a087, &a1c9, &a1cf, &a1d5
 .print_hex_byte
@@ -4667,7 +4696,7 @@ nmi_patched_addr                                = &ffff
     equs " "                                                          ; 933d: 20
 
     tay                                                               ; 933e: a8          .              ; Transfer Y to A for display
-    lda dir_master_sequence                                           ; 933f: ad fa 16    ...            ; Get directory sequence number
+    lda dir_master_sequence                                           ; 933f: ad fa 16    ...            ; Get directory sequence number; A=byte value to print as hex
     jsr print_hex_byte                                                ; 9342: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     jsr print_inline_string                                           ; 9345: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs ")", &0d, "Drive"                                            ; 9348: 29 0d 44... ).D
@@ -4690,7 +4719,7 @@ nmi_patched_addr                                = &ffff
     equs "Option"                                                     ; 936c: 4f 70 74... Opt
     equb &a0                                                          ; 9372: a0          .              ; ' ' + bit 7: end of inline string
 
-    lda fsm_s1_boot_option                                            ; 9373: ad fd 0f    ...            ; Get boot option from FSM
+    lda fsm_s1_boot_option                                            ; 9373: ad fd 0f    ...            ; Get boot option from FSM; A=byte value to print as hex
     jsr print_hex_byte                                                ; 9376: 20 1b 93     ..            ; Print boot option as two hex digits; Print a byte as two hex digits
     jsr print_inline_string                                           ; 9379: 20 a0 92     ..            ; Print bit-7-terminated inline string
     equs " "                                                          ; 937c: 20
@@ -5033,7 +5062,7 @@ nmi_patched_addr                                = &ffff
 .print_entry_field_loop
     cpx #&16                                                          ; 951b: e0 16       ..             ; Skip sector field boundary?
     beq check_field_boundary                                          ; 951d: f0 05       ..             ; Yes, skip the sector field gap
-    lda (zp_entry_ptr_lo),y                                           ; 951f: b1 b6       ..             ; Get byte from entry
+    lda (zp_entry_ptr_lo),y                                           ; 951f: b1 b6       ..             ; Get byte from entry; A=byte value to print as hex
     jsr print_hex_byte                                                ; 9521: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
 ; &9524 referenced 1 time by &951d
 .check_field_boundary
@@ -5088,7 +5117,7 @@ nmi_patched_addr                                = &ffff
     sta wksp_prev_dir_sector,y                                        ; 955f: 99 1c 11    ...            ; Save as previous dir sector (*BACK)
     dey                                                               ; 9562: 88          .              ; Next byte in sector copy
     bpl copy_csd_sector_loop                                          ; 9563: 10 f7       ..             ; Loop for 3 bytes
-    lda #&ff                                                          ; 9565: a9 ff       ..             ; A=&FF: mark as unset
+    lda #&ff                                                          ; 9565: a9 ff       ..             ; A=&FF: mark as unset; A=result value to preserve across save
     sta wksp_alt_sector_hi                                            ; 9567: 8d 2e 10    ...            ; Clear alternative workspace ptr
     sta wksp_saved_drive                                              ; 956a: 8d 2f 10    ./.            ; Clear saved drive
     jmp save_wksp_and_return                                          ; 956d: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
@@ -5675,7 +5704,7 @@ nmi_patched_addr                                = &ffff
 .write_cdir_directory
     clc                                                               ; 992b: 18          .              ; Advance to next entry
     lda zp_entry_ptr_lo                                               ; 992c: a5 b6       ..             ; Get entry pointer low
-    adc #&1a                                                          ; 992e: 69 1a       i.             ; Add 26 bytes per entry
+    adc #&1a                                                          ; 992e: 69 1a       i.             ; Add 26 bytes per entry; A=result value to preserve across save
     sta zp_entry_ptr_lo                                               ; 9930: 85 b6       ..             ; Store updated pointer
     bcc setup_cdir_dir_entry                                          ; 9932: 90 a9       ..             ; No page crossing: continue scan
     inc zp_entry_ptr_hi                                               ; 9934: e6 b7       ..             ; Increment page
@@ -5886,7 +5915,7 @@ nmi_patched_addr                                = &ffff
 ; &9a3e referenced 1 time by &9a30
 .all_files_deleted
     pla                                                               ; 9a3e: 68          h              ; Discard saved filename from stack
-    pla                                                               ; 9a3f: 68          h              ; Discard second saved byte
+    pla                                                               ; 9a3f: 68          h              ; Discard second saved byte; A=result value to preserve across save
     jmp save_wksp_and_return                                          ; 9a40: 4c d3 89    L..            ; Save workspace and return; Save workspace state and return result
 
 ; ***************************************************************************************
@@ -6302,7 +6331,7 @@ boot_run_option = sub_c9b86+1
     ldy #3                                                            ; 9c12: a0 03       ..             ; Y=3: copy CSD sector to workspace
 ; &9c14 referenced 1 time by &9c1b
 .copy_workspace_to_save_loop
-    lda wksp_csd_sector_lo,y                                          ; 9c14: b9 14 11    ...            ; Get CSD sector byte
+    lda wksp_csd_sector_lo,y                                          ; 9c14: b9 14 11    ...            ; Get CSD sector byte; A=result value to preserve across save
     sta wksp_csd_drive_sector,y                                       ; 9c17: 99 2c 10    .,.            ; Copy to CSD drive sector
     dey                                                               ; 9c1a: 88          .              ; Next byte
     bpl copy_workspace_to_save_loop                                   ; 9c1b: 10 f7       ..             ; Loop for 4 bytes
@@ -6350,7 +6379,7 @@ boot_run_option = sub_c9b86+1
 ; &9c6a referenced 1 time by &9c72
 .init_per_channel_loop
     lda (zp_entry_ptr_lo),y                                           ; 9c6a: b1 b6       ..             ; Get name byte from entry
-    and #&7f                                                          ; 9c6c: 29 7f       ).             ; Strip bit 7 (access flag)
+    and #&7f                                                          ; 9c6c: 29 7f       ).             ; Strip bit 7 (access flag); A=result value to preserve across save
     sta wksp_lib_name,y                                               ; 9c6e: 99 0a 11    ...            ; Store as library name
     dey                                                               ; 9c71: 88          .              ; Next byte
     bpl init_per_channel_loop                                         ; 9c72: 10 f6       ..             ; Loop for 10 bytes
@@ -7212,7 +7241,7 @@ l9ee5 = tbl_commands+2
 ; &a06d referenced 1 time by &a075
 .print_fsm_entries_loop
     dex                                                               ; a06d: ca          .              ; Back up to previous byte
-    lda fsm_sector_0,x                                                ; a06e: bd 00 0e    ...            ; Get address byte from FSM sector 0
+    lda fsm_sector_0,x                                                ; a06e: bd 00 0e    ...            ; Get address byte from FSM sector 0; A=byte value to print as hex
     jsr print_hex_byte                                                ; a071: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     dey                                                               ; a074: 88          .              ; Next byte
     bpl print_fsm_entries_loop                                        ; a075: 10 f6       ..             ; Loop for 3 bytes (high to low)
@@ -7225,7 +7254,7 @@ l9ee5 = tbl_commands+2
 ; &a083 referenced 1 time by &a08b
 .print_entry_hex_loop
     dex                                                               ; a083: ca          .              ; Back up to previous byte
-    lda fsm_sector_1,x                                                ; a084: bd 00 0f    ...            ; Get length byte from FSM sector 1
+    lda fsm_sector_1,x                                                ; a084: bd 00 0f    ...            ; Get length byte from FSM sector 1; A=byte value to print as hex
     jsr print_hex_byte                                                ; a087: 20 1b 93     ..            ; Print as 2 hex digits; Print a byte as two hex digits
     dey                                                               ; a08a: 88          .              ; Next byte
     bpl print_entry_hex_loop                                          ; a08b: 10 f6       ..             ; Loop for 3 bytes (high to low)
@@ -7339,11 +7368,11 @@ l9ee5 = tbl_commands+2
 .store_default_drive
     sty wksp_drive_number                                             ; a0ff: 8c 6f 10    .o.            ; Store default drive number
     ldy #0                                                            ; a102: a0 00       ..             ; Y=0: check for argument
-    lda (zp_text_ptr_lo),y                                            ; a104: b1 b4       ..             ; Get first argument char
+    lda (zp_text_ptr_lo),y                                            ; a104: b1 b4       ..             ; Get first argument char; A=ASCII drive character ('0'-'7' or 'A'-'H')
     cmp #&20 ; ' '                                                    ; a106: c9 20       .              ; Is it a printable char?
     bcc return_28                                                     ; a108: 90 06       ..             ; No argument: use default drive
     jsr parse_drive_from_ascii                                        ; a10a: 20 22 88     ".            ; Parse drive number from argument; Parse drive number from ASCII character
-    sta wksp_drive_number                                             ; a10d: 8d 6f 10    .o.            ; Store parsed drive number
+    sta wksp_drive_number                                             ; a10d: 8d 6f 10    .o.            ; Store parsed drive number; A=drive ID (bits 5-7)
 ; &a110 referenced 1 time by &a108
 .return_28
     rts                                                               ; a110: 60          `              ; Return
@@ -7535,11 +7564,11 @@ la154 = sub_ca153+1
 ; ***************************************************************************************
 ; &a1c6 referenced 2 times by &a01e, &a03e
 .print_space_value
-    lda wksp_disc_op_mem_addr_2                                       ; a1c6: ad 18 10    ...            ; Print high byte as hex
+    lda wksp_disc_op_mem_addr_2                                       ; a1c6: ad 18 10    ...            ; Print high byte as hex; A=byte value to print as hex
     jsr print_hex_byte                                                ; a1c9: 20 1b 93     ..            ; Print mid byte as hex; Print a byte as two hex digits
-    lda wksp_disc_op_mem_addr_1                                       ; a1cc: ad 17 10    ...            ; Print mid byte as hex
+    lda wksp_disc_op_mem_addr_1                                       ; a1cc: ad 17 10    ...            ; Print mid byte as hex; A=byte value to print as hex
     jsr print_hex_byte                                                ; a1cf: 20 1b 93     ..            ; Print low byte as hex; Print a byte as two hex digits
-    lda wksp_disc_op_mem_addr                                         ; a1d2: ad 16 10    ...            ; Print low byte as hex
+    lda wksp_disc_op_mem_addr                                         ; a1d2: ad 16 10    ...            ; Print low byte as hex; A=byte value to print as hex
     jsr print_hex_byte                                                ; a1d5: 20 1b 93     ..            ; Print result byte as hex; Print a byte as two hex digits
     jsr print_inline_string                                           ; a1d8: 20 a0 92     ..            ; Print " Sectors ="; Print bit-7-terminated inline string
     equs " Sectors ="                                                 ; a1db: 20 53 65...  Se
@@ -7969,7 +7998,7 @@ la154 = sub_ca153+1
     ldy #3                                                            ; a452: a0 03       ..             ; Y=3: copy 4-byte sector+drive
 ; &a454 referenced 1 time by &a45b
 .copy_lib_sector_loop
-    lda wksp_csd_sector_lo,y                                          ; a454: b9 14 11    ...            ; Get sector address byte
+    lda wksp_csd_sector_lo,y                                          ; a454: b9 14 11    ...            ; Get sector address byte; A=result value to preserve across save
     sta wksp_lib_sector,y                                             ; a457: 99 18 11    ...            ; Store as library sector
     dey                                                               ; a45a: 88          .              ; Next byte in sector copy
     bpl copy_lib_sector_loop                                          ; a45b: 10 f7       ..             ; Loop for 4 bytes
@@ -8054,7 +8083,7 @@ la154 = sub_ca153+1
 .swap_dir_sectors_loop
     lda wksp_prev_dir_sector,y                                        ; a499: b9 1c 11    ...            ; Get previous dir sector byte
     sta wksp_csd_drive_sector,y                                       ; a49c: 99 2c 10    .,.            ; Store as CSD sector
-    lda wksp_csd_sector_lo,y                                          ; a49f: b9 14 11    ...            ; Get current CSD sector byte
+    lda wksp_csd_sector_lo,y                                          ; a49f: b9 14 11    ...            ; Get current CSD sector byte; A=result value to preserve across save
     sta wksp_prev_dir_sector,y                                        ; a4a2: 99 1c 11    ...            ; Store as previous dir sector
     dey                                                               ; a4a5: 88          .              ; Next byte
     bpl swap_dir_sectors_loop                                         ; a4a6: 10 f1       ..             ; Loop for 4 bytes (sector+drive)
@@ -8187,7 +8216,7 @@ la154 = sub_ca153+1
 ; &a517 referenced 1 time by &a512
 .source_is_found
     ldy #3                                                            ; a517: a0 03       ..             ; Y=3: check if source is directory
-    lda (zp_entry_ptr_lo),y                                           ; a519: b1 b6       ..             ; Get source entry access byte
+    lda (zp_entry_ptr_lo),y                                           ; a519: b1 b6       ..             ; Get source entry access byte; A=result value to preserve across save
     jsr save_wksp_and_return                                          ; a51b: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     bpl parse_destination_name                                        ; a51e: 10 24       .$             ; Not a directory: skip self-ref check
     pla                                                               ; a520: 68          h              ; Restore first argument pointer
@@ -8245,7 +8274,7 @@ la154 = sub_ca153+1
     ldy #2                                                            ; a56e: a0 02       ..             ; Y=2: copy CSD sector from backup
 ; &a570 referenced 1 time by &a577
 .restore_csd_sector_loop2
-    lda wksp_csd_sector_lo,y                                          ; a570: b9 14 11    ...            ; Get saved CSD sector byte
+    lda wksp_csd_sector_lo,y                                          ; a570: b9 14 11    ...            ; Get saved CSD sector byte; A=result value to preserve across save
     sta wksp_csd_drive_sector,y                                       ; a573: 99 2c 10    .,.            ; Restore to CSD workspace
     dey                                                               ; a576: 88          .              ; Next byte
     bpl restore_csd_sector_loop2                                      ; a577: 10 f7       ..             ; Loop for 3 bytes
@@ -8373,7 +8402,7 @@ la154 = sub_ca153+1
     ldx #2                                                            ; a633: a2 02       ..             ; X=2: copy 3 sector bytes
 ; &a635 referenced 1 time by &a63c
 .copy_start_sector_loop
-    lda (zp_entry_ptr_lo),y                                           ; a635: b1 b6       ..             ; Get start sector byte
+    lda (zp_entry_ptr_lo),y                                           ; a635: b1 b6       ..             ; Get start sector byte; A=result value to preserve across save
     sta wksp_alloc_sector,x                                           ; a637: 9d 3a 10    .:.            ; Store in workspace
     dey                                                               ; a63a: 88          .              ; Next byte (decreasing)
     dex                                                               ; a63b: ca          .              ; Next workspace byte
@@ -8798,7 +8827,7 @@ la154 = sub_ca153+1
     ldy #3                                                            ; a84b: a0 03       ..             ; Y=3: save current directory sector
 ; &a84d referenced 1 time by &a854
 .save_source_dir_sector_loop
-    lda wksp_csd_sector_lo,y                                          ; a84d: b9 14 11    ...            ; Copy CSD sector to workspace
+    lda wksp_csd_sector_lo,y                                          ; a84d: b9 14 11    ...            ; Copy CSD sector to workspace; A=result value to preserve across save
     sta wksp_saved_dir_sector,y                                       ; a850: 99 6c 10    .l.            ; Save CSD sector byte
     dey                                                               ; a853: 88          .              ; Next byte
     bpl save_source_dir_sector_loop                                   ; a854: 10 f7       ..             ; Loop for 4 bytes
@@ -9730,7 +9759,7 @@ la868 = check_dest_terminator+1
     sta wksp_csd_drive_sector                                         ; ade3: 8d 2c 10    .,.            ; Store in CSD sector low
     lda wksp_ch_dir_sec_mh,x                                          ; ade6: bd de 11    ...            ; Get channel's sector mid
     sta wksp_csd_drive_sector_mid                                     ; ade9: 8d 2d 10    .-.            ; Store in workspace mid
-    lda wksp_ch_dir_sec_h,x                                           ; adec: bd d4 11    ...            ; Get channel's sector high
+    lda wksp_ch_dir_sec_h,x                                           ; adec: bd d4 11    ...            ; Get channel's sector high; A=result value to preserve across save
     sta wksp_alt_sector_hi                                            ; adef: 8d 2e 10    ...            ; Store in workspace high
     jsr save_wksp_and_return                                          ; adf2: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
     ldy #2                                                            ; adf5: a0 02       ..             ; Y=2: restore CSD sector
@@ -10075,7 +10104,7 @@ la868 = check_dest_terminator+1
     sta wksp_ch_ext_ml,x                                              ; b06b: 9d 48 11    .H.            ; Store as new EXT mid-low
     lda wksp_new_ptr_mid_hi                                           ; b06e: ad 9c 10    ...            ; Get new PTR mid-high
     sta wksp_ch_ext_mh,x                                              ; b071: 9d 3e 11    .>.            ; Store as new EXT mid-high
-    lda wksp_new_ptr_hi                                               ; b074: ad 9d 10    ...            ; Get new PTR high
+    lda wksp_new_ptr_hi                                               ; b074: ad 9d 10    ...            ; Get new PTR high; A=result value to preserve across save
     sta wksp_ch_ext_h,x                                               ; b077: 9d 34 11    .4.            ; Store as new EXT high
     jsr save_wksp_and_return                                          ; b07a: 20 d3 89     ..            ; Save workspace; Save workspace state and return result
 ; &b07d referenced 1 time by &aeb9
@@ -10435,7 +10464,7 @@ la868 = check_dest_terminator+1
     adc #&30 ; '0'                                                    ; b2d2: 69 30       i0             ; Add &30 to get file handle
     pha                                                               ; b2d4: 48          H              ; Push file handle on stack
     jsr update_channel_flags_for_ptr                                  ; b2d5: 20 3f b1     ?.            ; Ensure buffer state is consistent
-    pla                                                               ; b2d8: 68          h              ; Restore file handle
+    pla                                                               ; b2d8: 68          h              ; Restore file handle; A=result value to preserve across save
 ; &b2d9 referenced 2 times by &b215, &b2ed
 .save_and_return_handle
     jsr save_wksp_and_return                                          ; b2d9: 20 d3 89     ..            ; Save workspace and return A=handle; Save workspace state and return result
@@ -10507,7 +10536,7 @@ la868 = check_dest_terminator+1
     stx wksp_osfile_end_addr_2                                        ; b33e: 8e 50 10    .P.            ; Store default allocation
 ; &b341 referenced 1 time by &b338
 .set_ffffffff_load_addr
-    lda #&ff                                                          ; b341: a9 ff       ..             ; A=&FF: fill OSFILE block
+    lda #&ff                                                          ; b341: a9 ff       ..             ; A=&FF: fill OSFILE block; A=result value to preserve across save
     sta wksp_osfile_exec_addr                                         ; b343: 8d 46 10    .F.            ; Set load addr to &FFFFFFFF
     sta wksp_osfile_exec_addr_1                                       ; b346: 8d 47 10    .G.            ; Second byte
     sta wksp_osfile_exec_addr_2                                       ; b349: 8d 48 10    .H.            ; Third byte

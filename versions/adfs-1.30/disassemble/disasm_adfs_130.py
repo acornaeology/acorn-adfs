@@ -11342,7 +11342,10 @@ subroutine(0x89D3, "save_wksp_and_return",
 Restore the original drive if changed, reload the FSM,
 restore alternative workspace if set, and save workspace
 with checksum. Return value passed via A on stack.
-""")
+""",
+    on_entry={"a": "result value to preserve across save"},
+    on_exit={"a": "result value from entry (preserved)",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x8F86, "write_dir_and_validate",
     title="Write directory and FSM back to disc",
@@ -11358,11 +11361,9 @@ subroutine(0x8FDF, "find_first_matching_entry",
 Parse a filename from the command line and search the
 current directory for the first entry matching the
 parsed filename pattern.
-
-On exit:
-  Z set if found, (&B6) points to matching entry
-  Z clear if not found
-""")
+""",
+    on_exit={"a": "corrupted (Z set if found, (&B6) points to entry)",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x8287, "exec_disc_op_from_wksp",
     title="Execute disc command from workspace control block",
@@ -11376,18 +11377,17 @@ subroutine(0x895E, "advance_dir_entry_ptr",
     description="""\
 Advance (&B6) by 26 bytes to the next directory entry,
 then check whether it matches the current search pattern.
-
-On exit:
-  Z set if match found, (&B6) points to it
-  Z clear if end of directory reached
-""")
+""",
+    on_exit={"a": "corrupted (Z set if match, (&B6) points to entry)",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x931B, "print_hex_byte",
     title="Print a byte as two hex digits",
     description="""\
 Print the value in A as two hexadecimal ASCII digits
 via OSWRCH, high nibble first.
-""")
+""",
+    on_entry={"a": "byte value to print as hex"})
 
 subroutine(0x832B, "generate_disc_error",
     title="Generate disc error with state recovery",
@@ -11417,31 +11417,28 @@ subroutine(0x89D0, "get_object_type_result",
     description="""\
 Load object type from workspace and fall through to
 save_wksp_and_return.
-
-On exit:
-  A = object type (0=not found, 1=file, 2=directory)
-""")
+""",
+    on_exit={"a": "object type (0=not found, 1=file, 2=directory)",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x8A3D, "multi_sector_disc_command",
     title="Execute multi-sector disc command",
     description="""\
 Set up sector count and execute a disc read or write
-command. Rounds up partial counts for writes.
-
-On exit:
-  Z set on success
-""")
+command. Rounds up partial counts for writes. Generates
+BRK on error.
+""",
+    on_exit={"a": "0 on success (Z set)",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x8BB3, "exec_disc_and_check_error",
     title="Search for non-directory file",
     description="""\
 Parse a filename and search the current directory for
 a matching non-directory entry.
-
-On exit:
-  Z set if found, (&B6) points to entry
-  Z clear if not found
-""")
+""",
+    on_exit={"a": "corrupted (Z set if found, (&B6) points to entry)",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x8D10, "check_file_not_open",
     title="Check file is not locked or open",
@@ -11500,18 +11497,19 @@ subroutine(0x8822, "parse_drive_from_ascii",
 Convert ASCII drive character ('0'-'7' or 'A'-'H')
 to a 3-bit drive ID in bits 5-7 of A. Limits to
 drives 0-3 if no hard drive present.
-""")
+""",
+    on_entry={"a": "ASCII drive character ('0'-'7' or 'A'-'H')"},
+    on_exit={"a": "drive ID (bits 5-7)",
+             "x": "preserved", "y": "preserved"})
 
 subroutine(0x884C, "parse_filename_from_cmdline",
     title="Parse filename from command line",
     description="""\
 Parse a filename from (&B4) including drive specifier,
 root, and parent directory references.
-
-On exit:
-  Z set if found, (&B6) points to entry
-  Z clear if not found
-""")
+""",
+    on_exit={"a": "corrupted (Z set if found, (&B6) points to entry)",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x8905, "save_text_ptr_after_match",
     title="Save text pointer and determine object type",
@@ -11526,11 +11524,9 @@ subroutine(0x8CC9, "setup_disc_write",
     description="""\
 Extract filename from the OSFILE control block, parse
 the path, and search the current directory.
-
-On exit:
-  Z set if found, (&B6) points to entry
-  Z clear if not found
-""")
+""",
+    on_exit={"a": "corrupted (Z set if found, (&B6) points to entry)",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x8D6E, "set_up_directory_search",
     title="Validate path and check for wildcards",
