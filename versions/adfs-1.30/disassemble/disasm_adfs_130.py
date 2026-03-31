@@ -7621,11 +7621,9 @@ subroutine(0x944F, "check_special_dir_char",
 Check if the first character of the argument is ^ (parent
 directory) or @ (current directory). Sets (&B6) to point
 to the appropriate directory footer area.
-
-On exit:
-  Z set if ^ or @ matched, (&B6) set accordingly
-  Z clear if neither matched
-""")
+""",
+    on_exit={"a": "corrupted (Z set if ^ or @ matched)",
+             "x": "corrupted", "y": "corrupted"})
 comment(0x944F, "Y=0: get first argument char", inline=True)
 comment(0x9453, "Strip bit 7", inline=True)
 comment(0x9455, "Is it '^' (parent directory)?", inline=True)
@@ -11023,13 +11021,9 @@ subroutine(0x9A63, "hd_init_detect",
     description="""\
 Check whether a SCSI hard drive is present by attempting
 to read the SCSI status register.
-
-On exit:
-  Z flag set if hard drive present
-  Z flag clear if not present
-  X, Y preserved
-  A corrupted
-""")
+""",
+    on_exit={"a": "corrupted (Z set if hard drive present)",
+             "x": "zero", "y": "preserved"})
 
 subroutine(0x9E7F, "star_cmd",
     title="Parse and dispatch star command",
@@ -11182,7 +11176,8 @@ string that follows the JSR instruction. Characters are
 printed via OSASCI until a byte with bit 7 set is found
 (the last character, printed with bit 7 stripped). Pushes
 the address past the string so RTS continues after it.
-""")
+""",
+    on_exit={"a": "corrupted", "x": "preserved", "y": "corrupted"})
 
 subroutine(0xAAC6, "hd_command_bget_bput_sector",
     title="Hard drive single sector for BGET/BPUT",
@@ -11548,7 +11543,9 @@ subroutine(0x92C4, "print_via_osasci",
     description="""\
 Write A via OSASCI while preserving A, X, and (&B6).
 Used during catalogue printing.
-""")
+""",
+    on_entry={"a": "character to print via OSASCI"},
+    on_exit={"a": "preserved", "x": "preserved", "y": "corrupted"})
 
 subroutine(0x92DE, "print_entry_name_and_access",
     title="Print entry name and access string",
@@ -11723,7 +11720,9 @@ subroutine(0x927B, "setup_entry_name_ptr",
     description="""\
 Point (zp_entry_ptr) to a pathname format string in ROM
 and prepare to print up to 12 characters.
-""")
+""",
+    on_entry={"a": "index into tbl_help_param_ptrs"},
+    on_exit={"a": "corrupted", "x": "zero", "y": "corrupted"})
 
 subroutine(0xB825, "setup_osgbpb_output_buffer",
     title="Set up OSGBPB output buffer",
@@ -11861,7 +11860,9 @@ subroutine(0x905C, "setup_print_hex_field",
     description="""\
 Compute 8-bit checksums of FSM sectors 0 and 1 by
 summing all 255 bytes of each sector.
-""")
+""",
+    on_exit={"a": "FSM sector 1 checksum",
+             "x": "FSM sector 0 checksum", "y": "corrupted"})
 
 subroutine(0x9071, "disc_op_tpl_write_fsm_unused",
     title="Unused write-FSM disc operation template",
@@ -12336,11 +12337,10 @@ subroutine(0x9FD8, "fsc7_read_handle_range",
 Return the range of file handles used by ADFS. The MOS calls
 FSC 7 to determine which handles belong to the current filing
 system. ADFS uses handles &30-&39 (10 channels).
-
-On exit:
-  X = &30 (lowest handle)
-  Y = &39 (highest handle)
-""")
+""",
+    on_exit={"a": "corrupted",
+             "x": "&30 (lowest handle)",
+             "y": "&39 (highest handle)"})
 
 subroutine(0x9FDD, "fsc0_star_opt",
     title="FSC 0: *OPT command handler",
@@ -12348,7 +12348,9 @@ subroutine(0x9FDD, "fsc0_star_opt",
 Handle the *OPT command. *OPT 1,N controls verbose mode
 (bit 2 of zp_adfs_flags). *OPT 4,N sets the disc boot
 option in the free space map.
-""")
+""",
+    on_entry={"x": "first *OPT parameter (option number)",
+              "y": "second *OPT parameter (value)"})
 
 subroutine(0xBC79, "nmi_code_start",
     title="NMI handler code (copied to &0D00)",

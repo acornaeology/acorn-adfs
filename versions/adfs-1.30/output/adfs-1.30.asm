@@ -3982,8 +3982,8 @@ nmi_patched_addr                                = &ffff
     sta wksp_disc_id_lo,x                                             ; 8fc0: 9d 21 11    .!.            ; Y=&FF: calculate FSM checksums; Get FSM sector 0 byte
     sta fsm_s1_disc_id_lo                                             ; 8fc3: 8d fb 0f    ...            ; Add to checksum
     jsr setup_print_hex_field                                         ; 8fc6: 20 5c 90     \.            ; Next byte; Calculate FSM sector checksums; Loop for 256 bytes
-    stx fsm_s0_checksum                                               ; 8fc9: 8e ff 0e    ...            ; Store sector 0 checksum
-    sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1; Get FSM sector 1 byte
+    stx fsm_s0_checksum                                               ; 8fc9: 8e ff 0e    ...            ; Store sector 0 checksum; X=FSM sector 0 checksum
+    sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1; A=FSM sector 1 checksum; Get FSM sector 1 byte
     ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; X=&71: validate FSM entry count; X=control block address low byte
     ldy #&90                                                          ; 8fd1: a0 90       ..             ; Add to checksum; Y=control block address high byte; Loop for 255 bytes
     jsr exec_disc_command                                             ; 8fd3: 20 8b 82     ..            ; Execute disc command and check for error; Store sector 1 checksum
@@ -4030,9 +4030,9 @@ nmi_patched_addr                                = &ffff
 .mark_directory_dirty
     jsr print_newline_and_entry                                       ; 8fea: 20 09 90     ..            ; Return search result
     jsr setup_print_hex_field                                         ; 8fed: 20 5c 90     \.            ; Mark directory as modified; Calculate FSM sector checksums
-    cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Verify directory
+    cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Verify directory; A=FSM sector 1 checksum
     bne check_first_char_wildcard                                     ; 8ff3: d0 05       ..             ; Point to first entry; Validate FSM map checksums
-    cpx fsm_s0_checksum                                               ; 8ff5: ec ff 0e    ...            ; Search for entry
+    cpx fsm_s0_checksum                                               ; 8ff5: ec ff 0e    ...            ; X=FSM sector 0 checksum; Search for entry
     beq return_18                                                     ; 8ff8: f0 ef       ..             ; Found: return
 ; ***************************************************************************************
 ; Validate FSM map checksums
@@ -4115,6 +4115,11 @@ nmi_patched_addr                                = &ffff
 ; Compute 8-bit checksums of FSM sectors 0 and 1 by
 ; summing all 255 bytes of each sector.
 ; 
+; 
+; On Exit:
+;     A: FSM sector 1 checksum
+;     X: FSM sector 0 checksum
+;     Y: corrupted
 ; ***************************************************************************************
 ; &905c referenced 2 times by &8fc6, &8fed
 .setup_print_hex_field
@@ -4498,6 +4503,14 @@ nmi_patched_addr                                = &ffff
 ; Point (zp_entry_ptr) to a pathname format string in ROM
 ; and prepare to print up to 12 characters.
 ; 
+; 
+; On Entry:
+;     A: index into tbl_help_param_ptrs
+; 
+; On Exit:
+;     A: corrupted
+;     X: zero
+;     Y: corrupted
 ; ***************************************************************************************
 ; &927b referenced 2 times by &9e35, &9e3b
 .setup_entry_name_ptr
@@ -4513,7 +4526,7 @@ nmi_patched_addr                                = &ffff
 ; &9289 referenced 1 time by &9296
 .print_name_char_loop
     lda (zp_entry_ptr_lo),y                                           ; 9289: b1 b6       ..             ; Get character from entry
-    and #&7f                                                          ; 928b: 29 7f       ).             ; Strip bit 7 (access bit)
+    and #&7f                                                          ; 928b: 29 7f       ).             ; Strip bit 7 (access bit); A=character to print via OSASCI
     cmp #&20 ; ' '                                                    ; 928d: c9 20       .              ; Is it a printable character?
     bcc pad_with_spaces                                               ; 928f: 90 08       ..             ; No, pad rest with spaces
     jsr print_via_osasci                                              ; 9291: 20 c4 92     ..            ; Print character via OSASCI; Print character preserving registers
@@ -4538,6 +4551,11 @@ nmi_patched_addr                                = &ffff
 ; (the last character, printed with bit 7 stripped). Pushes
 ; the address past the string so RTS continues after it.
 ; 
+; 
+; On Exit:
+;     A: corrupted
+;     X: preserved
+;     Y: corrupted
 ; ***************************************************************************************
 ; &92a0 referenced 19 times by &933a, &9345, &9369, &9379, &938f, &93a6, &93c0, &99fd, &9b78, &9da7, &9dc9, &9e12, &a021, &a041, &a04a, &a077, &a0a0, &a1d8, &a247
 .print_inline_string
@@ -4548,16 +4566,16 @@ nmi_patched_addr                                = &ffff
     ldy #1                                                            ; 92a6: a0 01       ..             ; Y=1: start past JSR return addr
 ; &92a8 referenced 1 time by &92b0
 .print_char_loop
-    lda (zp_entry_ptr_lo),y                                           ; 92a8: b1 b6       ..             ; Get next string character
+    lda (zp_entry_ptr_lo),y                                           ; 92a8: b1 b6       ..             ; Get next string character; A=character to print via OSASCI
     bmi last_char_reached                                             ; 92aa: 30 06       0.             ; Bit 7 set: last character
     jsr print_via_osasci                                              ; 92ac: 20 c4 92     ..            ; Print character via OSASCI; Print character preserving registers
     iny                                                               ; 92af: c8          .              ; Next character
     bne print_char_loop                                               ; 92b0: d0 f6       ..             ; Loop for more characters
 ; &92b2 referenced 1 time by &92aa
 .last_char_reached
-    and #&7f                                                          ; 92b2: 29 7f       ).             ; Strip bit 7 from last char
+    and #&7f                                                          ; 92b2: 29 7f       ).             ; Strip bit 7 from last char; A=character to print via OSASCI
     jsr print_via_osasci                                              ; 92b4: 20 c4 92     ..            ; Print last character; Print character preserving registers
-    tya                                                               ; 92b7: 98          .              ; Y = string length + 1
+    tya                                                               ; 92b7: 98          .              ; Y = string length + 1; Y=corrupted
     clc                                                               ; 92b8: 18          .              ; Clear carry for address calc
     adc zp_entry_ptr_lo                                               ; 92b9: 65 b6       e.             ; Add string length to pointer
     tay                                                               ; 92bb: a8          .              ; Transfer low result to Y
@@ -4574,6 +4592,14 @@ nmi_patched_addr                                = &ffff
 ; Write A via OSASCI while preserving A, X, and (&B6).
 ; Used during catalogue printing.
 ; 
+; 
+; On Entry:
+;     A: character to print via OSASCI
+; 
+; On Exit:
+;     A: preserved
+;     X: preserved
+;     Y: corrupted
 ; ***************************************************************************************
 ; &92c4 referenced 3 times by &9291, &92ac, &92b4
 .print_via_osasci
@@ -4854,10 +4880,11 @@ nmi_patched_addr                                = &ffff
 ; directory) or @ (current directory). Sets (&B6) to point
 ; to the appropriate directory footer area.
 ; 
-; On exit:
-;   Z set if ^ or @ matched, (&B6) set accordingly
-;   Z clear if neither matched
 ; 
+; On Exit:
+;     A: corrupted (Z set if ^ or @ matched)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &944f referenced 3 times by &88d2, &8cdc, &9492
 .check_special_dir_char
@@ -5969,12 +5996,11 @@ nmi_patched_addr                                = &ffff
 ; Check whether a SCSI hard drive is present by attempting
 ; to read the SCSI status register.
 ; 
-; On exit:
-;   Z flag set if hard drive present
-;   Z flag clear if not present
-;   X, Y preserved
-;   A corrupted
 ; 
+; On Exit:
+;     A: corrupted (Z set if hard drive present)
+;     X: zero
+;     Y: preserved
 ; ***************************************************************************************
 ; &9a63 referenced 3 times by &9ad7, &9b4b, &9bfb
 .hd_init_detect
@@ -6797,10 +6823,10 @@ l9dd3 = check_help_adfs_keyword+1
     lsr a                                                             ; 9e31: 4a          J              ; Shift high nibble down
     lsr a                                                             ; 9e32: 4a          J              ; Shift high nibble to low
     lsr a                                                             ; 9e33: 4a          J              ; 4 right shifts total
-    lsr a                                                             ; 9e34: 4a          J              ; 4th shift
+    lsr a                                                             ; 9e34: 4a          J              ; 4th shift; A=index into tbl_help_param_ptrs
     jsr setup_entry_name_ptr                                          ; 9e35: 20 7b 92     {.            ; Print as hex digit; Set up entry name pointer for star commands
     pla                                                               ; 9e38: 68          h              ; Restore address byte
-    and #&0f                                                          ; 9e39: 29 0f       ).             ; Isolate low nibble
+    and #&0f                                                          ; 9e39: 29 0f       ).             ; Isolate low nibble; A=index into tbl_help_param_ptrs
     jsr setup_entry_name_ptr                                          ; 9e3b: 20 7b 92     {.            ; Print as hex digit; Set up entry name pointer for star commands
     jsr osnewl                                                        ; 9e3e: 20 e7 ff     ..            ; Print newline; Write newline (characters 10 and 13)
     pla                                                               ; 9e41: 68          h              ; Restore table index
@@ -7114,10 +7140,11 @@ l9ee5 = tbl_commands+2
 ; FSC 7 to determine which handles belong to the current filing
 ; system. ADFS uses handles &30-&39 (10 channels).
 ; 
-; On exit:
-;   X = &30 (lowest handle)
-;   Y = &39 (highest handle)
 ; 
+; On Exit:
+;     A: corrupted
+;     X: &30 (lowest handle)
+;     Y: &39 (highest handle)
 ; ***************************************************************************************
 .fsc7_read_handle_range
     ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0             ; X=&30: lowest ADFS file handle; X=&30: *CAT address low
@@ -7131,6 +7158,10 @@ l9ee5 = tbl_commands+2
 ; (bit 2 of zp_adfs_flags). *OPT 4,N sets the disc boot
 ; option in the free space map.
 ; 
+; 
+; On Entry:
+;     X: first *OPT parameter (option number)
+;     Y: second *OPT parameter (value)
 ; ***************************************************************************************
 .fsc0_star_opt
     ldx zp_text_ptr_lo                                                ; 9fdd: a6 b4       ..             ; Get *OPT first parameter
