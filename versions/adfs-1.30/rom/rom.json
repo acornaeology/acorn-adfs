@@ -15,6 +15,11 @@
             "icon": "chip"
         },
         {
+            "label": "Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn ADFS",
+            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32796",
+            "icon": "chat"
+        },
+        {
             "label": "A Stardot request for a disassembly of ADFS 1.30",
             "url": "https://stardot.org.uk/forums/viewtopic.php?t=13082",
             "icon": "chat"

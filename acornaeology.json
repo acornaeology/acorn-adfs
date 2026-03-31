@@ -54,6 +54,12 @@
             "note": "A BBC BASIC-embedded disassembly with informative block comments and entry/exit documentation for key routines."
         },
         {
+            "label": "Stardot Forums: A new annotated disassembly of Acorn ADFS",
+            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32796",
+            "icon": "chat",
+            "note": "Discussion thread for the ADFS disassemblies."
+        },
+        {
             "label": "Stardot forum thread on ADFS internals",
             "url": "https://stardot.org.uk/forums/viewtopic.php?t=13082",
             "icon": "chat",
