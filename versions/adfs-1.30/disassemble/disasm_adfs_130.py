@@ -10580,24 +10580,14 @@ comment(0xBF8A, "Transfer low byte to X", inline=True)
 subroutine(0x8027, "claim_tube", title="Claim Tube if present",
     description="""\
 Claim the Tube for a data transfer if a Tube is present.
-
-On entry:
-  (&B0),Y points to the 4-byte Tube transfer address
-  zp_flags bit 7 set if Tube is present
-On exit:
-  Tube claimed and transfer address copied to workspace
-  zp_flags bit 6 set to indicate Tube in use
+Copies the 4-byte transfer address from the control block
+to workspace and sets the Tube-in-use flag.
 """)
 
 subroutine(0x8043, "release_tube", title="Release Tube if in use",
     description="""\
 Release the Tube after a data transfer if it was claimed.
-
-On entry:
-  zp_flags bit 6 set if Tube is in use
-On exit:
-  Tube released
-  zp_flags bit 6 cleared
+Checks zp_adfs_flags bit 6 and clears it after release.
 """)
 
 subroutine(0x8056, "scsi_get_status",
@@ -10605,11 +10595,10 @@ subroutine(0x8056, "scsi_get_status",
     description="""\
 Read the SCSI status register, waiting for the value to settle.
 Reads the status twice and loops until consecutive reads match.
-
-On exit:
-  A = settled SCSI status byte
-  zp_scsi_status = same value
-""")
+Also stores result in zp_scsi_status.
+""",
+    on_exit={"a": "settled SCSI status byte",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x8065, "scsi_start_command",
     title="SCSI bus selection and command phase",
@@ -10631,13 +10620,20 @@ subroutine(0x8089, "command_exec_xy",
 Execute a disc operation using the control block pointed to
 by X (low) and Y (high). Handles both hard drive (SCSI) and
 floppy disc operations with retry logic.
-""")
+""",
+    on_entry={"x": "control block address low byte",
+              "y": "control block address high byte"},
+    on_exit={"a": "result code (0 = success, Z set)",
+             "x": "control block address low (preserved)",
+             "y": "control block address high (preserved)"})
 
 subroutine(0x829A, "generate_error",
     title="Generate a BRK error",
     description="""\
-Generate a BRK error from an error number and message.
-""")
+Generate a BRK error from the disc error code in A. Never
+returns to caller.
+""",
+    on_entry={"a": "SCSI/disc error code"})
 
 subroutine(0x9AA3, "service_call_handler",
     title="ROM service call handler",
@@ -10700,25 +10696,20 @@ performs data transfer (direct or via Tube), and reads the
 SCSI status and message phases.
 
 Falls back to floppy if drive bit 7 is set.
-
-On entry:
-  (&B0) points to the control block
-  Y = 6 (index into control block)
-On exit:
-  A = 0 on success, error code on failure
-  X, Y = control block address (restored)
-""")
+""",
+    on_exit={"a": "result code (0 = success, Z set)",
+             "x": "control block address low (restored)",
+             "y": "control block address high (restored)"})
 
 subroutine(0x818A, "command_done",
     title="Complete SCSI command and read status",
     description="""\
 Release the Tube, then read the SCSI status and message
 bytes to determine the outcome of the command.
-
-On exit:
-  A = 0 on success, &7F-masked error code on failure
-  X, Y = control block address (restored)
-""")
+""",
+    on_exit={"a": "result code (0 = success, &7F-masked error)",
+             "x": "control block address low (restored)",
+             "y": "control block address high (restored)"})
 
 subroutine(0x81B8, "hd_data_transfer_256",
     title="SCSI 256-byte sector data transfer",
@@ -10726,10 +10717,6 @@ subroutine(0x81B8, "hd_data_transfer_256",
 Transfer complete 256-byte sectors between SCSI bus and
 memory (direct or via Tube). Optimised inner loop with no
 per-byte SCSI REQ polling.
-
-On entry:
-  (&B2),Y points to memory buffer
-  zp_flags bit 6 indicates Tube in use
 """)
 
 subroutine(0x823A, "scsi_request_sense",
@@ -10738,17 +10725,17 @@ subroutine(0x823A, "scsi_request_sense",
 Send a SCSI Request Sense command (opcode 3) to retrieve
 extended error information after a failed operation. Stores
 the 4-byte sense data in the error workspace.
-
-On exit:
-  A = error code from sense data, or &FF if unrecoverable
-  Error sector and code stored in workspace
-""")
+""",
+    on_exit={"a": "error code from sense data (&FF if unrecoverable)",
+             "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x82FB, "scsi_send_cmd_byte",
     title="Send one byte during SCSI command phase",
     description="""\
 Wait for SCSI REQ, then write byte A to the SCSI data bus.
-""")
+Returns only on success; generates BRK on error.
+""",
+    on_entry={"a": "SCSI command byte to send"})
 
 subroutine(0x8305, "wait_ensuring",
     title="Wait while files are being ensured",
@@ -10762,19 +10749,21 @@ subroutine(0x830F, "scsi_wait_for_req",
     description="""\
 Poll the SCSI status register until the REQ bit is asserted,
 indicating the target is ready for the next bus phase.
-
-On exit:
-  A = SCSI status byte
-  N flag reflects C/D bit (command/data phase)
-  V flag reflects MSG bit (message phase)
-""")
+Preserves A; N and V flags reflect SCSI bus phase.
+""",
+    on_exit={"a": "preserved",
+             "x": "preserved", "y": "preserved",
+             "n": "C/D bit from SCSI status (set = command phase)",
+             "v": "MSG bit from SCSI status (set = message phase)"})
 
 subroutine(0x831B, "scsi_send_byte_a",
     title="Send byte A on SCSI bus after REQ",
     description="""\
 Wait for SCSI REQ then write A to the SCSI data register.
-Used during SCSI command phase to send command bytes.
-""")
+May not return if MSG phase detected (unwinds call stack
+to command_done).
+""",
+    on_entry={"a": "byte to send on SCSI bus"})
 
 subroutine(0x8348, "reload_fsm_and_dir_then_brk",
     title="Reload FSM and directory then raise error",
@@ -10794,9 +10783,11 @@ appending the drive:sector suffix.
 subroutine(0x8353, "generate_error_suffix_x",
     title="Generate error with suffix control in X",
     description="""\
-Generate a BRK error from the disc error code. X controls
-whether the drive:sector suffix is appended.
-""")
+Generate a BRK error from the inline error data following
+the JSR. X controls whether the drive:sector suffix is
+appended. Never returns.
+""",
+    on_entry={"x": "non-zero to append drive:sector suffix"})
 
 subroutine(0x8476, "invalidate_fsm_and_dir",
     title="Mark FSM and directory as invalid",
@@ -11322,14 +11313,16 @@ subroutine(0x81EF, "tube_start_xfer_sei",
     description="""\
 Disable interrupts then call the Tube host code at &0406
 to initiate a data transfer.
-""")
+""",
+    on_entry={"a": "Tube transfer type (6=write, 7=read)"})
 
 subroutine(0x81F0, "tube_start_xfer",
     title="Start Tube transfer",
     description="""\
 Call the Tube host code at &0406 to initiate a data transfer.
 Followed by a delay for Tube synchronisation.
-""")
+""",
+    on_entry={"a": "Tube transfer type"})
 
 # ---------------------------------------------------------------------------
 # Promoted routines: labels with high in-degree, come-from distance,
@@ -11756,8 +11749,11 @@ subroutine(0x828B, "exec_disc_command",
     title="Execute disc command and check for error",
     description="""\
 Execute disc command via command_exec_xy. On error,
-generate a BRK. On success, restore saved drive.
-""")
+generate a BRK (never returns). On success, restore
+saved drive and return.
+""",
+    on_entry={"x": "control block address low byte",
+              "y": "control block address high byte"})
 
 subroutine(0xB510, "get_drive_bit_mask",
     title="Get bit mask for drive slot",

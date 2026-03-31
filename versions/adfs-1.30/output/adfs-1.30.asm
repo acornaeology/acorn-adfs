@@ -501,13 +501,8 @@ nmi_patched_addr                                = &ffff
 ; Claim Tube if present
 ; 
 ; Claim the Tube for a data transfer if a Tube is present.
-; 
-; On entry:
-;   (&B0),Y points to the 4-byte Tube transfer address
-;   zp_flags bit 7 set if Tube is present
-; On exit:
-;   Tube claimed and transfer address copied to workspace
-;   zp_flags bit 6 set to indicate Tube in use
+; Copies the 4-byte transfer address from the control block
+; to workspace and sets the Tube-in-use flag.
 ; 
 ; ***************************************************************************************
 ; &8027 referenced 3 times by &8111, &8b61, &bb67
@@ -537,12 +532,7 @@ nmi_patched_addr                                = &ffff
 ; Release Tube if in use
 ; 
 ; Release the Tube after a data transfer if it was claimed.
-; 
-; On entry:
-;   zp_flags bit 6 set if Tube is in use
-; On exit:
-;   Tube released
-;   zp_flags bit 6 cleared
+; Checks zp_adfs_flags bit 6 and clears it after release.
 ; 
 ; ***************************************************************************************
 ; &8043 referenced 5 times by &818a, &8402, &b8db, &b9fb, &bfe0
@@ -566,11 +556,13 @@ nmi_patched_addr                                = &ffff
 ; 
 ; Read the SCSI status register, waiting for the value to settle.
 ; Reads the status twice and loops until consecutive reads match.
+; Also stores result in zp_scsi_status.
 ; 
-; On exit:
-;   A = settled SCSI status byte
-;   zp_scsi_status = same value
 ; 
+; On Exit:
+;     A: settled SCSI status byte
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &8056 referenced 5 times by &806a, &8078, &8197, &8310, &ab80
 .scsi_get_status
@@ -640,6 +632,15 @@ nmi_patched_addr                                = &ffff
 ; by X (low) and Y (high). Handles both hard drive (SCSI) and
 ; floppy disc operations with retry logic.
 ; 
+; 
+; On Entry:
+;     X: control block address low byte
+;     Y: control block address high byte
+; 
+; On Exit:
+;     A: result code (0 = success, Z set)
+;     X: control block address low (preserved)
+;     Y: control block address high (preserved)
 ; ***************************************************************************************
 ; &8089 referenced 6 times by &828b, &8a74, &8abf, &9d52, &a0d7, &a16b
 .command_exec_xy
@@ -715,13 +716,11 @@ nmi_patched_addr                                = &ffff
 ; 
 ; Falls back to floppy if drive bit 7 is set.
 ; 
-; On entry:
-;   (&B0) points to the control block
-;   Y = 6 (index into control block)
-; On exit:
-;   A = 0 on success, error code on failure
-;   X, Y = control block address (restored)
 ; 
+; On Exit:
+;     A: result code (0 = success, Z set)
+;     X: control block address low (restored)
+;     Y: control block address high (restored)
 ; ***************************************************************************************
 ; &80ed referenced 1 time by &80ca
 .hd_command
@@ -750,7 +749,7 @@ nmi_patched_addr                                = &ffff
 ; &8114 referenced 1 time by &810f
 .send_scsi_command_bytes
     ldy #5                                                            ; 8114: a0 05       ..             ; Byte 5: SCSI command byte
-    lda (zp_ctrl_blk_lo),y                                            ; 8116: b1 b0       ..             ; Get byte from control block
+    lda (zp_ctrl_blk_lo),y                                            ; 8116: b1 b0       ..             ; Get byte from control block; A=byte to send on SCSI bus
     jsr scsi_send_byte_a                                              ; 8118: 20 1b 83     ..            ; Send SCSI command byte; Send byte A on SCSI bus after REQ
     iny                                                               ; 811b: c8          .              ; Byte 6: drive + sector high
     lda (zp_ctrl_blk_lo),y                                            ; 811c: b1 b0       ..             ; Get byte from control block
@@ -760,7 +759,7 @@ nmi_patched_addr                                = &ffff
 
 ; &8127 referenced 1 time by &8134
 .send_cmd_byte_loop
-    lda (zp_ctrl_blk_lo),y                                            ; 8127: b1 b0       ..             ; Get next command byte
+    lda (zp_ctrl_blk_lo),y                                            ; 8127: b1 b0       ..             ; Get next command byte; A=byte to send on SCSI bus
 ; &8129 referenced 1 time by &8124
 .send_next_cmd_byte
     jsr scsi_send_byte_a                                              ; 8129: 20 1b 83     ..            ; Send command byte to target; Send byte A on SCSI bus after REQ
@@ -789,7 +788,7 @@ nmi_patched_addr                                = &ffff
     ldy #&10                                                          ; 814f: a0 10       ..             ; Y=&10: Tube workspace page
     lda #0                                                            ; 8151: a9 00       ..             ; A=0 (direction flag)
     php                                                               ; 8153: 08          .              ; Save direction flag
-    rol a                                                             ; 8154: 2a          *              ; Rotate carry into bit 0
+    rol a                                                             ; 8154: 2a          *              ; Rotate carry into bit 0; A=Tube transfer type
     jsr tube_start_xfer                                               ; 8155: 20 f0 81     ..            ; Start Tube transfer; Start Tube transfer
     plp                                                               ; 8158: 28          (              ; Restore processor flags
 ; &8159 referenced 5 times by &814b, &8171, &8175, &8180, &8188
@@ -799,7 +798,7 @@ nmi_patched_addr                                = &ffff
     bit zp_adfs_flags                                                 ; 815e: 24 cd       $.             ; Tube in use?
     bvs read_scsi_via_tube                                            ; 8160: 70 16       p.             ; Yes, use Tube path
     bcs read_scsi_to_memory                                           ; 8162: b0 07       ..             ; Reading from SCSI?
-    lda (zp_mem_ptr_lo),y                                             ; 8164: b1 b2       ..             ; Writing: get byte from memory
+    lda (zp_mem_ptr_lo),y                                             ; 8164: b1 b2       ..             ; Writing: get byte from memory; Y=preserved
     sta fred_hard_drive_0                                             ; 8166: 8d 40 fc    .@.            ; Write to SCSI data register
     bcc advance_memory_page                                           ; 8169: 90 05       ..             ; Always branch to increment; ALWAYS branch
 
@@ -832,10 +831,11 @@ nmi_patched_addr                                = &ffff
 ; Release the Tube, then read the SCSI status and message
 ; bytes to determine the outcome of the command.
 ; 
-; On exit:
-;   A = 0 on success, &7F-masked error code on failure
-;   X, Y = control block address (restored)
 ; 
+; On Exit:
+;     A: result code (0 = success, &7F-masked error)
+;     X: control block address low (restored)
+;     Y: control block address high (restored)
 ; ***************************************************************************************
 ; &818a referenced 7 times by &815c, &81c1, &8205, &8328, &8bb0, &ab59, &acc6
 .command_done
@@ -845,11 +845,11 @@ nmi_patched_addr                                = &ffff
     jsr scsi_wait_for_req                                             ; 818d: 20 0f 83     ..            ; Wait for SCSI REQ (status phase); Wait for SCSI REQ signal
     lda fred_hard_drive_0                                             ; 8190: ad 40 fc    .@.            ; Read status byte from SCSI data
     jsr scsi_wait_for_req                                             ; 8193: 20 0f 83     ..            ; Wait for SCSI REQ (message phase); Wait for SCSI REQ signal
-    tay                                                               ; 8196: a8          .              ; Save status in Y
+    tay                                                               ; 8196: a8          .              ; Save status in Y; A=preserved
     jsr scsi_get_status                                               ; 8197: 20 56 80     V.            ; Read SCSI status register; Read SCSI status with settling
     and #1                                                            ; 819a: 29 01       ).             ; Check BSY still asserted
     beq wait_status_phase                                             ; 819c: f0 ef       ..             ; Loop until bus free
-    tya                                                               ; 819e: 98          .              ; Retrieve status byte
+    tya                                                               ; 819e: 98          .              ; Retrieve status byte; Y=corrupted
     ldx fred_hard_drive_0                                             ; 819f: ae 40 fc    .@.            ; Read final data byte
     beq check_scsi_error_bit                                          ; 81a2: f0 03       ..             ; Status OK?
     jmp unrecoverable_scsi_error                                      ; 81a4: 4c 82 82    L..            ; No, return error &FF
@@ -878,10 +878,6 @@ nmi_patched_addr                                = &ffff
 ; memory (direct or via Tube). Optimised inner loop with no
 ; per-byte SCSI REQ polling.
 ; 
-; On entry:
-;   (&B2),Y points to memory buffer
-;   zp_flags bit 6 indicates Tube in use
-; 
 ; ***************************************************************************************
 ; &81b8 referenced 1 time by &813e
 .hd_data_transfer_256
@@ -895,7 +891,7 @@ nmi_patched_addr                                = &ffff
     bvs read_sector_byte_loop                                         ; 81c3: 70 0c       p.             ; I/O bit: reading from SCSI?
 ; &81c5 referenced 1 time by &81cb
 .write_sector_byte_loop
-    lda (zp_mem_ptr_lo),y                                             ; 81c5: b1 b2       ..             ; Writing: get byte from memory
+    lda (zp_mem_ptr_lo),y                                             ; 81c5: b1 b2       ..             ; Writing: get byte from memory; Y=preserved
     sta fred_hard_drive_0                                             ; 81c7: 8d 40 fc    .@.            ; Write to SCSI data register
     iny                                                               ; 81ca: c8          .              ; Next byte
     bne write_sector_byte_loop                                        ; 81cb: d0 f8       ..             ; Continue for 256 bytes
@@ -928,6 +924,9 @@ nmi_patched_addr                                = &ffff
 ; Disable interrupts then call the Tube host code at &0406
 ; to initiate a data transfer.
 ; 
+; 
+; On Entry:
+;     A: Tube transfer type (6=write, 7=read)
 ; ***************************************************************************************
 ; &81ef referenced 2 times by &820d, &8225
 .tube_start_xfer_sei
@@ -938,6 +937,9 @@ nmi_patched_addr                                = &ffff
 ; Call the Tube host code at &0406 to initiate a data transfer.
 ; Followed by a delay for Tube synchronisation.
 ; 
+; 
+; On Entry:
+;     A: Tube transfer type
 ; ***************************************************************************************
 ; &81f0 referenced 1 time by &8155
 .tube_start_xfer
@@ -966,7 +968,7 @@ nmi_patched_addr                                = &ffff
 .set_tube_write_direction
     bvs set_tube_read_direction                                       ; 8208: 70 18       p.             ; I/O bit: reading from SCSI?
     php                                                               ; 820a: 08          .              ; Save flags before SEI
-    lda #6                                                            ; 820b: a9 06       ..             ; Tube transfer type 6 (write)
+    lda #6                                                            ; 820b: a9 06       ..             ; Tube transfer type 6 (write); A=Tube transfer type (6=write, 7=read)
     jsr tube_start_xfer_sei                                           ; 820d: 20 ef 81     ..            ; Start Tube transfer with SEI; Start Tube transfer with interrupts disabled
 ; &8210 referenced 1 time by &821a
 .tube_write_byte_loop
@@ -983,7 +985,7 @@ nmi_patched_addr                                = &ffff
 ; &8222 referenced 1 time by &8208
 .set_tube_read_direction
     php                                                               ; 8222: 08          .              ; Save flags for read path
-    lda #7                                                            ; 8223: a9 07       ..             ; Tube transfer type 7 (read)
+    lda #7                                                            ; 8223: a9 07       ..             ; Tube transfer type 7 (read); A=Tube transfer type (6=write, 7=read)
     jsr tube_start_xfer_sei                                           ; 8225: 20 ef 81     ..            ; Start Tube transfer with SEI; Start Tube transfer with interrupts disabled
 ; &8228 referenced 1 time by &8232
 .tube_read_byte_loop
@@ -1004,20 +1006,21 @@ nmi_patched_addr                                = &ffff
 ; extended error information after a failed operation. Stores
 ; the 4-byte sense data in the error workspace.
 ; 
-; On exit:
-;   A = error code from sense data, or &FF if unrecoverable
-;   Error sector and code stored in workspace
 ; 
+; On Exit:
+;     A: error code from sense data (&FF if unrecoverable)
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &823a referenced 1 time by &81ac
 .scsi_request_sense
     jsr scsi_start_command                                            ; 823a: 20 65 80     e.            ; Select SCSI device; SCSI bus selection and command phase
-    lda #3                                                            ; 823d: a9 03       ..             ; SCSI Request Sense command = 3
+    lda #3                                                            ; 823d: a9 03       ..             ; SCSI Request Sense command = 3; A=byte to send on SCSI bus
     tax                                                               ; 823f: aa          .              ; X=3: receive 4 sense bytes; X=&03
     tay                                                               ; 8240: a8          .              ; Y=3: send 3 more command bytes; Y=&03
     jsr scsi_send_byte_a                                              ; 8241: 20 1b 83     ..            ; Send command byte; Send byte A on SCSI bus after REQ
     lda wksp_current_drive_hi                                         ; 8244: ad 33 11    .3.            ; Get LUN bits from drive number
-    and #&e0                                                          ; 8247: 29 e0       ).             ; Isolate LUN (bits 5-7)
+    and #&e0                                                          ; 8247: 29 e0       ).             ; Isolate LUN (bits 5-7); A=byte to send on SCSI bus
     jsr scsi_send_byte_a                                              ; 8249: 20 1b 83     ..            ; Send LUN byte; Send byte A on SCSI bus after REQ
 ; &824c referenced 1 time by &8250
 .send_zero_bytes_loop
@@ -1028,7 +1031,7 @@ nmi_patched_addr                                = &ffff
 .receive_sense_data_loop
     jsr scsi_wait_for_req                                             ; 8252: 20 0f 83     ..            ; Receive sense data bytes; Wait for SCSI REQ signal
     lda fred_hard_drive_0                                             ; 8255: ad 40 fc    .@.            ; Read sense data from SCSI bus
-    sta wksp_err_sector,x                                             ; 8258: 9d d0 10    ...            ; Store in error workspace
+    sta wksp_err_sector,x                                             ; 8258: 9d d0 10    ...            ; Store in error workspace; X=preserved
     dex                                                               ; 825b: ca          .              ; Next byte
     bpl receive_sense_data_loop                                       ; 825c: 10 f4       ..             ; Loop for 4 bytes
     lda wksp_current_drive_hi                                         ; 825e: ad 33 11    .3.            ; Get drive LUN bits
@@ -1043,7 +1046,7 @@ nmi_patched_addr                                = &ffff
     bne unrecoverable_scsi_error                                      ; 8278: d0 08       ..             ; Message byte non-zero? Error
     and #2                                                            ; 827a: 29 02       ).             ; Check status error bit
     bne unrecoverable_scsi_error                                      ; 827c: d0 04       ..             ; Error bit set? Return error
-    txa                                                               ; 827e: 8a          .              ; Transfer error code to A
+    txa                                                               ; 827e: 8a          .              ; Transfer error code to A; X=preserved
     jmp mask_error_code                                               ; 827f: 4c b1 81    L..            ; Return with error code
 
 ; &8282 referenced 3 times by &81a4, &8278, &827c
@@ -1060,14 +1063,19 @@ nmi_patched_addr                                = &ffff
 ; ***************************************************************************************
 ; &8287 referenced 8 times by &89ca, &8a1a, &8fae, &94c9, &9722, &973c, &a7f2, &a813
 .exec_disc_op_from_wksp
-    ldx #&15                                                          ; 8287: a2 15       ..             ; Point to workspace disc op block
-    ldy #&10                                                          ; 8289: a0 10       ..             ; Y=&10: workspace page
+    ldx #&15                                                          ; 8287: a2 15       ..             ; Point to workspace disc op block; X=control block address low byte
+    ldy #&10                                                          ; 8289: a0 10       ..             ; Y=&10: workspace page; Y=control block address high byte
 ; ***************************************************************************************
 ; Execute disc command and check for error
 ; 
 ; Execute disc command via command_exec_xy. On error,
-; generate a BRK. On success, restore saved drive.
+; generate a BRK (never returns). On success, restore
+; saved drive and return.
 ; 
+; 
+; On Entry:
+;     X: control block address low byte
+;     Y: control block address high byte
 ; ***************************************************************************************
 ; &828b referenced 8 times by &8888, &88a5, &89e7, &8fd3, &97a5, &a81a, &b50a, &b571
 .exec_disc_command
@@ -1084,8 +1092,12 @@ nmi_patched_addr                                = &ffff
 ; ***************************************************************************************
 ; Generate a BRK error
 ; 
-; Generate a BRK error from an error number and message.
+; Generate a BRK error from the disc error code in A. Never
+; returns to caller.
 ; 
+; 
+; On Entry:
+;     A: SCSI/disc error code
 ; ***************************************************************************************
 ; &829a referenced 6 times by &828e, &82fe, &8a42, &ab48, &ab60, &acaf
 .generate_error
@@ -1117,7 +1129,7 @@ nmi_patched_addr                                = &ffff
     cmp #&40 ; '@'                                                    ; 82d1: c9 40       .@             ; Error code &40 = write protected?
     beq store_error_sector                                            ; 82d3: f0 13       ..             ; Yes, generate Disc protected error
     jsr save_wksp_and_return                                          ; 82d5: 20 d3 89     ..            ; Convert SCSI error to disc error; Save workspace state and return result
-    tax                                                               ; 82d8: aa          .              ; X = suffix control
+    tax                                                               ; 82d8: aa          .              ; X = suffix control; X=non-zero to append drive:sector suffix
     jsr generate_error_suffix_x                                       ; 82d9: 20 53 83     S.            ; Generate error with suffix control in X
     equb &c7                                                          ; 82dc: c7          .              ; Error &C7: Disc error
     equs "Disc error", 0                                              ; 82dd: 44 69 73... Dis
@@ -1132,7 +1144,11 @@ nmi_patched_addr                                = &ffff
 ; Send one byte during SCSI command phase
 ; 
 ; Wait for SCSI REQ, then write byte A to the SCSI data bus.
+; Returns only on success; generates BRK on error.
 ; 
+; 
+; On Entry:
+;     A: SCSI command byte to send
 ; ***************************************************************************************
 ; &82fb referenced 6 times by &aace, &aad7, &aadd, &aae3, &aae8, &aaed
 .scsi_send_cmd_byte
@@ -1167,12 +1183,15 @@ nmi_patched_addr                                = &ffff
 ; 
 ; Poll the SCSI status register until the REQ bit is asserted,
 ; indicating the target is ready for the next bus phase.
+; Preserves A; N and V flags reflect SCSI bus phase.
 ; 
-; On exit:
-;   A = SCSI status byte
-;   N flag reflects C/D bit (command/data phase)
-;   V flag reflects MSG bit (message phase)
 ; 
+; On Exit:
+;     A: preserved
+;     X: preserved
+;     Y: preserved
+;     N: C/D bit from SCSI status (set = command phase)
+;     V: MSG bit from SCSI status (set = message phase)
 ; ***************************************************************************************
 ; &830f referenced 15 times by &812c, &8140, &8159, &818d, &8193, &81be, &8200, &8252, &8269, &8272, &831b, &8b92, &ab54, &ab99, &acb7
 .scsi_wait_for_req
@@ -1190,14 +1209,18 @@ nmi_patched_addr                                = &ffff
 ; Send byte A on SCSI bus after REQ
 ; 
 ; Wait for SCSI REQ then write A to the SCSI data register.
-; Used during SCSI command phase to send command bytes.
+; May not return if MSG phase detected (unwinds call stack
+; to command_done).
 ; 
+; 
+; On Entry:
+;     A: byte to send on SCSI bus
 ; ***************************************************************************************
 ; &831b referenced 7 times by &8118, &8129, &8241, &8249, &824c, &8301, &8b77
 .scsi_send_byte_a
     jsr scsi_wait_for_req                                             ; 831b: 20 0f 83     ..            ; Wait for SCSI REQ; Wait for SCSI REQ signal
     bvs write_scsi_data_byte                                          ; 831e: 70 06       p.             ; MSG phase? Abort command
-    sta fred_hard_drive_0                                             ; 8320: 8d 40 fc    .@.            ; Write data byte to SCSI bus
+    sta fred_hard_drive_0                                             ; 8320: 8d 40 fc    .@.            ; Write data byte to SCSI bus; A=preserved
     lda #0                                                            ; 8323: a9 00       ..             ; A=0: success
     rts                                                               ; 8325: 60          `              ; Return (byte sent OK)
 
@@ -1257,13 +1280,17 @@ nmi_patched_addr                                = &ffff
 ; ***************************************************************************************
 ; &8351 referenced 2 times by &a6cd, &a73d
 .generate_error_no_suffix
-    ldx #0                                                            ; 8351: a2 00       ..
+    ldx #0                                                            ; 8351: a2 00       ..             ; X=non-zero to append drive:sector suffix
 ; ***************************************************************************************
 ; Generate error with suffix control in X
 ; 
-; Generate a BRK error from the disc error code. X controls
-; whether the drive:sector suffix is appended.
+; Generate a BRK error from the inline error data following
+; the JSR. X controls whether the drive:sector suffix is
+; appended. Never returns.
 ; 
+; 
+; On Entry:
+;     X: non-zero to append drive:sector suffix
 ; ***************************************************************************************
 ; &8353 referenced 2 times by &82d9, &abb2
 .generate_error_suffix_x
@@ -2436,8 +2463,8 @@ nmi_patched_addr                                = &ffff
     lda zp_adfs_flags                                                 ; 887e: a5 cd       ..             ; Set FSM-inconsistent flag (bit 4)
     ora #&10                                                          ; 8880: 09 10       ..             ; Bit 4: FSM being loaded
     sta zp_adfs_flags                                                 ; 8882: 85 cd       ..             ; Store updated flags
-    ldx #&0c                                                          ; 8884: a2 0c       ..             ; Load FSM from disc (sectors 0-1)
-    ldy #&88                                                          ; 8886: a0 88       ..             ; Y=&88: FSM read control block page
+    ldx #&0c                                                          ; 8884: a2 0c       ..             ; Load FSM from disc (sectors 0-1); X=control block address low byte
+    ldy #&88                                                          ; 8886: a0 88       ..             ; Y=&88: FSM read control block page; Y=control block address high byte
     jsr exec_disc_command                                             ; 8888: 20 8b 82     ..            ; Read FSM from disc; Execute disc command and check for error
     lda zp_adfs_flags                                                 ; 888b: a5 cd       ..             ; Clear FSM-inconsistent flag
     and #&ef                                                          ; 888d: 29 ef       ).             ; Mask off bit 4
@@ -2453,8 +2480,8 @@ nmi_patched_addr                                = &ffff
     bpl copy_csd_to_root_loop                                         ; 889f: 10 f7       ..             ; Loop for 3 bytes
 ; &88a1 referenced 1 time by &8894
 .load_root_directory
-    ldy #&88                                                          ; 88a1: a0 88       ..             ; Load root directory (sector 2)
-    ldx #&17                                                          ; 88a3: a2 17       ..             ; X=&17: directory read block offset
+    ldy #&88                                                          ; 88a1: a0 88       ..             ; Load root directory (sector 2); Y=control block address high byte
+    ldx #&17                                                          ; 88a3: a2 17       ..             ; X=&17: directory read block offset; X=control block address low byte
     jsr exec_disc_command                                             ; 88a5: 20 8b 82     ..            ; Read directory from disc; Execute disc command and check for error
     lda #2                                                            ; 88a8: a9 02       ..             ; Set root sector = 2
     sta wksp_csd_sector_lo                                            ; 88aa: 8d 14 11    ...            ; Store root sector low
@@ -2693,8 +2720,8 @@ nmi_patched_addr                                = &ffff
     sta wksp_current_drive                                            ; 89db: 8d 17 11    ...            ; Restore original drive
     lda #&ff                                                          ; 89de: a9 ff       ..             ; A=&FF: clear saved drive marker
     sta wksp_saved_drive                                              ; 89e0: 8d 2f 10    ./.            ; Mark saved drive as unused
-    ldx #&0c                                                          ; 89e3: a2 0c       ..             ; X=&0C: FSM control block offset
-    ldy #&88                                                          ; 89e5: a0 88       ..             ; Y=&88: FSM control block page
+    ldx #&0c                                                          ; 89e3: a2 0c       ..             ; X=&0C: FSM control block offset; X=control block address low byte
+    ldy #&88                                                          ; 89e5: a0 88       ..             ; Y=&88: FSM control block page; Y=control block address high byte
     jsr exec_disc_command                                             ; 89e7: 20 8b 82     ..            ; Reload FSM for original drive; Execute disc command and check for error
 ; &89ea referenced 1 time by &89d9
 .check_alt_wksp_on_return
@@ -2950,7 +2977,7 @@ nmi_patched_addr                                = &ffff
     ldy #0                                                            ; 8b72: a0 00       ..             ; Y=0: start of 6-byte command
 ; &8b74 referenced 1 time by &8b7d
 .copy_partial_sector_loop
-    lda wksp_disc_op_command,y                                        ; 8b74: b9 1a 10    ...            ; Get SCSI command byte
+    lda wksp_disc_op_command,y                                        ; 8b74: b9 1a 10    ...            ; Get SCSI command byte; A=byte to send on SCSI bus
     jsr scsi_send_byte_a                                              ; 8b77: 20 1b 83     ..            ; Send byte A on SCSI bus after REQ
     iny                                                               ; 8b7a: c8          .              ; Next command byte
     cpy #6                                                            ; 8b7b: c0 06       ..             ; Sent all 6 bytes?
@@ -2973,7 +3000,7 @@ nmi_patched_addr                                = &ffff
 ; &8b97 referenced 1 time by &8bae
 .copy_write_data_loop
     lda fred_hard_drive_0                                             ; 8b97: ad 40 fc    .@.            ; Read byte from SCSI data bus
-    cpx #0                                                            ; 8b9a: e0 00       ..             ; Byte count exhausted?
+    cpx #0                                                            ; 8b9a: e0 00       ..             ; Byte count exhausted?; X=preserved
     beq partial_read_from_disc                                        ; 8b9c: f0 0f       ..             ; Yes: discard remaining bytes
     bit zp_adfs_flags                                                 ; 8b9e: 24 cd       $.             ; Tube in use?
     bvc check_write_or_read                                           ; 8ba0: 50 08       P.             ; No Tube: store in memory
@@ -3847,8 +3874,8 @@ nmi_patched_addr                                = &ffff
     jsr setup_print_hex_field                                         ; 8fc6: 20 5c 90     \.            ; Next byte; Calculate FSM sector checksums; Loop for 256 bytes
     stx fsm_s0_checksum                                               ; 8fc9: 8e ff 0e    ...            ; Store sector 0 checksum
     sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1; Get FSM sector 1 byte
-    ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; X=&71: validate FSM entry count
-    ldy #&90                                                          ; 8fd1: a0 90       ..             ; Add to checksum; Loop for 255 bytes
+    ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; X=&71: validate FSM entry count; X=control block address low byte
+    ldy #&90                                                          ; 8fd1: a0 90       ..             ; Add to checksum; Y=control block address high byte; Loop for 255 bytes
     jsr exec_disc_command                                             ; 8fd3: 20 8b 82     ..            ; Execute disc command and check for error; Store sector 1 checksum
     lda zp_adfs_flags                                                 ; 8fd6: a5 cd       ..             ; Write FSM back to disc
     and #&ef                                                          ; 8fd8: 29 ef       ).             ; Clear FSM-inconsistent flag
@@ -6466,8 +6493,8 @@ boot_run_option = sub_c9b86+1
     beq store_osword_result                                           ; 9d44: f0 11       ..             ; Yes, handle verify specially
 ; &9d46 referenced 1 time by &9d5a
 .copy_disc_op_params_loop
-    ldx #&15                                                          ; 9d46: a2 15       ..             ; Set up disc op control block
-    ldy #&10                                                          ; 9d48: a0 10       ..             ; Y=&10: workspace control block
+    ldx #&15                                                          ; 9d46: a2 15       ..             ; Set up disc op control block; X=control block address low byte
+    ldy #&10                                                          ; 9d48: a0 10       ..             ; Y=&10: workspace control block; Y=control block address high byte
     inc wksp_current_drive                                            ; 9d4a: ee 17 11    ...            ; Temporarily set drive to &FF+1=0
     beq execute_osword_disc_op                                        ; 9d4d: f0 03       ..             ; Was it already 0 (unset)?
     dec wksp_current_drive                                            ; 9d4f: ce 17 11    ...            ; No, restore original drive
@@ -7172,8 +7199,8 @@ l9ee5 = tbl_commands+2
     sta wksp_current_drive                                            ; a0d0: 8d 17 11    ...            ; Set as current drive
 ; &a0d3 referenced 1 time by &a0e3
 .close_each_drive_loop
-    ldx #&ea                                                          ; a0d3: a2 ea       ..             ; X=&EA: scsi_cmd_park control block low
-    ldy #&a0                                                          ; a0d5: a0 a0       ..             ; Y=&A0: scsi_cmd_park control block high
+    ldx #&ea                                                          ; a0d3: a2 ea       ..             ; X=&EA: scsi_cmd_park control block low; X=control block address low byte
+    ldy #&a0                                                          ; a0d5: a0 a0       ..             ; Y=&A0: scsi_cmd_park control block high; Y=control block address high byte
     jsr command_exec_xy                                               ; a0d7: 20 89 80     ..            ; Park heads on this drive; Execute disc command with control block at (X,Y)
     lda wksp_current_drive                                            ; a0da: ad 17 11    ...            ; Get current drive ID
     sec                                                               ; a0dd: 38          8              ; Set carry for subtraction
@@ -7316,8 +7343,8 @@ la154 = sub_ca153+1
 .mount_drive_setup
     lda wksp_drive_number                                             ; a161: ad 6f 10    .o.            ; Get drive number to mount
     sta wksp_current_drive                                            ; a164: 8d 17 11    ...            ; Set as current drive
-    ldx #&9f                                                          ; a167: a2 9f       ..             ; Point to unpark command block
-    ldy #&a1                                                          ; a169: a0 a1       ..             ; Y=&A1: control block page
+    ldx #&9f                                                          ; a167: a2 9f       ..             ; Point to unpark command block; X=control block address low byte
+    ldy #&a1                                                          ; a169: a0 a1       ..             ; Y=&A1: control block page; Y=control block address high byte
     jsr command_exec_xy                                               ; a16b: 20 89 80     ..            ; Send unpark command to drive; Execute disc command with control block at (X,Y)
     lda #&aa                                                          ; a16e: a9 aa       ..             ; Point to root directory path
     sta zp_text_ptr_lo                                                ; a170: 85 b4       ..             ; Point to root dir path '$'
@@ -8649,8 +8676,8 @@ la154 = sub_ca153+1
 ; 
 ; ***************************************************************************************
 .load_fsm
-    ldx #&0c                                                          ; a816: a2 0c       ..             ; X=&0C: control block offset
-    ldy #&88                                                          ; a818: a0 88       ..             ; Y=&88: control block page
+    ldx #&0c                                                          ; a816: a2 0c       ..             ; X=&0C: control block offset; X=control block address low byte
+    ldy #&88                                                          ; a818: a0 88       ..             ; Y=&88: control block page; Y=control block address high byte
     jmp exec_disc_command                                             ; a81a: 4c 8b 82    L..            ; Execute disc read command; Execute disc command and check for error
 
 ; ***************************************************************************************
@@ -9077,18 +9104,18 @@ la868 = check_dest_terminator+1
     pha                                                               ; aac6: 48          H              ; Wait if files being ensured
     jsr wait_ensuring                                                 ; aac7: 20 05 83     ..            ; Wait while files are being ensured
     jsr scsi_start_command2                                           ; aaca: 20 67 80     g.            ; Start SCSI command phase (Y in cmd)
-    pla                                                               ; aacd: 68          h              ; Restore command byte from stack
+    pla                                                               ; aacd: 68          h              ; Restore command byte from stack; A=SCSI command byte to send
     jsr scsi_send_cmd_byte                                            ; aace: 20 fb 82     ..            ; Send one byte during SCSI command phase
-    lda wksp_buf_sec_hi,x                                             ; aad1: bd 03 10    ...            ; Get drive+LUN from channel block
+    lda wksp_buf_sec_hi,x                                             ; aad1: bd 03 10    ...            ; Get drive+LUN from channel block; A=SCSI command byte to send
     sta wksp_current_drive_hi                                         ; aad4: 8d 33 11    .3.            ; Save as current drive info
     jsr scsi_send_cmd_byte                                            ; aad7: 20 fb 82     ..            ; Send one byte during SCSI command phase
-    lda wksp_buf_sec_mid,x                                            ; aada: bd 02 10    ...            ; Get sector address high
+    lda wksp_buf_sec_mid,x                                            ; aada: bd 02 10    ...            ; Get sector address high; A=SCSI command byte to send
     jsr scsi_send_cmd_byte                                            ; aadd: 20 fb 82     ..            ; Send one byte during SCSI command phase
-    lda wksp_buf_sec_lo,x                                             ; aae0: bd 01 10    ...            ; Get sector address mid
+    lda wksp_buf_sec_lo,x                                             ; aae0: bd 01 10    ...            ; Get sector address mid; A=SCSI command byte to send
     jsr scsi_send_cmd_byte                                            ; aae3: 20 fb 82     ..            ; Send one byte during SCSI command phase
-    lda #1                                                            ; aae6: a9 01       ..             ; Sector count = 1
+    lda #1                                                            ; aae6: a9 01       ..             ; Sector count = 1; A=SCSI command byte to send
     jsr scsi_send_cmd_byte                                            ; aae8: 20 fb 82     ..            ; Send one byte during SCSI command phase
-    lda #0                                                            ; aaeb: a9 00       ..             ; Control byte = 0
+    lda #0                                                            ; aaeb: a9 00       ..             ; Control byte = 0; A=SCSI command byte to send
     jmp scsi_send_cmd_byte                                            ; aaed: 4c fb 82    L..            ; Send last command byte and return; Send one byte during SCSI command phase
 
 ; &aaf0 referenced 1 time by &ac5f
@@ -9181,7 +9208,7 @@ la868 = check_dest_terminator+1
     cmp #&21 ; '!'                                                    ; ab7c: c9 21       .!             ; Both set?
     bne advance_write_page                                            ; ab7e: d0 07       ..             ; No: not our interrupt
     jsr scsi_get_status                                               ; ab80: 20 56 80     V.            ; Read SCSI status; Read SCSI status with settling
-    cmp #&f2                                                          ; ab83: c9 f2       ..             ; Status = &F2 (completion)?
+    cmp #&f2                                                          ; ab83: c9 f2       ..             ; Status = &F2 (completion)?; A=settled SCSI status byte
     beq write_complete                                                ; ab85: f0 03       ..             ; Yes: handle SCSI completion
 ; &ab87 referenced 1 time by &ab7e
 .advance_write_page
@@ -9209,7 +9236,7 @@ la868 = check_dest_terminator+1
     beq return_35                                                     ; aba8: f0 2d       .-             ; Zero: no error, return
     lda #0                                                            ; abaa: a9 00       ..             ; Clear pending error
     sta wksp_scsi_status                                              ; abac: 8d 31 11    .1.            ; Clear error status
-    ldx wksp_err_handle                                               ; abaf: ae d4 10    ...            ; Get file handle for error message
+    ldx wksp_err_handle                                               ; abaf: ae d4 10    ...            ; Get file handle for error message; X=non-zero to append drive:sector suffix
     jsr generate_error_suffix_x                                       ; abb2: 20 53 83     S.            ; Generate error with suffix control in X
     equb &ca                                                          ; abb5: ca          .              ; Error &CA: Data lost
     equs "Data lost, channel", 0                                      ; abb6: 44 61 74... Dat
@@ -10644,8 +10671,8 @@ la868 = check_dest_terminator+1
     jsr get_drive_bit_mask                                            ; b4fe: 20 10 b5     ..            ; Get channel bit mask; Get bit mask for drive slot
     eor wksp_drive_change_mask                                        ; b501: 4d c2 10    M..            ; XOR with stored mask
     beq return_40                                                     ; b504: f0 ee       ..             ; Same: disc not changed
-    ldx #&0c                                                          ; b506: a2 0c       ..             ; Changed: reload FSM
-    ldy #&88                                                          ; b508: a0 88       ..             ; Y=&88: FSM control block
+    ldx #&0c                                                          ; b506: a2 0c       ..             ; Changed: reload FSM; X=control block address low byte
+    ldy #&88                                                          ; b508: a0 88       ..             ; Y=&88: FSM control block; Y=control block address high byte
     jsr exec_disc_command                                             ; b50a: 20 8b 82     ..            ; Read FSM from disc; Execute disc command and check for error
     jmp get_drive_slot_index                                          ; b50d: 4c 91 b4    L..            ; Continue checking
 
@@ -10716,8 +10743,8 @@ la868 = check_dest_terminator+1
     pla                                                               ; b567: 68          h              ; Restore original drive from stack
     cmp wksp_current_drive                                            ; b568: cd 17 11    ...            ; Compare with current
     beq restore_saved_drive                                           ; b56b: f0 07       ..             ; Same: no FSM reload needed
-    ldx #&0c                                                          ; b56d: a2 0c       ..             ; Different: reload FSM for current
-    ldy #&88                                                          ; b56f: a0 88       ..             ; Y=&88: FSM control block
+    ldx #&0c                                                          ; b56d: a2 0c       ..             ; Different: reload FSM for current; X=control block address low byte
+    ldy #&88                                                          ; b56f: a0 88       ..             ; Y=&88: FSM control block; Y=control block address high byte
     jsr exec_disc_command                                             ; b571: 20 8b 82     ..            ; Read FSM from disc; Execute disc command and check for error
 ; &b574 referenced 2 times by &b534, &b56b
 .restore_saved_drive
