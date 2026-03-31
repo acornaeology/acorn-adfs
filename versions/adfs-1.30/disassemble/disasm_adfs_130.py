@@ -12202,8 +12202,9 @@ option in the free space map.
     on_entry={"x": "first *OPT parameter (option number)",
               "y": "second *OPT parameter (value)"})
 
-subroutine(0x0D00, "nmi_workspace",
+subroutine(0xBC79, "nmi_handler_rom",
     title="NMI handler code (copied to &0D00)",
+    at_binary_addr=True,
     description="""\
 NMI handler for floppy disc byte-by-byte data transfer.
 Copied from ROM to the NMI workspace at &0D00 before each
