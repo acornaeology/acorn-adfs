@@ -1552,8 +1552,8 @@ label(0x9FD7, "help_param_none")  # NUL terminator of help_param_title doubles a
 # FSC 7: read file handle range
 label(0x9FD8, "fsc7_read_handle_range")
 entry(0x9FD8)
-comment(0x9FD8, "X=&30: lowest ADFS file handle", inline=True)
-comment(0x9FDA, "Y=&39: highest ADFS file handle", inline=True)
+comment(0x9FD8, "X=&30 ('0'): lowest ADFS file handle", inline=True)
+comment(0x9FDA, "Y=&39 ('9'): highest ADFS file handle", inline=True)
 comment(0x9FDC, "Return X=&30, Y=&39 to MOS", inline=True)
 
 # FSC 0: *OPT handler
@@ -10329,8 +10329,8 @@ comment(0x9ECB, "Increment pointer high page", inline=True)
 comment(0x9ED2, "Save text pointer low for handler", inline=True)
 comment(0x9ED5, "Get text pointer high", inline=True)
 comment(0x9ED7, "Save for handler", inline=True)
-comment(0x9FD8, "X=&30: lowest ADFS file handle", inline=True)
-comment(0x9FDA, "Y=&39: highest ADFS file handle", inline=True)
+comment(0x9FD8, "X=&30 ('0'): lowest ADFS file handle", inline=True)
+comment(0x9FDA, "Y=&39 ('9'): highest ADFS file handle", inline=True)
 comment(0x9FDC, "Return to FSC dispatcher", inline=True)
 comment(0x9FE7, "Get ADFS flags", inline=True)
 comment(0x9FE9, "Set bit 2 (*OPT1 verbose on)", inline=True)
@@ -12240,11 +12240,11 @@ subroutine(0x9FD8, "fsc7_read_handle_range",
     description="""\
 Return the range of file handles used by ADFS. The MOS calls
 FSC 7 to determine which handles belong to the current filing
-system. ADFS uses handles &30-&39 (10 channels).
+system. ADFS uses handles &30-&39 (ASCII '0'-'9', 10 channels).
 """,
     on_exit={"a": "corrupted",
-             "x": "&30 (lowest handle)",
-             "y": "&39 (highest handle)"})
+             "x": "&30 (lowest handle, ASCII '0')",
+             "y": "&39 (highest handle, ASCII '9')"})
 
 subroutine(0x9FDD, "fsc0_star_opt",
     title="FSC 0: *OPT command handler",

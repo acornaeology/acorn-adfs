@@ -7149,17 +7149,17 @@ help_param_none = help_param_title+7
 ; 
 ; Return the range of file handles used by ADFS. The MOS calls
 ; FSC 7 to determine which handles belong to the current filing
-; system. ADFS uses handles &30-&39 (10 channels).
+; system. ADFS uses handles &30-&39 (ASCII '0'-'9', 10 channels).
 ; 
 ; 
 ; On Exit:
 ;     A: corrupted
-;     X: &30 (lowest handle)
-;     Y: &39 (highest handle)
+;     X: &30 (lowest handle, ASCII '0')
+;     Y: &39 (highest handle, ASCII '9')
 ; ***************************************************************************************
 .fsc7_read_handle_range
-    ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0             ; X=&30: lowest ADFS file handle; X=&30: lowest ADFS file handle
-    ldy #&39 ; '9'                                                    ; 9fda: a0 39       .9             ; Y=&39: highest ADFS file handle; Y=&39: highest ADFS file handle
+    ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0             ; X=&30 ('0'): lowest ADFS file handle; X=&30 ('0'): lowest ADFS file handle
+    ldy #&39 ; '9'                                                    ; 9fda: a0 39       .9             ; Y=&39 ('9'): highest ADFS file handle; Y=&39 ('9'): highest ADFS file handle
     rts                                                               ; 9fdc: 60          `              ; Return X=&30, Y=&39 to MOS; Return to FSC dispatcher
 
 ; ***************************************************************************************
