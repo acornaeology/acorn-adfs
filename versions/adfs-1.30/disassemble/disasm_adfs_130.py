@@ -909,17 +909,14 @@ label(0xBCC2, "floppy_wait_nmi_finish")
 # NMI handler code fragments: all three are copied to &0D0A at
 # runtime. Each uses move() with a context manager so py8dis can
 # disambiguate the overlapping runtime addresses.
-label(0xBCDF, "nmi_write_code")
 nmi_write_move_id = move(0x0D0A, 0xBCDF, 14)
 with nmi_write_move_id:
     entry(0x0D0A)
 
-label(0xBCED, "nmi_tube_write_code")
 nmi_tube_write_move_id = move(0x0D0A, 0xBCED, 8)
 with nmi_tube_write_move_id:
     entry(0x0D0A)
 
-label(0xBCF5, "nmi_tube_read_code")
 nmi_tube_read_move_id = move(0x0D0A, 0xBCF5, 8)
 with nmi_tube_read_move_id:
     entry(0x0D0A)
@@ -3632,6 +3629,20 @@ comment(0xAD0D, "Store channel index offset", inline=True)
 comment(0xAD0F, "Transfer to X for table lookup", inline=True)
 comment(0xAD10, "Read channel flags", inline=True)
 comment(0xAD13, "Zero = channel not open", inline=True)
+
+# NMI patch variants: use move_id to disambiguate overlapping
+# runtime addresses at &0D0A.
+comment(0x0D0A, "Read byte from transfer address", inline=True, move_id=nmi_write_move_id)
+comment(0x0D0D, "Write to WD1770 data register", inline=True, move_id=nmi_write_move_id)
+comment(0x0D10, "Increment transfer address low", inline=True, move_id=nmi_write_move_id)
+comment(0x0D13, "No page crossing: done", inline=True, move_id=nmi_write_move_id)
+comment(0x0D15, "Increment transfer address high", inline=True, move_id=nmi_write_move_id)
+comment(0x0D0A, "Read byte from Tube R3", inline=True, move_id=nmi_tube_write_move_id)
+comment(0x0D0D, "Write to WD1770 data register", inline=True, move_id=nmi_tube_write_move_id)
+comment(0x0D10, "Always branch: done", inline=True, move_id=nmi_tube_write_move_id)
+comment(0x0D0A, "Read byte from WD1770", inline=True, move_id=nmi_tube_read_move_id)
+comment(0x0D0D, "Write to Tube R3", inline=True, move_id=nmi_tube_read_move_id)
+comment(0x0D10, "Always branch: done", inline=True, move_id=nmi_tube_read_move_id)
 
 # floppy_get_step_rate (&BBB4)
 # Reads OSBYTE &FF startup options, extracts bits 4-5 for
@@ -12235,6 +12246,30 @@ the current ROM state, switch to ROM 0, and call the
 track-stepping routine to prepare the next sector for
 transfer.
 """)
+
+subroutine(0x0D0A, "nmi_write_code",
+    title="NMI patch: write memory to disc",
+    description="""\
+Patched into &0D0A when writing to floppy disc from host
+memory. Reads a byte from the self-modifying transfer
+address and writes it to the WD1770 data register.
+""", move_id=nmi_write_move_id)
+
+subroutine(0x0D0A, "nmi_tube_write_code",
+    title="NMI patch: write Tube to disc",
+    description="""\
+Patched into &0D0A when writing to floppy disc via the
+Tube. Reads a byte from Tube data register 3 and writes
+it to the WD1770 data register.
+""", move_id=nmi_tube_write_move_id)
+
+subroutine(0x0D0A, "nmi_tube_read_code",
+    title="NMI patch: read disc to Tube",
+    description="""\
+Patched into &0D0A when reading from floppy disc via the
+Tube. Reads a byte from the WD1770 data register and
+writes it to Tube data register 3.
+""", move_id=nmi_tube_read_move_id)
 
 subroutine(0xBFF6, "str_rom_footer",
     title="ROM footer text",

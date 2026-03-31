@@ -44,8 +44,8 @@ def extract_annotations(driver_filepath):
             })
             continue
 
-        # subroutine(0xADDR, ...) — also detect is_entry_point=False
-        m = re.match(r'subroutine\(\s*(0x[0-9A-Fa-f]+)', stripped)
+        # subroutine(0xADDR, "name", ...) — also detect is_entry_point=False
+        m = re.match(r'subroutine\(\s*(0x[0-9A-Fa-f]+)\s*,\s*"([^"]*)"', stripped)
         if m:
             call_text = line
             paren_depth = line.count('(') - line.count(')')
@@ -59,6 +59,7 @@ def extract_annotations(driver_filepath):
             annotations.append({
                 "kind": "subroutine",
                 "address": int(m.group(1), 16),
+                "name": m.group(2),
                 "line_number": line_number,
                 "detail": "entry_point" if is_entry_point else "metadata_only",
             })
@@ -412,20 +413,24 @@ def lint(version_dirpath, version):
             else:
                 errors.append(msg)
 
-    # Check for duplicate subroutine or label declarations at the same address
+    # Check for duplicate subroutine or label declarations at the same address.
+    # Use (addr, name) as key since move_id can create distinct subroutines
+    # at the same runtime address (e.g. NMI patch variants at &0D0A).
     seen_subs = {}
     seen_labels = {}
     for ann in annotations:
         if ann["kind"] == "subroutine":
             addr = ann["address"]
-            if addr in seen_subs:
+            name = ann.get("name", "")
+            key = (addr, name)
+            if key in seen_subs:
                 errors.append(
                     f"  line {ann['line_number']}: "
                     f"duplicate subroutine(0x{addr:04X}) "
-                    f"— first at line {seen_subs[addr]}"
+                    f"— first at line {seen_subs[key]}"
                 )
             else:
-                seen_subs[addr] = ann["line_number"]
+                seen_subs[key] = ann["line_number"]
         elif ann["kind"] == "label":
             addr = ann["address"]
             if addr in seen_labels:
