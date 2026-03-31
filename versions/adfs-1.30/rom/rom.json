@@ -15,31 +15,6 @@
             "icon": "chip"
         },
         {
-            "label": "Acorn ADFS User Guide (PDF)",
-            "url": "https://chrisacorns.computinghistory.org.uk/docs/Acorn/Manuals/Acorn_ADFSUG.pdf",
-            "icon": "doc"
-        },
-        {
-            "label": "Acorn Winchester Disc 110/130 Service Manual (PDF)",
-            "url": "https://chrisacorns.computinghistory.org.uk/docs/Acorn/Manuals/Acorn_WinchesterSM.pdf",
-            "icon": "doc"
-        },
-        {
-            "label": "Adaptec ACB-4000 Series User's Manual (PDF)",
-            "url": "https://www.theoddys.com/acorn/acorn_system_filing_systems/winchester_disks/Adaptec%20ACB4000%20User%20Manual.pdf",
-            "icon": "doc"
-        },
-        {
-            "label": "Adaptec ACB-4000 OEM Manual (PDF)",
-            "url": "https://www.theoddys.com/acorn/acorn_system_filing_systems/winchester_disks/Adaptec%20ACB4000%20OEM%20Manual.pdf",
-            "icon": "doc"
-        },
-        {
-            "label": "Acorn SCSI Host Adapter Schematic",
-            "url": "https://www.theoddys.com/acorn/acorn_system_filing_systems/winchester_disks/Acorn%20SCSI%20Host%20Adapter%20Schematic.jpg",
-            "icon": "doc"
-        },
-        {
             "label": "A Stardot request for a disassembly of ADFS 1.30",
             "url": "https://stardot.org.uk/forums/viewtopic.php?t=13082",
             "icon": "chat"

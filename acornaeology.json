@@ -6,6 +6,31 @@
     "versions": ["1.30"],
     "references": [
         {
+            "label": "Acorn ADFS User Guide (PDF)",
+            "url": "https://chrisacorns.computinghistory.org.uk/docs/Acorn/Manuals/Acorn_ADFSUG.pdf",
+            "note": "Official Acorn user guide covering ADFS commands, disc formatting, and file operations."
+        },
+        {
+            "label": "Acorn Winchester Disc 110/130 Service Manual (PDF)",
+            "url": "https://chrisacorns.computinghistory.org.uk/docs/Acorn/Manuals/Acorn_WinchesterSM.pdf",
+            "note": "Service manual for the Acorn Winchester drive enclosure, covering the Host Adapter PCB, SCSI interface, and 1 MHz bus connection."
+        },
+        {
+            "label": "Adaptec ACB-4000 Series User's Manual (PDF)",
+            "url": "https://www.theoddys.com/acorn/acorn_system_filing_systems/winchester_disks/Adaptec%20ACB4000%20User%20Manual.pdf",
+            "note": "User manual for the Adaptec ACB-4000 SCSI-to-ST-412 disc controller used in Acorn Winchester drives."
+        },
+        {
+            "label": "Adaptec ACB-4000 OEM Manual (PDF)",
+            "url": "https://www.theoddys.com/acorn/acorn_system_filing_systems/winchester_disks/Adaptec%20ACB4000%20OEM%20Manual.pdf",
+            "note": "OEM technical manual for the ACB-4000 with SCSI command details and LUN-to-drive-select mapping."
+        },
+        {
+            "label": "Acorn SCSI Host Adapter Schematic",
+            "url": "https://www.theoddys.com/acorn/acorn_system_filing_systems/winchester_disks/Acorn%20SCSI%20Host%20Adapter%20Schematic.jpg",
+            "note": "Circuit diagram of the Host Adapter PCB that bridges the 1 MHz bus to the SCSI interface at &FC40-&FC43."
+        },
+        {
             "label": "Hoglet's ADFS 1.30 disassembly",
             "url": "https://github.com/hoglet67/ADFS130",
             "note": "A BeebAsm-syntax disassembly that reassembles to byte-identical ROMs for multiple ADFS variants. Provided important structural guidance."
