@@ -4690,7 +4690,10 @@ subroutine(0xBD4C, "apply_head_load_flag",
 If the head-loaded flag is set in the transfer state,
 OR bit 2 into A (the head load delay bit in WD1770
 step/seek commands).
-""")
+""",
+    on_entry={"a": "FDC command byte"},
+    on_exit={"a": "command with bit 2 set if head loaded",
+             "x": "preserved", "y": "preserved"})
 comment(0xBD4C, "Rotate head-loaded flag to carry", inline=True)
 comment(0xBD4F, "Not loaded: skip", inline=True)
 comment(0xBD51, "Set bit 2: head load delay", inline=True)
@@ -4715,7 +4718,10 @@ subroutine(0xBB09, "fdc_write_register_verify",
 Write value from zp_a3+X to FDC register at &FE85+X,
 then read back and loop until the value matches.
 This handles the WD1770's register write timing.
-""")
+""",
+    on_entry={"x": "FDC register index (0=track, 1=sector, 2=data)"},
+    on_exit={"a": "value written to register",
+             "x": "preserved", "y": "preserved"})
 comment(0xBB09, "Get value to write", inline=True)
 comment(0xBB0B, "Write to FDC register", inline=True)
 comment(0xBB0E, "Read back from register", inline=True)
@@ -7873,10 +7879,8 @@ Copy the reversed string 'Unset' (with quotes and CR
 padding) to the CSD or library name workspace at &1100+X.
 Used when dismounting or initialising to set the directory
 name to the default 'Unset' value.
-
-On entry:
-  X = offset into workspace (0 for CSD, 10 for library)
-""")
+""",
+    on_entry={"x": "workspace offset (0 for CSD, 10 for library)"})
 comment(0xA149, "Y=9: copy 10 bytes", inline=True)
 comment(0xA14B, "Get byte from reversed name table", inline=True)
 comment(0xA14E, "Store in CSD/lib name workspace", inline=True)
@@ -11184,21 +11188,28 @@ subroutine(0xAAC6, "hd_command_bget_bput_sector",
     description="""\
 Read or write a single sector via the SCSI interface for
 byte-level file access (BGET/BPUT channel operations).
-""")
+""",
+    on_entry={"a": "SCSI command byte (&08=read, &0A=write)",
+              "x": "channel buffer table offset"})
 
 subroutine(0xACFE, "check_set_channel_y",
     title="Validate and set channel number from Y",
     description="""\
 Check that Y contains a valid file handle and set the
 channel offset workspace variable.
-""")
+""",
+    on_entry={"y": "file handle (&30-&39)"},
+    on_exit={"a": "channel flags from wksp_ch_flags",
+             "x": "channel offset", "y": "preserved"})
 
 subroutine(0xAD16, "compare_ext_to_ptr",
     title="Compare file EXT to PTR",
     description="""\
 Compare the file extent (EXT) with the current pointer
 (PTR) for the channel in the workspace.
-""")
+""",
+    on_exit={"a": "last compared EXT byte (C clear if at EOF)",
+             "x": "channel offset", "y": "preserved"})
 
 subroutine(0xA93C, "fsc6_new_filing_system",
     title="FSC 6: new filing system selected",
@@ -11220,11 +11231,9 @@ subroutine(0xBA11, "floppy_check_present",
     description="""\
 Test whether the WD1770 floppy disc controller is present
 by probing its registers.
-
-On exit:
-  C set if floppy hardware present
-  C clear if not present
-""")
+""",
+    on_exit={"a": "corrupted (C set if present, clear if not)",
+             "x": "preserved", "y": "preserved"})
 
 subroutine(0xBB14, "do_floppy_scsi_command",
     title="Execute floppy disc command",
@@ -11299,8 +11308,12 @@ subroutine(0xBFA2, "xa_div_16_to_ya",
     title="Divide X:A by 16, result in Y:A",
     description="""\
 Divide the 16-bit value X:A by 16 (shift right 4 places).
-Result quotient in Y:A, remainder lost.
-""")
+Result quotient in Y, remainder in A.
+""",
+    on_entry={"x": "dividend high byte", "a": "dividend low byte",
+              "y": "must be &FF (initial quotient)"},
+    on_exit={"a": "remainder (0-15)", "x": "corrupted",
+             "y": "quotient"})
 
 subroutine(0xBFAE, "floppy_error",
     title="Handle floppy disc error",
@@ -11602,21 +11615,30 @@ subroutine(0xB85B, "output_byte_to_buffer",
 Write byte in A to the OSGBPB output destination. If Tube
 is active, sends via Tube R3; otherwise stores via
 (zp_mem_ptr) indirect and advances the byte counter.
-""")
+""",
+    on_entry={"a": "byte to output"},
+    on_exit={"a": "preserved", "x": "preserved", "y": "preserved"})
 
 subroutine(0xB579, "convert_drive_to_slot",
     title="Convert drive number to slot index",
     description="""\
 Shift drive number in A right 4 bits to produce a slot
 index in X.
-""")
+""",
+    on_entry={"a": "drive number (bits 5-7)"},
+    on_exit={"a": "corrupted", "x": "slot index (drive >> 4)",
+             "y": "preserved"})
 
 subroutine(0xABD8, "find_buffer_for_sector",
     title="Find or allocate a buffer for a sector",
     description="""\
 Scan channel buffer table for a buffer matching the target
 sector. If not found, evict the oldest buffer for reuse.
-""")
+""",
+    on_entry={"a": "buffer mode (&40=read, &C0=write)"},
+    on_exit={"a": "corrupted",
+             "x": "buffer table offset for slot",
+             "y": "corrupted"})
 
 subroutine(0xB4F5, "check_drive_and_reload_fsm",
     title="Check disc changed and reload FSM if needed",
@@ -11768,7 +11790,9 @@ subroutine(0xB510, "get_drive_bit_mask",
     description="""\
 Build a bit mask by rotating based on the drive slot
 index, then AND with drive-change flags.
-""")
+""",
+    on_exit={"a": "bit mask ANDed with wksp_drive_change_mask",
+             "x": "corrupted", "y": "preserved"})
 
 subroutine(0xB872, "output_dir_entry_name",
     title="Output 10-byte directory entry name",
@@ -11893,7 +11917,10 @@ subroutine(0xA35A, "combine_hex_digit_pair",
     description="""\
 Take high nibble from workspace, shift left 4, and
 OR with low nibble to produce a combined byte.
-""")
+""",
+    on_entry={"x": "offset into wksp_disc_op_result (0 or 2)"},
+    on_exit={"a": "combined byte value",
+             "x": "preserved", "y": "preserved"})
 
 subroutine(0xA016, "ca016",
     title="Print a space character",
