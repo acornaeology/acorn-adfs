@@ -129,10 +129,50 @@ constant(0xFD, "err_wild_cards")
 constant(0xFE, "err_bad_command")
 
 # ---------------------------------------------------------------------------
-# Zero page workspace
+# MOS zero page and system locations used by ADFS
 # ---------------------------------------------------------------------------
 
+# OSARGS user zero page pointer: X points to a 4-byte block
+# at &00-&03 in the user's zero page allocation
+label(0x0000, "zp_user_ptr_0")
+label(0x0001, "zp_user_ptr_1")
+label(0x0002, "zp_user_ptr_2")
+label(0x0003, "zp_user_ptr_3")
+
+# MOS zero page: OSWORD parameter block pointer
+label(0x00EF, "zp_osword_a")
+label(0x00F0, "zp_osword_ptr")
+label(0x00F1, "zp_osword_ptr_hi")
+
+# MOS zero page: Escape flag (bit 7 set = Escape pressed)
+label(0x00FF, "zp_escape_flag")
+
+# Stack page: BRK error block construction area
+label(0x0100, "brk_error_block")
+label(0x0101, "brk_error_block_1")
+label(0x0102, "brk_error_block_2")
+label(0x0103, "brk_error_block_3")
+label(0x0104, "brk_error_block_4")
+
+# Tube host code entry point
+label(0x0406, "tube_entry")
+
+# Extended vector workspace: FSC entry for boot
+label(0x06A9, "ext_vec_fsc_lo")
+
+# NMI handler: branch target after data transfer loop
+label(0x0D18, "nmi_transfer_done")
+
+# FSM sector 0: third byte (first free space length entry)
+label(0x0E03, "fsm_s0_first_length")
+
+# Self-modifying target in NMI handler (patched with real address)
+label(0xFFFF, "nmi_patched_addr")
+
+# ---------------------------------------------------------------------------
 # ADFS zero page variables
+# ---------------------------------------------------------------------------
+
 # NMI workspace (&A0-&A7): used by floppy disc driver
 label(0x00A0, "zp_floppy_error")
 label(0x00A1, "zp_floppy_control")
@@ -226,11 +266,19 @@ label(0x1011, "wksp_1011")
 label(0x1014, "wksp_1014")
 label(0x1015, "wksp_disc_op_result")
 label(0x1016, "wksp_disc_op_mem_addr")
+label(0x1017, "wksp_disc_op_mem_addr_1")
+label(0x1018, "wksp_disc_op_mem_addr_2")
+label(0x1019, "wksp_disc_op_mem_addr_3")
 label(0x101A, "wksp_disc_op_command")
 label(0x101B, "wksp_disc_op_sector")    # big-endian
+label(0x101C, "wksp_disc_op_sector_mid")
+label(0x101D, "wksp_disc_op_sector_lo")
 label(0x101E, "wksp_disc_op_sector_count")
 label(0x101F, "wksp_disc_op_control")
 label(0x1020, "wksp_disc_op_transfer_len")  # little-endian
+label(0x1021, "wksp_disc_op_xfer_len_1")
+label(0x1022, "wksp_disc_op_xfer_len_2")
+label(0x1023, "wksp_disc_op_xfer_len_3")
 label(0x1024, "wksp_1024")
 label(0x1026, "wksp_tube_transfer_addr")
 label(0x1027, "wksp_tube_transfer_addr_1")
