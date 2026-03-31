@@ -140,9 +140,10 @@ label(0x0002, "zp_user_ptr_2")
 label(0x0003, "zp_user_ptr_3")
 
 # MOS zero page: OSWORD parameter block pointer
-label(0x00EF, "zp_osword_a")
-label(0x00F0, "zp_osword_ptr")
-label(0x00F1, "zp_osword_ptr_hi")
+# MOS zero page: last OSBYTE/OSWORD register values
+label(0x00EF, "zp_osbyte_last_a")
+label(0x00F0, "zp_osbyte_last_x")
+label(0x00F1, "zp_osbyte_last_y")
 
 # MOS zero page: Escape flag (bit 7 set = Escape pressed)
 label(0x00FF, "zp_escape_flag")
@@ -282,21 +283,37 @@ label(0x1023, "wksp_disc_op_xfer_len_3")
 label(0x1024, "wksp_1024")
 label(0x1026, "wksp_tube_transfer_addr")
 label(0x1027, "wksp_tube_transfer_addr_1")
-label(0x1028, "wksp_1028")
-label(0x1029, "wksp_1029")
-label(0x102A, "wksp_102a")
-label(0x102B, "wksp_102b")
-label(0x102C, "wksp_csd_drive_sector")
+label(0x1028, "wksp_tube_xfer_addr_2")
+label(0x1029, "wksp_tube_xfer_addr_3")
+label(0x102A, "wksp_csd_drive_temp")
+label(0x102B, "wksp_csd_sector_temp")
+label(0x102C, "wksp_csd_drive_sector")     # 3-byte CSD sector + 1 drive
+label(0x102D, "wksp_csd_drive_sector_mid")
+label(0x102E, "wksp_alt_sector_hi")        # alt workspace sector pointer
 label(0x102F, "wksp_saved_drive")
-label(0x1030, "wksp_1030")
+label(0x1030, "wksp_temp_sector")          # 4-byte temp save for CSD sector
 label(0x1033, "wksp_last_access_drive")
-label(0x1034, "wksp_object_sector")
-label(0x1038, "wksp_1038")
-label(0x103A, "wksp_103a")
-label(0x1040, "wksp_osfile_block")  # 18-byte control block for OSFILE
-label(0x105D, "wksp_105d")
-label(0x105E, "wksp_105e")
-label(0x1060, "wksp_1060")
+label(0x1034, "wksp_object_sector")        # 3-byte object sector address
+label(0x1035, "wksp_object_sector_mid")
+label(0x1036, "wksp_object_sector_hi")
+label(0x1037, "wksp_object_size")          # 3-byte object size
+label(0x1038, "wksp_object_size_mid")
+label(0x1039, "wksp_object_size_hi")
+label(0x103A, "wksp_alloc_sector")         # 3-byte allocated sector
+label(0x103B, "wksp_saved_count")          # 4-byte saved byte count (OSGBPB)
+label(0x103C, "wksp_saved_count_1")
+label(0x103D, "wksp_alloc_size")           # 3-byte allocation request size
+label(0x103E, "wksp_alloc_size_mid")
+label(0x103F, "wksp_alloc_size_hi")
+label(0x1040, "wksp_osfile_block")         # 18-byte control block for OSFILE
+label(0x1041, "wksp_osfile_block_1")
+label(0x1042, "wksp_osfile_load_addr")     # OSFILE load address (4 bytes)
+label(0x1043, "wksp_osfile_load_addr_1")
+label(0x105D, "wksp_access_accum")         # access attribute accumulator
+label(0x105E, "wksp_access_accum_1")
+label(0x105F, "wksp_free_space_total")     # 3-byte free space total
+label(0x1060, "wksp_compact_start_page")   # *COMPACT start page
+label(0x1061, "wksp_compact_length")
 label(0x1062, "wksp_object_name")   # current object name buffer
 
 # Workspace page &1100
