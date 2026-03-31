@@ -1304,7 +1304,7 @@ nmi_patched_addr                                = &ffff
     ldy #0                                                            ; 835f: a0 00       ..             ; Y=0: index into inline error data
 ; &8361 referenced 1 time by &8367
 .copy_error_msg_loop
-    iny                                                               ; 8361: c8          .              ; Copy inline error message to page 1
+    iny                                                               ; 8361: c8          .              ; Copy inline error message to page 1; Y=index into brk_error_block
     lda (zp_mem_ptr_lo),y                                             ; 8362: b1 b2       ..             ; Read error msg byte from inline data
     sta brk_error_block,y                                             ; 8364: 99 00 01    ...            ; Store in error block on page 1
     bne copy_error_msg_loop                                           ; 8367: d0 f8       ..             ; Loop until zero terminator
@@ -1312,7 +1312,7 @@ nmi_patched_addr                                = &ffff
     beq generate_error_skip_no_suffix                                 ; 836a: f0 4f       .O             ; Skip suffix, go to channel check
     lda #&20 ; ' '                                                    ; 836c: a9 20       .              ; Append space before suffix
     sta brk_error_block,y                                             ; 836e: 99 00 01    ...            ; Store space in error block
-    txa                                                               ; 8371: 8a          .              ; Check if suffix is hex or decimal
+    txa                                                               ; 8371: 8a          .              ; Check if suffix is hex or decimal; A=byte value to convert to hex
     cmp #&30 ; '0'                                                    ; 8372: c9 30       .0             ; Suffix value >= '0'?
     bcs check_colon_suffix                                            ; 8374: b0 06       ..             ; Yes, check for colon
 ; &8376 referenced 1 time by &837e
@@ -1339,10 +1339,10 @@ nmi_patched_addr                                = &ffff
     asl a                                                             ; 8392: 0a          .              ; Shift drive bits into low nibble
     rol a                                                             ; 8393: 2a          *              ; Rotate drive bits to low nibble
     rol a                                                             ; 8394: 2a          *              ; Second rotate
-    rol a                                                             ; 8395: 2a          *              ; Third rotate
+    rol a                                                             ; 8395: 2a          *              ; Third rotate; A=value with hex digit in low nibble
     jsr hex_digit                                                     ; 8396: 20 3e 84     >.            ; Convert to hex digit character; Convert 4-bit value to ASCII hex digit
     iny                                                               ; 8399: c8          .              ; Advance position
-    sta brk_error_block,y                                             ; 839a: 99 00 01    ...            ; Store drive digit
+    sta brk_error_block,y                                             ; 839a: 99 00 01    ...            ; Store drive digit; A=ASCII hex character ('0'-'9' or 'A'-'F')
     lda #&2f ; '/'                                                    ; 839d: a9 2f       ./             ; Append '/' separator
     iny                                                               ; 839f: c8          .              ; Advance to next position
     sta brk_error_block,y                                             ; 83a0: 99 00 01    ...            ; Store separator in error block
@@ -1353,7 +1353,7 @@ nmi_patched_addr                                = &ffff
 
 ; &83ac referenced 1 time by &83b3
 .append_sector_bytes_loop
-    lda wksp_err_sector,x                                             ; 83ac: bd d0 10    ...            ; Get next sector byte from workspace
+    lda wksp_err_sector,x                                             ; 83ac: bd d0 10    ...            ; Get next sector byte from workspace; A=byte value to convert to hex
 ; &83af referenced 1 time by &83aa
 .append_sector_hex
     jsr hex_number_error_100_y                                        ; 83af: 20 2d 84     -.            ; Append as two hex digits; Parse hex number or raise error
@@ -1371,25 +1371,25 @@ nmi_patched_addr                                = &ffff
 ; &83c3 referenced 1 time by &83cb
 .append_channel_suffix_loop
     lda str_on_channel,x                                              ; 83c3: bd 21 84    .!.            ; Get char from reversed string
-    iny                                                               ; 83c6: c8          .              ; Advance position
+    iny                                                               ; 83c6: c8          .              ; Advance position; Y=index into brk_error_block
     sta brk_error_block,y                                             ; 83c7: 99 00 01    ...            ; Store in error block
     dex                                                               ; 83ca: ca          .              ; Next character in reversed string
     bpl append_channel_suffix_loop                                    ; 83cb: 10 f6       ..             ; Loop for 12 chars
-    lda wksp_cur_channel                                              ; 83cd: ad d5 10    ...            ; Get channel number
+    lda wksp_cur_channel                                              ; 83cd: ad d5 10    ...            ; Get channel number; A=byte value to convert to decimal
     jsr dec_number_error_100_y                                        ; 83d0: 20 49 84     I.            ; Append as decimal digits; Parse decimal number or raise error
-    tya                                                               ; 83d3: 98          .              ; Save current position
+    tya                                                               ; 83d3: 98          .              ; Save current position; Y=advanced past decimal digits
     pha                                                               ; 83d4: 48          H              ; Push Y on stack
-    lda #&c6                                                          ; 83d5: a9 c6       ..             ; Close SPOOL file if open
+    lda #&c6                                                          ; 83d5: a9 c6       ..             ; Close SPOOL file if open; A=OSBYTE number
     sta wksp_screen_mode_save                                         ; 83d7: 8d d8 10    ...            ; Store SPOOL/EXEC flag
     jsr osbyte_y_ff_x_00                                              ; 83da: 20 a0 84     ..            ; OSBYTE &C6: read/write EXEC handle; Call OSBYTE to read current value
-    cpx wksp_cur_channel                                              ; 83dd: ec d5 10    ...            ; Is EXEC on this channel?
+    cpx wksp_cur_channel                                              ; 83dd: ec d5 10    ...            ; Is EXEC on this channel?; X=OSBYTE result low byte
     php                                                               ; 83e0: 08          .              ; Save flags for comparison result
     ldx #&99                                                          ; 83e1: a2 99       ..             ; X=&99: EXEC string address
     plp                                                               ; 83e3: 28          (              ; Restore flags
     beq check_shadow_save                                             ; 83e4: f0 07       ..             ; Yes, close EXEC file
-    cpy wksp_cur_channel                                              ; 83e6: cc d5 10    ...            ; Is SPOOL on this channel?
+    cpy wksp_cur_channel                                              ; 83e6: cc d5 10    ...            ; Is SPOOL on this channel?; Y=OSBYTE result high byte
     bne restore_shadow_screen                                         ; 83e9: d0 05       ..             ; No, skip
-    ldx #&9c                                                          ; 83eb: a2 9c       ..             ; Close SPOOL file (ptr at &9C)
+    ldx #&9c                                                          ; 83eb: a2 9c       ..             ; Close SPOOL file (ptr at &9C); X=low byte of command string address in page &84
 ; &83ed referenced 1 time by &83e4
 .check_shadow_save
     jsr oscli_at_x                                                    ; 83ed: 20 a7 84     ..            ; Execute close via OSCLI; Execute OSCLI with string at X
@@ -1411,9 +1411,9 @@ nmi_patched_addr                                = &ffff
     lda brk_error_block_1                                             ; 8405: ad 01 01    ...            ; Check error code
     cmp #&c7                                                          ; 8408: c9 c7       ..             ; Is it &C7 (Disc error)?
     bne run_exec_or_spool                                             ; 840a: d0 0d       ..             ; No, just execute the BRK
-    ldx #&9c                                                          ; 840c: a2 9c       ..             ; Close SPOOL before disc error
+    ldx #&9c                                                          ; 840c: a2 9c       ..             ; Close SPOOL before disc error; X=low byte of command string address in page &84
     jsr oscli_at_x                                                    ; 840e: 20 a7 84     ..            ; Execute OSCLI with string at X
-    ldx #&99                                                          ; 8411: a2 99       ..             ; Close EXEC before disc error
+    ldx #&99                                                          ; 8411: a2 99       ..             ; Close EXEC before disc error; X=low byte of command string address in page &84
     jsr oscli_at_x                                                    ; 8413: 20 a7 84     ..            ; Execute OSCLI with string at X
     jsr invalidate_fsm_and_dir                                        ; 8416: 20 76 84     v.            ; Invalidate FSM/dir after disc error; Mark FSM and directory as invalid
 ; &8419 referenced 1 time by &840a
@@ -1442,6 +1442,15 @@ nmi_patched_addr                                = &ffff
 ; Parse a hexadecimal number from the command line. Raises
 ; an error if the number is invalid.
 ; 
+; 
+; On Entry:
+;     A: byte value to convert to hex
+;     Y: index into brk_error_block
+; 
+; On Exit:
+;     A: ASCII hex digit of low nibble
+;     X: preserved
+;     Y: advanced by 2
 ; ***************************************************************************************
 ; &842d referenced 2 times by &8376, &83af
 .hex_number_error_100_y
@@ -1451,12 +1460,12 @@ nmi_patched_addr                                = &ffff
     lsr a                                                             ; 8430: 4a          J              ; (continued)
     lsr a                                                             ; 8431: 4a          J              ; (continued)
     jsr store_hex_nibble                                              ; 8432: 20 36 84     6.            ; Output high nibble as hex digit
-    pla                                                               ; 8435: 68          h              ; Restore original byte
+    pla                                                               ; 8435: 68          h              ; Restore original byte; A=value with hex digit in low nibble
 ; &8436 referenced 1 time by &8432
 .store_hex_nibble
     jsr hex_digit                                                     ; 8436: 20 3e 84     >.            ; Convert low nibble and output; Convert 4-bit value to ASCII hex digit
     iny                                                               ; 8439: c8          .              ; Advance position in error block
-    sta brk_error_block,y                                             ; 843a: 99 00 01    ...            ; Store hex digit character
+    sta brk_error_block,y                                             ; 843a: 99 00 01    ...            ; Store hex digit character; A=ASCII hex character ('0'-'9' or 'A'-'F')
     rts                                                               ; 843d: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -1465,6 +1474,14 @@ nmi_patched_addr                                = &ffff
 ; Convert a 4-bit value in A to an ASCII hex character
 ; ('0'-'9' or 'A'-'F'). The low nibble of A is used.
 ; 
+; 
+; On Entry:
+;     A: value with hex digit in low nibble
+; 
+; On Exit:
+;     A: ASCII hex character ('0'-'9' or 'A'-'F')
+;     X: preserved
+;     Y: preserved
 ; ***************************************************************************************
 ; &843e referenced 3 times by &8396, &8436, &9324
 .hex_digit
@@ -1483,6 +1500,15 @@ nmi_patched_addr                                = &ffff
 ; Parse a decimal number from the command line. Raises an
 ; error if the number is invalid.
 ; 
+; 
+; On Entry:
+;     A: byte value to convert to decimal
+;     Y: index into brk_error_block
+; 
+; On Exit:
+;     A: corrupted
+;     X: corrupted
+;     Y: advanced past decimal digits
 ; ***************************************************************************************
 ; &8449 referenced 2 times by &8380, &83d0
 .dec_number_error_100_y
@@ -1527,6 +1553,11 @@ nmi_patched_addr                                = &ffff
 ; Set flags to indicate that the in-memory free space map and
 ; directory buffer may be stale and need reloading from disc.
 ; 
+; 
+; On Exit:
+;     A: zero
+;     X: corrupted
+;     Y: zero
 ; ***************************************************************************************
 ; &8476 referenced 3 times by &82ab, &8416, &9c0f
 .invalidate_fsm_and_dir
@@ -1572,6 +1603,14 @@ nmi_patched_addr                                = &ffff
 ; Call OSBYTE with Y=&FF and X=0 to read the current
 ; value of the variable specified in A.
 ; 
+; 
+; On Entry:
+;     A: OSBYTE number
+; 
+; On Exit:
+;     A: corrupted
+;     X: OSBYTE result low byte
+;     Y: OSBYTE result high byte
 ; ***************************************************************************************
 ; &84a0 referenced 3 times by &83da, &9ba7, &9c79
 .osbyte_y_ff_x_00
@@ -1585,6 +1624,14 @@ nmi_patched_addr                                = &ffff
 ; 
 ; Call OSCLI with the command string address in X (low byte).
 ; 
+; 
+; On Entry:
+;     X: low byte of command string address in page &84
+; 
+; On Exit:
+;     A: corrupted
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &84a7 referenced 3 times by &83ed, &840e, &8413
 .oscli_at_x
@@ -1609,6 +1656,14 @@ nmi_patched_addr                                = &ffff
 ; correct position in the sorted FSM and merges with
 ; adjacent free entries where possible.
 ; 
+; 
+; On Entry:
+;     NOTE: wksp_object_sector and wksp_object_size set in workspace
+; 
+; On Exit:
+;     A: corrupted
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &84b5 referenced 5 times by &8f49, &9235, &9892, &af08, &b45f
 .release_disc_space
@@ -1673,7 +1728,7 @@ nmi_patched_addr                                = &ffff
     cpy #3                                                            ; 84ff: c0 03       ..             ; Compared all 3 bytes?
     bne check_adjacent_to_next_loop                                   ; 8501: d0 e9       ..             ; No, continue comparing
     plp                                                               ; 8503: 28          (              ; Restore carry from addition
-    ldx zp_mem_ptr_lo                                                 ; 8504: a6 b2       ..             ; Get FSM entry index back
+    ldx zp_mem_ptr_lo                                                 ; 8504: a6 b2       ..             ; Get FSM entry index back; X=FSM entry index into sector 0/1 buffers
     beq add_size_to_existing_entry                                    ; 8506: f0 63       .c             ; Entry 0: no preceding entry to merge; Add released size to FSM entry
     clc                                                               ; 8508: 18          .              ; Clear carry for addition
     php                                                               ; 8509: 08          .              ; Save carry for multi-byte add
@@ -1686,7 +1741,7 @@ nmi_patched_addr                                = &ffff
     php                                                               ; 8513: 08          .              ; Save carry
     cmp wksp_object_sector,y                                          ; 8514: d9 34 10    .4.            ; Compare prev+size with object sector
     beq adjacent_prev_byte                                            ; 8517: f0 06       ..             ; Match: prev is adjacent (merge back)
-    ldx zp_mem_ptr_lo                                                 ; 8519: a6 b2       ..             ; No match: insert new entry
+    ldx zp_mem_ptr_lo                                                 ; 8519: a6 b2       ..             ; No match: insert new entry; X=FSM entry index into sector 0/1 buffers
     plp                                                               ; 851b: 28          (              ; Restore carry
     jmp add_size_to_existing_entry                                    ; 851c: 4c 6b 85    Lk.            ; Not adjacent: insert new entry; Add released size to FSM entry
 
@@ -1749,6 +1804,14 @@ nmi_patched_addr                                = &ffff
 ; block size to an existing FSM length entry, merging
 ; adjacent free regions.
 ; 
+; 
+; On Entry:
+;     X: FSM entry index into sector 0/1 buffers
+; 
+; On Exit:
+;     A: corrupted
+;     X: corrupted
+;     Y: 3
 ; ***************************************************************************************
 ; &856b referenced 2 times by &8506, &851c
 .add_size_to_existing_entry
@@ -1821,6 +1884,14 @@ nmi_patched_addr                                = &ffff
 ; Otherwise shift entries up and insert the new entry at
 ; the correct sorted position.
 ; 
+; 
+; On Entry:
+;     NOTE: zp_mem_ptr_lo = insertion point index in FSM
+; 
+; On Exit:
+;     A: corrupted
+;     X: corrupted
+;     Y: corrupted
 ; ***************************************************************************************
 ; &85c1 referenced 2 times by &858a, &859e
 .insert_new_entry
@@ -4555,7 +4626,7 @@ nmi_patched_addr                                = &ffff
     lsr a                                                             ; 931e: 4a          J              ; Third shift
     lsr a                                                             ; 931f: 4a          J              ; Fourth shift
     jsr print_hex_nibble                                              ; 9320: 20 24 93     $.            ; Print high nibble as hex char
-    pla                                                               ; 9323: 68          h              ; Restore value for low nibble
+    pla                                                               ; 9323: 68          h              ; Restore value for low nibble; A=value with hex digit in low nibble
 ; &9324 referenced 1 time by &9320
 .print_hex_nibble
     jsr hex_digit                                                     ; 9324: 20 3e 84     >.            ; Convert 4-bit value to ASCII hex digit
@@ -6154,10 +6225,10 @@ boot_run_option = sub_c9b86+1
     sta filev,y                                                       ; 9b9f: 99 12 02    ...            ; Store in MOS vector table
     dey                                                               ; 9ba2: 88          .              ; Next byte
     bpl copy_boot_command_loop                                        ; 9ba3: 10 f7       ..             ; Loop for 14 bytes
-    lda #&a8                                                          ; 9ba5: a9 a8       ..             ; OSBYTE &A8: read ROM pointer table
+    lda #&a8                                                          ; 9ba5: a9 a8       ..             ; OSBYTE &A8: read ROM pointer table; A=OSBYTE number
     jsr osbyte_y_ff_x_00                                              ; 9ba7: 20 a0 84     ..            ; Read current value; Call OSBYTE to read current value
-    stx zp_text_ptr_lo                                                ; 9baa: 86 b4       ..             ; Store extended vector base low
-    sty zp_text_ptr_hi                                                ; 9bac: 84 b5       ..             ; Store extended vector base high
+    stx zp_text_ptr_lo                                                ; 9baa: 86 b4       ..             ; Store extended vector base low; X=OSBYTE result low byte
+    sty zp_text_ptr_hi                                                ; 9bac: 84 b5       ..             ; Store extended vector base high; Y=OSBYTE result high byte
     ldy #&2f ; '/'                                                    ; 9bae: a0 2f       ./             ; Y=&2F: offset into ext vector table
     ldx #&14                                                          ; 9bb0: a2 14       ..             ; X=&14: 21 bytes of ext vectors
 ; &9bb2 referenced 1 time by &9bbf
@@ -6274,7 +6345,7 @@ boot_run_option = sub_c9b86+1
     jsr save_wksp_and_return                                          ; 9c74: 20 d3 89     ..            ; Save workspace state; Save workspace state and return result
 ; &9c77 referenced 1 time by &9c24
 .set_fsm_load_flag
-    lda #&ea                                                          ; 9c77: a9 ea       ..             ; OSBYTE &EA: read Tube presence
+    lda #&ea                                                          ; 9c77: a9 ea       ..             ; OSBYTE &EA: read Tube presence; A=OSBYTE number
     jsr osbyte_y_ff_x_00                                              ; 9c79: 20 a0 84     ..            ; Read current value; Call OSBYTE to read current value
     lda zp_adfs_flags                                                 ; 9c7c: a5 cd       ..             ; Get current ADFS flags
     and #&7f                                                          ; 9c7e: 29 7f       ).             ; Clear bit 7 (Tube flag)

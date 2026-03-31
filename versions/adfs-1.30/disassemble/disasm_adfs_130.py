@@ -1987,7 +1987,9 @@ wksp_object_sector (3 bytes) with size at &1037-&1039
 (3 bytes) back to the free space map. Searches for the
 correct position in the sorted FSM and merges with
 adjacent free entries where possible.
-""")
+""",
+    on_entry={"note": "wksp_object_sector and wksp_object_size set in workspace"},
+    on_exit={"a": "corrupted", "x": "corrupted", "y": "corrupted"})
 
 comment(0x84B5, "Check if object has non-zero size", inline=True)
 comment(0x84BE, "Size is zero, nothing to release", inline=True)
@@ -10794,7 +10796,8 @@ subroutine(0x8476, "invalidate_fsm_and_dir",
     description="""\
 Set flags to indicate that the in-memory free space map and
 directory buffer may be stale and need reloading from disc.
-""")
+""",
+    on_exit={"a": "zero", "x": "corrupted", "y": "zero"})
 
 subroutine(0xA6C7, "check_dir_loaded",
     title="Ensure current directory is loaded",
@@ -10835,21 +10838,27 @@ subroutine(0x842D, "hex_number_error_100_y",
     description="""\
 Parse a hexadecimal number from the command line. Raises
 an error if the number is invalid.
-""")
+""",
+    on_entry={"a": "byte value to convert to hex", "y": "index into brk_error_block"},
+    on_exit={"a": "ASCII hex digit of low nibble", "x": "preserved", "y": "advanced by 2"})
 
 subroutine(0x843E, "hex_digit",
     title="Convert 4-bit value to ASCII hex digit",
     description="""\
 Convert a 4-bit value in A to an ASCII hex character
 ('0'-'9' or 'A'-'F'). The low nibble of A is used.
-""")
+""",
+    on_entry={"a": "value with hex digit in low nibble"},
+    on_exit={"a": "ASCII hex character ('0'-'9' or 'A'-'F')", "x": "preserved", "y": "preserved"})
 
 subroutine(0x8449, "dec_number_error_100_y",
     title="Parse decimal number or raise error",
     description="""\
 Parse a decimal number from the command line. Raises an
 error if the number is invalid.
-""")
+""",
+    on_entry={"a": "byte value to convert to decimal", "y": "index into brk_error_block"},
+    on_exit={"a": "corrupted", "x": "corrupted", "y": "advanced past decimal digits"})
 
 subroutine(0x9ACF, "service_handler_1",
     title="Service 1: absolute workspace claim",
@@ -10905,7 +10914,9 @@ subroutine(0x84A7, "oscli_at_x",
     title="Execute OSCLI with string at X",
     description="""\
 Call OSCLI with the command string address in X (low byte).
-""")
+""",
+    on_entry={"x": "low byte of command string address in page &84"},
+    on_exit={"a": "corrupted", "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x871A, "check_char_is_terminator",
     title="Check if character is a filename terminator",
@@ -11457,7 +11468,9 @@ subroutine(0x84A0, "osbyte_y_ff_x_00",
     description="""\
 Call OSBYTE with Y=&FF and X=0 to read the current
 value of the variable specified in A.
-""")
+""",
+    on_entry={"a": "OSBYTE number"},
+    on_exit={"a": "corrupted", "x": "OSBYTE result low byte", "y": "OSBYTE result high byte"})
 
 subroutine(0x8F4C, "validate_not_locked",
     title="Validate file is not locked then create entry",
@@ -11953,7 +11966,9 @@ subroutine(0x856B, "add_size_to_existing_entry",
 Copy the object sector address and add the released
 block size to an existing FSM length entry, merging
 adjacent free regions.
-""")
+""",
+    on_entry={"x": "FSM entry index into sector 0/1 buffers"},
+    on_exit={"a": "corrupted", "x": "corrupted", "y": "3"})
 
 subroutine(0x85C1, "insert_new_entry",
     title="Insert new entry into FSM",
@@ -11961,7 +11976,9 @@ subroutine(0x85C1, "insert_new_entry",
 Check for room in the FSM. If full, raise Map full error.
 Otherwise shift entries up and insert the new entry at
 the correct sorted position.
-""")
+""",
+    on_entry={"note": "zp_mem_ptr_lo = insertion point index in FSM"},
+    on_exit={"a": "corrupted", "x": "corrupted", "y": "corrupted"})
 
 subroutine(0x8A63, "adjust_for_partial_xfer",
     title="Execute disc transfer in batches",
