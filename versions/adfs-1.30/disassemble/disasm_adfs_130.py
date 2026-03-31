@@ -698,6 +698,8 @@ entry(0xBBF1)
 label(0xBBF1, "copy_code_to_nmi_space")
 label(0xBC79, "nmi_code_start")
 label(0xBC83, "nmi_code_rw")
+entry(0xBC93)  # NMI status/error handler (after RTI)
+entry(0xBCA5)  # NMI end-of-operation handler (after RTI)
 entry(0xBCC2)
 label(0xBCC2, "floppy_wait_nmi_finish")
 
@@ -4475,6 +4477,10 @@ label(0xBC50, "setup_tube_read_nmi")
 label(0xBC52, "copy_tube_read_nmi_loop")
 label(0xBC5C, "setup_direct_write_nmi")
 label(0xBC62, "copy_write_nmi_loop")
+label(0xBC91, "nmi_restore_and_return")
+label(0xBC93, "nmi_check_status_error")
+label(0xBC9E, "nmi_set_transfer_complete")
+label(0xBCA5, "nmi_check_end_of_operation")
 label(0xBCC8, "poll_nmi_complete")
 label(0xBCFD, "select_fdc_rw_command")
 label(0xBD0E, "set_read_command")
@@ -10089,6 +10095,59 @@ comment(0xBC73, "Get transfer addr high from block", inline=True)
 comment(0xBC75, "Patch NMI handler with addr high", inline=True)
 comment(0xBC78, "Return", inline=True)
 
+# NMI handler code (&BC79-&BCC1, runs at &0D00-&0D48)
+# Entry point: NMI vector fires on each WD1770 DRQ or status change
+comment(0xBC79, "Save A (NMI must preserve all regs)", inline=True)
+comment(0xBC7A, "Read WD1770 status register", inline=True)
+comment(0xBC7D, "Mask to low 5 status bits", inline=True)
+comment(0xBC7F, "Status = 3 (data request)?", inline=True)
+comment(0xBC81, "No: check for error or completion", inline=True)
+
+# DRQ handler: transfer one byte (default is read from disc)
+# This section is patched by nmi_write_code, nmi_tube_write_code,
+# or nmi_tube_read_code depending on the transfer direction.
+comment(0xBC83, "Read byte from WD1770 data register", inline=True)
+comment(0xBC86, "Store at transfer address (patched)", inline=True)
+comment(0xBC89, "Increment transfer address low byte", inline=True)
+comment(0xBC8C, "No page crossing: skip high byte", inline=True)
+comment(0xBC8E, "Increment transfer address high byte", inline=True)
+comment(0xBC91, "Restore A", inline=True)
+comment(0xBC92, "Return from NMI", inline=True)
+
+# Status/error handler: not a DRQ, check for errors
+comment(0xBC93, "Test error bits: WP, RNF, CRC (&58)", inline=True)
+comment(0xBC95, "No errors: check for end of operation", inline=True)
+comment(0xBC97, "Store error status for later reporting", inline=True)
+comment(0xBC99, "Set bit 0 of control flags (error)", inline=True)
+comment(0xBC9B, "(continued)", inline=True)
+comment(0xBC9C, "(continued)", inline=True)
+
+# Set transfer-complete flag and return
+comment(0xBC9E, "Set bit 0 of state (transfer complete)", inline=True)
+comment(0xBCA0, "(continued)", inline=True)
+comment(0xBCA1, "(continued)", inline=True)
+comment(0xBCA3, "Restore A", inline=True)
+comment(0xBCA4, "Return from NMI", inline=True)
+
+# End-of-operation: no error, no DRQ — check if track stepping needed
+comment(0xBCA5, "Bit 6 of state: multi-sector mode?", inline=True)
+comment(0xBCA7, "No: mark complete and return", inline=True)
+comment(0xBCA9, "Save current ROM number", inline=True)
+comment(0xBCAB, "Push ROM number on stack", inline=True)
+comment(0xBCAC, "Select ROM 0 for floppy driver", inline=True)
+comment(0xBCAE, "Store in ROM select shadow", inline=True)
+comment(0xBCB0, "Write to ROM select register", inline=True)
+comment(0xBCB3, "Save X", inline=True)
+comment(0xBCB4, "Push X on stack", inline=True)
+comment(0xBCB5, "Call track-stepping routine", inline=True)
+comment(0xBCB8, "Restore X", inline=True)
+comment(0xBCB9, "Transfer to X", inline=True)
+comment(0xBCBA, "Restore original ROM number", inline=True)
+comment(0xBCBB, "Store in ROM select shadow", inline=True)
+comment(0xBCBD, "Write to ROM select register", inline=True)
+comment(0xBCC0, "Restore A", inline=True)
+comment(0xBCC1, "Return from NMI", inline=True)
+
 # star_remove - remaining gap items
 comment(0x910E, "Store filename addr in OSFILE block", inline=True)
 comment(0x9111, "Get filename pointer high", inline=True)
@@ -12091,11 +12150,46 @@ option in the free space map.
 subroutine(0xBC79, "nmi_code_start",
     title="NMI handler code (copied to &0D00)",
     description="""\
-NMI handler routines for floppy disc data transfer. This
-code is copied from ROM to the NMI workspace at &0D00
-at the start of each floppy operation. Handles byte-by-byte
-transfer between the WD1770 data register and memory,
-with variants for direct memory, Tube read, and Tube write.
+NMI handler for floppy disc byte-by-byte data transfer.
+Copied from ROM to the NMI workspace at &0D00 before each
+floppy operation. The WD1770 fires an NMI on each byte
+transferred (DRQ) and on command completion.
+
+The handler has three paths:
+  1. DRQ (status & &1F = 3): transfer one byte between
+     the WD1770 data register and memory. The code at
+     &0D0A-&0D17 is patched with one of three variants:
+     nmi_write_code (direct memory write to disc),
+     nmi_tube_write_code (Tube to disc), or
+     nmi_tube_read_code (disc to Tube). The default
+     (nmi_code_rw) is direct memory read from disc.
+  2. Error (status & &58 != 0): store the error status
+     and set bit 0 of zp_floppy_control and
+     zp_floppy_state to signal the error to the caller.
+  3. Completion (no DRQ, no error): if multi-sector mode
+     is active (bit 6 of zp_floppy_state), switch to
+     ROM 0 and call the track-stepping routine to set up
+     the next sector. Otherwise mark transfer complete.
+""")
+
+subroutine(0xBC93, "nmi_check_status_error",
+    title="NMI status/error handler",
+    description="""\
+Not a DRQ: check WD1770 status for error bits. Bits 6
+(write protect), 4 (record not found), and 3 (CRC error)
+are tested via AND #&58. If any are set, store the error
+code and set the error flag in the control byte.
+""")
+
+subroutine(0xBCA5, "nmi_check_end_of_operation",
+    title="NMI end-of-operation handler",
+    description="""\
+No error and no DRQ: the WD1770 command has completed.
+If multi-sector mode (bit 6 of zp_floppy_state) is not
+active, just mark the transfer complete. Otherwise, save
+the current ROM state, switch to ROM 0, and call the
+track-stepping routine to prepare the next sector for
+transfer.
 """)
 
 subroutine(0xBFF6, "str_rom_footer",
