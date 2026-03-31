@@ -12235,8 +12235,9 @@ subroutine(0xBFF6, "str_rom_footer",
     title="ROM footer text",
     description="""\
 The text 'and Hugo.' followed by CR. This fills the last
-10 bytes of the ROM, a signature referencing the Hugo
-directory format used by ADFS.
+10 bytes of the ROM, a credit to Hugo Tyson who wrote
+ADFS. The 'Hugo' string also serves as the 4-byte magic
+number at both ends of every ADFS directory structure.
 """)
 
 subroutine(0x8DED, "tbl_forbidden_chars",

@@ -12747,8 +12747,9 @@ la868 = check_dest_terminator+1
 ; ROM footer text
 ; 
 ; The text 'and Hugo.' followed by CR. This fills the last
-; 10 bytes of the ROM, a signature referencing the Hugo
-; directory format used by ADFS.
+; 10 bytes of the ROM, a credit to Hugo Tyson who wrote
+; ADFS. The 'Hugo' string also serves as the 4-byte magic
+; number at both ends of every ADFS directory structure.
 ; 
 .str_rom_footer
     equs "and Hugo.", &0d                                             ; bff6: 61 6e 64... and            ; "and Hugo." + CR: ROM footer text
