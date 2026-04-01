@@ -6275,11 +6275,11 @@ str_run_boot = str_l_boot+2
 ; &9b57 referenced 1 time by &9b49
 .check_boot_option
     dex                                                               ; 9b57: ca          .              ; Adjust key code
-    cpx #&79 ; 'y'                                                    ; 9b58: e0 79       .y             ; Key 'y' (key 121-1)?
-    beq boot_shift_pressed                                            ; 9b5a: f0 12       ..             ; Key A: boot from floppy
-    cpx #&41 ; 'A'                                                    ; 9b5c: e0 41       .A             ; Key 'A' (key 65-1)?
-    beq boot_shift_pressed                                            ; 9b5e: f0 0e       ..             ; Key C: no boot at all
-    cpx #&43 ; 'C'                                                    ; 9b60: e0 43       .C             ; Is it key C (Ctrl+Break)?
+    cpx #&79 ; 'y'                                                    ; 9b58: e0 79       .y             ; Shift (key 122-1)?
+    beq boot_shift_pressed                                            ; 9b5a: f0 12       ..             ; Shift+Break: boot from floppy
+    cpx #&41 ; 'A'                                                    ; 9b5c: e0 41       .A             ; A (key 66-1)?
+    beq boot_shift_pressed                                            ; 9b5e: f0 0e       ..             ; A+Break: boot from hard drive
+    cpx #&43 ; 'C'                                                    ; 9b60: e0 43       .C             ; Ctrl+Break?
     beq check_boot_key                                                ; 9b62: f0 07       ..             ; Yes, handle Ctrl+Break boot
     pla                                                               ; 9b64: 68          h              ; Unrecognised key: pass on service
     tay                                                               ; 9b65: a8          .              ; Restore Y
