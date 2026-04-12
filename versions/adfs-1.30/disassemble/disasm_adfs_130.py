@@ -219,6 +219,16 @@ label(0x00CF, "zp_channel_offset")
 # ---------------------------------------------------------------------------
 # Paged workspace: free space map (&0E00-&0FFF)
 # ---------------------------------------------------------------------------
+# Sector 0 (&0E00-&0EFF): free space start sectors (3 bytes each)
+#   Tail: &FA reserved, &FB padding, &FC-&FE disc size (24-bit), &FF checksum
+# Sector 1 (&0F00-&0FFF): free space lengths (3 bytes each)
+#   Tail: &FB-&FC disc ID, &FD boot option, &FE end-of-list ptr, &FF checksum
+#
+# The sector 0 tail labels (fsm_s0_disc_size_mid etc.) also appear in
+# X-indexed instructions like "adc fsm_s0_disc_size_mid,x". This is an
+# addressing trick: with X = 3*N+3 the effective address lands in sector 1,
+# accessing free space length entries. The label reflects the byte's true
+# meaning in sector 0; the inline comment describes the indexed access.
 
 label(0x0E00, "fsm_sector_0")
 label(0x0F00, "fsm_sector_1")
