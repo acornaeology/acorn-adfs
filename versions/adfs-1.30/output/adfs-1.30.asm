@@ -2251,7 +2251,13 @@ nmi_patched_addr            = &ffff
 ; Check if character is a filename terminator
 ; 
 ; Test whether the character at (&B4),Y is a filename
-; terminator: space, dot, double-quote, or control character.
+; terminator. Bit 7 is stripped with AND #&7F before any
+; comparison, so &8D (CR with bit 7 set) is treated
+; identically to &0D. After stripping, any character below
+; space (&20) is a terminator, as are '.' and '"'.
+; 
+; Used for parsing user-typed command-line text, not for
+; scanning on-disc directory entry names directly.
 ; 
 ; 
 ; On Entry:
@@ -2283,8 +2289,12 @@ nmi_patched_addr            = &ffff
 ; 
 ; Scan up to 10 characters of filename at (&B4),Y. Raises
 ; Bad name error if no terminator found within 10 characters.
-; Then copies the directory entry name to the object name
-; workspace.
+; Then copies all 10 bytes of the directory entry name at
+; (zp_entry_ptr) to wksp_object_name, stripping bit 7 from
+; each byte. This removes access attribute bits so the
+; workspace copy contains pure 7-bit ASCII. Padding CRs
+; (&0D) in unused name positions are preserved as-is; they
+; terminate the name during compare_filename (via CMP #&21).
 ; 
 ; 
 ; On Exit:
@@ -2325,6 +2335,12 @@ nmi_patched_addr            = &ffff
 ; at (&B4),Y. Supports '#' (match one char) and '*' (match
 ; rest) wildcards. Case-insensitive comparison.
 ; 
+; The workspace name has already had bit 7 stripped by
+; copy_entry_name_loop, so name characters are pure 7-bit
+; ASCII. End-of-name is detected by CMP #&21: any character
+; below '!' (including CR padding at &0D) signals the name
+; has ended. Called recursively for '*' wildcard backtracking.
+; 
 ; 
 ; On Entry:
 ;     X: index into wksp_object_name
@@ -2339,7 +2355,7 @@ nmi_patched_addr            = &ffff
     cpx #&0a                                                          ; 8753: e0 0a       ..             ; X >= 10? End of name reached
     bcs check_both_exhausted                                          ; 8755: b0 41       .A             ; Yes, check pattern is also done
     lda wksp_object_name,x                                            ; 8757: bd 62 10    .b.            ; Get object name character
-    cmp #&21 ; '!'                                                    ; 875a: c9 21       .!             ; Control char in name? End of name
+    cmp #&21 ; '!'                                                    ; 875a: c9 21       .!             ; < '!': end of name (CR padding)
     bcc check_both_exhausted                                          ; 875c: 90 3a       .:             ; Yes, name ended early
     ora #&20 ; ' '                                                    ; 875e: 09 20       .              ; Convert name char to lowercase
     sta wksp_csd_sector_temp                                          ; 8760: 8d 2b 10    .+.            ; Store for comparison
@@ -2412,7 +2428,7 @@ nmi_patched_addr            = &ffff
 .try_star_position_loop
     lda wksp_object_name,x                                            ; 87a9: bd 62 10    .b.            ; Get object name char at X
     and #&7f                                                          ; 87ac: 29 7f       ).             ; Strip bit 7
-    cmp #&21 ; '!'                                                    ; 87ae: c9 21       .!             ; Control char: end of name
+    cmp #&21 ; '!'                                                    ; 87ae: c9 21       .!             ; < '!': end of name (CR padding)
     bcc check_name_ended                                              ; 87b0: 90 1d       ..             ; End of name: check pattern trail
     cpx #&0a                                                          ; 87b2: e0 0a       ..             ; X >= 10: end of name
     bcs check_name_ended                                              ; 87b4: b0 19       ..             ; End of name: check pattern trail
@@ -3360,8 +3376,11 @@ nmi_patched_addr            = &ffff
 ; ***************************************************************************************
 ; Search directory for matching file
 ; 
-; Copy catalogue data from the entry at (zp_entry_ptr) and
-; search the current directory for a matching filename.
+; Copy catalogue data from the entry at (zp_entry_ptr) to
+; workspace and the OSFILE control block, then extract the
+; R/W/L access attributes from bit 7 of name bytes 0-2
+; into a standard OSFILE access byte (L0WRL0WR format).
+; Search the current directory for a matching filename.
 ; 
 ; &8c62 referenced 2 times by &8c5c, &a89e
 .search_dir_for_file
@@ -3386,30 +3405,40 @@ nmi_patched_addr            = &ffff
     dey                                                               ; 8c7b: 88          .              ; Next control block byte
     dex                                                               ; 8c7c: ca          .              ; Next workspace byte
     bpl compare_entry_names_loop                                      ; 8c7d: 10 f7       ..             ; Loop for 12 bytes
+; Extract access attributes from entry name bytes.
+; Bit 7 of each name byte stores one access attribute:
+;   byte 0 bit 7 = R (read)
+;   byte 1 bit 7 = W (write)
+;   byte 2 bit 7 = L (locked)
+; The loop collects these into 00000LWR, then the
+; bit-shuffling below produces the OSFILE access byte
+; format L0WRL0WR, duplicating the same R/W/L bits into
+; both the owner (bits 3,1,0) and public (bits 7,5,4)
+; nibbles. ADFS does not distinguish owner from public.
     lda #0                                                            ; 8c7f: a9 00       ..             ; Clear access accumulator
     sta wksp_csd_sector_temp                                          ; 8c81: 8d 2b 10    .+.            ; Store zero in workspace
-    ldy #2                                                            ; 8c84: a0 02       ..             ; Y=2: process 3 name bytes (R,W,L)
+    ldy #2                                                            ; 8c84: a0 02       ..             ; Y=2: extract from bytes 2,1,0
 ; &8c86 referenced 1 time by &8c8d
-.build_filename_loop
+.extract_entry_access_loop
     lda (zp_entry_ptr_lo),y                                           ; 8c86: b1 b6       ..             ; Get name byte from entry
     asl a                                                             ; 8c88: 0a          .              ; Shift bit 7 (attribute) into carry
-    rol wksp_csd_sector_temp                                          ; 8c89: 2e 2b 10    .+.            ; Rotate into access accumulator
-    dey                                                               ; 8c8c: 88          .              ; Next name byte
-    bpl build_filename_loop                                           ; 8c8d: 10 f7       ..             ; Loop for 3 bytes
-    lda wksp_csd_sector_temp                                          ; 8c8f: ad 2b 10    .+.            ; Get accumulated access bits
-    ror a                                                             ; 8c92: 6a          j              ; Rearrange bits to standard format
-    ror a                                                             ; 8c93: 6a          j              ; Second rotation
-    ror a                                                             ; 8c94: 6a          j              ; Third rotation
-    php                                                               ; 8c95: 08          .              ; Save intermediate flags
-    lsr a                                                             ; 8c96: 4a          J              ; Shift right
-    plp                                                               ; 8c97: 28          (              ; Restore flags
-    ror a                                                             ; 8c98: 6a          j              ; Rotate right with carry
-    sta wksp_csd_sector_temp                                          ; 8c99: 8d 2b 10    .+.            ; Store partial result
-    lsr a                                                             ; 8c9c: 4a          J              ; Shift down 4 more positions
+    rol wksp_csd_sector_temp                                          ; 8c89: 2e 2b 10    .+.            ; Rotate carry into accumulator
+    dey                                                               ; 8c8c: 88          .              ; Next name byte (decreasing Y)
+    bpl extract_entry_access_loop                                     ; 8c8d: 10 f7       ..             ; Loop: Y=2(L), Y=1(W), Y=0(R)
+    lda wksp_csd_sector_temp                                          ; 8c8f: ad 2b 10    .+.            ; A = 00000LWR, C = 0
+    ror a                                                             ; 8c92: 6a          j              ; A = 000000LW, C = R
+    ror a                                                             ; 8c93: 6a          j              ; A = R000000L, C = W
+    ror a                                                             ; 8c94: 6a          j              ; A = WR000000, C = L
+    php                                                               ; 8c95: 08          .              ; Save C = L on stack
+    lsr a                                                             ; 8c96: 4a          J              ; A = 0WR00000, C = 0 (LSR)
+    plp                                                               ; 8c97: 28          (              ; Restore C = L from stack
+    ror a                                                             ; 8c98: 6a          j              ; A = L0WR0000, C = 0
+    sta wksp_csd_sector_temp                                          ; 8c99: 8d 2b 10    .+.            ; Store L0WR0000
+    lsr a                                                             ; 8c9c: 4a          J              ; A = 0000L0WR after 4x LSR
     lsr a                                                             ; 8c9d: 4a          J              ; Second shift
     lsr a                                                             ; 8c9e: 4a          J              ; Third shift
     lsr a                                                             ; 8c9f: 4a          J              ; Fourth shift
-    ora wksp_csd_sector_temp                                          ; 8ca0: 0d 2b 10    .+.            ; OR with saved bits
+    ora wksp_csd_sector_temp                                          ; 8ca0: 0d 2b 10    .+.            ; L0WR0000 OR 0000L0WR = L0WRL0WR
     ldy #&0e                                                          ; 8ca3: a0 0e       ..             ; Y=&0E: OSFILE access byte position
     sta (zp_osfile_ptr_lo),y                                          ; 8ca5: 91 b8       ..             ; Store access byte in control block
     rts                                                               ; 8ca7: 60          `              ; Return
@@ -4284,20 +4313,43 @@ nmi_patched_addr            = &ffff
     ldx wksp_disc_op_xfer_len_3                                       ; 90c9: ae 23 10    .#.            ; Get function code again
     dex                                                               ; 90cc: ca          .              ; X=0 means function was 1 (write all)
     bne check_dir_access_bit                                          ; 90cd: d0 2c       .,             ; A=1 (write all): continue to access
+; ***************************************************************************************
+; Write access attributes to directory entry name bytes
+; 
+; Apply access bits from the OSFILE parameter block (offset
+; &0E) to bit 7 of directory entry name bytes 0-2. Each
+; name byte's lower 7 bits (the character) are preserved;
+; only bit 7 is replaced.
+; 
+; The OSFILE access byte layout is L0WRL0WR:
+;   bit 0: R (owner read)    bit 4: R (public read)
+;   bit 1: W (owner write)   bit 5: W (public write)
+;   bit 3: L (owner locked)  bit 7: L (public locked)
+;   bits 2,6: unused
+; 
+; For files (byte 3 bit 7 clear), the owner bits are used
+; directly: bit 0 (R) to byte 0, bit 1 (W) to byte 1,
+; bit 3 (L) to byte 2 (bit 2 is skipped via the loop
+; re-entry at apply_access_bits_loop).
+; 
+; For directories (byte 3 bit 7 set), two extra LSRs skip
+; the owner R and W bits, so only the L bit (bit 3) is
+; applied to byte 2. Bytes 0 and 1 are left unchanged.
+; 
 ; &90cf referenced 1 time by &9104
 .set_entry_access_from_osfile
     ldy #&0e                                                          ; 90cf: a0 0e       ..             ; Y=&0E: get access byte from OSFILE
     lda (zp_osfile_ptr_lo),y                                          ; 90d1: b1 b8       ..             ; Get access byte from block
     sta wksp_csd_sector_temp                                          ; 90d3: 8d 2b 10    .+.            ; Store in workspace
-    ldy #3                                                            ; 90d6: a0 03       ..             ; Y=3: apply access to name bytes
-    lda (zp_entry_ptr_lo),y                                           ; 90d8: b1 b6       ..             ; Get name byte from entry
-    bpl access_bit_clear                                              ; 90da: 10 0d       ..             ; Bit 7 set: directory, different fmt
-    lsr wksp_csd_sector_temp                                          ; 90dc: 4e 2b 10    N+.            ; Shift access right for R bit
-    lsr wksp_csd_sector_temp                                          ; 90df: 4e 2b 10    N+.            ; Shift right for W bit
+    ldy #3                                                            ; 90d6: a0 03       ..             ; Y=3: test directory flag
+    lda (zp_entry_ptr_lo),y                                           ; 90d8: b1 b6       ..             ; Get byte 3 from entry
+    bpl access_bit_clear                                              ; 90da: 10 0d       ..             ; Bit 7 clear: file, use owner R,W,L
+    lsr wksp_csd_sector_temp                                          ; 90dc: 4e 2b 10    N+.            ; Dir: skip owner R (bit 0)
+    lsr wksp_csd_sector_temp                                          ; 90df: 4e 2b 10    N+.            ; Dir: skip owner W (bit 1)
 ; &90e2 referenced 1 time by &90f9
 .apply_access_bits_loop
-    lsr wksp_csd_sector_temp                                          ; 90e2: 4e 2b 10    N+.            ; Shift right for L bit
-    ldy #2                                                            ; 90e5: a0 02       ..             ; Y=2: apply to first 3 name bytes
+    lsr wksp_csd_sector_temp                                          ; 90e2: 4e 2b 10    N+.            ; Skip unused bit (bit 2 for file)
+    ldy #2                                                            ; 90e5: a0 02       ..             ; Y=2: start at byte 2 for L bit
     bpl advance_access_bit                                            ; 90e7: 10 02       ..             ; ALWAYS branch
 
 ; &90e9 referenced 1 time by &90da
@@ -4312,8 +4364,8 @@ nmi_patched_addr            = &ffff
     sta (zp_entry_ptr_lo),y                                           ; 90f2: 91 b6       ..             ; Store updated name byte
     iny                                                               ; 90f4: c8          .              ; Next byte
     cpy #2                                                            ; 90f5: c0 02       ..             ; Past byte 2?
-    bcc advance_access_bit                                            ; 90f7: 90 f2       ..             ; Below 2: continue
-    beq apply_access_bits_loop                                        ; 90f9: f0 e7       ..             ; Exactly 2: handle L bit
+    bcc advance_access_bit                                            ; 90f7: 90 f2       ..             ; Y < 2: continue (R then W)
+    beq apply_access_bits_loop                                        ; 90f9: f0 e7       ..             ; Y = 2: re-enter for L bit
 ; &90fb referenced 2 times by &90ad, &90cd
 .check_dir_access_bit
     jsr write_dir_and_validate                                        ; 90fb: 20 86 8f     ..            ; Write directory to disc
@@ -4578,6 +4630,23 @@ nmi_patched_addr            = &ffff
     lda tbl_help_param_ptrs,x                                         ; 9280: bd 48 9e    .H.            ; Get pathname format byte
     sta zp_entry_ptr_lo                                               ; 9283: 85 b6       ..             ; Store as pointer low byte
     ldx #&0c                                                          ; 9285: a2 0c       ..             ; X=&0C: max 12 characters
+; ***************************************************************************************
+; Print padded entry name from (&B6)
+; 
+; Print up to X characters of the entry name at (&B6).
+; Each byte has bit 7 stripped with AND #&7F before use.
+; Any character below space (&20) — typically CR (&0D) in
+; unused name positions — ends the name; remaining columns
+; are padded with spaces to produce fixed-width output.
+; 
+; 
+; On Entry:
+;     X: maximum number of characters to print
+; 
+; On Exit:
+;     A: corrupted
+;     X: zero
+;     Y: corrupted
 ; &9287 referenced 6 times by &92e0, &9337, &9366, &938c, &93a3, &93bd
 .print_padded_name
     ldy #0                                                            ; 9287: a0 00       ..             ; Y=0: start of entry name
@@ -4681,34 +4750,41 @@ nmi_patched_addr            = &ffff
 ; ***************************************************************************************
 ; Print entry name and access string
 ; 
-; Print the 10-character padded filename from (&B6)
-; followed by the access attribute string (R, W, L, D).
+; Print the 10-character padded filename from (&B6) via
+; print_padded_name, followed by the access attribute
+; string. Scans name bytes 4 down to 0, testing bit 7 of
+; each to determine which attributes are set. Uses Y as the
+; index into both the entry and tbl_access_chars ("RWLDE"),
+; so byte 0 maps to 'R', byte 1 to 'W', etc. X counts set
+; attributes (starting at 3) to pad unset ones with spaces,
+; producing a fixed-width "DLW " or "  WR" style field.
+; Followed by the sequence number in parentheses.
 ; 
 ; &92de referenced 2 times by &93e2, &9501
 .print_entry_name_and_access
     ldx #&0a                                                          ; 92de: a2 0a       ..             ; X=&0A: print up to 10 name chars
     jsr print_padded_name                                             ; 92e0: 20 87 92     ..            ; Print name characters
     jsr print_space                                                   ; 92e3: 20 16 a0     ..            ; Print space after name
-    ldy #4                                                            ; 92e6: a0 04       ..             ; Y=4: check 5 attribute bytes
-    ldx #3                                                            ; 92e8: a2 03       ..             ; X=3: print RWLD attribute chars
+    ldy #4                                                            ; 92e6: a0 04       ..             ; Y=4: scan bytes 4,3,2,1,0 (EDLWR)
+    ldx #3                                                            ; 92e8: a2 03       ..             ; X=3: space-pad counter for columns
 ; &92ea referenced 1 time by &92f7
 .print_entry_char_loop
-    lda (zp_entry_ptr_lo),y                                           ; 92ea: b1 b6       ..             ; Get entry byte (name byte Y)
-    rol a                                                             ; 92ec: 2a          *              ; Rotate bit 7 (attribute) into carry
-    bcc print_access_space                                            ; 92ed: 90 07       ..             ; C=0: attribute not set
-    lda tbl_access_chars,y                                            ; 92ef: b9 16 93    ...            ; C=1: get attribute letter
+    lda (zp_entry_ptr_lo),y                                           ; 92ea: b1 b6       ..             ; Get name byte Y from entry
+    rol a                                                             ; 92ec: 2a          *              ; Bit 7 (attribute flag) into carry
+    bcc print_access_space                                            ; 92ed: 90 07       ..             ; C=0: attribute not set, skip
+    lda tbl_access_chars,y                                            ; 92ef: b9 16 93    ...            ; C=1: get letter from 'RWLDE'[Y]
     jsr oswrch                                                        ; 92f2: 20 ee ff     ..            ; Write character
-    dex                                                               ; 92f5: ca          .              ; Next attribute letter
+    dex                                                               ; 92f5: ca          .              ; X-- (tracks set attribute count)
 ; &92f6 referenced 1 time by &92ed
 .print_access_space
-    dey                                                               ; 92f6: 88          .              ; Next entry byte (decreasing Y)
+    dey                                                               ; 92f6: 88          .              ; Y-- (next entry byte, towards 0)
     bpl print_entry_char_loop                                         ; 92f7: 10 f1       ..             ; Loop for 5 bytes (E,D,L,W,R)
 ; &92f9 referenced 1 time by &92ff
 .print_access_chars_loop
-    dex                                                               ; 92f9: ca          .              ; Decrement space counter
-    bmi print_access_done                                             ; 92fa: 30 06       0.             ; All printed: add '/' separator
+    dex                                                               ; 92f9: ca          .              ; X--: pad remaining columns
+    bmi print_access_done                                             ; 92fa: 30 06       0.             ; All columns done
     jsr print_space                                                   ; 92fc: 20 16 a0     ..            ; Print space for unset attribute
-    jmp print_access_chars_loop                                       ; 92ff: 4c f9 92    L..            ; Continue attribute loop
+    jmp print_access_chars_loop                                       ; 92ff: 4c f9 92    L..            ; Continue padding loop
 
 ; &9302 referenced 1 time by &92fa
 .print_access_done
@@ -13568,7 +13644,6 @@ save pydis_start, pydis_end
 ;     brk_error_block_4:                        1
 ;     buffer_sector_match:                      1
 ;     build_access_byte_loop:                   1
-;     build_filename_loop:                      1
 ;     build_osfile_control_block:               1
 ;     calc_channel_buffer_page:                 1
 ;     calc_disc_sector_for_channel:             1
@@ -13856,6 +13931,7 @@ save pydis_start, pydis_end
 ;     ext_vec_fsc_lo:                           1
 ;     extend_file_allocation:                   1
 ;     extend_file_if_needed:                    1
+;     extract_entry_access_loop:                1
 ;     file_is_locked:                           1
 ;     file_is_locked_error:                     1
 ;     filev:                                    1

@@ -2180,7 +2180,7 @@ comment(0x87A7, "Return with Z flag result", inline=True)
 comment(0x87A8, "Skip past '*' in pattern", inline=True)
 comment(0x87A9, "Get object name char at X", inline=True)
 comment(0x87AC, "Strip bit 7", inline=True)
-comment(0x87AE, "Control char: end of name", inline=True)
+comment(0x87AE, "< '!': end of name (CR padding)", inline=True)
 comment(0x87B0, "End of name: check pattern trail", inline=True)
 comment(0x87B2, "X >= 10: end of name", inline=True)
 comment(0x87B4, "End of name: check pattern trail", inline=True)
@@ -3451,8 +3451,12 @@ subroutine(0x872D, "check_filename_length",
     description="""\
 Scan up to 10 characters of filename at (&B4),Y. Raises
 Bad name error if no terminator found within 10 characters.
-Then copies the directory entry name to the object name
-workspace.
+Then copies all 10 bytes of the directory entry name at
+(zp_entry_ptr) to wksp_object_name, stripping bit 7 from
+each byte. This removes access attribute bits so the
+workspace copy contains pure 7-bit ASCII. Padding CRs
+(&0D) in unused name positions are preserved as-is; they
+terminate the name during compare_filename (via CMP #&21).
 """,
     on_exit={"a": "corrupted (Z set if match after compare)",
              "x": "corrupted", "y": "corrupted"})
@@ -3478,6 +3482,12 @@ subroutine(0x8753, "compare_filename",
 Compare the object name in workspace against the pattern
 at (&B4),Y. Supports '#' (match one char) and '*' (match
 rest) wildcards. Case-insensitive comparison.
+
+The workspace name has already had bit 7 stripped by
+copy_entry_name_loop, so name characters are pure 7-bit
+ASCII. End-of-name is detected by CMP #&21: any character
+below '!' (including CR padding at &0D) signals the name
+has ended. Called recursively for '*' wildcard backtracking.
 """,
     on_entry={"x": "index into wksp_object_name",
               "y": "index into pattern at (&B4)"},
@@ -3486,7 +3496,7 @@ rest) wildcards. Case-insensitive comparison.
 comment(0x8753, "X >= 10? End of name reached", inline=True)
 comment(0x8755, "Yes, check pattern is also done", inline=True)
 comment(0x8757, "Get object name character", inline=True)
-comment(0x875A, "Control char in name? End of name", inline=True)
+comment(0x875A, "< '!': end of name (CR padding)", inline=True)
 comment(0x875C, "Yes, name ended early", inline=True)
 comment(0x875E, "Convert name char to lowercase", inline=True)
 comment(0x8760, "Store for comparison", inline=True)
@@ -3763,7 +3773,7 @@ label(0x8C62, "search_dir_for_file")
 label(0x8C65, "search_dir_with_wildcards")
 label(0x8C69, "scan_dir_entries_loop")
 label(0x8C76, "compare_entry_names_loop")
-label(0x8C86, "build_filename_loop")
+label(0x8C86, "extract_entry_access_loop")
 label(0x8CA8, "osfile_save_handler")
 label(0x8CC3, "check_existing_for_save")
 label(0x8CC6, "delete_existing_before_save")
@@ -6083,13 +6093,13 @@ comment(0x90CD, "A=1 (write all): continue to access", inline=True)
 comment(0x90CF, "Y=&0E: get access byte from OSFILE", inline=True)
 comment(0x90D1, "Get access byte from block", inline=True)
 comment(0x90D3, "Store in workspace", inline=True)
-comment(0x90D6, "Y=3: apply access to name bytes", inline=True)
-comment(0x90D8, "Get name byte from entry", inline=True)
-comment(0x90DA, "Bit 7 set: directory, different fmt", inline=True)
-comment(0x90DC, "Shift access right for R bit", inline=True)
-comment(0x90DF, "Shift right for W bit", inline=True)
-comment(0x90E2, "Shift right for L bit", inline=True)
-comment(0x90E5, "Y=2: apply to first 3 name bytes", inline=True)
+comment(0x90D6, "Y=3: test directory flag", inline=True)
+comment(0x90D8, "Get byte 3 from entry", inline=True)
+comment(0x90DA, "Bit 7 clear: file, use owner R,W,L", inline=True)
+comment(0x90DC, "Dir: skip owner R (bit 0)", inline=True)
+comment(0x90DF, "Dir: skip owner W (bit 1)", inline=True)
+comment(0x90E2, "Skip unused bit (bit 2 for file)", inline=True)
+comment(0x90E5, "Y=2: start at byte 2 for L bit", inline=True)
 comment(0x90E9, "Y=0: start with byte 0", inline=True)
 comment(0x90EB, "Get name byte", inline=True)
 comment(0x90ED, "Shift out bit 7 (old attribute)", inline=True)
@@ -6098,8 +6108,8 @@ comment(0x90F1, "Shift carry into name bit 7", inline=True)
 comment(0x90F2, "Store updated name byte", inline=True)
 comment(0x90F4, "Next byte", inline=True)
 comment(0x90F5, "Past byte 2?", inline=True)
-comment(0x90F7, "Below 2: continue", inline=True)
-comment(0x90F9, "Exactly 2: handle L bit", inline=True)
+comment(0x90F7, "Y < 2: continue (R then W)", inline=True)
+comment(0x90F9, "Y = 2: re-enter for L bit", inline=True)
 comment(0x90FB, "Write directory to disc", inline=True)
 comment(0x90FE, "Return via catalogue info copy", inline=True)
 comment(0x9101, "OSFILE A=4: write attributes only", inline=True)
@@ -8979,28 +8989,39 @@ comment(0x8C79, "Store in OSFILE control block", inline=True)
 comment(0x8C7B, "Next control block byte", inline=True)
 comment(0x8C7C, "Next workspace byte", inline=True)
 comment(0x8C7D, "Loop for 12 bytes", inline=True)
+comment(0x8C7F, """\
+Extract access attributes from entry name bytes.
+Bit 7 of each name byte stores one access attribute:
+  byte 0 bit 7 = R (read)
+  byte 1 bit 7 = W (write)
+  byte 2 bit 7 = L (locked)
+The loop collects these into 00000LWR, then the
+bit-shuffling below produces the OSFILE access byte
+format L0WRL0WR, duplicating the same R/W/L bits into
+both the owner (bits 3,1,0) and public (bits 7,5,4)
+nibbles. ADFS does not distinguish owner from public.""")
 comment(0x8C7F, "Clear access accumulator", inline=True)
 comment(0x8C81, "Store zero in workspace", inline=True)
-comment(0x8C84, "Y=2: process 3 name bytes (R,W,L)", inline=True)
+comment(0x8C84, "Y=2: extract from bytes 2,1,0", inline=True)
 comment(0x8C86, "Get name byte from entry", inline=True)
 comment(0x8C88, "Shift bit 7 (attribute) into carry", inline=True)
-comment(0x8C89, "Rotate into access accumulator", inline=True)
-comment(0x8C8C, "Next name byte", inline=True)
-comment(0x8C8D, "Loop for 3 bytes", inline=True)
-comment(0x8C8F, "Get accumulated access bits", inline=True)
-comment(0x8C92, "Rearrange bits to standard format", inline=True)
-comment(0x8C93, "Second rotation", inline=True)
-comment(0x8C94, "Third rotation", inline=True)
-comment(0x8C95, "Save intermediate flags", inline=True)
-comment(0x8C96, "Shift right", inline=True)
-comment(0x8C97, "Restore flags", inline=True)
-comment(0x8C98, "Rotate right with carry", inline=True)
-comment(0x8C99, "Store partial result", inline=True)
-comment(0x8C9C, "Shift down 4 more positions", inline=True)
+comment(0x8C89, "Rotate carry into accumulator", inline=True)
+comment(0x8C8C, "Next name byte (decreasing Y)", inline=True)
+comment(0x8C8D, "Loop: Y=2(L), Y=1(W), Y=0(R)", inline=True)
+comment(0x8C8F, "A = 00000LWR, C = 0", inline=True)
+comment(0x8C92, "A = 000000LW, C = R", inline=True)
+comment(0x8C93, "A = R000000L, C = W", inline=True)
+comment(0x8C94, "A = WR000000, C = L", inline=True)
+comment(0x8C95, "Save C = L on stack", inline=True)
+comment(0x8C96, "A = 0WR00000, C = 0 (LSR)", inline=True)
+comment(0x8C97, "Restore C = L from stack", inline=True)
+comment(0x8C98, "A = L0WR0000, C = 0", inline=True)
+comment(0x8C99, "Store L0WR0000", inline=True)
+comment(0x8C9C, "A = 0000L0WR after 4x LSR", inline=True)
 comment(0x8C9D, "Second shift", inline=True)
 comment(0x8C9E, "Third shift", inline=True)
 comment(0x8C9F, "Fourth shift", inline=True)
-comment(0x8CA0, "OR with saved bits", inline=True)
+comment(0x8CA0, "L0WR0000 OR 0000L0WR = L0WRL0WR", inline=True)
 comment(0x8CA3, "Y=&0E: OSFILE access byte position", inline=True)
 comment(0x8CA5, "Store access byte in control block", inline=True)
 comment(0x8CA7, "Return", inline=True)
@@ -9439,19 +9460,19 @@ comment(0x92DD, "Return", inline=True)
 comment(0x92DE, "X=&0A: print up to 10 name chars", inline=True)
 comment(0x92E0, "Print name characters", inline=True)
 comment(0x92E3, "Print space after name", inline=True)
-comment(0x92E6, "Y=4: check 5 attribute bytes", inline=True)
-comment(0x92E8, "X=3: print RWLD attribute chars", inline=True)
-comment(0x92EA, "Get entry byte (name byte Y)", inline=True)
-comment(0x92EC, "Rotate bit 7 (attribute) into carry", inline=True)
-comment(0x92ED, "C=0: attribute not set", inline=True)
-comment(0x92EF, "C=1: get attribute letter", inline=True)
-comment(0x92F5, "Next attribute letter", inline=True)
-comment(0x92F6, "Next entry byte (decreasing Y)", inline=True)
+comment(0x92E6, "Y=4: scan bytes 4,3,2,1,0 (EDLWR)", inline=True)
+comment(0x92E8, "X=3: space-pad counter for columns", inline=True)
+comment(0x92EA, "Get name byte Y from entry", inline=True)
+comment(0x92EC, "Bit 7 (attribute flag) into carry", inline=True)
+comment(0x92ED, "C=0: attribute not set, skip", inline=True)
+comment(0x92EF, "C=1: get letter from 'RWLDE'[Y]", inline=True)
+comment(0x92F5, "X-- (tracks set attribute count)", inline=True)
+comment(0x92F6, "Y-- (next entry byte, towards 0)", inline=True)
 comment(0x92F7, "Loop for 5 bytes (E,D,L,W,R)", inline=True)
-comment(0x92F9, "Decrement space counter", inline=True)
-comment(0x92FA, "All printed: add '/' separator", inline=True)
+comment(0x92F9, "X--: pad remaining columns", inline=True)
+comment(0x92FA, "All columns done", inline=True)
 comment(0x92FC, "Print space for unset attribute", inline=True)
-comment(0x92FF, "Continue attribute loop", inline=True)
+comment(0x92FF, "Continue padding loop", inline=True)
 comment(0x9302, "Print '(' before sequence number", inline=True)
 comment(0x9307, "Y=&19: offset to sequence number", inline=True)
 comment(0x9309, "Get sequence number byte", inline=True)
@@ -10749,7 +10770,13 @@ subroutine(0x871A, "check_char_is_terminator",
     title="Check if character is a filename terminator",
     description="""\
 Test whether the character at (&B4),Y is a filename
-terminator: space, dot, double-quote, or control character.
+terminator. Bit 7 is stripped with AND #&7F before any
+comparison, so &8D (CR with bit 7 set) is treated
+identically to &0D. After stripping, any character below
+space (&20) is a terminator, as are '.' and '"'.
+
+Used for parsing user-typed command-line text, not for
+scanning on-disc directory entry names directly.
 """,
     on_entry={"y": "index into text at (&B4)"},
     on_exit={"a": "character with bit 7 stripped (Z set if terminator)",
@@ -11390,8 +11417,15 @@ Used during catalogue printing.
 subroutine(0x92DE, "print_entry_name_and_access",
     title="Print entry name and access string",
     description="""\
-Print the 10-character padded filename from (&B6)
-followed by the access attribute string (R, W, L, D).
+Print the 10-character padded filename from (&B6) via
+print_padded_name, followed by the access attribute
+string. Scans name bytes 4 down to 0, testing bit 7 of
+each to determine which attributes are set. Uses Y as the
+index into both the entry and tbl_access_chars ("RWLDE"),
+so byte 0 maps to 'R', byte 1 to 'W', etc. X counts set
+attributes (starting at 3) to pad unset ones with spaces,
+producing a fixed-width "DLW " or "  WR" style field.
+Followed by the sequence number in parentheses.
 """)
 
 subroutine(0x932A, "verify_dir_and_list",
@@ -11517,8 +11551,11 @@ page (&17) to compute the buffer memory page.
 subroutine(0x8C62, "search_dir_for_file",
     title="Search directory for matching file",
     description="""\
-Copy catalogue data from the entry at (zp_entry_ptr) and
-search the current directory for a matching filename.
+Copy catalogue data from the entry at (zp_entry_ptr) to
+workspace and the OSFILE control block, then extract the
+R/W/L access attributes from bit 7 of name bytes 0-2
+into a standard OSFILE access byte (L0WRL0WR format).
+Search the current directory for a matching filename.
 """)
 
 subroutine(0x8609, "sum_free_space",
@@ -11571,6 +11608,18 @@ Point (zp_entry_ptr) to a pathname format string in ROM
 and prepare to print up to 12 characters.
 """,
     on_entry={"a": "index into tbl_help_param_ptrs"},
+    on_exit={"a": "corrupted", "x": "zero", "y": "corrupted"})
+
+subroutine(0x9287, "print_padded_name",
+    title="Print padded entry name from (&B6)",
+    description="""\
+Print up to X characters of the entry name at (&B6).
+Each byte has bit 7 stripped with AND #&7F before use.
+Any character below space (&20) — typically CR (&0D) in
+unused name positions — ends the name; remaining columns
+are padded with spaces to produce fixed-width output.
+""",
+    on_entry={"x": "maximum number of characters to print"},
     on_exit={"a": "corrupted", "x": "zero", "y": "corrupted"})
 
 subroutine(0xB825, "setup_osgbpb_output_buffer",
@@ -11732,6 +11781,30 @@ Handle OSFILE A=1 (write all catalogue info), A=2 (write
 load address) and A=3 (write execution address). Finds the
 file, validates access, then updates the directory entry
 fields from the OSFILE parameter block.
+""")
+
+subroutine(0x90CF, "set_entry_access_from_osfile",
+    title="Write access attributes to directory entry name bytes",
+    description="""\
+Apply access bits from the OSFILE parameter block (offset
+&0E) to bit 7 of directory entry name bytes 0-2. Each
+name byte's lower 7 bits (the character) are preserved;
+only bit 7 is replaced.
+
+The OSFILE access byte layout is L0WRL0WR:
+  bit 0: R (owner read)    bit 4: R (public read)
+  bit 1: W (owner write)   bit 5: W (public write)
+  bit 3: L (owner locked)  bit 7: L (public locked)
+  bits 2,6: unused
+
+For files (byte 3 bit 7 clear), the owner bits are used
+directly: bit 0 (R) to byte 0, bit 1 (W) to byte 1,
+bit 3 (L) to byte 2 (bit 2 is skipped via the loop
+re-entry at apply_access_bits_loop).
+
+For directories (byte 3 bit 7 set), two extra LSRs skip
+the owner R and W bits, so only the L bit (bit 3) is
+applied to byte 2. Bytes 0 and 1 are left unchanged.
 """)
 
 subroutine(0x9945, "clear_rwl_attributes",
