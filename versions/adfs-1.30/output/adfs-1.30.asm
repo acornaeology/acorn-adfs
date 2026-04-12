@@ -2285,7 +2285,7 @@ nmi_patched_addr            = &ffff
     rts                                                               ; 872c: 60          `              ; Return (not a terminator)
 
 ; ***************************************************************************************
-; Check filename is within 10-character limit
+; Check filename length, copy entry name, and compare
 ; 
 ; Scan up to 10 characters of filename at (&B4),Y. Raises
 ; Bad name error if no terminator found within 10 characters.
@@ -2296,9 +2296,14 @@ nmi_patched_addr            = &ffff
 ; (&0D) in unused name positions are preserved as-is; they
 ; terminate the name during compare_filename (via CMP #&21).
 ; 
+; Falls through to compare_filename, whose return flags are
+; passed back to the caller: Z=1 for match, and carry
+; indicates sort order (C=0: pattern < entry name, C=1:
+; pattern >= entry name). See compare_filename for details.
+; 
 ; 
 ; On Exit:
-;     A: corrupted (Z set if match after compare)
+;     A: corrupted (Z set if match, C for sort order)
 ;     X: corrupted
 ;     Y: corrupted
 ; &872d referenced 2 times by &87f6, &896f
@@ -2341,13 +2346,24 @@ nmi_patched_addr            = &ffff
 ; below '!' (including CR padding at &0D) signals the name
 ; has ended. Called recursively for '*' wildcard backtracking.
 ; 
+; Return flags are used by begin_dir_entry_search for the
+; sorted-order early exit:
+;   Z=1:        match found
+;   Z=0, C=0:  no match, pattern < entry name (entry sorts
+;               after pattern; stop scanning sorted dir)
+;   Z=0, C=1:  no match, pattern > entry name (entry sorts
+;               before pattern; continue to next entry)
+; Wildcard patterns may return C=1 even when the pattern
+; sorts before the entry, so wildcard searches do not
+; benefit from the sorted early-exit optimisation.
+; 
 ; 
 ; On Entry:
 ;     X: index into wksp_object_name
 ;     Y: index into pattern at (&B4)
 ; 
 ; On Exit:
-;     A: corrupted (Z set if match)
+;     A: corrupted (Z set if match, C for sort order)
 ;     X: corrupted
 ;     Y: corrupted
 ; &8753 referenced 2 times by &877f, &87ba
@@ -2368,9 +2384,9 @@ nmi_patched_addr            = &ffff
     cmp #&23 ; '#'                                                    ; 8770: c9 23       .#             ; Pattern char is '#' wildcard?
     beq advance_pattern_index                                         ; 8772: f0 09       ..             ; Yes, match any single char
     ora #&20 ; ' '                                                    ; 8774: 09 20       .              ; Convert pattern char to lowercase
-    cmp wksp_csd_sector_temp                                          ; 8776: cd 2b 10    .+.            ; Compare with name char
-    bcc check_hash_wildcard                                           ; 8779: 90 0c       ..             ; Pattern < name? No match
-    bne return_10                                                     ; 877b: d0 04       ..             ; Pattern != name? No match
+    cmp wksp_csd_sector_temp                                          ; 8776: cd 2b 10    .+.            ; Compare pattern char with name char
+    bcc check_hash_wildcard                                           ; 8779: 90 0c       ..             ; C=0: pattern < name (sorted exit)
+    bne return_10                                                     ; 877b: d0 04       ..             ; C=1: pattern > name (continue)
 ; &877d referenced 1 time by &8772
 .advance_pattern_index
     inx                                                               ; 877d: e8          .              ; Match: advance both pointers
@@ -2485,21 +2501,52 @@ nmi_patched_addr            = &ffff
     beq begin_star_match                                              ; 87e3: f0 c3       ..             ; Another '*': skip it and retry
     bne no_match_cleanup_loop                                         ; 87e5: d0 df       ..             ; Other char: no match (always)
 
+; ***************************************************************************************
+; Linear scan of sorted directory for matching entry
+; 
+; Skip leading spaces, point (&B6) to the first directory
+; entry, verify directory integrity, then perform a linear
+; scan through entries comparing each against the filename
+; pattern.
+; 
+; Directory entries are stored in case-insensitive ascending
+; alphabetical order. The scan exploits this invariant: if
+; compare_filename returns with carry clear (pattern sorts
+; before the current entry name), the target cannot exist
+; later in the directory and the search terminates early.
+; 
+; On return, (&B6) points to the matched entry (Z=1) or to
+; the first entry that sorts after the pattern (Z=0). This
+; position is used by the sorted-insertion code at
+; check_name_already_exists to maintain directory order when
+; creating new entries.
+; 
+; 
+; On Exit:
+;     A: corrupted (Z set if match found)
+;     X: corrupted
+;     Y: match length if found
 ; &87e7 referenced 1 time by &88ff
 .parse_pathname_entry
     jsr skip_spaces                                                   ; 87e7: 20 cf a4     ..            ; Skip leading spaces
-    jsr print_catalogue_header                                        ; 87ea: 20 c5 93     ..            ; Point (&B6) to first dir entry
+    jsr print_catalogue_header                                        ; 87ea: 20 c5 93     ..            ; Set (&B6) to first dir entry
     jsr verify_dir_integrity                                          ; 87ed: 20 de a6     ..            ; Verify directory integrity
+; Linear scan through sorted directory entries. Entries are
+; in ascending alphabetical order. Each 26-byte entry is
+; checked in turn. The scan terminates on: match (Z=1),
+; sorted early exit when pattern < entry name (C=0), or
+; end of directory (first byte = 0). On exit, (&B6)
+; points to the matched or insertion-point entry.
 ; &87f0 referenced 2 times by &8803, &8807
 .begin_dir_entry_search
     ldy #0                                                            ; 87f0: a0 00       ..             ; Y=0: start parsing pathname
     lda (zp_entry_ptr_lo),y                                           ; 87f2: b1 b6       ..             ; Get first byte of entry
     beq end_of_dir_entries                                            ; 87f4: f0 13       ..             ; Zero: end of entries
     jsr check_filename_length                                         ; 87f6: 20 2d 87     -.            ; Check name length and compare
-    beq return_11                                                     ; 87f9: f0 10       ..             ; Z set: exact match found
-    bcc return_11                                                     ; 87fb: 90 0e       ..             ; C clear: pattern < name, not found
-    lda zp_entry_ptr_lo                                               ; 87fd: a5 b6       ..             ; Get entry pointer low
-    adc #&19                                                          ; 87ff: 69 19       i.             ; Add &19+C to advance past entry
+    beq return_11                                                     ; 87f9: f0 10       ..             ; Z=1: match found
+    bcc return_11                                                     ; 87fb: 90 0e       ..             ; C=0: pattern < name, stop (sorted)
+    lda zp_entry_ptr_lo                                               ; 87fd: a5 b6       ..             ; C=1: pattern > name, next entry
+    adc #&19                                                          ; 87ff: 69 19       i.             ; Add &19+C(=1) = &1A (26 byte entry)
     sta zp_entry_ptr_lo                                               ; 8801: 85 b6       ..             ; Store updated pointer
     bcc begin_dir_entry_search                                        ; 8803: 90 eb       ..             ; No page crossing: continue
     inc zp_entry_ptr_hi                                               ; 8805: e6 b7       ..             ; Increment page
@@ -3779,17 +3826,33 @@ nmi_patched_addr            = &ffff
     equb &b3                                                          ; 8e21: b3          .              ; Error &B3: Dir full
     equs "Dir full", 0                                                ; 8e22: 44 69 72... Dir
 
+; ***************************************************************************************
+; Insert new entry at sorted position in directory
+; 
+; Insert a new directory entry at the position indicated by
+; zp_entry_ptr, which was set by parse_pathname_entry to
+; the first entry that sorts after the new name. Shifts all
+; entries from the end of the directory (&16B1) backwards
+; to zp_entry_ptr up by 26 bytes to open a gap, then
+; returns with zp_text_ptr restored to the saved command
+; text position. The caller then fills in the gap with the
+; new entry's data.
+; 
+; This maintains the ascending alphabetical order invariant
+; that the directory search at begin_dir_entry_search
+; depends on for its sorted early-exit optimisation.
+; 
 ; &8e2b referenced 1 time by &8e1c
 .check_name_already_exists
     lda zp_text_ptr_lo                                                ; 8e2b: a5 b4       ..             ; Save text pointer low
     sta wksp_tube_transfer_addr_1                                     ; 8e2d: 8d 27 10    .'.            ; Store in workspace
     lda zp_text_ptr_hi                                                ; 8e30: a5 b5       ..             ; Save text pointer high
     sta wksp_tube_xfer_addr_2                                         ; 8e32: 8d 28 10    .(.            ; Store in workspace
-    lda #&b1                                                          ; 8e35: a9 b1       ..             ; Point to end of entries (&16B1)
+    lda #&b1                                                          ; 8e35: a9 b1       ..             ; Source = &16B1 (last entry area)
     sta zp_text_ptr_lo                                                ; 8e37: 85 b4       ..             ; Store pointer low
     lda #&16                                                          ; 8e39: a9 16       ..             ; Page &16
     sta zp_text_ptr_hi                                                ; 8e3b: 85 b5       ..             ; Store pointer high
-    ldy #&1a                                                          ; 8e3d: a0 1a       ..             ; Y=&1A: offset for source entry
+    ldy #&1a                                                          ; 8e3d: a0 1a       ..             ; Y=&1A: dest offset (one entry up)
     ldx #6                                                            ; 8e3f: a2 06       ..             ; X=6: clear 7 bytes of new entry
     lda #0                                                            ; 8e41: a9 00       ..             ; A=0: zero fill
 ; &8e43 referenced 1 time by &8e47
@@ -3797,25 +3860,28 @@ nmi_patched_addr            = &ffff
     sta wksp_last_access_drive,x                                      ; 8e43: 9d 33 10    .3.            ; Clear workspace byte
     dex                                                               ; 8e46: ca          .              ; Next byte
     bne compare_names_loop                                            ; 8e47: d0 fa       ..             ; Loop for 7 bytes
+; Shift entries up by one position (26 bytes) working
+; backwards from end of directory towards the insertion
+; point at (&B6). Opens a 26-byte gap for the new entry.
 ; &8e49 referenced 1 time by &8e61
 .copy_entry_data_loop
-    lda (zp_text_ptr_lo,x)                                            ; 8e49: a1 b4       ..             ; Get source entry byte
-    sta (zp_text_ptr_lo),y                                            ; 8e4b: 91 b4       ..             ; Copy to destination (shift up)
-    lda zp_text_ptr_lo                                                ; 8e4d: a5 b4       ..             ; Check if at target position
+    lda (zp_text_ptr_lo,x)                                            ; 8e49: a1 b4       ..             ; Get byte from current position
+    sta (zp_text_ptr_lo),y                                            ; 8e4b: 91 b4       ..             ; Store 26 bytes higher (Y=&1A)
+    lda zp_text_ptr_lo                                                ; 8e4d: a5 b4       ..             ; Reached insertion point (&B6)?
     cmp zp_entry_ptr_lo                                               ; 8e4f: c5 b6       ..             ; Compare low byte
-    bne write_entry_to_dir                                            ; 8e51: d0 06       ..             ; Not there yet
+    bne write_entry_to_dir                                            ; 8e51: d0 06       ..             ; Not yet: keep shifting
     lda zp_text_ptr_hi                                                ; 8e53: a5 b5       ..             ; Compare high byte
-    cmp zp_entry_ptr_hi                                               ; 8e55: c5 b7       ..             ; Match: target reached
-    beq mark_directory_modified                                       ; 8e57: f0 0b       ..             ; Done shifting
+    cmp zp_entry_ptr_hi                                               ; 8e55: c5 b7       ..             ; Match: insertion point reached
+    beq mark_directory_modified                                       ; 8e57: f0 0b       ..             ; Gap opened: restore text ptr
 ; &8e59 referenced 1 time by &8e51
 .write_entry_to_dir
     lda zp_text_ptr_lo                                                ; 8e59: a5 b4       ..             ; Decrement source pointer
     bne mark_entry_created                                            ; 8e5b: d0 02       ..             ; Low byte non-zero
-    dec zp_text_ptr_hi                                                ; 8e5d: c6 b5       ..             ; Zero: decrement high byte
+    dec zp_text_ptr_hi                                                ; 8e5d: c6 b5       ..             ; Zero: borrow from high byte
 ; &8e5f referenced 1 time by &8e5b
 .mark_entry_created
     dec zp_text_ptr_lo                                                ; 8e5f: c6 b4       ..             ; Decrement low byte
-    jmp copy_entry_data_loop                                          ; 8e61: 4c 49 8e    LI.            ; Continue shifting loop
+    jmp copy_entry_data_loop                                          ; 8e61: 4c 49 8e    LI.            ; Continue shifting backwards
 
 ; &8e64 referenced 1 time by &8e57
 .mark_directory_modified
@@ -4910,6 +4976,21 @@ nmi_patched_addr            = &ffff
     equs &0d                                                          ; 93c3: 0d          .              ; CR: end of library name line
     equb &8d                                                          ; 93c4: 8d          .              ; CR + bit 7: blank line after header
 
+; ***************************************************************************************
+; Point (&B6) to first directory entry
+; 
+; Set zp_entry_ptr (&B6) to &1205, the address of the first
+; 26-byte directory entry in the directory buffer. Directory
+; entries are stored in case-insensitive ascending
+; alphabetical order starting at this address. A zero first
+; byte marks the end of the entry list. Maximum 47 entries
+; (47 x 26 = 1222 bytes from &1205 to &16B0).
+; 
+; Despite its name, this subroutine does not print anything.
+; The label reflects its position in the code, immediately
+; following the catalogue header printing code which falls
+; through to it.
+; 
 ; &93c5 referenced 3 times by &87ea, &97be, &98da
 .print_catalogue_header
     lda #5                                                            ; 93c5: a9 05       ..             ; Point to first dir entry at &1205

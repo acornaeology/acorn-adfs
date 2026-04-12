@@ -2217,18 +2217,24 @@ comment(0x87E5, "Other char: no match (always)", inline=True)
 
 # sub_c87e7 - pathname parser entry point
 comment(0x87E7, "Skip leading spaces", inline=True)
-comment(0x87EA, "Point (&B6) to first dir entry", inline=True)
+comment(0x87EA, "Set (&B6) to first dir entry", inline=True)
 comment(0x87ED, "Verify directory integrity", inline=True)
 comment(0x87F0, "Y=0: start parsing pathname", inline=True)
 
-# Directory entry search loop (&87F2-&880B)
+comment(0x87F0, """\
+Linear scan through sorted directory entries. Entries are
+in ascending alphabetical order. Each 26-byte entry is
+checked in turn. The scan terminates on: match (Z=1),
+sorted early exit when pattern < entry name (C=0), or
+end of directory (first byte = 0). On exit, (&B6)
+points to the matched or insertion-point entry.""")
 comment(0x87F2, "Get first byte of entry", inline=True)
 comment(0x87F4, "Zero: end of entries", inline=True)
 comment(0x87F6, "Check name length and compare", inline=True)
-comment(0x87F9, "Z set: exact match found", inline=True)
-comment(0x87FB, "C clear: pattern < name, not found", inline=True)
-comment(0x87FD, "Get entry pointer low", inline=True)
-comment(0x87FF, "Add &19+C to advance past entry", inline=True)
+comment(0x87F9, "Z=1: match found", inline=True)
+comment(0x87FB, "C=0: pattern < name, stop (sorted)", inline=True)
+comment(0x87FD, "C=1: pattern > name, next entry", inline=True)
+comment(0x87FF, "Add &19+C(=1) = &1A (26 byte entry)", inline=True)
 comment(0x8801, "Store updated pointer", inline=True)
 comment(0x8803, "No page crossing: continue", inline=True)
 comment(0x8805, "Increment page", inline=True)
@@ -3447,7 +3453,7 @@ label(0x870F, "parse_and_setup_search")
 label(0x872A, "set_terminator_flag")
 label(0x872D, "check_filename_length")
 subroutine(0x872D, "check_filename_length",
-    title="Check filename is within 10-character limit",
+    title="Check filename length, copy entry name, and compare",
     description="""\
 Scan up to 10 characters of filename at (&B4),Y. Raises
 Bad name error if no terminator found within 10 characters.
@@ -3457,8 +3463,13 @@ each byte. This removes access attribute bits so the
 workspace copy contains pure 7-bit ASCII. Padding CRs
 (&0D) in unused name positions are preserved as-is; they
 terminate the name during compare_filename (via CMP #&21).
+
+Falls through to compare_filename, whose return flags are
+passed back to the caller: Z=1 for match, and carry
+indicates sort order (C=0: pattern < entry name, C=1:
+pattern >= entry name). See compare_filename for details.
 """,
-    on_exit={"a": "corrupted (Z set if match after compare)",
+    on_exit={"a": "corrupted (Z set if match, C for sort order)",
              "x": "corrupted", "y": "corrupted"})
 comment(0x872D, "Y=&0A: check up to 10 characters", inline=True)
 comment(0x872F, "Check next character", inline=True)
@@ -3488,10 +3499,21 @@ copy_entry_name_loop, so name characters are pure 7-bit
 ASCII. End-of-name is detected by CMP #&21: any character
 below '!' (including CR padding at &0D) signals the name
 has ended. Called recursively for '*' wildcard backtracking.
+
+Return flags are used by begin_dir_entry_search for the
+sorted-order early exit:
+  Z=1:        match found
+  Z=0, C=0:  no match, pattern < entry name (entry sorts
+              after pattern; stop scanning sorted dir)
+  Z=0, C=1:  no match, pattern > entry name (entry sorts
+              before pattern; continue to next entry)
+Wildcard patterns may return C=1 even when the pattern
+sorts before the entry, so wildcard searches do not
+benefit from the sorted early-exit optimisation.
 """,
     on_entry={"x": "index into wksp_object_name",
               "y": "index into pattern at (&B4)"},
-    on_exit={"a": "corrupted (Z set if match)",
+    on_exit={"a": "corrupted (Z set if match, C for sort order)",
              "x": "corrupted", "y": "corrupted"})
 comment(0x8753, "X >= 10? End of name reached", inline=True)
 comment(0x8755, "Yes, check pattern is also done", inline=True)
@@ -3509,9 +3531,9 @@ comment(0x876E, "Yes, match rest of name", inline=True)
 comment(0x8770, "Pattern char is '#' wildcard?", inline=True)
 comment(0x8772, "Yes, match any single char", inline=True)
 comment(0x8774, "Convert pattern char to lowercase", inline=True)
-comment(0x8776, "Compare with name char", inline=True)
-comment(0x8779, "Pattern < name? No match", inline=True)
-comment(0x877B, "Pattern != name? No match", inline=True)
+comment(0x8776, "Compare pattern char with name char", inline=True)
+comment(0x8779, "C=0: pattern < name (sorted exit)", inline=True)
+comment(0x877B, "C=1: pattern > name (continue)", inline=True)
 comment(0x877D, "Match: advance both pointers", inline=True)
 
 # osbyte_y_ff_x_00 / osbyte_x_00 (&84A0)
@@ -5849,29 +5871,33 @@ comment(0x8E2B, "Save text pointer low", inline=True)
 comment(0x8E2D, "Store in workspace", inline=True)
 comment(0x8E30, "Save text pointer high", inline=True)
 comment(0x8E32, "Store in workspace", inline=True)
-comment(0x8E35, "Point to end of entries (&16B1)", inline=True)
+comment(0x8E35, "Source = &16B1 (last entry area)", inline=True)
 comment(0x8E37, "Store pointer low", inline=True)
 comment(0x8E39, "Page &16", inline=True)
 comment(0x8E3B, "Store pointer high", inline=True)
-comment(0x8E3D, "Y=&1A: offset for source entry", inline=True)
+comment(0x8E3D, "Y=&1A: dest offset (one entry up)", inline=True)
 comment(0x8E3F, "X=6: clear 7 bytes of new entry", inline=True)
 comment(0x8E41, "A=0: zero fill", inline=True)
 comment(0x8E43, "Clear workspace byte", inline=True)
 comment(0x8E46, "Next byte", inline=True)
 comment(0x8E47, "Loop for 7 bytes", inline=True)
-comment(0x8E49, "Get source entry byte", inline=True)
-comment(0x8E4B, "Copy to destination (shift up)", inline=True)
-comment(0x8E4D, "Check if at target position", inline=True)
+comment(0x8E49, """\
+Shift entries up by one position (26 bytes) working
+backwards from end of directory towards the insertion
+point at (&B6). Opens a 26-byte gap for the new entry.""")
+comment(0x8E49, "Get byte from current position", inline=True)
+comment(0x8E4B, "Store 26 bytes higher (Y=&1A)", inline=True)
+comment(0x8E4D, "Reached insertion point (&B6)?", inline=True)
 comment(0x8E4F, "Compare low byte", inline=True)
-comment(0x8E51, "Not there yet", inline=True)
+comment(0x8E51, "Not yet: keep shifting", inline=True)
 comment(0x8E53, "Compare high byte", inline=True)
-comment(0x8E55, "Match: target reached", inline=True)
-comment(0x8E57, "Done shifting", inline=True)
+comment(0x8E55, "Match: insertion point reached", inline=True)
+comment(0x8E57, "Gap opened: restore text ptr", inline=True)
 comment(0x8E59, "Decrement source pointer", inline=True)
 comment(0x8E5B, "Low byte non-zero", inline=True)
-comment(0x8E5D, "Zero: decrement high byte", inline=True)
+comment(0x8E5D, "Zero: borrow from high byte", inline=True)
 comment(0x8E5F, "Decrement low byte", inline=True)
-comment(0x8E61, "Continue shifting loop", inline=True)
+comment(0x8E61, "Continue shifting backwards", inline=True)
 comment(0x8E64, "Restore text pointer low", inline=True)
 comment(0x8E67, "Store back in (&B4)", inline=True)
 comment(0x8E69, "Restore text pointer high", inline=True)
@@ -11436,6 +11462,22 @@ sequence number, drive number, and name as the header
 for a catalogue listing.
 """)
 
+subroutine(0x93C5, "print_catalogue_header",
+    title="Point (&B6) to first directory entry",
+    description="""\
+Set zp_entry_ptr (&B6) to &1205, the address of the first
+26-byte directory entry in the directory buffer. Directory
+entries are stored in case-insensitive ascending
+alphabetical order starting at this address. A zero first
+byte marks the end of the entry list. Maximum 47 entries
+(47 x 26 = 1222 bytes from &1205 to &16B0).
+
+Despite its name, this subroutine does not print anything.
+The label reflects its position in the code, immediately
+following the catalogue header printing code which falls
+through to it.
+""")
+
 subroutine(0x947F, "parse_path_and_load",
     title="Parse path and load target directory",
     description="""\
@@ -11946,6 +11988,29 @@ After name is exhausted, check whether remaining pattern
 is only terminators. Returns Z set if match succeeds.
 """)
 
+subroutine(0x87E7, "parse_pathname_entry",
+    title="Linear scan of sorted directory for matching entry",
+    description="""\
+Skip leading spaces, point (&B6) to the first directory
+entry, verify directory integrity, then perform a linear
+scan through entries comparing each against the filename
+pattern.
+
+Directory entries are stored in case-insensitive ascending
+alphabetical order. The scan exploits this invariant: if
+compare_filename returns with carry clear (pattern sorts
+before the current entry name), the target cannot exist
+later in the directory and the search terminates early.
+
+On return, (&B6) points to the matched entry (Z=1) or to
+the first entry that sorts after the pattern (Z=0). This
+position is used by the sorted-insertion code at
+check_name_already_exists to maintain directory order when
+creating new entries.
+""",
+    on_exit={"a": "corrupted (Z set if match found)",
+             "x": "corrupted", "y": "match length if found"})
+
 subroutine(0x8849, "bad_drive_name",
     title="Raise Bad name error for invalid drive",
     description="""\
@@ -12391,6 +12456,23 @@ block into the disc operation workspace, then search the
 current directory for an empty entry slot to use for a
 new file. Called when creating files via OSFILE save,
 *CDIR, *RENAME, and *COPY.
+""")
+
+subroutine(0x8E2B, "check_name_already_exists",
+    title="Insert new entry at sorted position in directory",
+    description="""\
+Insert a new directory entry at the position indicated by
+zp_entry_ptr, which was set by parse_pathname_entry to
+the first entry that sorts after the new name. Shifts all
+entries from the end of the directory (&16B1) backwards
+to zp_entry_ptr up by 26 bytes to open a gap, then
+returns with zp_text_ptr restored to the saved command
+text position. The caller then fills in the gap with the
+new entry's data.
+
+This maintains the ascending alphabetical order invariant
+that the directory search at begin_dir_entry_search
+depends on for its sorted early-exit optimisation.
 """)
 
 subroutine(0x8C05, "osfile_save_check_existing",
