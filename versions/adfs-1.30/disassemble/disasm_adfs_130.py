@@ -1227,7 +1227,7 @@ byte(0x8DF1)
 comment(0x8DF1, "'$': root directory specifier", inline=True)
 byte(0x8DF2)
 comment(0x8DF2, "'&': hex number prefix", inline=True)
-label(0x9071, "disc_op_tpl_write_fsm_unused")
+label(0x9071, "disc_op_tpl_write_fsm")
 entry(0x9071)
 byte(0x9071)
 comment(0x9071, "Result: &01 (default)", inline=True)
@@ -2730,24 +2730,24 @@ comment(0xB474, "Same drive as current?", inline=True)
 comment(0xB477, "Same drive: found one", inline=True)
 comment(0xB479, "Next channel", inline=True)
 comment(0xB47A, "Loop for all 10", inline=True)
-comment(0xB47C, "No channels on this drive", inline=True)
+comment(0xB47C, "Get current drive number", inline=True)
 comment(0xB47F, "Get drive slot index", inline=True)
-comment(0xB482, "Get disc ID low from FSM", inline=True)
-comment(0xB485, "Store for comparison later", inline=True)
-comment(0xB488, "Get disc ID high from FSM", inline=True)
-comment(0xB48B, "Store for comparison", inline=True)
-comment(0xB48E, "Read clock and compare", inline=True)
+comment(0xB482, "Cache disc ID low from FSM", inline=True)
+comment(0xB485, "Store in per-drive workspace", inline=True)
+comment(0xB488, "Cache disc ID high from FSM", inline=True)
+comment(0xB48B, "Store in per-drive workspace", inline=True)
+comment(0xB48E, "Read clock for elapsed time", inline=True)
 comment(0xB491, "Get current drive", inline=True)
 comment(0xB494, "Get drive slot index", inline=True)
-comment(0xB497, "Get disc ID low again", inline=True)
-comment(0xB49A, "Compare with saved", inline=True)
-comment(0xB49D, "Different: disc changed!", inline=True)
-comment(0xB49F, "Get disc ID high", inline=True)
-comment(0xB4A2, "Compare with saved", inline=True)
-comment(0xB4A5, "Different: disc changed!", inline=True)
-comment(0xB4A7, "Get channel bit mask", inline=True)
-comment(0xB4AA, "Store in workspace", inline=True)
-comment(0xB4AD, "Return", inline=True)
+comment(0xB497, "Re-read disc ID low from FSM", inline=True)
+comment(0xB49A, "Compare with cached value", inline=True)
+comment(0xB49D, "Mismatch: disc was changed", inline=True)
+comment(0xB49F, "Re-read disc ID high from FSM", inline=True)
+comment(0xB4A2, "Compare with cached value", inline=True)
+comment(0xB4A5, "Mismatch: disc was changed", inline=True)
+comment(0xB4A7, "Get drive bit mask", inline=True)
+comment(0xB4AA, "Update drive change mask", inline=True)
+comment(0xB4AD, "Return (disc unchanged)", inline=True)
 
 # sub_cb4bf - read clock for disc change timing
 comment(0xB4BF, "OSWORD 1: read system clock", inline=True)
@@ -4356,9 +4356,9 @@ label(0xB468, "check_channels_on_drive")
 label(0xB46A, "scan_drive_channels_loop")
 label(0xB479, "no_channels_on_drive")
 label(0xB47C, "check_disc_changed")
-label(0xB48E, "read_clock_and_compare")
-label(0xB491, "get_drive_slot_index")
-label(0xB4AE, "check_disc_id_changed")
+label(0xB48E, "read_clock_then_verify_disc_id")
+label(0xB491, "verify_disc_id_unchanged")
+label(0xB4AE, "raise_disc_changed_error")
 label(0xB4BF, "read_clock_for_timing")
 label(0xB4CD, "compare_clock_bytes_loop")
 label(0xB4F1, "disc_probably_changed")
@@ -5832,27 +5832,27 @@ comment(0x8F7D, "Y=4: clear access byte 4", inline=True)
 
 # sub_c8f86 - write directory and update FSM checksums
 comment(0x8F86, "Verify directory integrity", inline=True)
-comment(0x8F89, "Get (&B6) pointer", inline=True)
-comment(0x8F8C, "Get (&B7) pointer", inline=True)
-comment(0x8F8E, "Push on stack", inline=True)
-comment(0x8F91, "Get template byte from ROM", inline=True)
-comment(0x8F94, "Store in disc op workspace", inline=True)
-comment(0x8F97, "Next byte", inline=True)
-comment(0x8F9C, "Y=&16: sector offset in info area", inline=True)
-comment(0x8FA8, "Next info byte", inline=True)
-comment(0x8FAB, "Restore (&B7) from stack", inline=True)
+comment(0x8F89, "Validate FSM entries", inline=True)
+comment(0x8F8C, "X=&0A: copy 11 template bytes", inline=True)
+comment(0x8F8E, "Get disc op template byte from ROM", inline=True)
+comment(0x8F91, "Store in disc op workspace", inline=True)
+comment(0x8F94, "Next template byte", inline=True)
+comment(0x8F97, "Patch to write command (&0A)", inline=True)
+comment(0x8F9C, "Get CSD sector low", inline=True)
+comment(0x8FA8, "Get CSD sector high", inline=True)
+comment(0x8FAB, "Store in disc op sector high", inline=True)
 comment(0x8FAE, "Write directory to disc", inline=True)
-comment(0x8FB1, "Restore (&B6) from stack", inline=True)
+comment(0x8FB1, "Get current drive", inline=True)
 
-# FSM checksum update after directory write
-comment(0x8FB4, "Get FSM checksum byte", inline=True)
-comment(0x8FB7, "Is it zero (unmodified)?", inline=True)
-comment(0x8FBD, "Clear FSM modification flag", inline=True)
-comment(0x8FC0, "Y=&FF: calculate FSM checksums", inline=True)
-comment(0x8FC6, "Next byte", inline=True)
+# Update disc ID and FSM checksums after directory write
+comment(0x8FB4, "Get drive slot index in X", inline=True)
+comment(0x8FB7, "Cache disc ID high in workspace", inline=True)
+comment(0x8FBD, "Read VIA T1 counter as new disc ID low", inline=True)
+comment(0x8FC0, "Cache disc ID low in workspace", inline=True)
+comment(0x8FC6, "Calculate FSM checksums", inline=True)
 comment(0x8FC9, "Store sector 0 checksum", inline=True)
-comment(0x8FCC, "A=0: reset for sector 1", inline=True)
-comment(0x8FD1, "Add to checksum", inline=True)
+comment(0x8FCC, "Store sector 1 checksum", inline=True)
+comment(0x8FD1, "Write FSM sectors to disc", inline=True)
 comment(0x8FDA, "Return", inline=True)
 
 # sub_c8fdf - search directory for file
@@ -6000,8 +6000,8 @@ comment(0x8F80, "Write directory and update", inline=True)
 comment(0x8F83, "Check and write entry", inline=True)
 comment(0x8F95, "Loop for template bytes", inline=True)
 
-# FSM validation code
-comment(0x8FCF, "X=&71: validate FSM entry count", inline=True)
+# Write FSM to disc and clear flags
+comment(0x8FCF, "Point to write-FSM template", inline=True)
 comment(0x8FD8, "Clear FSM-inconsistent flag", inline=True)
 comment(0x8FDC, "A=0: success", inline=True)
 comment(0x8FDE, "Return", inline=True)
@@ -11239,8 +11239,11 @@ subroutine(0x8F86, "write_dir_and_validate",
     title="Write directory and FSM back to disc",
     description="""\
 Verify directory integrity, validate the free space map
-checksums, then write the current directory and FSM
-sectors back to disc.
+entries, then write the current directory to disc. Update
+the disc ID low byte from the System VIA Timer 1 counter
+(pseudo-random, for disc-change detection), cache both
+disc ID bytes in per-drive workspace, recalculate FSM
+checksums, and write both FSM sectors to disc.
 """)
 
 subroutine(0x8FDF, "find_first_matching_entry",
@@ -11543,6 +11546,26 @@ sector. If not found, evict the oldest buffer for reuse.
              "x": "buffer table offset for slot",
              "y": "corrupted"})
 
+subroutine(0xB47C, "check_disc_changed",
+    title="Check for disc change via disc ID comparison",
+    description="""\
+Cache the current disc ID from the FSM into per-drive
+workspace, read the system clock for timing, then re-read
+the disc ID and compare with the cached values. If either
+byte differs, raise a "Disc changed" error. Entry point
+when no channels are open on the drive; when channels are
+open, entry is via read_clock_then_verify_disc_id instead.
+""")
+
+subroutine(0xB4BF, "read_clock_for_timing",
+    title="Read system clock for disc-change timing",
+    description="""\
+Read the 5-byte system clock via OSWORD 1 and compute the
+elapsed time since the previous reading. If more than 1
+centisecond has elapsed, set the disc-probably-changed flag
+to trigger a disc ID comparison on the next check.
+""")
+
 subroutine(0xB4F5, "check_drive_and_reload_fsm",
     title="Check disc changed and reload FSM if needed",
     description="""\
@@ -11806,14 +11829,13 @@ summing all 255 bytes of each sector.
     on_exit={"a": "FSM sector 1 checksum",
              "x": "FSM sector 0 checksum", "y": "corrupted"})
 
-subroutine(0x9071, "disc_op_tpl_write_fsm_unused",
-    title="Unused write-FSM disc operation template",
+subroutine(0x9071, "disc_op_tpl_write_fsm",
+    title="Write-FSM disc operation template",
     description="""\
-An unreferenced disc operation template for writing the FSM
-back to disc. The actual write-FSM code at write_dir_and_validate
-instead copies the read template (disc_op_tpl_read_dir) and
-patches the command byte from &08 (read) to &0A (write).
-This template may be a remnant from an earlier code revision.
+Disc operation template for writing both FSM sectors (0 and
+1) from the FSM buffer at &0E00 back to disc. Used by
+write_dir_and_validate via exec_disc_command with X=&71,
+Y=&90 pointing to this template.
 """)
 
 subroutine(0x907C, "osfile_write_load_addr",

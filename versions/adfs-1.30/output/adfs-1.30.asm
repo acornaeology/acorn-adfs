@@ -4107,41 +4107,44 @@ nmi_patched_addr            = &ffff
 ; Write directory and FSM back to disc
 ; 
 ; Verify directory integrity, validate the free space map
-; checksums, then write the current directory and FSM
-; sectors back to disc.
+; entries, then write the current directory to disc. Update
+; the disc ID low byte from the System VIA Timer 1 counter
+; (pseudo-random, for disc-change detection), cache both
+; disc ID bytes in per-drive workspace, recalculate FSM
+; checksums, and write both FSM sectors to disc.
 ; 
 ; &8f86 referenced 17 times by &897f, &8f80, &90fb, &9238, &96ac, &97d4, &99c3, &a007, &a273, &a5df, &a5f8, &a663, &a6c4, &a933, &af4f, &b35d, &b462
 .write_dir_and_validate
     jsr verify_dir_integrity                                          ; 8f86: 20 de a6     ..            ; Verify directory integrity
-    jsr validate_fsm_entries                                          ; 8f89: 20 09 90     ..            ; Get (&B6) pointer
-    ldx #&0a                                                          ; 8f8c: a2 0a       ..             ; Get (&B7) pointer
+    jsr validate_fsm_entries                                          ; 8f89: 20 09 90     ..            ; Validate FSM entries
+    ldx #&0a                                                          ; 8f8c: a2 0a       ..             ; X=&0A: copy 11 template bytes
 ; &8f8e referenced 1 time by &8f95
 .read_osfile_cat_fields_loop
-    lda disc_op_tpl_read_dir,x                                        ; 8f8e: bd 17 88    ...            ; Push on stack
-    sta wksp_disc_op_result,x                                         ; 8f91: 9d 15 10    ...            ; Get template byte from ROM
-    dex                                                               ; 8f94: ca          .              ; Store in disc op workspace
+    lda disc_op_tpl_read_dir,x                                        ; 8f8e: bd 17 88    ...            ; Get disc op template byte from ROM
+    sta wksp_disc_op_result,x                                         ; 8f91: 9d 15 10    ...            ; Store in disc op workspace
+    dex                                                               ; 8f94: ca          .              ; Next template byte
     bpl read_osfile_cat_fields_loop                                   ; 8f95: 10 f7       ..             ; Loop for template bytes
-    lda #&0a                                                          ; 8f97: a9 0a       ..             ; Next byte
+    lda #&0a                                                          ; 8f97: a9 0a       ..             ; Patch to write command (&0A)
     sta wksp_disc_op_command                                          ; 8f99: 8d 1a 10    ...
-    lda wksp_csd_sector_lo                                            ; 8f9c: ad 14 11    ...            ; Y=&16: sector offset in info area
+    lda wksp_csd_sector_lo                                            ; 8f9c: ad 14 11    ...            ; Get CSD sector low
     sta wksp_disc_op_sector_lo                                        ; 8f9f: 8d 1d 10    ...
     lda wksp_csd_sector_mid                                           ; 8fa2: ad 15 11    ...
     sta wksp_disc_op_sector_mid                                       ; 8fa5: 8d 1c 10    ...
-    lda wksp_csd_sector_hi                                            ; 8fa8: ad 16 11    ...            ; Next info byte
-    sta wksp_disc_op_sector                                           ; 8fab: 8d 1b 10    ...            ; Restore (&B7) from stack
+    lda wksp_csd_sector_hi                                            ; 8fa8: ad 16 11    ...            ; Get CSD sector high
+    sta wksp_disc_op_sector                                           ; 8fab: 8d 1b 10    ...            ; Store in disc op sector high
     jsr exec_disc_op_from_wksp                                        ; 8fae: 20 87 82     ..            ; Write directory to disc
-    lda wksp_current_drive                                            ; 8fb1: ad 17 11    ...            ; Restore (&B6) from stack
-    jsr convert_drive_to_slot                                         ; 8fb4: 20 79 b5     y.            ; Get FSM checksum byte
-    lda fsm_s1_disc_id_hi                                             ; 8fb7: ad fc 0f    ...            ; Is it zero (unmodified)?
+    lda wksp_current_drive                                            ; 8fb1: ad 17 11    ...            ; Get current drive
+    jsr convert_drive_to_slot                                         ; 8fb4: 20 79 b5     y.            ; Get drive slot index in X
+    lda fsm_s1_disc_id_hi                                             ; 8fb7: ad fc 0f    ...            ; Cache disc ID high in workspace
     sta wksp_disc_id_hi,x                                             ; 8fba: 9d 22 11    .".            ; X=slot index (drive >> 4)
-    lda system_via_t1c_l                                              ; 8fbd: ad 44 fe    .D.            ; Clear FSM modification flag
-    sta wksp_disc_id_lo,x                                             ; 8fc0: 9d 21 11    .!.            ; Y=&FF: calculate FSM checksums
+    lda system_via_t1c_l                                              ; 8fbd: ad 44 fe    .D.            ; Read VIA T1 counter as new disc ID low
+    sta wksp_disc_id_lo,x                                             ; 8fc0: 9d 21 11    .!.            ; Cache disc ID low in workspace
     sta fsm_s1_disc_id_lo                                             ; 8fc3: 8d fb 0f    ...
-    jsr calc_fsm_checksums                                            ; 8fc6: 20 5c 90     \.            ; Next byte
+    jsr calc_fsm_checksums                                            ; 8fc6: 20 5c 90     \.            ; Calculate FSM checksums
     stx fsm_s0_checksum                                               ; 8fc9: 8e ff 0e    ...            ; Store sector 0 checksum
-    sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; A=0: reset for sector 1
-    ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; X=&71: validate FSM entry count
-    ldy #&90                                                          ; 8fd1: a0 90       ..             ; Add to checksum
+    sta fsm_s1_checksum                                               ; 8fcc: 8d ff 0f    ...            ; Store sector 1 checksum
+    ldx #&71 ; 'q'                                                    ; 8fcf: a2 71       .q             ; Point to write-FSM template
+    ldy #&90                                                          ; 8fd1: a0 90       ..             ; Write FSM sectors to disc
     jsr exec_disc_command                                             ; 8fd3: 20 8b 82     ..            ; Execute disc command and check for error
     lda zp_adfs_flags                                                 ; 8fd6: a5 cd       ..
     and #&ef                                                          ; 8fd8: 29 ef       ).             ; Clear FSM-inconsistent flag
@@ -4294,15 +4297,14 @@ nmi_patched_addr            = &ffff
     rts                                                               ; 9070: 60          `              ; Return (X=chk0, A=chk1)
 
 ; ***************************************************************************************
-; Unused write-FSM disc operation template
+; Write-FSM disc operation template
 ; 
-; An unreferenced disc operation template for writing the FSM
-; back to disc. The actual write-FSM code at write_dir_and_validate
-; instead copies the read template (disc_op_tpl_read_dir) and
-; patches the command byte from &08 (read) to &0A (write).
-; This template may be a remnant from an earlier code revision.
+; Disc operation template for writing both FSM sectors (0 and
+; 1) from the FSM buffer at &0E00 back to disc. Used by
+; write_dir_and_validate via exec_disc_command with X=&71,
+; Y=&90 pointing to this template.
 ; 
-.disc_op_tpl_write_fsm_unused
+.disc_op_tpl_write_fsm
     equb 1                                                            ; 9071: 01          .              ; Result: &01 (default)
     equb 0                                                            ; 9072: 00          .              ; Memory address low: &00
     equb &0e                                                          ; 9073: 0e          .              ; Memory address high: &0E (-> &0E00 FSM buffer)
@@ -9953,7 +9955,7 @@ la868 = check_dest_terminator+1
     bpl restore_csd_after_switch_loop                                 ; adfe: 10 f7       ..             ; Loop for 3 bytes
     lda wksp_last_access_drive                                        ; ae00: ad 33 10    .3.            ; Get last access drive
     sta wksp_saved_drive                                              ; ae03: 8d 2f 10    ./.            ; Set as saved drive for restore
-    jsr read_clock_and_compare                                        ; ae06: 20 8e b4     ..            ; Ensure files on drive are closed
+    jsr read_clock_then_verify_disc_id                                ; ae06: 20 8e b4     ..            ; Ensure files on drive are closed
     ldx zp_channel_offset                                             ; ae09: a6 cf       ..             ; Get channel index
     lda wksp_ch_start_sec_ml,x                                        ; ae0b: bd ca 11    ...            ; Get channel's allocation low
     sta wksp_object_sector                                            ; ae0e: 8d 34 10    .4.            ; Store in object sector low
@@ -10871,42 +10873,60 @@ la868 = check_dest_terminator+1
     lda wksp_ch_start_sec_h,x                                         ; b46f: bd b6 11    ...            ; Get channel drive number
     and #&e0                                                          ; b472: 29 e0       ).             ; Isolate drive bits
     cmp wksp_current_drive                                            ; b474: cd 17 11    ...            ; Same drive as current?
-    beq read_clock_and_compare                                        ; b477: f0 15       ..             ; Same drive: found one
+    beq read_clock_then_verify_disc_id                                ; b477: f0 15       ..             ; Same drive: found one
 ; &b479 referenced 1 time by &b46d
 .no_channels_on_drive
     dex                                                               ; b479: ca          .              ; Next channel
     bpl scan_drive_channels_loop                                      ; b47a: 10 ee       ..             ; Loop for all 10
+; ***************************************************************************************
+; Check for disc change via disc ID comparison
+; 
+; Cache the current disc ID from the FSM into per-drive
+; workspace, read the system clock for timing, then re-read
+; the disc ID and compare with the cached values. If either
+; byte differs, raise a "Disc changed" error. Entry point
+; when no channels are open on the drive; when channels are
+; open, entry is via read_clock_then_verify_disc_id instead.
+; 
 ; &b47c referenced 1 time by &9c26
 .check_disc_changed
-    lda wksp_current_drive                                            ; b47c: ad 17 11    ...            ; No channels on this drive
+    lda wksp_current_drive                                            ; b47c: ad 17 11    ...            ; Get current drive number
     jsr convert_drive_to_slot                                         ; b47f: 20 79 b5     y.            ; Get drive slot index
-    lda fsm_s1_disc_id_lo                                             ; b482: ad fb 0f    ...            ; Get disc ID low from FSM
-    sta wksp_disc_id_lo,x                                             ; b485: 9d 21 11    .!.            ; Store for comparison later
-    lda fsm_s1_disc_id_hi                                             ; b488: ad fc 0f    ...            ; Get disc ID high from FSM
-    sta wksp_disc_id_hi,x                                             ; b48b: 9d 22 11    .".            ; Store for comparison
+    lda fsm_s1_disc_id_lo                                             ; b482: ad fb 0f    ...            ; Cache disc ID low from FSM
+    sta wksp_disc_id_lo,x                                             ; b485: 9d 21 11    .!.            ; Store in per-drive workspace
+    lda fsm_s1_disc_id_hi                                             ; b488: ad fc 0f    ...            ; Cache disc ID high from FSM
+    sta wksp_disc_id_hi,x                                             ; b48b: 9d 22 11    .".            ; Store in per-drive workspace
 ; &b48e referenced 2 times by &ae06, &b477
-.read_clock_and_compare
-    jsr read_clock_for_timing                                         ; b48e: 20 bf b4     ..            ; Read clock and compare
+.read_clock_then_verify_disc_id
+    jsr read_clock_for_timing                                         ; b48e: 20 bf b4     ..            ; Read clock for elapsed time
 ; &b491 referenced 1 time by &b50d
-.get_drive_slot_index
+.verify_disc_id_unchanged
     lda wksp_current_drive                                            ; b491: ad 17 11    ...            ; Get current drive
     jsr convert_drive_to_slot                                         ; b494: 20 79 b5     y.            ; Get drive slot index
-    lda fsm_s1_disc_id_lo                                             ; b497: ad fb 0f    ...            ; Get disc ID low again
-    cmp wksp_disc_id_lo,x                                             ; b49a: dd 21 11    .!.            ; Compare with saved
-    bne check_disc_id_changed                                         ; b49d: d0 0f       ..             ; Different: disc changed!
-    lda fsm_s1_disc_id_hi                                             ; b49f: ad fc 0f    ...            ; Get disc ID high
-    cmp wksp_disc_id_hi,x                                             ; b4a2: dd 22 11    .".            ; Compare with saved
-    bne check_disc_id_changed                                         ; b4a5: d0 07       ..             ; Different: disc changed!
-    jsr get_drive_bit_mask                                            ; b4a7: 20 10 b5     ..            ; Get channel bit mask
-    sta wksp_drive_change_mask                                        ; b4aa: 8d c2 10    ...            ; Store in workspace
-    rts                                                               ; b4ad: 60          `              ; Return
+    lda fsm_s1_disc_id_lo                                             ; b497: ad fb 0f    ...            ; Re-read disc ID low from FSM
+    cmp wksp_disc_id_lo,x                                             ; b49a: dd 21 11    .!.            ; Compare with cached value
+    bne raise_disc_changed_error                                      ; b49d: d0 0f       ..             ; Mismatch: disc was changed
+    lda fsm_s1_disc_id_hi                                             ; b49f: ad fc 0f    ...            ; Re-read disc ID high from FSM
+    cmp wksp_disc_id_hi,x                                             ; b4a2: dd 22 11    .".            ; Compare with cached value
+    bne raise_disc_changed_error                                      ; b4a5: d0 07       ..             ; Mismatch: disc was changed
+    jsr get_drive_bit_mask                                            ; b4a7: 20 10 b5     ..            ; Get drive bit mask
+    sta wksp_drive_change_mask                                        ; b4aa: 8d c2 10    ...            ; Update drive change mask
+    rts                                                               ; b4ad: 60          `              ; Return (disc unchanged)
 
 ; &b4ae referenced 2 times by &b49d, &b4a5
-.check_disc_id_changed
+.raise_disc_changed_error
     jsr reload_fsm_and_dir_then_brk                                   ; b4ae: 20 48 83     H.            ; Reload FSM and directory then raise error
     equb &c8                                                          ; b4b1: c8          .              ; Error &C8: Disc changed
     equs "Disc changed", 0                                            ; b4b2: 44 69 73... Dis
 
+; ***************************************************************************************
+; Read system clock for disc-change timing
+; 
+; Read the 5-byte system clock via OSWORD 1 and compute the
+; elapsed time since the previous reading. If more than 1
+; centisecond has elapsed, set the disc-probably-changed flag
+; to trigger a disc ID comparison on the next check.
+; 
 ; &b4bf referenced 3 times by &b48e, &b4f5, &b525
 .read_clock_for_timing
     lda #osword_read_clock                                            ; b4bf: a9 01       ..             ; OSWORD 1: read system clock
@@ -10959,7 +10979,7 @@ la868 = check_dest_terminator+1
     ldx #&0c                                                          ; b506: a2 0c       ..             ; Changed: reload FSM
     ldy #&88                                                          ; b508: a0 88       ..             ; Y=&88: FSM control block
     jsr exec_disc_command                                             ; b50a: 20 8b 82     ..            ; Read FSM from disc
-    jmp get_drive_slot_index                                          ; b50d: 4c 91 b4    L..            ; Continue checking
+    jmp verify_disc_id_unchanged                                      ; b50d: 4c 91 b4    L..            ; Continue checking
 
 ; ***************************************************************************************
 ; Get bit mask for drive slot
@@ -13479,7 +13499,6 @@ save pydis_start, pydis_end
 ;     check_dir_access_bit:                     2
 ;     check_dir_loaded:                         2
 ;     check_disc_command_type:                  2
-;     check_disc_id_changed:                    2
 ;     check_drive_colon:                        2
 ;     check_existing_for_save:                  2
 ;     check_filename_length:                    2
@@ -13574,7 +13593,8 @@ save pydis_start, pydis_end
 ;     print_space_value:                        2
 ;     proceed_with_delete:                      2
 ;     ra_buffer_1:                              2
-;     read_clock_and_compare:                   2
+;     raise_disc_changed_error:                 2
+;     read_clock_then_verify_disc_id:           2
 ;     read_sector_byte_loop:                    2
 ;     release_entry_space:                      2
 ;     restore_drive_after_op:                   2
@@ -14052,7 +14072,6 @@ save pydis_start, pydis_end
 ;     fsm_s1_first_length:                      1
 ;     full_pathname_parser:                     1
 ;     generate_error_skip_no_suffix:            1
-;     get_drive_slot_index:                     1
 ;     get_first_path_char:                      1
 ;     get_sector_count:                         1
 ;     get_sector_from_block:                    1
@@ -14457,6 +14476,7 @@ save pydis_start, pydis_end
 ;     use_best_fit_entry:                       1
 ;     use_free_slot:                            1
 ;     valid_name_continue_loop:                 1
+;     verify_disc_id_unchanged:                 1
 ;     verify_formatted_sectors:                 1
 ;     verify_workspace_checksum:                1
 ;     volume_error:                             1
