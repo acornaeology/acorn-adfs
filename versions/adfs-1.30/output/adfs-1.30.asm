@@ -148,17 +148,17 @@ fsm_s0_pre1                 = &0dff
 fsm_sector_0                = &0e00
 fsm_s0_first_length         = &0e03
 fsm_s0_reserved             = &0efa
-fsm_s0_disc_id_lo           = &0efb
-fsm_s0_disc_id_hi           = &0efc
-fsm_s0_boot_option          = &0efd
-fsm_s0_end_of_list_ptr      = &0efe
+fsm_s0_pre_disc_size        = &0efb
+fsm_s0_disc_size_lo         = &0efc
+fsm_s0_disc_size_mid        = &0efd
+fsm_s0_disc_size_hi         = &0efe
 fsm_s0_checksum             = &0eff
 fsm_sector_1                = &0f00
 fsm_s1_first_length         = &0f03
 fsm_s1_disc_id_lo           = &0ffb
 fsm_s1_disc_id_hi           = &0ffc
 fsm_s1_boot_option          = &0ffd
-fsm_s1_total_sectors_lo     = &0ffe
+fsm_s1_end_of_list_ptr      = &0ffe
 fsm_s1_checksum             = &0fff
 wksp                        = &1000
 wksp_buf_sec_lo             = &1001
@@ -1783,7 +1783,7 @@ nmi_patched_addr            = &ffff
     ldx #0                                                            ; 84c1: a2 00       ..             ; X=0: start of FSM entries
 ; &84c3 referenced 1 time by &84da
 .scan_fsm_entries_loop
-    cpx fsm_s1_total_sectors_lo                                       ; 84c3: ec fe 0f    ...            ; Past end of free space list?
+    cpx fsm_s1_end_of_list_ptr                                        ; 84c3: ec fe 0f    ...            ; Past end of free space list?
     bcs insert_new_fsm_entry                                          ; 84c6: b0 32       .2             ; Yes, insert at end
     inx                                                               ; 84c8: e8          .              ; Advance X by 3 (entry size)
     inx                                                               ; 84c9: e8          .              ; Advance X (2nd byte of entry)
@@ -1842,7 +1842,7 @@ nmi_patched_addr            = &ffff
 .check_adjacent_to_prev_loop
     plp                                                               ; 850c: 28          (              ; Restore carry
     lda fsm_s0_pre3,x                                                 ; 850d: bd fd 0d    ...            ; Get prev entry address byte
-    adc fsm_s0_boot_option,x                                          ; 8510: 7d fd 0e    }..            ; Add prev entry length byte
+    adc fsm_s0_disc_size_mid,x                                        ; 8510: 7d fd 0e    }..            ; Add prev entry length byte
     php                                                               ; 8513: 08          .              ; Save carry
     cmp wksp_object_sector,y                                          ; 8514: d9 34 10    .4.            ; Compare prev+size with object sector
     beq adjacent_prev_byte                                            ; 8517: f0 06       ..             ; Match: prev is adjacent (merge back)
@@ -1864,9 +1864,9 @@ nmi_patched_addr            = &ffff
 ; &852c referenced 1 time by &853b
 .merge_with_prev_loop
     plp                                                               ; 852c: 28          (              ; Restore carry
-    lda fsm_s0_boot_option,x                                          ; 852d: bd fd 0e    ...            ; Get prev entry length byte
+    lda fsm_s0_disc_size_mid,x                                        ; 852d: bd fd 0e    ...            ; Get prev entry length byte
     adc wksp_object_size,y                                            ; 8530: 79 37 10    y7.            ; Add released size byte
-    sta fsm_s0_boot_option,x                                          ; 8533: 9d fd 0e    ...            ; Store updated length
+    sta fsm_s0_disc_size_mid,x                                        ; 8533: 9d fd 0e    ...            ; Store updated length
     php                                                               ; 8536: 08          .              ; Save carry for next byte
     inx                                                               ; 8537: e8          .              ; Next entry byte
     iny                                                               ; 8538: c8          .              ; Next size byte
@@ -1878,18 +1878,18 @@ nmi_patched_addr            = &ffff
     clc                                                               ; 8542: 18          .              ; Clear carry for addition
 ; &8543 referenced 1 time by &854e
 .check_triple_merge_loop
-    lda fsm_s0_boot_option,x                                          ; 8543: bd fd 0e    ...            ; Get merged entry address byte
+    lda fsm_s0_disc_size_mid,x                                        ; 8543: bd fd 0e    ...            ; Get merged entry address byte
     adc fsm_sector_1,x                                                ; 8546: 7d 00 0f    }..            ; Add merged entry length byte
-    sta fsm_s0_boot_option,x                                          ; 8549: 9d fd 0e    ...            ; Store sum (prev+released+next?)
+    sta fsm_s0_disc_size_mid,x                                        ; 8549: 9d fd 0e    ...            ; Store sum (prev+released+next?)
     inx                                                               ; 854c: e8          .              ; Next byte
     dey                                                               ; 854d: 88          .              ; Decrement counter
     bpl check_triple_merge_loop                                       ; 854e: 10 f3       ..             ; Loop for 3 bytes
 ; &8550 referenced 1 time by &8562
 .shift_entries_down_loop
-    cpx fsm_s1_total_sectors_lo                                       ; 8550: ec fe 0f    ...            ; Check if past end of FSM list
+    cpx fsm_s1_end_of_list_ptr                                        ; 8550: ec fe 0f    ...            ; Check if past end of FSM list
     bcs shrink_fsm_list                                               ; 8553: b0 0f       ..             ; Yes: shrink list by removing entry
     lda fsm_sector_1,x                                                ; 8555: bd 00 0f    ...            ; Get next entry length
-    sta fsm_s0_boot_option,x                                          ; 8558: 9d fd 0e    ...            ; Store over current (shift down)
+    sta fsm_s0_disc_size_mid,x                                        ; 8558: 9d fd 0e    ...            ; Store over current (shift down)
     lda fsm_sector_0,x                                                ; 855b: bd 00 0e    ...            ; Get next entry address
     sta fsm_s0_pre3,x                                                 ; 855e: 9d fd 0d    ...            ; Store over current (shift down)
     inx                                                               ; 8561: e8          .              ; Next entry
@@ -1899,7 +1899,7 @@ nmi_patched_addr            = &ffff
     dex                                                               ; 8564: ca          .              ; Adjust end-of-list pointer
     dex                                                               ; 8565: ca          .              ; Back 3 bytes
     dex                                                               ; 8566: ca          .              ; Back 3 bytes total
-    stx fsm_s1_total_sectors_lo                                       ; 8567: 8e fe 0f    ...            ; Store new end-of-list pointer
+    stx fsm_s1_end_of_list_ptr                                        ; 8567: 8e fe 0f    ...            ; Store new end-of-list pointer
     rts                                                               ; 856a: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -1949,7 +1949,7 @@ nmi_patched_addr            = &ffff
 .compare_prev_plus_size_loop
     plp                                                               ; 8590: 28          (              ; Restore carry
     lda fsm_s0_pre3,x                                                 ; 8591: bd fd 0d    ...            ; Get prev entry address byte
-    adc fsm_s0_boot_option,x                                          ; 8594: 7d fd 0e    }..            ; Add prev entry length byte
+    adc fsm_s0_disc_size_mid,x                                        ; 8594: 7d fd 0e    }..            ; Add prev entry length byte
     php                                                               ; 8597: 08          .              ; Save carry
     cmp wksp_object_sector,y                                          ; 8598: d9 34 10    .4.            ; Compare with object sector byte
     beq merge_size_into_prev                                          ; 859b: f0 04       ..             ; Match: prev is adjacent
@@ -1970,9 +1970,9 @@ nmi_patched_addr            = &ffff
 ; &85ae referenced 1 time by &85bd
 .add_size_to_prev_loop
     plp                                                               ; 85ae: 28          (              ; Restore carry
-    lda fsm_s0_boot_option,x                                          ; 85af: bd fd 0e    ...            ; Get prev entry length byte
+    lda fsm_s0_disc_size_mid,x                                        ; 85af: bd fd 0e    ...            ; Get prev entry length byte
     adc wksp_object_size,y                                            ; 85b2: 79 37 10    y7.            ; Add released size byte
-    sta fsm_s0_boot_option,x                                          ; 85b5: 9d fd 0e    ...            ; Store updated length
+    sta fsm_s0_disc_size_mid,x                                        ; 85b5: 9d fd 0e    ...            ; Store updated length
     php                                                               ; 85b8: 08          .              ; Save carry
     inx                                                               ; 85b9: e8          .              ; Next FSM byte
     iny                                                               ; 85ba: c8          .              ; Next size byte
@@ -1998,7 +1998,7 @@ nmi_patched_addr            = &ffff
 ;     Y: corrupted
 ; &85c1 referenced 2 times by &858a, &859e
 .insert_new_entry
-    lda fsm_s1_total_sectors_lo                                       ; 85c1: ad fe 0f    ...            ; Get end-of-list pointer
+    lda fsm_s1_end_of_list_ptr                                        ; 85c1: ad fe 0f    ...            ; Get end-of-list pointer
     cmp #&f6                                                          ; 85c4: c9 f6       ..             ; Room for new entry (< &F6)?
     bcc shift_entries_up_start                                        ; 85c6: 90 0d       ..             ; Yes: proceed with insert
     jsr generate_disc_error                                           ; 85c8: 20 2b 83     +.            ; Save drive state and raise error
@@ -2007,7 +2007,7 @@ nmi_patched_addr            = &ffff
 
 ; &85d5 referenced 1 time by &85c6
 .shift_entries_up_start
-    ldx fsm_s1_total_sectors_lo                                       ; 85d5: ae fe 0f    ...            ; Get end-of-list pointer
+    ldx fsm_s1_end_of_list_ptr                                        ; 85d5: ae fe 0f    ...            ; Get end-of-list pointer
 ; &85d8 referenced 1 time by &85e9
 .shift_entries_up_loop
     cpx zp_mem_ptr_lo                                                 ; 85d8: e4 b2       ..             ; Reached insertion point?
@@ -2032,9 +2032,9 @@ nmi_patched_addr            = &ffff
     iny                                                               ; 85fb: c8          .              ; Next source byte
     cpy #3                                                            ; 85fc: c0 03       ..             ; All 3 bytes?
     bne store_new_entry_loop                                          ; 85fe: d0 ee       ..             ; No, continue
-    lda fsm_s1_total_sectors_lo                                       ; 8600: ad fe 0f    ...            ; Get end-of-list pointer
+    lda fsm_s1_end_of_list_ptr                                        ; 8600: ad fe 0f    ...            ; Get end-of-list pointer
     adc #2                                                            ; 8603: 69 02       i.             ; Add 3 (new entry size)
-    sta fsm_s1_total_sectors_lo                                       ; 8605: 8d fe 0f    ...            ; Store updated pointer
+    sta fsm_s1_end_of_list_ptr                                        ; 8605: 8d fe 0f    ...            ; Store updated pointer
 ; &8608 referenced 1 time by &8617
 .return_7
     rts                                                               ; 8608: 60          `              ; Return
@@ -2053,7 +2053,7 @@ nmi_patched_addr            = &ffff
     stx wksp_free_space_total                                         ; 8611: 8e 5f 10    ._.            ; Clear accumulator high byte
 ; &8614 referenced 1 time by &862f
 .sum_fsm_entries_loop
-    cpx fsm_s1_total_sectors_lo                                       ; 8614: ec fe 0f    ...            ; Past end of FSM entries?
+    cpx fsm_s1_end_of_list_ptr                                        ; 8614: ec fe 0f    ...            ; Past end of FSM entries?
     beq return_7                                                      ; 8617: f0 ef       ..             ; Yes: return total
     ldy #0                                                            ; 8619: a0 00       ..             ; Y=0: sum this 3-byte entry
     clc                                                               ; 861b: 18          .              ; Clear carry for addition
@@ -2086,7 +2086,7 @@ nmi_patched_addr            = &ffff
     inx                                                               ; 8636: e8          .              ; X=&00
 ; &8637 referenced 1 time by &8705
 .scan_for_best_fit
-    cpx fsm_s1_total_sectors_lo                                       ; 8637: ec fe 0f    ...            ; Past end of FSM entries?
+    cpx fsm_s1_end_of_list_ptr                                        ; 8637: ec fe 0f    ...            ; Past end of FSM entries?
     bcc compare_entry_size                                            ; 863a: 90 7c       .|             ; No: check this entry
     ldx zp_mem_ptr_hi                                                 ; 863c: a6 b3       ..             ; Get best-fit index
     cpx #&ff                                                          ; 863e: e0 ff       ..             ; Still &FF (no fit found)?
@@ -2148,9 +2148,9 @@ nmi_patched_addr            = &ffff
 ; &86a5 referenced 1 time by &86b4
 .subtract_from_length_loop
     plp                                                               ; 86a5: 28          (              ; Restore carry
-    lda fsm_s0_boot_option,x                                          ; 86a6: bd fd 0e    ...            ; Get entry length byte
+    lda fsm_s0_disc_size_mid,x                                        ; 86a6: bd fd 0e    ...            ; Get entry length byte
     sbc wksp_alloc_size,y                                             ; 86a9: f9 3d 10    .=.            ; Subtract requested size
-    sta fsm_s0_boot_option,x                                          ; 86ac: 9d fd 0e    ...            ; Store reduced length
+    sta fsm_s0_disc_size_mid,x                                        ; 86ac: 9d fd 0e    ...            ; Store reduced length
     php                                                               ; 86af: 08          .              ; Save carry
     inx                                                               ; 86b0: e8          .              ; Next entry byte
     iny                                                               ; 86b1: c8          .              ; Next requested byte
@@ -2187,19 +2187,19 @@ nmi_patched_addr            = &ffff
     ldx zp_mem_ptr_lo                                                 ; 86db: a6 b2       ..             ; Restore entry index
 ; &86dd referenced 1 time by &86ef
 .remove_exact_entry_loop
-    cpx fsm_s1_total_sectors_lo                                       ; 86dd: ec fe 0f    ...            ; Past end of entries?
+    cpx fsm_s1_end_of_list_ptr                                        ; 86dd: ec fe 0f    ...            ; Past end of entries?
     bcs shrink_list_after_exact                                       ; 86e0: b0 0f       ..             ; Yes: shrink list
     lda fsm_sector_0,x                                                ; 86e2: bd 00 0e    ...            ; Shift entries down
     sta fsm_s0_pre3,x                                                 ; 86e5: 9d fd 0d    ...            ; Store 3 bytes lower (addresses)
     lda fsm_sector_1,x                                                ; 86e8: bd 00 0f    ...            ; Get length entry to shift
-    sta fsm_s0_boot_option,x                                          ; 86eb: 9d fd 0e    ...            ; Store 3 bytes lower (lengths)
+    sta fsm_s0_disc_size_mid,x                                        ; 86eb: 9d fd 0e    ...            ; Store 3 bytes lower (lengths)
     inx                                                               ; 86ee: e8          .              ; Next entry
     bne remove_exact_entry_loop                                       ; 86ef: d0 ec       ..             ; Loop shifting entries
 ; &86f1 referenced 1 time by &86e0
 .shrink_list_after_exact
-    lda fsm_s1_total_sectors_lo                                       ; 86f1: ad fe 0f    ...            ; Get end-of-list pointer
+    lda fsm_s1_end_of_list_ptr                                        ; 86f1: ad fe 0f    ...            ; Get end-of-list pointer
     sbc #3                                                            ; 86f4: e9 03       ..             ; Subtract 3 (removed entry)
-    sta fsm_s1_total_sectors_lo                                       ; 86f6: 8d fe 0f    ...            ; Store updated pointer
+    sta fsm_s1_end_of_list_ptr                                        ; 86f6: 8d fe 0f    ...            ; Store updated pointer
     rts                                                               ; 86f9: 60          `              ; Return (exact match used)
 
 ; &86fa referenced 1 time by &86c8
@@ -4119,11 +4119,11 @@ nmi_patched_addr            = &ffff
     jsr validate_fsm_entries                                          ; 8f89: 20 09 90     ..            ; Validate FSM entries
     ldx #&0a                                                          ; 8f8c: a2 0a       ..             ; X=&0A: copy 11 template bytes
 ; &8f8e referenced 1 time by &8f95
-.read_osfile_cat_fields_loop
+.copy_dir_write_template_loop
     lda disc_op_tpl_read_dir,x                                        ; 8f8e: bd 17 88    ...            ; Get disc op template byte from ROM
     sta wksp_disc_op_result,x                                         ; 8f91: 9d 15 10    ...            ; Store in disc op workspace
     dex                                                               ; 8f94: ca          .              ; Next template byte
-    bpl read_osfile_cat_fields_loop                                   ; 8f95: 10 f7       ..             ; Loop for template bytes
+    bpl copy_dir_write_template_loop                                  ; 8f95: 10 f7       ..             ; Loop for template bytes
     lda #&0a                                                          ; 8f97: a9 0a       ..             ; Patch to write command (&0A)
     sta wksp_disc_op_command                                          ; 8f99: 8d 1a 10    ...
     lda wksp_csd_sector_lo                                            ; 8f9c: ad 14 11    ...            ; Get CSD sector low
@@ -4208,7 +4208,7 @@ nmi_patched_addr            = &ffff
 
 ; &9009 referenced 2 times by &8f89, &8fea
 .validate_fsm_entries
-    ldx fsm_s1_total_sectors_lo                                       ; 9009: ae fe 0f    ...            ; Get FSM end-of-list pointer
+    ldx fsm_s1_end_of_list_ptr                                        ; 9009: ae fe 0f    ...            ; Get FSM end-of-list pointer
     beq return_18                                                     ; 900c: f0 db       ..             ; Empty: return OK
     lda #0                                                            ; 900e: a9 00       ..             ; A=0: init check accumulator
 ; &9010 referenced 1 time by &901d
@@ -4223,7 +4223,7 @@ nmi_patched_addr            = &ffff
     bne check_fsm_entry_loop                                          ; 901d: d0 f1       ..             ; Loop for all entries
     and #&e0                                                          ; 901f: 29 e0       ).             ; Check drive bits in accumulator
     bne bad_fs_map_error                                              ; 9021: d0 d7       ..             ; Non-zero: bad FS map
-    ldx fsm_s1_total_sectors_lo                                       ; 9023: ae fe 0f    ...            ; Get end pointer again
+    ldx fsm_s1_end_of_list_ptr                                        ; 9023: ae fe 0f    ...            ; Get end pointer again
     cpx #6                                                            ; 9026: e0 06       ..             ; Need at least 2 entries (>= 6)
     bcc return_18                                                     ; 9028: 90 bf       ..             ; Not enough: return OK (empty disc)
     ldx #3                                                            ; 902a: a2 03       ..             ; X=3: check entry ordering
@@ -4234,7 +4234,7 @@ nmi_patched_addr            = &ffff
 ; &902f referenced 1 time by &9038
 .add_entry_size_loop
     lda fsm_s0_pre3,x                                                 ; 902f: bd fd 0d    ...            ; Get prev entry address byte
-    adc fsm_s0_boot_option,x                                          ; 9032: 7d fd 0e    }..            ; Add prev entry length byte
+    adc fsm_s0_disc_size_mid,x                                        ; 9032: 7d fd 0e    }..            ; Add prev entry length byte
     pha                                                               ; 9035: 48          H              ; Push result on stack
     inx                                                               ; 9036: e8          .              ; Next byte
     dey                                                               ; 9037: 88          .              ; Next comparison byte
@@ -4263,7 +4263,7 @@ nmi_patched_addr            = &ffff
     inx                                                               ; 9053: e8          .              ; Continue advancing
     inx                                                               ; 9054: e8          .              ; Continue advancing
     inx                                                               ; 9055: e8          .              ; Continue advancing
-    cpx fsm_s1_total_sectors_lo                                       ; 9056: ec fe 0f    ...            ; Past end of list?
+    cpx fsm_s1_end_of_list_ptr                                        ; 9056: ec fe 0f    ...            ; Past end of list?
     bcc check_fsm_ordering                                            ; 9059: 90 d1       ..             ; No: check next pair
     rts                                                               ; 905b: 60          `              ; All entries OK: return
 
@@ -5775,7 +5775,7 @@ nmi_patched_addr            = &ffff
     stx zp_mem_ptr_lo                                                 ; 982e: 86 b2       ..             ; Store scan position
 ; &9830 referenced 1 time by &984a
 .set_root_identity_loop
-    cpx fsm_s1_total_sectors_lo                                       ; 9830: ec fe 0f    ...            ; Past end of FSM?
+    cpx fsm_s1_end_of_list_ptr                                        ; 9830: ec fe 0f    ...            ; Past end of FSM?
     bcc write_root_dir_to_disc                                        ; 9833: 90 03       ..             ; No: check this entry
     jmp format_init_fsm                                               ; 9835: 4c b3 97    L..            ; Past end: reinit search
 
@@ -7406,12 +7406,12 @@ help_param_none = help_param_title+7
     equb &8d                                                          ; a028: 8d          .              ; CR + bit 7: end of inline string
 
     jsr calc_total_free_space                                         ; a029: 20 aa a1     ..            ; Calculate total free space again
-    ldy #1                                                            ; a02c: a0 01       ..             ; Y=1: start from FSM byte 1
-    ldx #2                                                            ; a02e: a2 02       ..             ; X=2: subtract 3 bytes
+    ldy #1                                                            ; a02c: a0 01       ..             ; Y=1: offset to disc size low byte
+    ldx #2                                                            ; a02e: a2 02       ..             ; X=2: loop counter for 3-byte subtract
     sec                                                               ; a030: 38          8              ; Set carry for subtraction
 ; &a031 referenced 1 time by &a03c
 .print_used_space
-    lda fsm_s0_disc_id_lo,y                                           ; a031: b9 fb 0e    ...            ; Total sectors (from FSM sector 0)
+    lda fsm_s0_pre_disc_size,y                                        ; a031: b9 fb 0e    ...            ; Get disc size byte (Y-indexed)
     sbc wksp_disc_op_result,y                                         ; a034: f9 15 10    ...            ; Subtract free space
     sta wksp_disc_op_result,y                                         ; a037: 99 15 10    ...            ; Store result (used space)
     iny                                                               ; a03a: c8          .              ; Next FSM byte
@@ -7440,7 +7440,7 @@ help_param_none = help_param_title+7
     ldx #0                                                            ; a05f: a2 00       ..             ; X=0: start of FSM entries
 ; &a061 referenced 1 time by &a092
 .print_map_header
-    cpx fsm_s1_total_sectors_lo                                       ; a061: ec fe 0f    ...            ; Past end of free space list?
+    cpx fsm_s1_end_of_list_ptr                                        ; a061: ec fe 0f    ...            ; Past end of free space list?
     beq return_27                                                     ; a064: f0 e3       ..             ; Yes, done
     inx                                                               ; a066: e8          .              ; Advance X to entry+3
     inx                                                               ; a067: e8          .              ; Advance X: 2nd byte of 3-byte entry
@@ -7480,7 +7480,7 @@ help_param_none = help_param_title+7
 .check_compaction_recommended
     ldx wksp_compaction_reported                                      ; a094: ae d8 10    ...            ; Check if already reported
     bne return_27                                                     ; a097: d0 b0       ..             ; Already done, skip
-    ldx fsm_s1_total_sectors_lo                                       ; a099: ae fe 0f    ...            ; Get FSM end-of-list pointer
+    ldx fsm_s1_end_of_list_ptr                                        ; a099: ae fe 0f    ...            ; Get FSM end-of-list pointer
     cpx #&e1                                                          ; a09c: e0 e1       ..             ; Pointer >= &E1 (many fragments)?
     bcc return_27                                                     ; a09e: 90 a9       ..             ; No, space not fragmented enough
     jsr print_inline_string                                           ; a0a0: 20 a0 92     ..            ; Print "Compaction recommended" + CR
@@ -10691,13 +10691,13 @@ la868 = check_dest_terminator+1
     sta wksp_osfile_load_addr,x                                       ; b316: 9d 42 10    .B.            ; Clear OSFILE block byte
     dex                                                               ; b319: ca          .              ; Next byte
     bpl clear_osfile_block_loop2                                      ; b31a: 10 fa       ..             ; Loop for 16 bytes
-    ldx fsm_s1_total_sectors_lo                                       ; b31c: ae fe 0f    ...            ; Get FSM end-of-list pointer
+    ldx fsm_s1_end_of_list_ptr                                        ; b31c: ae fe 0f    ...            ; Get FSM end-of-list pointer
     lda #0                                                            ; b31f: a9 00       ..             ; A=0: initial max size = 0
 ; &b321 referenced 1 time by &b335
 .find_best_free_space_loop
-    ora fsm_s0_end_of_list_ptr,x                                      ; b321: 1d fe 0e    ...            ; OR FSM entry address bytes
+    ora fsm_s0_disc_size_hi,x                                         ; b321: 1d fe 0e    ...            ; OR FSM entry address bytes
     ora fsm_s0_checksum,x                                             ; b324: 1d ff 0e    ...            ; Continue OR-ing
-    ldy fsm_s0_boot_option,x                                          ; b327: bc fd 0e    ...            ; Get FSM entry length
+    ldy fsm_s0_disc_size_mid,x                                        ; b327: bc fd 0e    ...            ; Get FSM entry length
     cpy wksp_osfile_end_addr_1                                        ; b32a: cc 4f 10    .O.            ; Compare with current max
     bcc store_default_allocation                                      ; b32d: 90 03       ..             ; Smaller: skip
     sty wksp_osfile_end_addr_1                                        ; b32f: 8c 4f 10    .O.            ; Larger: update max
@@ -13131,7 +13131,7 @@ save pydis_start, pydis_end
 ;     wksp_ch_flags:                           20
 ;     wksp_fdc_head_state:                     20
 ;     zp_floppy_state:                         20
-;     fsm_s1_total_sectors_lo:                 19
+;     fsm_s1_end_of_list_ptr:                  19
 ;     print_inline_string:                     19
 ;     zp_mem_ptr_hi:                           19
 ;     check_char_is_terminator:                18
@@ -13150,7 +13150,7 @@ save pydis_start, pydis_end
 ;     zp_floppy_control:                       16
 ;     zp_wksp_ptr_lo:                          16
 ;     scsi_wait_for_req:                       15
-;     fsm_s0_boot_option:                      14
+;     fsm_s0_disc_size_mid:                    14
 ;     wksp_disc_op_command:                    14
 ;     wksp_osfile_block:                       14
 ;     find_first_matching_entry:               13
@@ -13922,6 +13922,7 @@ save pydis_start, pydis_end
 ;     copy_dir_name_to_entry:                   1
 ;     copy_dir_sector_loop:                     1
 ;     copy_dir_template_loop:                   1
+;     copy_dir_write_template_loop:             1
 ;     copy_disc_op_for_subdir:                  1
 ;     copy_disc_op_params_loop:                 1
 ;     copy_disc_op_template:                    1
@@ -14067,10 +14068,10 @@ save pydis_start, pydis_end
 ;     fscv:                                     1
 ;     fscv_dispatch_hi:                         1
 ;     fscv_dispatch_lo:                         1
-;     fsm_s0_disc_id_lo:                        1
-;     fsm_s0_end_of_list_ptr:                   1
+;     fsm_s0_disc_size_hi:                      1
 ;     fsm_s0_first_length:                      1
 ;     fsm_s0_pre6:                              1
+;     fsm_s0_pre_disc_size:                     1
 ;     fsm_s0_reserved:                          1
 ;     fsm_s1_first_length:                      1
 ;     full_pathname_parser:                     1
@@ -14221,7 +14222,6 @@ save pydis_start, pydis_end
 ;     read_fsm_from_disc:                       1
 ;     read_hd_256_complete:                     1
 ;     read_lib_name_handler:                    1
-;     read_osfile_cat_fields_loop:              1
 ;     read_scsi_to_buffer_loop:                 1
 ;     read_scsi_to_memory:                      1
 ;     read_scsi_via_tube:                       1

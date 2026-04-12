@@ -10,18 +10,16 @@ disc between operations will almost certainly produce a detectable mismatch.
 
 ## Storage
 
-The disc ID occupies two bytes in each of the two FSM sectors:
+The disc ID occupies two bytes in FSM sector 1:
 
-| FSM sector | RAM address | Offset within sector |
-|------------|-------------|---------------------|
-| Sector 0   | `fsm_s0_disc_id_lo` (&0EFB) | &FB |
-| Sector 0   | `fsm_s0_disc_id_hi` (&0EFC) | &FC |
-| Sector 1   | `fsm_s1_disc_id_lo` (&0FFB) | &FB |
-| Sector 1   | `fsm_s1_disc_id_hi` (&0FFC) | &FC |
+| RAM address | Offset within sector 1 | Field |
+|-------------|------------------------|-------|
+| `fsm_s1_disc_id_lo` (&0FFB) | &FB | Low byte |
+| `fsm_s1_disc_id_hi` (&0FFC) | &FC | High byte |
 
-Only the sector 1 copy is actively read and written by the flush and
-disc-change logic. The sector 0 copy is included in the sector 0 checksum but
-is not explicitly updated by `write_dir_and_validate`.
+Note that sectors 0 and 1 have different tail layouts. Sector 0 uses offsets
+&FC-&FE for the 24-bit disc size (`fsm_s0_disc_size_lo` through
+`fsm_s0_disc_size_hi`), not a disc ID. The disc ID exists only in sector 1.
 
 Per-drive cached copies are held in workspace at `wksp_disc_id_lo` (&1121) and
 `wksp_disc_id_hi` (&1122), indexed by drive slot.
@@ -146,11 +144,9 @@ The scheme is simple but effective for single-user floppy operation:
   in the low byte, which is expected -- the comparison is between the cached
   workspace copy and a fresh FSM read, not between two consecutive flushes.
 
-- **Sector 0 vs sector 1**: only the sector 1 copy is actively maintained.
-  The sector 0 copy at &0EFB/&0EFC participates in the sector 0 checksum but
-  is not updated by `write_dir_and_validate`. This asymmetry may reflect the
-  fact that the disc-change logic only needs one authoritative copy, and sector
-  1 was chosen.
+- **Sector 1 only**: the disc ID exists only in FSM sector 1. Sector 0 uses
+  the same byte offsets (&FC-&FE) for the 24-bit disc size, which is a
+  completely different field. There is no sector 0 copy of the disc ID.
 
 - **No format-time initialisation**: the disc ID is not specially initialised
   during `*FORMAT`. The format path calls `write_dir_and_validate`, which
