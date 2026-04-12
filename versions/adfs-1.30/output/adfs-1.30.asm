@@ -4166,29 +4166,32 @@ nmi_patched_addr            = &ffff
 ;     Y: corrupted
 ; &8fdf referenced 13 times by &8be5, &8cb3, &8cd7, &94e7, &993d, &9a2d, &9c43, &a586, &a672, &b20e, &b2e6, &b301, &b36d
 .find_first_matching_entry
-    jsr parse_filename_from_cmdline                                   ; 8fdf: 20 4c 88     L.            ; Set up search with wildcards
-    php                                                               ; 8fe2: 08          .              ; Point to first dir entry
+    jsr parse_filename_from_cmdline                                   ; 8fdf: 20 4c 88     L.            ; Parse filename from command line
+    php                                                               ; 8fe2: 08          .              ; Save flags across FSM validation
     pha                                                               ; 8fe3: 48          H              ; Save A on stack
-    jsr validate_fsm_and_mark_dirty                                   ; 8fe4: 20 ea 8f     ..            ; Validate FSM checksums and mark directory dirty
+    jsr validate_fsm_checksums                                        ; 8fe4: 20 ea 8f     ..            ; Validate FSM entry structure and checksums
     pla                                                               ; 8fe7: 68          h              ; Restore A
-    plp                                                               ; 8fe8: 28          (              ; Search for matching entry
+    plp                                                               ; 8fe8: 28          (              ; Restore flags from parse result
 ; &8fe9 referenced 3 times by &8ff8, &900c, &9028
 .return_18
     rts                                                               ; 8fe9: 60          `              ; Return
 
 ; ***************************************************************************************
-; Validate FSM checksums and mark directory dirty
+; Validate FSM entry structure and checksums
 ; 
-; Validate the in-memory free space map by checking both
-; sector checksums. Generates a Bad FS map error if the
-; checksums do not match.
+; Validate the in-memory free space map by checking entry
+; structure (via validate_fsm_entries) and recalculating
+; both sector checksums (via calc_fsm_checksums). Raises
+; a Bad FS map error if entries are malformed or checksums
+; do not match. Called as a guard before operations that
+; modify the FSM or directory.
 ; 
 ; &8fea referenced 5 times by &8fe4, &9ffa, &a255, &a754, &a872
-.validate_fsm_and_mark_dirty
+.validate_fsm_checksums
     jsr validate_fsm_entries                                          ; 8fea: 20 09 90     ..
-    jsr calc_fsm_checksums                                            ; 8fed: 20 5c 90     \.            ; Mark directory as modified
-    cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Verify directory
-    bne bad_fs_map_error                                              ; 8ff3: d0 05       ..             ; Point to first entry
+    jsr calc_fsm_checksums                                            ; 8fed: 20 5c 90     \.            ; Recalculate FSM checksums
+    cmp fsm_s1_checksum                                               ; 8ff0: cd ff 0f    ...            ; Compare sector 1 checksum
+    bne bad_fs_map_error                                              ; 8ff3: d0 05       ..             ; Mismatch: bad FS map
     cpx fsm_s0_checksum                                               ; 8ff5: ec ff 0e    ...            ; X=FSM sector 0 checksum
     beq return_18                                                     ; 8ff8: f0 ef       ..
 ; ***************************************************************************************
@@ -7366,12 +7369,12 @@ help_param_none = help_param_title+7
 .check_opt4_boot
     cpx #3                                                            ; 9ff6: e0 03       ..             ; Check for *OPT 4 (boot option)
     bne bad_opt_error                                                 ; 9ff8: d0 10       ..             ; Not *OPT 4: bad opt error
-    jsr validate_fsm_and_mark_dirty                                   ; 9ffa: 20 ea 8f     ..            ; Mark directory as modified
-    jsr check_drive_and_reload_fsm                                    ; 9ffd: 20 f5 b4     ..            ; Ensure dir loaded and writable
+    jsr validate_fsm_checksums                                        ; 9ffa: 20 ea 8f     ..            ; Validate FSM before modification
+    jsr check_drive_and_reload_fsm                                    ; 9ffd: 20 f5 b4     ..            ; Check for disc change, reload if needed
     lda zp_text_ptr_hi                                                ; a000: a5 b5       ..             ; Get boot option value (second param)
     and #3                                                            ; a002: 29 03       ).             ; Mask to 2 bits (options 0-3)
     sta fsm_s1_boot_option                                            ; a004: 8d fd 0f    ...            ; Store in FSM boot option byte
-    jmp write_dir_and_validate                                        ; a007: 4c 86 8f    L..            ; Write FSM back to disc
+    jmp write_dir_and_validate                                        ; a007: 4c 86 8f    L..            ; Write directory and FSM to disc
 
 ; &a00a referenced 1 time by &9ff8
 .bad_opt_error
@@ -7850,7 +7853,7 @@ la154 = sub_ca153+1
 ; 
 .star_title
     jsr check_drive_and_reload_fsm                                    ; a252: 20 f5 b4     ..            ; Ensure dir is loaded and writable
-    jsr validate_fsm_and_mark_dirty                                   ; a255: 20 ea 8f     ..            ; Mark directory as modified
+    jsr validate_fsm_checksums                                        ; a255: 20 ea 8f     ..            ; Validate FSM before modification
     jsr skip_spaces                                                   ; a258: 20 cf a4     ..            ; Skip leading spaces in argument
     ldy #0                                                            ; a25b: a0 00       ..             ; Y=0: index into title string
 ; &a25d referenced 1 time by &a271
@@ -8813,7 +8816,7 @@ la154 = sub_ca153+1
     pha                                                               ; a74e: 48          H              ; Save X
     lda wksp_error_suppress                                           ; a74f: ad ce 10    ...            ; Check error flag
     bne bad_checksum_error                                            ; a752: d0 e4       ..             ; Non-zero: workspace corrupt, error
-    jsr validate_fsm_and_mark_dirty                                   ; a754: 20 ea 8f     ..            ; Mark directory as modified
+    jsr validate_fsm_checksums                                        ; a754: 20 ea 8f     ..            ; Validate FSM before modification
     clc                                                               ; a757: 18          .              ; Clear carry for scan
     ldx #&10                                                          ; a758: a2 10       ..             ; X=&10: scan open channel table
 ; &a75a referenced 1 time by &a76b
@@ -9025,7 +9028,7 @@ la868 = check_dest_terminator+1
 ; &a86f referenced 1 time by &a86a
 .load_dest_directory
     jsr parse_path_and_load                                           ; a86f: 20 7f 94     ..            ; Load destination directory
-    jsr validate_fsm_and_mark_dirty                                   ; a872: 20 ea 8f     ..            ; Mark destination dir as modified
+    jsr validate_fsm_checksums                                        ; a872: 20 ea 8f     ..            ; Validate FSM before dest dir change
     ldy #3                                                            ; a875: a0 03       ..             ; Y=3: save dest dir sector
 ; &a877 referenced 1 time by &a87e
 .save_dest_dir_sector_loop
@@ -13289,7 +13292,7 @@ save pydis_start, pydis_end
 ;     sync_ext_to_ptr:                          5
 ;     tbl_commands:                             5
 ;     update_channel_flags_for_ptr:             5
-;     validate_fsm_and_mark_dirty:              5
+;     validate_fsm_checksums:                   5
 ;     wait_data_phase:                          5
 ;     wksp_copy_src_sector_2:                   5
 ;     wksp_copy_write_sector_1:                 5

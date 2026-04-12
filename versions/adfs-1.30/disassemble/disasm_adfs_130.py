@@ -3612,7 +3612,7 @@ comment(0x9FF8, "Not *OPT 4: bad opt error", inline=True)
 comment(0xA000, "Get boot option value (second param)", inline=True)
 comment(0xA002, "Mask to 2 bits (options 0-3)", inline=True)
 comment(0xA004, "Store in FSM boot option byte", inline=True)
-comment(0xA007, "Write FSM back to disc", inline=True)
+comment(0xA007, "Write directory and FSM to disc", inline=True)
 
 # hd_init_detect (&9A63)
 # Writes &5A then &A5 to SCSI data register and reads back.
@@ -3864,7 +3864,7 @@ label(0x8F80, "search_for_osfile_target")
 label(0x8F86, "write_dir_and_validate")
 label(0x8F8E, "read_osfile_cat_fields_loop")
 label(0x8FDF, "find_first_matching_entry")
-label(0x8FEA, "validate_fsm_and_mark_dirty")
+label(0x8FEA, "validate_fsm_checksums")
 label(0x8FFA, "bad_fs_map_error")
 label(0x9009, "validate_fsm_entries")
 label(0x9010, "check_fsm_entry_loop")
@@ -6143,12 +6143,12 @@ comment(0x9104, "Found: write access byte", inline=True)
 comment(0x9106, "Not found: A=0", inline=True)
 comment(0x9108, "Return", inline=True)
 
-comment(0x8FDF, "Set up search with wildcards", inline=True)
-comment(0x8FE2, "Point to first dir entry", inline=True)
-comment(0x8FE8, "Search for matching entry", inline=True)
-comment(0x8FED, "Mark directory as modified", inline=True)
-comment(0x8FF0, "Verify directory", inline=True)
-comment(0x8FF3, "Point to first entry", inline=True)
+comment(0x8FDF, "Parse filename from command line", inline=True)
+comment(0x8FE2, "Save flags across FSM validation", inline=True)
+comment(0x8FE8, "Restore flags from parse result", inline=True)
+comment(0x8FED, "Recalculate FSM checksums", inline=True)
+comment(0x8FF0, "Compare sector 1 checksum", inline=True)
+comment(0x8FF3, "Mismatch: bad FS map", inline=True)
 
 # floppy_partial_sector (&8B1E)
 # Reads a partial sector via floppy for BGET/BPUT operations
@@ -8064,7 +8064,7 @@ comment(0xA251, "Return to caller", inline=True)
 
 # star_title (&A252)
 comment(0xA252, "Ensure dir is loaded and writable", inline=True)
-comment(0xA255, "Mark directory as modified", inline=True)
+comment(0xA255, "Validate FSM before modification", inline=True)
 comment(0xA258, "Skip leading spaces in argument", inline=True)
 comment(0xA25B, "Y=0: index into title string", inline=True)
 comment(0xA25D, "Get next character", inline=True)
@@ -9329,7 +9329,7 @@ comment(0xA74D, "Transfer X to A", inline=True)
 comment(0xA74E, "Save X", inline=True)
 comment(0xA74F, "Check error flag", inline=True)
 comment(0xA752, "Non-zero: workspace corrupt, error", inline=True)
-comment(0xA754, "Mark directory as modified", inline=True)
+comment(0xA754, "Validate FSM before modification", inline=True)
 comment(0xA757, "Clear carry for scan", inline=True)
 comment(0xA758, "X=&10: scan open channel table", inline=True)
 comment(0xA75A, "Get channel state entry", inline=True)
@@ -9622,7 +9622,7 @@ comment(0xA864, "Parse destination path", inline=True)
 comment(0xA86A, "Found destination dir?", inline=True)
 comment(0xA86C, "Bad name: invalid destination", inline=True)
 comment(0xA86F, "Load destination directory", inline=True)
-comment(0xA872, "Mark destination dir as modified", inline=True)
+comment(0xA872, "Validate FSM before dest dir change", inline=True)
 comment(0xA875, "Y=3: save dest dir sector", inline=True)
 comment(0xA877, "Get dest dir sector byte", inline=True)
 comment(0xA87A, "Store in workspace", inline=True)
@@ -10333,8 +10333,8 @@ comment(0x9FDC, "Return to FSC dispatcher", inline=True)
 comment(0x9FE7, "Get ADFS flags", inline=True)
 comment(0x9FE9, "Set bit 2 (*OPT1 verbose on)", inline=True)
 comment(0x9FEF, "Clear bit 2 (*OPT1 verbose off)", inline=True)
-comment(0x9FFA, "Mark directory as modified", inline=True)
-comment(0x9FFD, "Ensure dir loaded and writable", inline=True)
+comment(0x9FFA, "Validate FSM before modification", inline=True)
+comment(0x9FFD, "Check for disc change, reload if needed", inline=True)
 comment(0xA016, "A=&20: space character", inline=True)
 
 # star_run - remaining items
@@ -11288,12 +11288,15 @@ then generate a BRK error. The inline error number and
 message string follow the JSR instruction.
 """)
 
-subroutine(0x8FEA, "validate_fsm_and_mark_dirty",
-    title="Validate FSM checksums and mark directory dirty",
+subroutine(0x8FEA, "validate_fsm_checksums",
+    title="Validate FSM entry structure and checksums",
     description="""\
-Validate the in-memory free space map by checking both
-sector checksums. Generates a Bad FS map error if the
-checksums do not match.
+Validate the in-memory free space map by checking entry
+structure (via validate_fsm_entries) and recalculating
+both sector checksums (via calc_fsm_checksums). Raises
+a Bad FS map error if entries are malformed or checksums
+do not match. Called as a guard before operations that
+modify the FSM or directory.
 """)
 
 subroutine(0x8BC8, "not_found_error",
