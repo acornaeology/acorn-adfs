@@ -16,7 +16,7 @@ For project overview and build instructions, see [README.md](README.md). For arc
 
 ## Quick reference: CLI tools
 
-The disassembly tooling is provided by [fantasm](https://github.com/acornaeology/fantasm), invoked as `uv run fantasm <command>`. The full command surface is documented in fantasm's own README; the most-used commands here are:
+The disassembly tooling is provided by [fantasm](https://acornaeology.github.io/fantasm/), invoked as `uv run fantasm <command>`. The full command-by-command reference is at <https://acornaeology.github.io/fantasm/cli.html> and the workflow guide at <https://acornaeology.github.io/fantasm/workflows.html>; the most-used commands here are:
 
 | Command | Description | Example |
 |---------|-------------|---------|
