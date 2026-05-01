@@ -48,11 +48,24 @@ jobs:
           make -C /tmp/beebasm/build -j$(nproc)
           sudo cp /tmp/beebasm/build/beebasm /usr/local/bin/
 
+      # Render the version_id with dots removed, since the driver
+      # script's filename uses the no-dots form (1.30 -> 130).
+      - name: Compute driver path
+        id: driver
+        run: |
+          ver="${{ matrix.version }}"
+          ver_no_dots="${ver//./}"
+          echo "path=versions/adfs-${ver}/disassemble/disasm_adfs_${ver_no_dots}.py" >> "$GITHUB_OUTPUT"
+
+      # py8dis is invoked directly via the per-version driver script.
+      # fantasm operates on the .json/.asm artefacts py8dis emits.
+      # `fantasm disassemble VID` is filed as fantasm#2 — once it
+      # lands the driver-script invocation collapses to a fantasm call.
       - name: Disassemble Acorn ADFS ${{ matrix.version }}
-        run: uv run acorn-adfs-disasm-tool disassemble ${{ matrix.version }}
+        run: uv run python ${{ steps.driver.outputs.path }}
 
       - name: Lint Acorn ADFS ${{ matrix.version }}
-        run: uv run acorn-adfs-disasm-tool lint ${{ matrix.version }}
+        run: uv run fantasm lint ${{ matrix.version }} ${{ steps.driver.outputs.path }}
 
       - name: Verify Acorn ADFS ${{ matrix.version }}
-        run: uv run acorn-adfs-disasm-tool verify ${{ matrix.version }}
+        run: uv run fantasm verify ${{ matrix.version }}

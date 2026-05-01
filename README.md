@@ -30,8 +30,8 @@ Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stard
 
 ```sh
 uv sync
-uv run acorn-adfs-disasm-tool disassemble 1.30
-uv run acorn-adfs-disasm-tool verify 1.30
+uv run python versions/adfs-1.30/disassemble/disasm_adfs_130.py
+uv run fantasm verify 1.30
 ```
 
 ## (Re-)Assembling locally

@@ -16,25 +16,25 @@ For project overview and build instructions, see [README.md](README.md). For arc
 
 ## Quick reference: CLI tools
 
-All tools are invoked via `uv run acorn-adfs-disasm-tool <command>`.
+The disassembly tooling is provided by [fantasm](https://github.com/acornaeology/fantasm), invoked as `uv run fantasm <command>`. The full command surface is documented in fantasm's own README; the most-used commands here are:
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `disassemble` | Generate `.asm` and `.json` from ROM | `... disassemble 1.30` |
-| `verify` | Reassemble and byte-compare against original ROM | `... verify 1.30` |
-| `lint` | Validate annotation addresses and check for duplicates | `... lint 1.30` |
-| `compare` | Compare two ROM versions (byte and opcode level) | `... compare 1.30 1.33` |
-| `extract` | Extract assembly section by address range or label | `... extract 1.30 &8027 &8065` |
-| `audit` | Audit subroutine annotations (summary, detail, flags) | `... audit 1.30 --summary` |
-| `cfg` | Build inter-procedural call graph with depth ordering | `... cfg 1.30 --depth` |
-| `context` | Generate per-subroutine context files for commenting | `... context 1.30 --sub 8027` |
-| `labels` | Generate per-label context files for renaming | `... labels 1.30 --summary` |
-| `rename-labels` | Batch rename auto-generated labels | `... rename-labels 1.30 --file renames.txt` |
-| `insert-point` | Find insertion point for new subroutine declaration | `... insert-point 1.30 &8027` |
-| `comment-check` | Check inline comments against instruction data | `... comment-check 1.30` |
-| `backfill` | Propagate annotations between versions | `... backfill 1.30 1.33` |
+| (driver script) | Run py8dis to generate `.asm` and `.json` from ROM | `uv run python versions/adfs-1.30/disassemble/disasm_adfs_130.py` |
+| `verify` | Reassemble and byte-compare against original ROM | `fantasm verify 1.30` |
+| `lint` | Validate annotation addresses against the disassembly | `fantasm lint 1.30 versions/adfs-1.30/disassemble/disasm_adfs_130.py` |
+| `compare` | Compare two ROM versions (byte and opcode level) | `fantasm compare 1.30 1.33` |
+| `asm extract` | Extract assembly section by address range or label | `fantasm asm extract 1.30 &8027 &8065` |
+| `audit summary/detail/undeclared` | Subroutine annotation audit | `fantasm audit summary 1.30` |
+| `cfg leaves/roots/depth/sub/blocks/sub-context` | Inter-procedural call graph queries | `fantasm cfg depth 1.30` |
+| `context uncommented` | Find subroutines with low comment density | `fantasm context uncommented 1.30` |
+| `comments suggest/check` | Comment suggestions and consistency checks | `fantasm comments check 1.30` |
+| `labels classify/apply` | Auto-label classification + rename application | `fantasm labels classify 1.30` |
+| `sub insert` | Find insertion point for a new `subroutine()` | `fantasm sub insert <driver> &8027` |
+| `backfill` / `annotations diff` | Cross-version annotation propagation and diff | `fantasm backfill 1.30 1.33` |
+| `addresses map` | Map source addresses to a target ROM | `fantasm addresses map 1.30 1.33 --addr 0x8027` |
 
-The `extract` command accepts hex addresses in multiple formats (`&80EA`, `$80EA`, `0x80EA`) as well as label names.
+`fantasm` accepts hex addresses in multiple formats (`&80EA`, `$80EA`, `0x80EA`) as well as label names where appropriate.
 
 
 ## Quick reference: ad-hoc tools
@@ -161,9 +161,9 @@ hook_subroutine(0x8348, "reload_fsm_and_dir_then_brk", brk_error_hook)
 After each change to the driver script, run the full pipeline:
 
 ```sh
-uv run acorn-adfs-disasm-tool disassemble 1.30
-uv run acorn-adfs-disasm-tool verify 1.30
-uv run acorn-adfs-disasm-tool lint 1.30
+uv run python versions/adfs-1.30/disassemble/disasm_adfs_130.py
+uv run fantasm verify 1.30
+uv run fantasm lint 1.30 versions/adfs-1.30/disassemble/disasm_adfs_130.py
 ```
 
 Verification must always pass. Lint catches stale addresses and duplicate declarations.
@@ -177,7 +177,7 @@ The most effective approach is to annotate routines bottom-up through the call g
 
 1. **Get the call graph depth ordering**:
    ```sh
-   uv run acorn-adfs-disasm-tool cfg 1.30 --depth
+   uv run fantasm cfg depth 1.30
    ```
    This shows all declared subroutines ordered by depth, with leaves at depth 0.
 
@@ -287,7 +287,7 @@ Assembly comments are formatted to fit within 62 characters. This is a py8dis fo
 ### Summary mode
 
 ```sh
-uv run acorn-adfs-disasm-tool audit 1.30 --summary
+uv run fantasm audit summary 1.30
 ```
 
 Shows all subroutines with computed flags. Key columns: address, name, terminator type (RTS/JMP/FALL→), item count, and flags.
@@ -295,8 +295,8 @@ Shows all subroutines with computed flags. Key columns: address, name, terminato
 ### Detail mode
 
 ```sh
-uv run acorn-adfs-disasm-tool audit 1.30 --sub claim_tube
-uv run acorn-adfs-disasm-tool audit 1.30 --sub 0x8027
+uv run fantasm audit detail 1.30 claim_tube
+uv run fantasm audit detail 1.30 0x8027
 ```
 
 Full report including description, extent, callers, callees, escaping branches, and the assembly listing with comment templates.
@@ -304,7 +304,7 @@ Full report including description, extent, callers, callees, escaping branches, 
 ### Undeclared targets
 
 ```sh
-uv run acorn-adfs-disasm-tool audit 1.30 --undeclared
+uv run fantasm audit undeclared 1.30
 ```
 
 Lists all JSR/JMP targets that don't have `subroutine()` declarations. These should be declared to improve the call graph and subroutine boundary analysis.

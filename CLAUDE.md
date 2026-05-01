@@ -11,19 +11,21 @@ Annotated disassembly of Acorn ADFS (Advanced Disc Filing System) ROMs for the B
 Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm) (v1.10+).
 
 ```sh
-uv sync                                     # Install dependencies
-uv run acorn-adfs-disasm-tool disassemble 1.30  # Generate .asm and .json from ROM
-uv run acorn-adfs-disasm-tool lint 1.30         # Validate annotation addresses
-uv run acorn-adfs-disasm-tool verify 1.30       # Reassemble and byte-compare against original ROM
+uv sync                                                                                # Install dependencies (incl. fantasm)
+uv run python versions/adfs-1.30/disassemble/disasm_adfs_130.py                         # Generate .asm and .json via py8dis
+uv run fantasm lint 1.30 versions/adfs-1.30/disassemble/disasm_adfs_130.py             # Validate annotation addresses
+uv run fantasm verify 1.30                                                              # Reassemble and byte-compare against original ROM
 ```
 
-Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the py8dis output. CI runs `disassemble`, `lint`, then `verify` on every push.
+Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the py8dis output. CI runs disassemble, lint, then verify on every push.
 
 ## Architecture
 
-### CLI entry point
+### Tooling: fantasm + py8dis
 
-`src/disasm_tools/cli.py` — subcommands: `disassemble`, `verify`, `lint`, `compare`, `extract`, `audit`, `cfg`, `context`, `labels`, `rename-labels`, `insert-point`, `comment-check`, `backfill`. Sets env vars `ACORN_ADFS_ROM` and `ACORN_ADFS_OUTPUT` before invoking version-specific scripts.
+The disassembly tooling is provided by [fantasm](https://github.com/acornaeology/fantasm) — installed as a regular project dependency. fantasm exposes a `fantasm` CLI (subcommands: `verify`, `lint`, `compare`, `audit`, `cfg`, `comments`, `labels`, `context`, `asm`, `sub`, `addresses`, `annotations`, `backfill`, `promote`, `fingerprint`, `shared`, `info`, `project`) and a `fantasm.api` package for programmatic use. Project layout, prefixes, memory regions, and per-version metadata live in `fantasm.toml`.
+
+[py8dis](https://github.com/acornaeology/py8dis) (a programmable 6502 disassembler) is invoked directly via the per-version driver script under `versions/adfs-<VER>/disassemble/`; fantasm operates on the `.asm` / `.json` artefacts py8dis emits.
 
 ### Disassembly driver
 
@@ -31,11 +33,11 @@ Verification is the primary correctness check: the generated assembly must reass
 
 ### Lint
 
-`src/disasm_tools/lint.py` — validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the py8dis JSON output. Also validates `address_links` and `glossary_links` in each version's `rom.json`.
+`fantasm lint <VER> <DRIVER_PATH>` validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the py8dis JSON output (or the workspace / external regions declared in `fantasm.toml`). Doc-link checks against `rom.json`'s `address_links` / `glossary_links` aren't covered by fantasm yet; they remain TODO.
 
 ### Verification
 
-`src/disasm_tools/verify.py` — assembles the generated `.asm` with beebasm and does a byte-for-byte comparison against the original ROM.
+`fantasm verify <VER>` assembles the generated `.asm` with beebasm and does a byte-for-byte comparison against the original ROM.
 
 ### Version layout
 
@@ -44,7 +46,7 @@ Each ROM version lives under `versions/adfs-<version>/`. Subdirectories:
 - `disassemble/` — py8dis driver script
 - `output/` — generated assembly (`.asm`) and structured data (`.json`)
 
-Version IDs in `acornaeology.json` and CLI arguments are bare numbers (`1.30`). The `resolve_version_dirpath()` helper in `src/disasm_tools/paths.py` maps them to the directory using the `adfs` prefix.
+Version IDs in `acornaeology.json` and CLI arguments are bare numbers (`1.30`). The directory layout is governed by `[versions] prefixes` in `fantasm.toml`; fantasm's `resolve_version_files()` maps a version ID to the matching `versions/adfs-{version_id}/` directory.
 
 ### Glossary
 
