@@ -20,7 +20,7 @@ The disassembly tooling is provided by [fantasm](https://github.com/acornaeology
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| (driver script) | Run py8dis to generate `.asm` and `.json` from ROM | `uv run python versions/adfs-1.30/disassemble/disasm_adfs_130.py` |
+| `disassemble` | Run py8dis to generate `.asm` and `.json` from ROM | `fantasm disassemble 1.30` |
 | `verify` | Reassemble and byte-compare against original ROM | `fantasm verify 1.30` |
 | `lint` | Validate annotation addresses against the disassembly | `fantasm lint 1.30 versions/adfs-1.30/disassemble/disasm_adfs_130.py` |
 | `compare` | Compare two ROM versions (byte and opcode level) | `fantasm compare 1.30 1.33` |
@@ -161,7 +161,7 @@ hook_subroutine(0x8348, "reload_fsm_and_dir_then_brk", brk_error_hook)
 After each change to the driver script, run the full pipeline:
 
 ```sh
-uv run python versions/adfs-1.30/disassemble/disasm_adfs_130.py
+uv run fantasm disassemble 1.30
 uv run fantasm verify 1.30
 uv run fantasm lint 1.30 versions/adfs-1.30/disassemble/disasm_adfs_130.py
 ```

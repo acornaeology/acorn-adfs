@@ -31,7 +31,7 @@ Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stard
 ```sh
 uv sync
 {% for version in versions -%}
-uv run python versions/adfs-{{ version.id }}/disassemble/disasm_adfs_{{ version.id|replace(".", "") }}.py
+uv run fantasm disassemble {{ version.id }}
 uv run fantasm verify {{ version.id }}
 {% endfor -%}
 ```

@@ -30,7 +30,7 @@ Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stard
 
 ```sh
 uv sync
-uv run python versions/adfs-1.30/disassemble/disasm_adfs_130.py
+uv run fantasm disassemble 1.30
 uv run fantasm verify 1.30
 ```
 

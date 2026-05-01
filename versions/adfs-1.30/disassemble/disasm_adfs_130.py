@@ -31,12 +31,15 @@ def brk_error_hook(target, addr):
 
 _script_dirpath = Path(__file__).resolve().parent
 _version_dirpath = _script_dirpath.parent
+# `fantasm disassemble VID` sets FANTASM_ROM / FANTASM_OUTPUT_DIR;
+# direct `python <driver>` invocations fall back to the conventional
+# paths under the version directory.
 _rom_filepath = os.environ.get(
-    "ACORN_ADFS_ROM",
+    "FANTASM_ROM",
     str(_version_dirpath / "rom" / "adfs-1.30.rom"),
 )
 _output_dirpath = Path(os.environ.get(
-    "ACORN_ADFS_OUTPUT",
+    "FANTASM_OUTPUT_DIR",
     str(_version_dirpath / "output"),
 ))
 

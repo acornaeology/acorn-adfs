@@ -13,30 +13,9 @@ base_address = 0x8000
 [versions]
 prefixes = ["adfs"]
 
-# ADFS workspace layout. The narrower (0x16, 0x76) zero-page slot from
-# the pre-fantasm code has been widened to the full zero page because
-# ADFS's `external_label()` calls in the driver also touch the BBC
-# OS's zero-page slots (e.g. user pointer at 0x00-0x03). Addresses
-# stay valid for `fantasm lint` once they fall in any declared range.
-#
-# These regions duplicate information already in the JSON's
-# `external_labels` map; that duplication should fall away when
-# fantasm#3 lands and lint reads external_labels directly.
-[memory]
-regions = [
-    { start = 0x0000, end = 0x00FF },   # zero-page workspace (full BBC zero page)
-    { start = 0x0100, end = 0x01FF },   # 6502 stack page (saved stack frames)
-    { start = 0x0200, end = 0x02FF },   # MOS-level vectors and extension workspace
-    { start = 0x0400, end = 0x04FF },   # relocated page 4
-    { start = 0x0500, end = 0x05FF },   # relocated page 5
-    { start = 0x0600, end = 0x06FF },   # relocated page 6
-    { start = 0x0D00, end = 0x0DFF },   # NMI workspace
-    { start = 0x0E00, end = 0x12FF },   # ADFS filing-system buffers and command tail
-    { start = 0x1600, end = 0x1BFF },   # PAGE / free-space map / directory buffer
-]
-external_regions = [
-    { start = 0xFE80, end = 0xFE84 },   # WD1770 floppy controller registers
-]
+# ADFS workspace and the WD1770 floppy registers are declared via
+# the driver's external_label() calls; fantasm 0.4.0's lint reads
+# them straight from the JSON, so no [memory] block is needed.
 
 [[versions.entry]]
 id = "1.30"

@@ -12,7 +12,7 @@ Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stard
 
 ```sh
 uv sync                                                                                # Install dependencies (incl. fantasm)
-uv run python versions/adfs-1.30/disassemble/disasm_adfs_130.py                         # Generate .asm and .json via py8dis
+uv run fantasm disassemble 1.30                                                         # Run py8dis driver via fantasm (sets FANTASM_ROM / FANTASM_OUTPUT_DIR)
 uv run fantasm lint 1.30 versions/adfs-1.30/disassemble/disasm_adfs_130.py             # Validate annotation addresses
 uv run fantasm verify 1.30                                                              # Reassemble and byte-compare against original ROM
 ```
