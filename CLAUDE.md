@@ -4,38 +4,38 @@ This file provides guidance when working with code in this repository.
 
 ## Project overview
 
-Annotated disassembly of Acorn ADFS (Advanced Disc Filing System) ROMs for the BBC Micro. Python scripts drive py8dis (a programmable 6502 disassembler) to produce readable, verified assembly output from the original ROM binaries. The first version covered is 1.30.
+Annotated disassembly of Acorn ADFS (Advanced Disc Filing System) ROMs for the BBC Micro. Python scripts drive [dasmos](https://github.com/acornaeology/dasmos) (a programmable 6502 disassembler) to produce readable, verified assembly output from the original ROM binaries. The first version covered is 1.30.
 
 ## Build commands
 
 Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm) (v1.10+).
 
 ```sh
-uv sync                                                                                # Install dependencies (incl. fantasm)
-uv run fantasm disassemble 1.30                                                         # Run py8dis driver via fantasm (sets FANTASM_ROM / FANTASM_OUTPUT_DIR)
+uv sync                                                                                # Install dependencies (fantasm, dasmos)
+uv run fantasm disassemble 1.30                                                         # Run the dasmos driver via fantasm (sets FANTASM_ROM / FANTASM_OUTPUT_DIR)
 uv run fantasm lint 1.30 versions/adfs-1.30/disassemble/disasm_adfs_130.py             # Validate annotation addresses
 uv run fantasm verify 1.30                                                              # Reassemble and byte-compare against original ROM
 ```
 
-Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the py8dis output. CI runs disassemble, lint, then verify on every push.
+Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the dasmos output. CI runs disassemble, lint, then verify on every push.
 
 ## Architecture
 
-### Tooling: fantasm + py8dis
+### Tooling: fantasm + dasmos
 
-The disassembly tooling is provided by [fantasm](https://github.com/acornaeology/fantasm) — installed as a regular project dependency. fantasm exposes a `fantasm` CLI (subcommands: `verify`, `lint`, `compare`, `audit`, `cfg`, `comments`, `labels`, `context`, `asm`, `sub`, `addresses`, `annotations`, `backfill`, `promote`, `fingerprint`, `shared`, `info`, `project`, `disassemble`) and a `fantasm.api` package for programmatic use. Project layout, prefixes, memory regions, and per-version metadata live in `fantasm.toml`.
+The orchestration layer is provided by [fantasm](https://github.com/acornaeology/fantasm) — installed as a regular project dependency. fantasm exposes a `fantasm` CLI (subcommands: `verify`, `lint`, `compare`, `audit`, `cfg`, `comments`, `labels`, `context`, `asm`, `sub`, `addresses`, `annotations`, `backfill`, `promote`, `fingerprint`, `shared`, `info`, `project`, `disassemble`) and a `fantasm.api` package for programmatic use. Project layout, prefixes, memory regions, and per-version metadata live in `fantasm.toml`. fantasm is library-agnostic: it runs the per-version driver as a subprocess and consumes the JSON / `.asm` artefacts the driver emits.
 
 **Full fantasm reference: <https://acornaeology.github.io/fantasm/>** — the user guide covers every subcommand, the `fantasm.toml` schema, the version-graph workflows, and the importable `fantasm.api`. Reach for it before guessing.
 
-[py8dis](https://github.com/acornaeology/py8dis) (a programmable 6502 disassembler) is invoked directly via the per-version driver script under `versions/adfs-<VER>/disassemble/`; fantasm operates on the `.asm` / `.json` artefacts py8dis emits.
+[dasmos](https://github.com/acornaeology/dasmos) (a programmable 6502 disassembler with a stable 1.0 API, byte-faithful round-trip oracle, and Stevedore-managed CPU / renderer / environment plug-ins) is invoked directly via the per-version driver script under `versions/adfs-<VER>/disassemble/`. dasmos replaced the earlier py8dis tooling; the per-version drivers were ported in commit 3c3a653. The driver builds a `dasmos.Disassembler` with `Disassembler.create(cpu="6502", environments=[...])`, calls `d.load()`, registers labels/comments/subroutines/hooks, then renders both `beebasm` and `json` outputs from a single `ir = d.disassemble()` step. Reference: <https://acornaeology.github.io/dasmos/driver_api.html>. Local source of truth: `/Users/rjs/Code/acornaeology/dasmos/` (sibling checkout — read `src/dasmos/` directly when investigating behaviour).
 
 ### Disassembly driver
 
-`versions/adfs-1.30/disassemble/disasm_adfs_130.py` — the main annotation file. Configures py8dis with labels, constants, subroutine descriptions, comments, and relocated code blocks using py8dis's DSL (`label()`, `constant()`, `comment()`, `subroutine()`, `move()`, `hook_subroutine()`). This is where most development work happens.
+`versions/adfs-1.30/disassemble/disasm_adfs_130.py` — the main annotation file. Configures dasmos with labels, constants, subroutine descriptions, comments, and relocated code blocks using the dasmos driver API (`d.label()`, `d.constant()`, `d.comment()`, `d.subroutine()`, `d.add_move()`, `d.hook_subroutine()`, `d.format_hint()`). This is where most development work happens.
 
 ### Lint
 
-`fantasm lint <VER> <DRIVER_PATH>` validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the py8dis JSON output (or the workspace / external regions declared in `fantasm.toml`). Doc-link checks against `rom.json`'s `address_links` / `glossary_links` aren't covered by fantasm yet; they remain TODO.
+`fantasm lint <VER> <DRIVER_PATH>` validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the dasmos JSON output (or the workspace / external regions declared in `fantasm.toml`). Doc-link checks against `rom.json`'s `address_links` / `glossary_links` aren't covered by fantasm yet; they remain TODO.
 
 ### Verification
 
@@ -45,7 +45,7 @@ The disassembly tooling is provided by [fantasm](https://github.com/acornaeology
 
 Each ROM version lives under `versions/adfs-<version>/`. Subdirectories:
 - `rom/` — original ROM binary and metadata (`rom.json` with hashes)
-- `disassemble/` — py8dis driver script
+- `disassemble/` — dasmos driver script
 - `output/` — generated assembly (`.asm`) and structured data (`.json`)
 
 Version IDs in `acornaeology.json` and CLI arguments are bare numbers (`1.30`). The directory layout is governed by `[versions] prefixes` in `fantasm.toml`; fantasm's `resolve_version_files()` maps a version ID to the matching `versions/adfs-{version_id}/` directory.
@@ -83,6 +83,6 @@ Both use the same shape: `{"pattern": "...", "occurrence": 0, "term"|"address": 
 - SCSI registers: &FC40 (data), &FC42 (select)
 - WD1770 floppy controller: &FE80-&FE87
 - PAGE raised to &1D00 when ADFS selected
-- py8dis dependency is a custom fork at `github.com/acornaeology/py8dis`
-- Assembly output targets beebasm syntax
+- Disassembler dependency is `dasmos>=1.0` (resolved from PyPI). Source of truth: <https://github.com/acornaeology/dasmos>; docs at <https://acornaeology.github.io/dasmos/>
+- Assembly output targets beebasm syntax (`ir.render("beebasm", ...)`); structured output is `ir.render("json")`
 - Assembly comments are formatted to fit within 62 characters

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Generate py8dis label() and entry() calls from multi-target symbols.
+"""Generate dasmos d.label() and d.entry() calls from multi-target symbols.
 
 Reads the ld65 debug file, filters to meaningful ROM code labels,
-converts to snake_case, and outputs py8dis declarations.
+converts to snake_case, and outputs dasmos declarations.
 """
 
 import re
@@ -114,10 +114,9 @@ def main():
 
     for addr, name in sorted_syms:
         snake = to_snake_case(name)
-        # Emit entry() for subroutine-like labels
-        print(f'label(0x{addr:04X}, "{snake}")')
+        print(f'd.label(0x{addr:04X}, "{snake}")')
 
-    # Also emit entry() calls for the most important ones
+    # Also emit d.entry() calls for the most important ones
     print()
     print("# Entry points for key subroutines")
     important_prefixes = ('star_', 'my_os', 'service_', 'scsi_', 'hd_',
@@ -126,7 +125,7 @@ def main():
     for addr, name in sorted_syms:
         snake = to_snake_case(name)
         if any(snake.startswith(p) for p in important_prefixes):
-            print(f'entry(0x{addr:04X})')
+            print(f'd.entry(0x{addr:04X})')
 
 
 if __name__ == "__main__":

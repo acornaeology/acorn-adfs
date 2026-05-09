@@ -1,4 +1,4 @@
-"""py8dis driver for Acorn ADFS 1.30."""
+"""dasmos driver for Acorn ADFS 1.30."""
 import os
 import sys
 from pathlib import Path

@@ -64,11 +64,11 @@ def main():
         if len(text) < 5:
             continue
         print(f"# &{addr:04X}: {text}")
-        # Output as py8dis comment() calls (truncated to 62 chars)
+        # Output as dasmos d.comment() calls (truncated to 62 chars)
         for line in lines:
             if len(line) > 62:
                 line = line[:59] + "..."
-            print(f'comment(0x{addr:04X}, "{line}")')
+            print(f'd.comment(0x{addr:04X}, "{line}")')
         print()
 
 

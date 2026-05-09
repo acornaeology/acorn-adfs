@@ -2,7 +2,8 @@
 """Import label names from Hoglet's ADFS 1.30 disassembly.
 
 Parses Hoglet's BeebAsm source to extract label-to-address mappings,
-then outputs py8dis label() calls that can be added to the driver script.
+then outputs dasmos d.label() calls that can be added to the driver
+script.
 
 Skips labels that are just address-based names (L8019, LFC40, etc.)
 as these have no semantic value.
@@ -83,7 +84,7 @@ def main():
         print("\nMeaningful labels:")
         for addr in sorted(meaningful):
             name = meaningful[addr]
-            print(f"  label(0x{addr:04X}, \"{name}\")")
+            print(f"  d.label(0x{addr:04X}, \"{name}\")")
 
 
 if __name__ == "__main__":

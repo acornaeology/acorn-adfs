@@ -20,7 +20,7 @@ The disassembly tooling is provided by [fantasm](https://acornaeology.github.io/
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `disassemble` | Run py8dis to generate `.asm` and `.json` from ROM | `fantasm disassemble 1.30` |
+| `disassemble` | Run the dasmos driver to generate `.asm` and `.json` from ROM | `fantasm disassemble 1.30` |
 | `verify` | Reassemble and byte-compare against original ROM | `fantasm verify 1.30` |
 | `lint` | Validate annotation addresses against the disassembly | `fantasm lint 1.30 versions/adfs-1.30/disassemble/disasm_adfs_130.py` |
 | `compare` | Compare two ROM versions (byte and opcode level) | `fantasm compare 1.30 1.33` |
@@ -44,7 +44,7 @@ Scripts in the `tools/` directory for cross-referencing and analysis:
 | Tool | Description |
 |------|-------------|
 | `extract_multitarget_symbols.py` | Extract meaningful labels from the ADFS-multi-target ld65 debug file |
-| `generate_labels_from_symbols.py` | Convert multi-target symbols to py8dis `label()` calls |
+| `generate_labels_from_symbols.py` | Convert multi-target symbols to dasmos `d.label()` calls |
 | `import_hoglet_labels.py` | Extract labels from Hoglet's BeebAsm disassembly |
 | `import_multitarget_labels.py` | Parse workspace definitions from ADFS-multi-target source |
 | `extract_jgh_comments.py` | Extract block comments from J.G. Harston's disassembly |
@@ -77,31 +77,37 @@ Update `acornaeology.json` to add the new version to the versions array.
 Create a minimal driver script following the pattern in `disasm_adfs_130.py`:
 
 ```python
-import os, sys, json
+import os, sys
 from pathlib import Path
-from py8dis.commands import *
-import py8dis.acorn as acorn
-
-init(assembler_name="beebasm", lower_case=True)
-
-# Load ROM
-load(0x8000, rom_filepath, "6502")
-
-# Standard definitions
-acorn.bbc()
-acorn.is_sideways_rom()
+import dasmos
+from dasmos import Align
+from dasmos.hooks import stringhi_hook
 
 # Custom hooks for inline data patterns
 def brk_error_hook(target, addr):
     inline_addr = addr + 3
-    byte(inline_addr)
-    stringz(inline_addr + 1)
+    d.byte(inline_addr)
+    d.stringz(inline_addr + 1)
     return None
+
+_rom_filepath = os.environ["FANTASM_ROM"]
+_output_dirpath = Path(os.environ["FANTASM_OUTPUT_DIR"])
+
+d = dasmos.Disassembler.create(cpu="6502")
+d.load(_rom_filepath, 0x8000)
+
+# Standard environments for an Acorn sideways ROM
+d.use_environment("acorn_mos")
+d.use_environment("acorn_model_b_hardware")
+d.use_environment("acorn_sideways_rom")
+d.use_environment("acorn_fdc_1770")
 
 # ... constants, labels, entry points, hooks, subroutines ...
 
-# Generate output
-output = go(print_output=False)
+# Render outputs
+ir = d.disassemble()
+(_output_dirpath / "adfs-<VER>.asm").write_text(str(ir.render("beebasm")), encoding="utf-8")
+(_output_dirpath / "adfs-<VER>.json").write_text(str(ir.render("json")), encoding="utf-8")
 ```
 
 ### Step 3: Import labels from reference disassemblies
@@ -119,7 +125,7 @@ md5 build/bbcSCSI.rom
 # Extract symbols (5853 symbols for ADFS 1.30)
 python3 tools/extract_multitarget_symbols.py
 
-# Generate py8dis label() calls
+# Generate dasmos d.label() calls
 python3 tools/generate_labels_from_symbols.py
 ```
 
@@ -127,12 +133,12 @@ This provides meaningful names for ROM code labels, workspace locations, and har
 
 ### Step 4: Declare dispatch tables
 
-ADFS uses RTS-trick dispatch tables for service calls, FSCV, and OSFILE. Declare them with `rts_code_ptr()` so py8dis traces the dispatched code:
+ADFS uses RTS-trick dispatch tables for service calls, FSCV, and OSFILE. Declare them with `d.rts_code_ptr()` so dasmos traces the dispatched code:
 
 ```python
 # Service call dispatch: low bytes at &9A8F, high bytes at &9A99
 for i in range(10):
-    rts_code_ptr(0x9A8F + i, 0x9A99 + i)
+    d.rts_code_ptr(0x9A8F + i, 0x9A99 + i)
 ```
 
 ### Step 5: Hook inline data patterns
@@ -142,18 +148,18 @@ ADFS has two common inline data patterns:
 **Print-inline-string** (`print_inline_string` at &92A0): Prints a bit-7-terminated string following the JSR, then continues execution after the string.
 
 ```python
-hook_subroutine(0x92A0, "print_inline_string", stringhi_hook)
+d.hook_subroutine(0x92A0, "print_inline_string", stringhi_hook)
 ```
 
 **BRK error blocks** (`reload_fsm_and_dir_then_brk` at &8348 and similar): The called routine pops the return address to read inline error data (error number byte + zero-terminated message). Execution never continues.
 
 ```python
 def brk_error_hook(target, addr):
-    byte(addr + 3)
-    stringz(addr + 3 + 1)
+    d.byte(addr + 3)
+    d.stringz(addr + 3 + 1)
     return None
 
-hook_subroutine(0x8348, "reload_fsm_and_dir_then_brk", brk_error_hook)
+d.hook_subroutine(0x8348, "reload_fsm_and_dir_then_brk", brk_error_hook)
 ```
 
 ### Step 6: Verify the round-trip
@@ -266,7 +272,7 @@ no drive is selected (wksp_current_drive = &FF).
 
 ### Comment length
 
-Assembly comments are formatted to fit within 62 characters. This is a py8dis formatting constraint. For longer explanations, use the `subroutine()` description or add a Python comment above the `comment()` call in the driver script.
+Assembly comments are formatted to fit within 62 characters. This is a beebasm-renderer formatting constraint. For longer explanations, use the `d.subroutine()` description or add a Python comment above the `d.comment()` call in the driver script.
 
 ### Hex notation
 
@@ -325,7 +331,7 @@ Lists all JSR/JMP targets that don't have `subroutine()` declarations. These sho
 
 The lint tool validates:
 
-1. Every `comment()`, `subroutine()`, and `label()` address corresponds to a valid address in the py8dis JSON output
+1. Every `comment()`, `subroutine()`, and `label()` address corresponds to a valid address in the dasmos JSON output
 2. No duplicate `subroutine()` or `label()` declarations at the same address (prevents concatenated titles at call sites)
 3. `address_links` in `rom.json` resolve correctly
 4. `glossary_links` in `rom.json` reference valid GLOSSARY.md terms
