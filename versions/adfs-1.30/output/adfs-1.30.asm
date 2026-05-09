@@ -6099,7 +6099,7 @@ nmi_saved_rom = sub_c0d33+1
 str_run_boot = str_l_boot+2
     equs "L.$.!BOOT", &0d                                             ; 9a7b: 4c 2e 24... L.$...   ; "L.$.!BOOT" + CR: load boot file
 .str_e_boot
-    equs "E.$.!BOOT", &0d                                             ; 9a85: 45 2e 24... E.$...   ; "E.$.!BOOT" + CR: exec boot file  E.$.!BOOT (exec boot file)
+    equs "E.$.!BOOT", &0d                                             ; 9a85: 45 2e 24... E.$...   ; "E.$.!BOOT" + CR: exec boot file
 ; ***************************************************************************************
 ; Service call dispatch table
 ;
@@ -7113,9 +7113,9 @@ help_param_none = help_param_title+7
 ;     X: &30 (lowest handle, ASCII '0')
 ;     Y: &39 (highest handle, ASCII '9')
 .fsc7_read_handle_range
-    ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0       ; X=&30 ('0'): lowest ADFS file handle  X=&30 ('0'): lowest ADFS file handle
-    ldy #&39 ; '9'                                                    ; 9fda: a0 39       .9       ; Y=&39 ('9'): highest ADFS file handle  Y=&39 ('9'): highest ADFS file handle
-    rts                                                               ; 9fdc: 60          `        ; Return X=&30, Y=&39 to MOS  Return to FSC dispatcher
+    ldx #&30 ; '0'                                                    ; 9fd8: a2 30       .0       ; X=&30 ('0'): lowest ADFS file handle
+    ldy #&39 ; '9'                                                    ; 9fda: a0 39       .9       ; Y=&39 ('9'): highest ADFS file handle
+    rts                                                               ; 9fdc: 60          `        ; Return X=&30, Y=&39 to MOS
 ; ***************************************************************************************
 ; FSC 0: *OPT command handler
 ;

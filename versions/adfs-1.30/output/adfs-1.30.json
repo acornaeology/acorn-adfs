@@ -46156,7 +46156,7 @@
       "labels": [
         "str_e_boot"
       ],
-      "comment_inline": "\"E.$.!BOOT\" + CR: exec boot file E.$.!BOOT (exec boot file)",
+      "comment_inline": "\"E.$.!BOOT\" + CR: exec boot file",
       "type": "string",
       "string": "E.$.!BOOT."
     },
@@ -55130,7 +55130,7 @@
         "***************************************************************************************",
         "FSC 7: return ADFS file handle range\n\nReturn the range of file handles used by ADFS. The MOS calls\nFSC 7 to determine which handles belong to the current filing\nsystem. ADFS uses handles &30-&39 (ASCII '0'-'9', 10 channels).\n\n\nOn Exit:\n    A: corrupted\n    X: &30 (lowest handle, ASCII '0')\n    Y: &39 (highest handle, ASCII '9')"
       ],
-      "comment_inline": "X=&30 ('0'): lowest ADFS file handle X=&30 ('0'): lowest ADFS file handle",
+      "comment_inline": "X=&30 ('0'): lowest ADFS file handle",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&30"
@@ -55141,7 +55141,7 @@
         160,
         57
       ],
-      "comment_inline": "Y=&39 ('9'): highest ADFS file handle Y=&39 ('9'): highest ADFS file handle",
+      "comment_inline": "Y=&39 ('9'): highest ADFS file handle",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&39"
@@ -55151,7 +55151,7 @@
       "bytes": [
         96
       ],
-      "comment_inline": "Return X=&30, Y=&39 to MOS Return to FSC dispatcher",
+      "comment_inline": "Return X=&30, Y=&39 to MOS",
       "type": "code",
       "mnemonic": "rts"
     },
