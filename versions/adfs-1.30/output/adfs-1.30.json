@@ -50575,6 +50575,9 @@
         218,
         255
       ],
+      "comments_before": [
+        "On return, A is the filing system number:\n\n| A | Meaning |\n|---|---|\n| 0 | no filing system selected |\n| 1 | 1200 baud CFS |\n| 2 | 300 baud CFS |\n| 3 | ROM filing system |\n| 4 | Disc filing system |\n| 5 | Network filing system |\n| 6 | Teletext filing system |\n| 7 | IEEE filing system |\n| 8 | ADFS |\n| 9 | Host filing system |\n| 10 | Videodisc filing system |"
+      ],
       "comment_inline": "Get current filing system number Get filing system number (A=0, Y=0)",
       "type": "code",
       "mnemonic": "jsr",
@@ -50587,9 +50590,6 @@
       "bytes": [
         201,
         8
-      ],
-      "comments_before": [
-        "A is the filing system number:\n\n| A | Meaning |\n|---|---|\n| 0 | no filing system selected |\n| 1 | 1200 baud CFS |\n| 2 | 300 baud CFS |\n| 3 | ROM filing system |\n| 4 | Disc filing system |\n| 5 | Network filing system |\n| 6 | Teletext filing system |\n| 7 | IEEE filing system |\n| 8 | ADFS |\n| 9 | Host filing system |\n| 10 | Videodisc filing system |"
       ],
       "comment_inline": "Is it ADFS (filing system 8)?",
       "type": "code",

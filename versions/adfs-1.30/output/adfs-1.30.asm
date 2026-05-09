@@ -6601,8 +6601,7 @@ boot_run_option = sub_c9b86+1
     pha                                                               ; 9d1a: 48          H        ; Save Y on stack
     lda #0                                                            ; 9d1b: a9 00       ..       ; A=0 for OSARGS read filing system
     tay                                                               ; 9d1d: a8          .     
-    jsr osargs                                                        ; 9d1e: 20 da ff     ..      ; Get current filing system number  Get filing system number (A=0, Y=0)
-; A is the filing system number:
+; On return, A is the filing system number:
 ;
 ; | A  | Meaning                   |
 ; |----|---------------------------|
@@ -6617,6 +6616,7 @@ boot_run_option = sub_c9b86+1
 ; | 8  | ADFS                      |
 ; | 9  | Host filing system        |
 ; | 10 | Videodisc filing system   |
+    jsr osargs                                                        ; 9d1e: 20 da ff     ..      ; Get current filing system number  Get filing system number (A=0, Y=0)
     cmp #8                                                            ; 9d21: c9 08       ..       ; Is it ADFS (filing system 8)?
     bne store_result_byte                                             ; 9d23: d0 45       .E       ; No, pass on to next ROM
     lda zp_osbyte_last_a                                              ; 9d25: a5 ef       ..       ; Get OSWORD number from &EF
