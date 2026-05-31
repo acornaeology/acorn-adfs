@@ -34686,19 +34686,12 @@
     {
       "addr": 37693,
       "bytes": [
-        32
-      ],
-      "type": "string",
-      "string": " "
-    },
-    {
-      "addr": 37694,
-      "bytes": [
+        32,
         168
       ],
-      "comment_inline": "Transfer Y to A for display",
-      "type": "code",
-      "mnemonic": "tay"
+      "comment_inline": "'(' + bit 7: end of inline string",
+      "type": "string",
+      "string": " ("
     },
     {
       "addr": 37695,
@@ -34750,19 +34743,12 @@
         114,
         105,
         118,
-        101
-      ],
-      "type": "string",
-      "string": ").Drive"
-    },
-    {
-      "addr": 37711,
-      "bytes": [
+        101,
         186
       ],
-      "comment_inline": "Get stack pointer",
-      "type": "code",
-      "mnemonic": "tsx"
+      "comment_inline": "':' + bit 7: end of inline string",
+      "type": "string",
+      "string": ").Drive:"
     },
     {
       "addr": 37712,
@@ -34932,21 +34918,12 @@
         116,
         105,
         111,
-        110
-      ],
-      "type": "string",
-      "string": "Option"
-    },
-    {
-      "addr": 37746,
-      "bytes": [
+        110,
         160
       ],
       "comment_inline": "' ' + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        160
-      ]
+      "type": "string",
+      "string": "Option "
     },
     {
       "addr": 37747,
@@ -34992,19 +34969,12 @@
     {
       "addr": 37756,
       "bytes": [
-        32
-      ],
-      "type": "string",
-      "string": " "
-    },
-    {
-      "addr": 37757,
-      "bytes": [
+        32,
         168
       ],
-      "comment_inline": "Transfer boot option to Y for lookup",
-      "type": "code",
-      "mnemonic": "tay"
+      "comment_inline": "'(' + bit 7: end of inline string",
+      "type": "string",
+      "string": " ("
     },
     {
       "addr": 37758,
@@ -35115,22 +35085,12 @@
         68,
         105,
         114,
-        46
+        46,
+        160
       ],
-      "comment_inline": "\")\" + CR + \"Dir.\" + space: option close + dir label",
+      "comment_inline": "\")\" + CR + \"Dir.\" + space: option close + dir label ' ' + bit 7: end of inline string",
       "type": "string",
-      "string": ").Dir."
-    },
-    {
-      "addr": 37784,
-      "bytes": [
-        160
-      ],
-      "comment_inline": "' ' + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        160
-      ]
+      "string": ").Dir. "
     },
     {
       "addr": 37785,
@@ -35229,21 +35189,12 @@
         76,
         105,
         98,
-        46
-      ],
-      "type": "string",
-      "string": "     Lib."
-    },
-    {
-      "addr": 37810,
-      "bytes": [
+        46,
         160
       ],
       "comment_inline": "' ' + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        160
-      ]
+      "type": "string",
+      "string": "     Lib. "
     },
     {
       "addr": 37811,
@@ -35334,22 +35285,12 @@
     {
       "addr": 37827,
       "bytes": [
-        13
+        13,
+        141
       ],
-      "comment_inline": "CR: end of library name line",
+      "comment_inline": "CR: end of library name line CR + bit 7: blank line after header",
       "type": "string",
-      "string": "."
-    },
-    {
-      "addr": 37828,
-      "bytes": [
-        141
-      ],
-      "comment_inline": "CR + bit 7: blank line after header",
-      "type": "byte",
-      "values": [
-        141
-      ]
+      "string": ".."
     },
     {
       "addr": 37829,
@@ -45351,21 +45292,12 @@
         111,
         121,
         32,
-        63
-      ],
-      "type": "string",
-      "string": "Destroy ?"
-    },
-    {
-      "addr": 39433,
-      "bytes": [
+        63,
         160
       ],
       "comment_inline": "' ' + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        160
-      ]
+      "type": "string",
+      "string": "Destroy ? "
     },
     {
       "addr": 39434,
@@ -47941,34 +47873,31 @@
         68,
         70,
         83,
-        13
+        13,
+        141
       ],
       "type": "string",
-      "string": "Acorn ADFS."
+      "string": "Acorn ADFS.."
     },
     {
-      "addr": 39814,
+      "addr": 39815,
       "bytes": [
-        141,
         169,
         6
       ],
       "labels": [
-        "sub_c9b86"
+        "boot_run_option"
       ],
-      "sub_labels": {
-        "39815": [
-          "boot_run_option"
-        ]
-      },
       "comments_before": [
         "&9b87 referenced 2 times by &9b3f, &9d0e"
       ],
+      "references": [
+        39743,
+        40206
+      ],
       "type": "code",
-      "mnemonic": "sta",
-      "operand": "ext_vec_fsc_lo",
-      "target": 1705,
-      "target_label": "ext_vec_fsc_lo"
+      "mnemonic": "lda",
+      "operand": "#6"
     },
     {
       "addr": 39817,
@@ -51539,21 +51468,12 @@
         49,
         46,
         51,
-        48
-      ],
-      "type": "string",
-      "string": ".Advanced DFS 1.30"
-    },
-    {
-      "addr": 40380,
-      "bytes": [
+        48,
         141
       ],
       "comment_inline": "CR + bit 7: end of version string",
-      "type": "byte",
-      "values": [
-        141
-      ]
+      "type": "string",
+      "string": ".Advanced DFS 1.30."
     },
     {
       "addr": 40381,
@@ -51662,35 +51582,40 @@
         65,
         68,
         70,
-        83
+        83,
+        141
       ],
+      "comment_inline": "CR + bit 7: end of inline string",
       "type": "string",
-      "string": "  ADFS"
+      "string": "  ADFS."
     },
     {
-      "addr": 40402,
+      "addr": 40403,
       "bytes": [
-        141,
-        104,
-        168
+        104
       ],
       "labels": [
-        "check_help_adfs_keyword"
+        "help_return_unclaimed"
       ],
-      "sub_labels": {
-        "40403": [
-          "l9dd3"
-        ]
-      },
       "comments_before": [
         "&9dd3 referenced 2 times by &9de3, &9e10"
       ],
-      "comment_inline": "Store flag for help type",
+      "comment_inline": "Restore saved *HELP text offset",
+      "references": [
+        40419,
+        40464
+      ],
       "type": "code",
-      "mnemonic": "sta",
-      "operand": "la868",
-      "target": 43112,
-      "target_label": "la868"
+      "mnemonic": "pla"
+    },
+    {
+      "addr": 40404,
+      "bytes": [
+        168
+      ],
+      "comment_inline": "Transfer back to Y",
+      "type": "code",
+      "mnemonic": "tay"
     },
     {
       "addr": 40405,
@@ -51819,9 +51744,9 @@
       "comment_inline": "Return to service dispatcher",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "l9dd3",
+      "operand": "help_return_unclaimed",
       "target": 40403,
-      "target_label": "l9dd3"
+      "target_label": "help_return_unclaimed"
     },
     {
       "addr": 40421,
@@ -52135,9 +52060,9 @@
       "comment_inline": "Bit 7 set: end of table",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "l9dd3",
+      "operand": "help_return_unclaimed",
       "target": 40403,
-      "target_label": "l9dd3"
+      "target_label": "help_return_unclaimed"
     },
     {
       "addr": 40466,
@@ -52156,21 +52081,12 @@
     {
       "addr": 40469,
       "bytes": [
-        32
-      ],
-      "type": "string",
-      "string": " "
-    },
-    {
-      "addr": 40470,
-      "bytes": [
+        32,
         160
       ],
       "comment_inline": "' ' + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        160
-      ]
+      "type": "string",
+      "string": "  "
     },
     {
       "addr": 40471,
@@ -55596,21 +55512,12 @@
         70,
         114,
         101,
-        101
-      ],
-      "type": "string",
-      "string": "Free"
-    },
-    {
-      "addr": 41000,
-      "bytes": [
+        101,
         141
       ],
       "comment_inline": "CR + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        141
-      ]
+      "type": "string",
+      "string": "Free."
     },
     {
       "addr": 41001,
@@ -55773,21 +55680,12 @@
         85,
         115,
         101,
-        100
-      ],
-      "type": "string",
-      "string": "Used"
-    },
-    {
-      "addr": 41032,
-      "bytes": [
+        100,
         141
       ],
       "comment_inline": "CR + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        141
-      ]
+      "type": "string",
+      "string": "Used."
     },
     {
       "addr": 41033,
@@ -55850,21 +55748,12 @@
         110,
         103,
         116,
-        104
-      ],
-      "type": "string",
-      "string": "Address :  Length"
-    },
-    {
-      "addr": 41054,
-      "bytes": [
+        104,
         141
       ],
       "comment_inline": "CR + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        141
-      ]
+      "type": "string",
+      "string": "Address :  Length."
     },
     {
       "addr": 41055,
@@ -56052,21 +55941,12 @@
         32,
         32,
         58,
-        32
-      ],
-      "type": "string",
-      "string": "  : "
-    },
-    {
-      "addr": 41086,
-      "bytes": [
+        32,
         160
       ],
       "comment_inline": "' ' + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        160
-      ]
+      "type": "string",
+      "string": "  :  "
     },
     {
       "addr": 41087,
@@ -56310,21 +56190,12 @@
         110,
         100,
         101,
-        100
-      ],
-      "type": "string",
-      "string": "Compaction recommended"
-    },
-    {
-      "addr": 41145,
-      "bytes": [
+        100,
         141
       ],
       "comment_inline": "CR + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        141
-      ]
+      "type": "string",
+      "string": "Compaction recommended."
     },
     {
       "addr": 41146,
@@ -58233,21 +58104,12 @@
         114,
         115,
         32,
-        61
-      ],
-      "type": "string",
-      "string": " Sectors ="
-    },
-    {
-      "addr": 41445,
-      "bytes": [
+        61,
         160
       ],
       "comment_inline": "' ' + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        160
-      ]
+      "type": "string",
+      "string": " Sectors = "
     },
     {
       "addr": 41446,
@@ -58911,21 +58773,12 @@
         121,
         116,
         101,
-        115
-      ],
-      "type": "string",
-      "string": " Bytes"
-    },
-    {
-      "addr": 41552,
-      "bytes": [
+        115,
         160
       ],
       "comment_inline": "' ' + bit 7: end of inline string",
-      "type": "byte",
-      "values": [
-        160
-      ]
+      "type": "string",
+      "string": " Bytes "
     },
     {
       "addr": 41553,
@@ -68813,14 +68666,6 @@
       ],
       "labels": [
         "check_dest_terminator"
-      ],
-      "sub_labels": {
-        "43112": [
-          "la868"
-        ]
-      },
-      "comments_before": [
-        "&a868 referenced 1 time by &9dd2"
       ],
       "type": "code",
       "mnemonic": "jsr",

@@ -4,7 +4,42 @@ import sys
 from pathlib import Path
 import dasmos
 from dasmos import Align
-from dasmos.hooks import stringhi_hook
+from dasmos.core.memory import BinaryAddr
+
+def print_inline_string_hook(d, jsr_binary_addr):
+    """Classify the inline text following a JSR to print_inline_string.
+
+    ADFS terminates the text with a byte that has bit 7 set; that byte
+    is the *last character* of the string (printed with bit 7 stripped)
+    and is consumed by the routine. print_inline_string (&92A0) computes
+    its return address as terminator+1, so the trace resumes at the byte
+    after the terminator.
+
+    This differs from dasmos's stringhi_hook, which implements the other
+    Acorn convention where the terminator is a separate 1-byte NOP that
+    the routine returns *to*. Under that hook ADFS's &8D (= &0D | &80)
+    terminators are mis-decoded as the 3-byte STA abs opcode, swallowing
+    the real instructions that follow each string.
+    """
+    string_start = jsr_binary_addr + 3
+    addr = string_start
+    limit = d.cpu.address_space_size
+    while addr < limit:
+        if not d.memory.is_loaded(addr):
+            break
+        if d.memory.get_u8(addr) & 0x80:
+            # Terminator (last character): include it, resume after it.
+            length = addr - string_start + 1
+            runtime_start = int(d.moves.b2r(BinaryAddr(string_start)))
+            d.string(runtime_start, length)
+            return addr + 1
+        addr += 1
+    # No terminator found: classify what we have and resume there.
+    length = addr - string_start
+    if length > 0:
+        runtime_start = int(d.moves.b2r(BinaryAddr(string_start)))
+        d.string(runtime_start, length)
+    return addr
 
 def brk_error_hook(target, addr):
     """Handle inline BRK error blocks following JSR to error-raising routines.
@@ -784,7 +819,7 @@ d.label(0x8353, 'generate_error_suffix_x')
 d.label(0x83BB, 'generate_error_skip_no_suffix')
 
 d.label(0x92A0, 'print_inline_string')
-d.hook_subroutine(0x92A0, 'print_inline_string', stringhi_hook)
+d.hook_subroutine(0x92A0, 'print_inline_string', print_inline_string_hook)
 d.hook_subroutine(0x8348, 'reload_fsm_and_dir_then_brk', brk_error_hook)
 d.hook_subroutine(0x832B, 'generate_disc_error', brk_error_hook)
 d.hook_subroutine(0x8353, 'generate_error_suffix_x', brk_error_hook)
@@ -4509,7 +4544,7 @@ d.label(0x9D94, 'store_adjusted_count')
 
 d.label(0x9D9D, 'copy_adjusted_bytes_loop')
 
-d.label(0x9DD2, 'check_help_adfs_keyword')
+d.label(0x9DD3, 'help_return_unclaimed')
 
 d.label(0x9DDA, 'print_help_command_list')
 
@@ -8967,7 +9002,9 @@ d.comment(0x9D0D, 'Push again', align=Align.INLINE)
 d.comment(0x9D12, 'Clean up stack (discard flag)', align=Align.INLINE)
 d.comment(0x9D18, 'Return (not our command)', align=Align.INLINE)
 d.comment(0x9DBF, 'Save text pointer on stack', align=Align.INLINE)
-d.comment(0x9DD2, 'Store flag for help type', align=Align.INLINE)
+d.comment(0x9DD2, 'CR + bit 7: end of inline string', align=Align.INLINE)
+d.comment(0x9DD3, 'Restore saved *HELP text offset', align=Align.INLINE)
+d.comment(0x9DD4, 'Transfer back to Y', align=Align.INLINE)
 d.comment(0x9DD9, 'Return', align=Align.INLINE)
 d.comment(0x9DDB, 'Get next char from help text', align=Align.INLINE)
 d.comment(0x9DE2, 'Pop 2 return addresses', align=Align.INLINE)
@@ -9741,10 +9778,10 @@ d.comment(0x9331, 'Page &16', align=Align.INLINE)
 d.comment(0x9333, 'Store high byte', align=Align.INLINE)
 d.comment(0x9335, 'X=&13: print 19 chars of title', align=Align.INLINE)
 d.comment(0x9337, 'Print title characters', align=Align.INLINE)
-d.comment(0x933E, 'Transfer Y to A for display', align=Align.INLINE)
+d.comment(0x933E, "'(' + bit 7: end of inline string", align=Align.INLINE)
 d.comment(0x933F, 'Get directory sequence number', align=Align.INLINE)
 d.comment(0x9342, 'Print as 2 hex digits', align=Align.INLINE)
-d.comment(0x934F, 'Get stack pointer', align=Align.INLINE)
+d.comment(0x934F, "':' + bit 7: end of inline string", align=Align.INLINE)
 d.comment(0x9350, 'Get current drive number', align=Align.INLINE)
 d.comment(0x9353, 'Shift drive bits into position', align=Align.INLINE)
 d.comment(0x9354, 'Second shift', align=Align.INLINE)
@@ -9760,7 +9797,7 @@ d.comment(0x9366, 'Print path characters', align=Align.INLINE)
 d.comment(0x9372, "' ' + bit 7: end of inline string", align=Align.INLINE)
 d.comment(0x9373, 'Get boot option from FSM', align=Align.INLINE)
 d.comment(0x9376, 'Print boot option as two hex digits', align=Align.INLINE)
-d.comment(0x937D, 'Transfer boot option to Y for lookup', align=Align.INLINE)
+d.comment(0x937D, "'(' + bit 7: end of inline string", align=Align.INLINE)
 d.comment(0x937E, 'Get boot option again for table index', align=Align.INLINE)
 d.comment(0x9381, 'Look up option name string address', align=Align.INLINE)
 d.comment(0x9384, 'Set entry ptr to option name string', align=Align.INLINE)

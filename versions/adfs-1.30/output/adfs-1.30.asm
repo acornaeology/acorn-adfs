@@ -181,7 +181,6 @@ last_break_type            = &028d
 tube_entry                 = &0406
 ; &0406 referenced 8 times by &803d, &8049, &81f0, &8b8b, &a441, &b848, &b9b2, &bc37
 ext_vec_fsc_lo             = &06a9
-; &06a9 referenced 1 time by &9b86
 nmi_read_addr_lo           = &0d0e
 ; &0d0e referenced 4 times by &ba4f, &bc00, &bc89, &bd60
 nmi_read_addr_hi           = &0d0f
@@ -4873,13 +4872,11 @@ nmi_saved_rom = sub_c0d33+1
     ldx #&13                                                          ; 9335: a2 13       ..       ; X=&13: print 19 chars of title
     jsr print_padded_name                                             ; 9337: 20 87 92     ..      ; Print title characters
     jsr print_inline_string                                           ; 933a: 20 a0 92     ..   
-    equs " "                                                          ; 933d: 20                
-    tay                                                               ; 933e: a8          .        ; Transfer Y to A for display
+    equs " ", &a8                                                     ; 933d: 20 a8        .       ; '(' + bit 7: end of inline string
     lda dir_master_sequence                                           ; 933f: ad fa 16    ...      ; Get directory sequence number
     jsr print_hex_byte                                                ; 9342: 20 1b 93     ..      ; Print as 2 hex digits
     jsr print_inline_string                                           ; 9345: 20 a0 92     ..   
-    equs ")", &0d, "Drive"                                            ; 9348: 29 0d 44... ).D...
-    tsx                                                               ; 934f: ba          .        ; Get stack pointer
+    equs ")", &0d, "Drive", &ba                                       ; 9348: 29 0d 44... ).D...   ; ':' + bit 7: end of inline string
     lda wksp_current_drive                                            ; 9350: ad 17 11    ...      ; Get current drive number
     asl a                                                             ; 9353: 0a          .        ; Shift drive bits into position
     rol a                                                             ; 9354: 2a          *        ; Second shift
@@ -4894,13 +4891,11 @@ nmi_saved_rom = sub_c0d33+1
     ldx #&0d                                                          ; 9364: a2 0d       ..       ; X=&0D: print CSD path
     jsr print_padded_name                                             ; 9366: 20 87 92     ..      ; Print path characters
     jsr print_inline_string                                           ; 9369: 20 a0 92     ..   
-    equs "Option"                                                     ; 936c: 4f 70 74... Opt...
-    equb &a0                                                          ; 9372: a0          .        ; ' ' + bit 7: end of inline string
+    equs "Option", &a0                                                ; 936c: 4f 70 74... Opt...   ; ' ' + bit 7: end of inline string
     lda fsm_s1_boot_option                                            ; 9373: ad fd 0f    ...      ; Get boot option from FSM
     jsr print_hex_byte                                                ; 9376: 20 1b 93     ..      ; Print boot option as two hex digits
     jsr print_inline_string                                           ; 9379: 20 a0 92     ..   
-    equs " "                                                          ; 937c: 20                
-    tay                                                               ; 937d: a8          .        ; Transfer boot option to Y for lookup
+    equs " ", &a8                                                     ; 937c: 20 a8        .       ; '(' + bit 7: end of inline string
     ldx fsm_s1_boot_option                                            ; 937e: ae fd 0f    ...      ; Get boot option again for table index
     lda l941f,x                                                       ; 9381: bd 1f 94    ...      ; Look up option name string address
     sta zp_entry_ptr_lo                                               ; 9384: 85 b6       ..       ; Set entry ptr to option name string
@@ -4909,8 +4904,7 @@ nmi_saved_rom = sub_c0d33+1
     ldx #4                                                            ; 938a: a2 04       ..       ; X=4: print 4-char option name
     jsr print_padded_name                                             ; 938c: 20 87 92     ..      ; Print boot option name (Off/Load/Run/Exec)
     jsr print_inline_string                                           ; 938f: 20 a0 92     ..   
-    equs ")", &0d, "Dir."                                             ; 9392: 29 0d 44... ).D...   ; ")" + CR + "Dir." + space: option close + dir label
-    equb &a0                                                          ; 9398: a0          .        ; ' ' + bit 7: end of inline string
+    equs ")", &0d, "Dir.", &a0                                        ; 9392: 29 0d 44... ).D...   ; ")" + CR + "Dir." + space: option close + dir label  ' ' + bit 7: end of inline string
     lda #0                                                            ; 9399: a9 00       ..       ; A=&00: CSD name low (wksp_csd_name)
     sta zp_entry_ptr_lo                                               ; 939b: 85 b6       ..       ; Store pointer low byte
     lda #&11                                                          ; 939d: a9 11       ..       ; A=&11: CSD name high (&1100)
@@ -4918,8 +4912,7 @@ nmi_saved_rom = sub_c0d33+1
     ldx #&0a                                                          ; 93a1: a2 0a       ..       ; X=&0A: print 10-char directory name
     jsr print_padded_name                                             ; 93a3: 20 87 92     ..      ; Print CSD directory name
     jsr print_inline_string                                           ; 93a6: 20 a0 92     ..   
-    equs "     Lib."                                                  ; 93a9: 20 20 20...    ...
-    equb &a0                                                          ; 93b2: a0          .        ; ' ' + bit 7: end of inline string
+    equs "     Lib.", &a0                                             ; 93a9: 20 20 20...    ...   ; ' ' + bit 7: end of inline string
     lda #&0a                                                          ; 93b3: a9 0a       ..       ; A=&0A: library name low (wksp_lib_name)
     sta zp_entry_ptr_lo                                               ; 93b5: 85 b6       ..       ; Store pointer low byte
     lda #&11                                                          ; 93b7: a9 11       ..       ; A=&11: library name high (&110A)
@@ -4927,8 +4920,7 @@ nmi_saved_rom = sub_c0d33+1
     ldx #&0a                                                          ; 93bb: a2 0a       ..       ; X=&0A: print 10-char library name
     jsr print_padded_name                                             ; 93bd: 20 87 92     ..      ; Print library directory name
     jsr print_inline_string                                           ; 93c0: 20 a0 92     ..   
-    equb &0d                                                          ; 93c3: 0d          .        ; CR: end of library name line
-    equb &8d                                                          ; 93c4: 8d          .        ; CR + bit 7: blank line after header
+    equb &0d, &8d                                                     ; 93c3: 0d 8d       ..       ; CR: end of library name line  CR + bit 7: blank line after header
 ; ***************************************************************************************
 ; Point (&B6) to first directory entry
 ;
@@ -5981,8 +5973,7 @@ nmi_saved_rom = sub_c0d33+1
     pla                                                               ; 99fa: 68          h        ; Restore filename pointer low
     sta zp_text_ptr_lo                                                ; 99fb: 85 b4       ..       ; Store in (&B4)
     jsr print_inline_string                                           ; 99fd: 20 a0 92     ..      ; Print "Destroy ? "
-    equs "Destroy ?"                                                  ; 9a00: 44 65 73... Des...
-    equb &a0                                                          ; 9a09: a0          .        ; ' ' + bit 7: end of inline string
+    equs "Destroy ?", &a0                                             ; 9a00: 44 65 73... Des...   ; ' ' + bit 7: end of inline string
     ldx #3                                                            ; 9a0a: a2 03       ..       ; X=3: expect 4 chars (CR,Y,E,S)
 ; &9a0c referenced 1 time by &9a1e
 .confirm_destroy_loop
@@ -6308,11 +6299,10 @@ str_run_boot = str_l_boot+2
     lda #osbyte_write_keys_pressed                                    ; 9b73: a9 78       .x       ; OSBYTE &78: clear keys pressed
     jsr osbyte                                                        ; 9b75: 20 f4 ff     ..      ; Write all keys pressed information
     jsr print_inline_string                                           ; 9b78: 20 a0 92     ..   
-    equs "Acorn ADFS", &0d                                            ; 9b7b: 41 63 6f... Aco...
-.sub_c9b86
+    equs "Acorn ADFS", &0d, &8d                                       ; 9b7b: 41 63 6f... Aco...
 ; &9b87 referenced 2 times by &9b3f, &9d0e
-boot_run_option = sub_c9b86+1
-    sta ext_vec_fsc_lo                                                ; 9b86: 8d a9 06    ...   
+.boot_run_option
+    lda #6                                                            ; 9b87: a9 06       ..    
     jsr jmp_indirect_fscv                                             ; 9b89: 20 43 9a     C.   
     lda #osbyte_issue_service_request                                 ; 9b8c: a9 8f       ..       ; OSBYTE &8F: issue service 10
     ldx #&0a                                                          ; 9b8e: a2 0a       ..       ; X=&0A: service 10 (claim workspace)
@@ -6715,8 +6705,7 @@ boot_run_option = sub_c9b86+1
 ; &9da7 referenced 2 times by &9dc6, &9e08
 .help_print_header
     jsr print_inline_string                                           ; 9da7: 20 a0 92     ..   
-    equb &0d, "Advanced DFS 1.30"                                     ; 9daa: 0d 41 64... .Ad...
-    equb &8d                                                          ; 9dbc: 8d          .        ; CR + bit 7: end of version string
+    equb &0d, "Advanced DFS 1.30", &8d                                ; 9daa: 0d 41 64... .Ad...   ; CR + bit 7: end of version string
     rts                                                               ; 9dbd: 60          `        ; Return to caller
 ; ***************************************************************************************
 ; Service 9: *HELP
@@ -6730,11 +6719,11 @@ boot_run_option = sub_c9b86+1
     bcs end_of_command_name                                           ; 9dc4: b0 29       .)       ; Yes, try matching 'ADFS'
     jsr help_print_header                                             ; 9dc6: 20 a7 9d     ..      ; No argument: print version banner
     jsr print_inline_string                                           ; 9dc9: 20 a0 92     ..      ; Print ' ADFS'
-    equs "  ADFS"                                                     ; 9dcc: 20 20 41...   A...
-.check_help_adfs_keyword
+    equs "  ADFS", &8d                                                ; 9dcc: 20 20 41...   A...   ; CR + bit 7: end of inline string
 ; &9dd3 referenced 2 times by &9de3, &9e10
-l9dd3 = check_help_adfs_keyword+1
-    sta la868                                                         ; 9dd2: 8d 68 a8    .h.      ; Store flag for help type
+.help_return_unclaimed
+    pla                                                               ; 9dd3: 68          h        ; Restore saved *HELP text offset
+    tay                                                               ; 9dd4: a8          .        ; Transfer back to Y
     ldx romsel_copy                                                   ; 9dd5: a6 f4       ..       ; Get our ROM number
     lda #9                                                            ; 9dd7: a9 09       ..       ; A=9: return service 9 (not claimed)
 ; &9dd9 referenced 1 time by &9ddf
@@ -6753,7 +6742,7 @@ l9dd3 = check_help_adfs_keyword+1
     bcs return_25                                                     ; 9ddf: b0 f8       ..       ; Yes, return (more text follows)
     pla                                                               ; 9de1: 68          h        ; End of argument: pop return address
     pla                                                               ; 9de2: 68          h        ; Pop 2 return addresses
-    bcc l9dd3                                                         ; 9de3: 90 ee       ..       ; Return to service dispatcher
+    bcc help_return_unclaimed                                         ; 9de3: 90 ee       ..       ; Return to service dispatcher
 ; &9de5 referenced 3 times by &9de8, &9dfc, &9e06
 .print_next_command
     jsr print_help_command_list                                       ; 9de5: 20 da 9d     ..      ; Skip non-space chars in argument
@@ -6786,10 +6775,9 @@ l9dd3 = check_help_adfs_keyword+1
 ; &9e0d referenced 1 time by &9e46
 .print_help_data_commands
     lda tbl_commands,x                                                ; 9e0d: bd e3 9e    ...      ; Get command table byte
-    bmi l9dd3                                                         ; 9e10: 30 c1       0.       ; Bit 7 set: end of table
+    bmi help_return_unclaimed                                         ; 9e10: 30 c1       0.       ; Bit 7 set: end of table
     jsr print_inline_string                                           ; 9e12: 20 a0 92     ..      ; Print " " indent before command name
-    equs " "                                                          ; 9e15: 20                
-    equb &a0                                                          ; 9e16: a0          .        ; ' ' + bit 7: end of inline string
+    equs " ", &a0                                                     ; 9e15: 20 a0        .       ; ' ' + bit 7: end of inline string
     ldy #9                                                            ; 9e17: a0 09       ..       ; Y=9: max 10 chars per command name
 ; &9e19 referenced 1 time by &9e23
 .print_data_cmd_name_loop
@@ -7175,8 +7163,7 @@ help_param_none = help_param_title+7
     jsr calc_total_free_space                                         ; a01b: 20 aa a1     ..      ; Calculate total free space
     jsr print_space_value                                             ; a01e: 20 c6 a1     ..      ; Print free space with header
     jsr print_inline_string                                           ; a021: 20 a0 92     ..      ; Print "Free" + CR
-    equs "Free"                                                       ; a024: 46 72 65... Fre...
-    equb &8d                                                          ; a028: 8d          .        ; CR + bit 7: end of inline string
+    equs "Free", &8d                                                  ; a024: 46 72 65... Fre...   ; CR + bit 7: end of inline string
     jsr calc_total_free_space                                         ; a029: 20 aa a1     ..      ; Calculate total free space again
     ldy #1                                                            ; a02c: a0 01       ..       ; Y=1: offset to disc size low byte
     ldx #2                                                            ; a02e: a2 02       ..       ; X=2: loop counter for 3-byte subtract
@@ -7191,8 +7178,7 @@ help_param_none = help_param_title+7
     bpl print_used_space                                              ; a03c: 10 f3       ..       ; Loop for 3 bytes
     jsr print_space_value                                             ; a03e: 20 c6 a1     ..      ; Print used space with header
     jsr print_inline_string                                           ; a041: 20 a0 92     ..      ; Print "Used" + CR
-    equs "Used"                                                       ; a044: 55 73 65... Use...
-    equb &8d                                                          ; a048: 8d          .        ; CR + bit 7: end of inline string
+    equs "Used", &8d                                                  ; a044: 55 73 65... Use...   ; CR + bit 7: end of inline string
 ; &a049 referenced 4 times by &a064, &a097, &a09e, &a0be
 .return_27
     rts                                                               ; a049: 60          `        ; Return
@@ -7203,8 +7189,7 @@ help_param_none = help_param_title+7
 ; length of each free space region.
 .star_map
     jsr print_inline_string                                           ; a04a: 20 a0 92     ..      ; Print "Address : Length" + CR header
-    equs "Address :  Length"                                          ; a04d: 41 64 64... Add...
-    equb &8d                                                          ; a05e: 8d          .        ; CR + bit 7: end of inline string
+    equs "Address :  Length", &8d                                     ; a04d: 41 64 64... Add...   ; CR + bit 7: end of inline string
     ldx #0                                                            ; a05f: a2 00       ..       ; X=0: start of FSM entries
 ; &a061 referenced 1 time by &a092
 .print_map_header
@@ -7223,8 +7208,7 @@ help_param_none = help_param_title+7
     dey                                                               ; a074: 88          .        ; Next byte
     bpl print_fsm_entries_loop                                        ; a075: 10 f6       ..       ; Loop for 3 bytes (high to low)
     jsr print_inline_string                                           ; a077: 20 a0 92     ..      ; Print " : " separator
-    equs "  : "                                                       ; a07a: 20 20 3a...   :...
-    equb &a0                                                          ; a07e: a0          .        ; ' ' + bit 7: end of inline string
+    equs "  : ", &a0                                                  ; a07a: 20 20 3a...   :...   ; ' ' + bit 7: end of inline string
     ldx zp_gspb_ptr_lo                                                ; a07f: a6 c6       ..       ; Restore FSM index
     ldy #2                                                            ; a081: a0 02       ..       ; Y=2: print 3 length bytes
 ; &a083 referenced 1 time by &a08b
@@ -7249,8 +7233,7 @@ help_param_none = help_param_title+7
     cpx #&e1                                                          ; a09c: e0 e1       ..       ; Pointer >= &E1 (many fragments)?
     bcc return_27                                                     ; a09e: 90 a9       ..       ; No, space not fragmented enough
     jsr print_inline_string                                           ; a0a0: 20 a0 92     ..      ; Print "Compaction recommended" + CR
-    equs "Compaction recommended"                                     ; a0a3: 43 6f 6d... Com...
-    equb &8d                                                          ; a0b9: 8d          .        ; CR + bit 7: end of inline string
+    equs "Compaction recommended", &8d                                ; a0a3: 43 6f 6d... Com...   ; CR + bit 7: end of inline string
     rts                                                               ; a0ba: 60          `        ; Return to caller
 ; ***************************************************************************************
 ; *DELETE command handler
@@ -7498,8 +7481,7 @@ la154 = sub_ca153+1
     lda wksp_disc_op_mem_addr                                         ; a1d2: ad 16 10    ...      ; Print low byte as hex
     jsr print_hex_byte                                                ; a1d5: 20 1b 93     ..      ; Print result byte as hex
     jsr print_inline_string                                           ; a1d8: 20 a0 92     ..      ; Print " Sectors ="
-    equs " Sectors ="                                                 ; a1db: 20 53 65...  Se...
-    equb &a0                                                          ; a1e5: a0          .        ; ' ' + bit 7: end of inline string
+    equs " Sectors =", &a0                                            ; a1db: 20 53 65...  Se...   ; ' ' + bit 7: end of inline string
     ldx #&1f                                                          ; a1e6: a2 1f       ..       ; X=&1F: 31 bit shifts (32-bit value)
     stx wksp_last_access_drive                                        ; a1e8: 8e 33 10    .3.      ; Store bit counter in workspace
     lda #0                                                            ; a1eb: a9 00       ..       ; A=0: clear all BCD digit accumulators
@@ -7567,8 +7549,7 @@ la154 = sub_ca153+1
     dex                                                               ; a244: ca          .        ; Next digit (toward least significant)
     bpl print_digit_loop                                              ; a245: 10 d8       ..       ; Loop for 9 digits (8 down to 0)
     jsr print_inline_string                                           ; a247: 20 a0 92     ..   
-    equs " Bytes"                                                     ; a24a: 20 42 79...  By...
-    equb &a0                                                          ; a250: a0          .        ; ' ' + bit 7: end of inline string
+    equs " Bytes", &a0                                                ; a24a: 20 42 79...  By...   ; ' ' + bit 7: end of inline string
     rts                                                               ; a251: 60          `        ; Return to caller
 ; ***************************************************************************************
 ; *TITLE command handler
@@ -8659,8 +8640,6 @@ la154 = sub_ca153+1
     bpl copy_csd_for_dest_loop                                        ; a862: 10 f7       ..       ; Loop for 4 bytes
     jsr parse_second_filename                                         ; a864: 20 65 a3     e.      ; Parse destination path
 .check_dest_terminator
-; &a868 referenced 1 time by &9dd2
-la868 = check_dest_terminator+1
     jsr check_char_is_terminator                                      ; a867: 20 1a 87     ..   
     bne load_dest_directory                                           ; a86a: d0 03       ..       ; Found destination dir?
     jmp bad_name_error                                                ; a86c: 4c 37 87    L7.      ; Bad name: invalid destination
@@ -12816,13 +12795,13 @@ save pydis_start, pydis_end
 ;     hd_bput_write_sector:                      2
 ;     hd_command_bget_bput_sector:               2
 ;     help_print_header:                         2
+;     help_return_unclaimed:                     2
 ;     increment_ptr_after_write:                 2
 ;     increment_tube_xfer_addr:                  2
 ;     init_fsm_zeros_loop:                       2
 ;     init_root_dir_entries:                     2
 ;     insert_new_entry:                          2
 ;     issue_fdc_command:                         2
-;     l9dd3:                                     2
 ;     last_break_type:                           2
 ;     load_dir_for_drive:                        2
 ;     load_tube_workspace_ptr:                   2
@@ -13293,7 +13272,6 @@ save pydis_start, pydis_end
 ;     execute_loaded_file:                       1
 ;     execute_osword_disc_op:                    1
 ;     execute_partial_disc_op:                   1
-;     ext_vec_fsc_lo:                            1
 ;     extend_file_allocation:                    1
 ;     extend_file_if_needed:                     1
 ;     extract_entry_access_loop:                 1
@@ -13366,7 +13344,6 @@ save pydis_start, pydis_end
 ;     l9ee4:                                     1
 ;     l9ee5:                                     1
 ;     la154:                                     1
-;     la868:                                     1
 ;     last_char_reached:                         1
 ;     load_dest_directory:                       1
 ;     load_dir_and_list_entries:                 1
@@ -13814,11 +13791,9 @@ save pydis_start, pydis_end
 ; Automatically generated labels:
 ;     c8dab
 ;     l941f
-;     l9dd3
 ;     l9ee4
 ;     l9ee5
 ;     la154
-;     la868
 ;     return_1
 ;     return_10
 ;     return_11
@@ -13870,16 +13845,15 @@ save pydis_start, pydis_end
 ;     return_9
 ;     sub_c0d04
 ;     sub_c0d33
-;     sub_c9b86
 ;     sub_ca153
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 15125 bytes (92%)
-;     Data                     = 1259 bytes (8%)
+;     Code                     = 15120 bytes (92%)
+;     Data                     = 1264 bytes (8%)
 ;
-;     Number of instructions   = 7041
-;     Number of data bytes     = 295 bytes
+;     Number of instructions   = 7039
+;     Number of data bytes     = 281 bytes
 ;     Number of data words     = 44 bytes
-;     Number of string bytes   = 920 bytes
+;     Number of string bytes   = 939 bytes
 ;     Number of strings        = 106
