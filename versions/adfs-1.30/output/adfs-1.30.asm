@@ -3756,10 +3756,15 @@ nmi_saved_rom = sub_c0d33+1
     inx                                                               ; 8d6c: e8          .        ; X=1: no conflict found
     rts                                                               ; 8d6d: 60          `        ; Return (X=1 = no conflict)
 ; ***************************************************************************************
-; Validate path and check for wildcards
+; Validate pathname syntax
 ;
-; Scan the filename at (&B4) checking for invalid characters and wildcards. Generates Bad
-; name or Wild cards errors for invalid patterns.
+; Walk the pathname at (zp_text_ptr), splitting on '.' separators and consuming the drive
+; (':D'), root ('$'), parent ('^') and current ('@') specifiers. Any name component
+; containing a character from tbl_forbidden_chars (DEL, '^', '@', ':', '$', '&') raises
+; Bad name.
+;
+; The '*' and '#' wildcard check is not done here; it is applied to the leaf by the
+; caller set_up_gsinit_path.
 ; &8d6e referenced 2 times by &8712, &8dbd
 .set_up_directory_search
     ldy #0                                                            ; 8d6e: a0 00       ..       ; Y=0: scan filename
@@ -3818,21 +3823,31 @@ nmi_saved_rom = sub_c0d33+1
     bpl valid_name_continue_loop                                      ; 8db8: 10 f8       ..       ; Loop for 6 chars
     iny                                                               ; 8dba: c8          .        ; Next filename character
     bne c8dab                                                         ; 8dbb: d0 ee       ..       ; Continue scanning
+; ***************************************************************************************
+; Validate pathname and reject leaf wildcards
+;
+; Validate the pathname via set_up_directory_search, then scan the final leaf component
+; backwards from its end for the '*' and '#' wildcard characters (bit 7 stripped first),
+; raising Wild cards if either is found. The scan stops at the '.' that begins the leaf,
+; or when it runs off the start of the buffer.
+;
+; Called on the create/lookup paths (OSFILE, *CDIR, *RENAME) where a literal name, not a
+; wildcard pattern, is required.
 ; &8dbd referenced 3 times by &8cd4, &a50c, &b2fe
 .set_up_gsinit_path
-    jsr set_up_directory_search                                       ; 8dbd: 20 6e 8d     n.      ; Save text pointer low
+    jsr set_up_directory_search                                       ; 8dbd: 20 6e 8d     n.      ; Validate path: forbidden chars + dots
 ; &8dc0 referenced 1 time by &8dd3
 .gsinit_scan_loop
-    lda (zp_text_ptr_lo),y                                            ; 8dc0: b1 b4       ..       ; Save text pointer high
-    and #&7f                                                          ; 8dc2: 29 7f       ).       ; Push on stack
-    cmp #&2a ; '*'                                                    ; 8dc4: c9 2a       .*    
-    beq wild_cards_error                                              ; 8dc6: f0 16       ..    
-    cmp #&23 ; '#'                                                    ; 8dc8: c9 23       .#    
-    beq wild_cards_error                                              ; 8dca: f0 12       ..    
+    lda (zp_text_ptr_lo),y                                            ; 8dc0: b1 b4       ..       ; Get leaf char (scanning backwards)
+    and #&7f                                                          ; 8dc2: 29 7f       ).       ; Strip bit 7
+    cmp #&2a ; '*'                                                    ; 8dc4: c9 2a       .*       ; Is it '*' wildcard?
+    beq wild_cards_error                                              ; 8dc6: f0 16       ..       ; Yes: Wild cards error
+    cmp #&23 ; '#'                                                    ; 8dc8: c9 23       .#       ; Is it '#' wildcard?
+    beq wild_cards_error                                              ; 8dca: f0 12       ..       ; Yes: Wild cards error
     cmp #&2e ; '.'                                                    ; 8dcc: c9 2e       ..       ; Is it '.'?
-    beq return_17                                                     ; 8dce: f0 05       ..       ; Restore text pointer high
+    beq return_17                                                     ; 8dce: f0 05       ..       ; Yes: leaf scanned, no wildcards
     dey                                                               ; 8dd0: 88          .        ; Decrement index
-    cpy #&ff                                                          ; 8dd1: c0 ff       ..       ; Restore text pointer low
+    cpy #&ff                                                          ; 8dd1: c0 ff       ..       ; Wrapped past byte 0? End of leaf
     bne gsinit_scan_loop                                              ; 8dd3: d0 eb       ..    
 ; &8dd5 referenced 4 times by &8d87, &8da6, &8dce, &8dd9
 .return_17
@@ -3970,65 +3985,87 @@ nmi_saved_rom = sub_c0d33+1
     sta zp_text_ptr_hi                                                ; 8e6c: 85 b5       ..       ; Store back in (&B5)
     rts                                                               ; 8e6e: 60          `        ; Return
 ; ***************************************************************************************
-; Allocate disc space and store in entry
+; Store leaf name into new directory entry
 ;
-; Allocate disc space from the FSM for the requested file size, then store the allocated
-; sector address in the directory entry at (&B6).
+; Write the 10-byte name field of the directory entry at (zp_entry_ptr) from the parsed
+; leaf name at (zp_text_ptr). This is the canonical storage-layer name filter; *CDIR
+; (cdir_name_validated) and *RENAME (merge_name_attributes_loop) apply the identical
+; transform.
+;
+; Each of the 10 bytes is taken from the command-line text, masked to 7 bits (AND #&7F),
+; then folded to CR (&0D) padding if it is a double-quote (&22) or any control/space code
+; below '!' (&21). Every other value (&21, &23-&7E) is stored verbatim, so the field is
+; effectively 7-bit ASCII. The name's case is preserved as supplied; case folding happens
+; only when matching (see compare_filename).
+;
+; Bit 7 of each stored byte then carries an access attribute, not name data: this routine
+; sets bit 7 on bytes 0 and 1 (ORA #&80 when Y < 2), giving a newly created file default
+; R (byte 0) and W (byte 1) access. See set_entry_access_from_osfile for the full bit-7
+; layout (R, W, L, D across bytes 0-3).
+;
+; The leaf is validated before reaching here: over-length names (>10 chars) raise Bad
+; name in check_filename_length; '.', ':', '$', '&', '^', '@' and DEL raise Bad name in
+; set_up_directory_search; '*' and '#' raise Wild cards in set_up_gsinit_path.
 ; &8e6f referenced 3 times by &8f4f, &a64c, &a8df
-.allocate_disc_space_for_file
-    ldy #9                                                            ; 8e6f: a0 09       ..       ; Get OSFILE block pointer low
+.store_filename_in_entry
+    ldy #9                                                            ; 8e6f: a0 09       ..       ; Y=9: write 10 name bytes (9..0)
 ; &8e71 referenced 1 time by &8e88
-.copy_alloc_request_loop
-    lda (zp_text_ptr_lo),y                                            ; 8e71: b1 b4       ..       ; Store in (&B8)
-    and #&7f                                                          ; 8e73: 29 7f       ).       ; Get OSFILE block pointer high
-    cmp #&21 ; '!'                                                    ; 8e75: c9 21       .!       ; Store in (&B9)
-    bcc store_allocated_sector                                        ; 8e77: 90 04       ..       ; Y=2: copy 3-byte start sector
-    cmp #&22                                                          ; 8e79: c9 22       ."       ; Get start sector byte from entry
-    bne check_exact_alloc                                             ; 8e7b: d0 02       ..    
+.store_name_byte_loop
+    lda (zp_text_ptr_lo),y                                            ; 8e71: b1 b4       ..       ; Get leaf-name char from command line
+    and #&7f                                                          ; 8e73: 29 7f       ).       ; Strip bit 7 (force 7-bit ASCII)
+    cmp #&21 ; '!'                                                    ; 8e75: c9 21       .!       ; Below '!': control char or space?
+    bcc pad_name_with_cr                                              ; 8e77: 90 04       ..       ; Yes: pad with CR
+    cmp #&22                                                          ; 8e79: c9 22       ."       ; Is it a double-quote?
+    bne merge_access_bits                                             ; 8e7b: d0 02       ..       ; No: store the character as-is
 ; &8e7d referenced 1 time by &8e77
-.store_allocated_sector
-    lda #&0d                                                          ; 8e7d: a9 0d       ..       ; A=CR: pad entry name
+.pad_name_with_cr
+    lda #&0d                                                          ; 8e7d: a9 0d       ..       ; CR pad: quote / non-printable / short
 ; &8e7f referenced 1 time by &8e7b
-.check_exact_alloc
-    cpy #2                                                            ; 8e7f: c0 02       ..       ; Next byte (decreasing Y)
-    bcs reduce_alloc_to_available                                     ; 8e81: b0 02       ..    
-    ora #&80                                                          ; 8e83: 09 80       ..       ; Set bit 7 for D attribute
+.merge_access_bits
+    cpy #2                                                            ; 8e7f: c0 02       ..       ; Name byte 0 or 1?
+    bcs store_name_byte                                               ; 8e81: b0 02       ..       ; Bytes 2-9: no access bit
+    ora #&80                                                          ; 8e83: 09 80       ..       ; Bytes 0,1: set bit 7 (R / W access)
 ; &8e85 referenced 1 time by &8e81
-.reduce_alloc_to_available
-    sta (zp_entry_ptr_lo),y                                           ; 8e85: 91 b6       ..       ; Compare with 1 (round up sectors)
-    dey                                                               ; 8e87: 88          .        ; Next byte
-    bpl copy_alloc_request_loop                                       ; 8e88: 10 e7       ..       ; Loop for all name bytes
+.store_name_byte
+    sta (zp_entry_ptr_lo),y                                           ; 8e85: 91 b6       ..       ; Store name byte in entry
+    dey                                                               ; 8e87: 88          .        ; Next byte (decreasing)
+    bpl store_name_byte_loop                                          ; 8e88: 10 e7       ..       ; Loop for all 10 name bytes
     rts                                                               ; 8e8a: 60          `        ; Return
 ; ***************************************************************************************
-; Copy OSFILE template into directory entry
+; Copy addresses and length into directory entry
 ;
-; Copy filename, attributes, and sector information from the OSFILE workspace into the
-; directory entry at (&B6).
+; Fill in the address/length fields of the new directory entry at (zp_entry_ptr). The
+; name field (bytes 0-9) has already been written by store_filename_in_entry.
+;
+; First copies the 18-byte OSFILE control block (load, exec, start and end addresses)
+; from (zp_osfile_ptr) into the disc workspace, computes the file length as end - start
+; into entry bytes &12-&15, then copies the load and exec addresses into entry bytes
+; &0A-&11.
 ; &8e8b referenced 2 times by &8f52, &a65d
 .copy_entry_from_template
-    ldy #&11                                                          ; 8e8b: a0 11       ..       ; Y=&11: copy filename and attributes
+    ldy #&11                                                          ; 8e8b: a0 11       ..       ; Y=&11: copy 18-byte OSFILE block
 ; &8e8d referenced 1 time by &8e93
-.copy_name_to_entry_loop
-    lda (zp_osfile_ptr_lo),y                                          ; 8e8d: b1 b8       ..       ; Get name byte from workspace
+.copy_osfile_block_to_wksp
+    lda (zp_osfile_ptr_lo),y                                          ; 8e8d: b1 b8       ..       ; Get block byte (load/exec/start/end)
     sta wksp_disc_op_result,y                                         ; 8e8f: 99 15 10    ...   
     dey                                                               ; 8e92: 88          .        ; Next byte
-    bpl copy_name_to_entry_loop                                       ; 8e93: 10 f8       ..       ; Loop for 10 bytes
-    ldy #&12                                                          ; 8e95: a0 12       ..       ; Increment dir sequence number
-    sec                                                               ; 8e97: 38          8        ; Set carry for sector calculation
-    ldx #3                                                            ; 8e98: a2 03       ..       ; Store updated sequence in header
+    bpl copy_osfile_block_to_wksp                                     ; 8e93: 10 f8       ..       ; Loop for 18 bytes
+    ldy #&12                                                          ; 8e95: a0 12       ..       ; Y=&12: compute length = end - start
+    sec                                                               ; 8e97: 38          8        ; Set carry for subtraction
+    ldx #3                                                            ; 8e98: a2 03       ..       ; X=3: 4-byte length field
 ; &8e9a referenced 1 time by &8ea4
-.copy_access_byte_loop
+.compute_entry_length_loop
     lda wksp_entry_calc_base,y                                        ; 8e9a: b9 11 10    ...   
     sbc wksp_entry_field_base,y                                       ; 8e9d: f9 0d 10    ...   
-    sta (zp_entry_ptr_lo),y                                           ; 8ea0: 91 b6       ..       ; Store sequence in entry
+    sta (zp_entry_ptr_lo),y                                           ; 8ea0: 91 b6       ..       ; Store length byte in entry
     iny                                                               ; 8ea2: c8          .        ; Next byte
     dex                                                               ; 8ea3: ca          .        ; Decrement counter
-    bpl copy_access_byte_loop                                         ; 8ea4: 10 f4       ..       ; Loop for required bytes
-    ldy #&0a                                                          ; 8ea6: a0 0a       ..       ; Y=&0A: copy access byte
+    bpl compute_entry_length_loop                                     ; 8ea4: 10 f4       ..       ; Loop for required bytes
+    ldy #&0a                                                          ; 8ea6: a0 0a       ..       ; Y=&0A: copy load/exec addresses
 ; &8ea8 referenced 1 time by &8eb0
 .store_entry_lengths_loop
-    lda wksp_entry_field_base,y                                       ; 8ea8: b9 0d 10    ...      ; Get OSFILE data byte
-    sta (zp_entry_ptr_lo),y                                           ; 8eab: 91 b6       ..       ; Store in directory entry
+    lda wksp_entry_field_base,y                                       ; 8ea8: b9 0d 10    ...      ; Get address byte from workspace
+    sta (zp_entry_ptr_lo),y                                           ; 8eab: 91 b6       ..       ; Store in entry bytes &0A-&11
     iny                                                               ; 8ead: c8          .        ; Next byte
     cpy #&12                                                          ; 8eae: c0 12       ..       ; Past length field (Y=&12)?
     bne store_entry_lengths_loop                                      ; 8eb0: d0 f6       ..       ; No: continue copying
@@ -4132,7 +4169,7 @@ nmi_saved_rom = sub_c0d33+1
 ; &8f4c referenced 3 times by &8f74, &8f7d, &b35a
 .validate_not_locked
     jsr copy_addrs_and_find_empty_entry                               ; 8f4c: 20 f3 8d     ..      ; Save (&B6) for restore
-    jsr allocate_disc_space_for_file                                  ; 8f4f: 20 6f 8e     o.      ; Save (&B7)
+    jsr store_filename_in_entry                                       ; 8f4f: 20 6f 8e     o.      ; Save (&B7)
 ; &8f52 referenced 2 times by &95ca, &a8e2
 .write_entry_sector_info
     jsr copy_entry_from_template                                      ; 8f52: 20 8b 8e     ..      ; Y=&0D: copy load/exec/length
@@ -8299,7 +8336,7 @@ la154 = sub_ca153+1
     lda #&10                                                          ; a645: a9 10       ..       ; Block page = &10
     sta zp_osfile_ptr_hi                                              ; a647: 85 b9       ..       ; Store block pointer high
     jsr copy_addrs_and_find_empty_entry                               ; a649: 20 f3 8d     ..      ; Create entry in dest directory
-    jsr allocate_disc_space_for_file                                  ; a64c: 20 6f 8e     o.      ; Allocate disc space
+    jsr store_filename_in_entry                                       ; a64c: 20 6f 8e     o.      ; Allocate disc space
     ldy #3                                                            ; a64f: a0 03       ..       ; Y=3: copy attributes back to entry
 ; &a651 referenced 1 time by &a65b
 .restore_attributes_loop
@@ -8749,7 +8786,7 @@ la154 = sub_ca153+1
     sta wksp_dest_filename_end                                        ; a8d6: 8d 7e 10    .~.      ; Store terminator
     jsr setup_fsm_read                                                ; a8d9: 20 f5 a7     ..      ; Set up disc read for source file
     jsr copy_addrs_and_find_empty_entry                               ; a8dc: 20 f3 8d     ..      ; Check if file is open
-    jsr allocate_disc_space_for_file                                  ; a8df: 20 6f 8e     o.      ; Allocate space for dest file
+    jsr store_filename_in_entry                                       ; a8df: 20 6f 8e     o.      ; Allocate space for dest file
     jsr write_entry_sector_info                                       ; a8e2: 20 52 8f     R.      ; Write dest directory entry
     ldy #2                                                            ; a8e5: a0 02       ..       ; Y=2: copy sector addresses
 ; &a8e7 referenced 1 time by &a8f4
@@ -12655,7 +12692,6 @@ save pydis_start, pydis_end
 ;     advance_byte_position:                     3
 ;     advance_text_ptr:                          3
 ;     allocate_disc_space:                       3
-;     allocate_disc_space_for_file:              3
 ;     bad_address_error:                         3
 ;     bad_parms_error:                           3
 ;     begin_compaction:                          3
@@ -12709,6 +12745,7 @@ save pydis_start, pydis_end
 ;     setup_fdc_and_seek:                        3
 ;     skip_spaces_before_attrs:                  3
 ;     step_ensure_offset_loop:                   3
+;     store_filename_in_entry:                   3
 ;     switch_to_library:                         3
 ;     transfer_sector_bytes:                     3
 ;     tube_delay2:                               3
@@ -13063,7 +13100,6 @@ save pydis_start, pydis_end
 ;     check_drive_initialised:                   1
 ;     check_drive_number:                        1
 ;     check_escape_condition:                    1
-;     check_exact_alloc:                         1
 ;     check_exact_match:                         1
 ;     check_ext_vs_allocation:                   1
 ;     check_field_boundary:                      1
@@ -13169,15 +13205,14 @@ save pydis_start, pydis_end
 ;     compare_with_next_entry_loop:              1
 ;     complete_partial_op:                       1
 ;     complete_partial_write:                    1
+;     compute_entry_length_loop:                 1
 ;     confirm_destroy_loop:                      1
 ;     convert_hex_digits_loop:                   1
 ;     convert_two_digits:                        1
 ;     copy_3byte_addrs_loop:                     1
 ;     copy_3byte_length_loop:                    1
 ;     copy_4byte_addrs_loop:                     1
-;     copy_access_byte_loop:                     1
 ;     copy_adjusted_bytes_loop:                  1
-;     copy_alloc_request_loop:                   1
 ;     copy_alloc_sector_loop:                    1
 ;     copy_allocated_sector_loop:                1
 ;     copy_allocation_from_entry:                1
@@ -13235,13 +13270,13 @@ save pydis_start, pydis_end
 ;     copy_locked_name_loop:                     1
 ;     copy_name_byte_loop:                       1
 ;     copy_name_to_cdir_loop:                    1
-;     copy_name_to_entry_loop:                   1
 ;     copy_new_name_to_entry:                    1
 ;     copy_new_ptr_from_user:                    1
 ;     copy_new_ptr_loop:                         1
 ;     copy_nmi_code_loop:                        1
 ;     copy_old_sector_info_loop:                 1
 ;     copy_osfile_addrs:                         1
+;     copy_osfile_block_to_wksp:                 1
 ;     copy_osfile_params_loop:                   1
 ;     copy_osfile_to_entry_loop:                 1
 ;     copy_parent_sector_loop:                   1
@@ -13400,6 +13435,7 @@ save pydis_start, pydis_end
 ;     match_command_loop:                        1
 ;     match_osword_block_loop:                   1
 ;     match_rwl_loop:                            1
+;     merge_access_bits:                         1
 ;     merge_forward_loop:                        1
 ;     merge_name_attributes_loop:                1
 ;     merge_size_into_prev:                      1
@@ -13448,6 +13484,7 @@ save pydis_start, pydis_end
 ;     output_title_chars_loop:                   1
 ;     output_title_length:                       1
 ;     pad_command_name_loop:                     1
+;     pad_name_with_cr:                          1
 ;     pad_title_with_cr:                         1
 ;     pad_with_cr:                               1
 ;     parse_compact_start_page:                  1
@@ -13509,7 +13546,6 @@ save pydis_start, pydis_end
 ;     read_source_to_buffer:                     1
 ;     recalc_flags_from_base:                    1
 ;     receive_sense_data_loop:                   1
-;     reduce_alloc_to_available:                 1
 ;     reduce_count_to_available_loop:            1
 ;     release_nmi:                               1
 ;     release_tube_after_floppy:                 1
@@ -13702,7 +13738,6 @@ save pydis_start, pydis_end
 ;     step_outward:                              1
 ;     step_rate_fast:                            1
 ;     store_adjusted_count:                      1
-;     store_allocated_sector:                    1
 ;     store_bcd_digit:                           1
 ;     store_converted_byte:                      1
 ;     store_csd_drive:                           1
@@ -13717,6 +13752,8 @@ save pydis_start, pydis_end
 ;     store_hex_nibble:                          1
 ;     store_length_and_sector:                   1
 ;     store_merged_name_byte:                    1
+;     store_name_byte:                           1
+;     store_name_byte_loop:                      1
 ;     store_new_entry:                           1
 ;     store_new_entry_loop:                      1
 ;     store_new_ptr_in_channel:                  1

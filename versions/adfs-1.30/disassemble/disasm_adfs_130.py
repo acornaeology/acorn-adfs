@@ -4019,21 +4019,21 @@ d.label(0x8E5F, 'mark_entry_created')
 
 d.label(0x8E64, 'mark_directory_modified')
 
-d.label(0x8E6F, 'allocate_disc_space_for_file')
+d.label(0x8E6F, 'store_filename_in_entry')
 
-d.label(0x8E71, 'copy_alloc_request_loop')
+d.label(0x8E71, 'store_name_byte_loop')
 
-d.label(0x8E7D, 'store_allocated_sector')
+d.label(0x8E7D, 'pad_name_with_cr')
 
-d.label(0x8E7F, 'check_exact_alloc')
+d.label(0x8E7F, 'merge_access_bits')
 
-d.label(0x8E85, 'reduce_alloc_to_available')
+d.label(0x8E85, 'store_name_byte')
 
 d.label(0x8E8B, 'copy_entry_from_template')
 
-d.label(0x8E8D, 'copy_name_to_entry_loop')
+d.label(0x8E8D, 'copy_osfile_block_to_wksp')
 
-d.label(0x8E9A, 'copy_access_byte_loop')
+d.label(0x8E9A, 'compute_entry_length_loop')
 
 d.label(0x8EA8, 'store_entry_lengths_loop')
 
@@ -6364,11 +6364,15 @@ d.comment(0x8DB7, 'Next special char', align=Align.INLINE)
 d.comment(0x8DB8, 'Loop for 6 chars', align=Align.INLINE)
 d.comment(0x8DBA, 'Next filename character', align=Align.INLINE)
 d.comment(0x8DBB, 'Continue scanning', align=Align.INLINE)
-d.comment(0x8DBD, 'Save text pointer low', align=Align.INLINE)
-d.comment(0x8DC0, 'Save text pointer high', align=Align.INLINE)
-d.comment(0x8DC2, 'Push on stack', align=Align.INLINE)
-d.comment(0x8DCE, 'Restore text pointer high', align=Align.INLINE)
-d.comment(0x8DD1, 'Restore text pointer low', align=Align.INLINE)
+d.comment(0x8DBD, 'Validate path: forbidden chars + dots', align=Align.INLINE)
+d.comment(0x8DC0, 'Get leaf char (scanning backwards)', align=Align.INLINE)
+d.comment(0x8DC2, 'Strip bit 7', align=Align.INLINE)
+d.comment(0x8DC4, "Is it '*' wildcard?", align=Align.INLINE)
+d.comment(0x8DC6, 'Yes: Wild cards error', align=Align.INLINE)
+d.comment(0x8DC8, "Is it '#' wildcard?", align=Align.INLINE)
+d.comment(0x8DCA, 'Yes: Wild cards error', align=Align.INLINE)
+d.comment(0x8DCE, 'Yes: leaf scanned, no wildcards', align=Align.INLINE)
+d.comment(0x8DD1, 'Wrapped past byte 0? End of leaf', align=Align.INLINE)
 d.comment(0x8DD6, 'Get character at (&B4),Y', align=Align.INLINE)
 d.comment(0x8DF3, 'A=&FF: mark saved drive as unset', align=Align.INLINE)
 d.comment(0x8DF6, 'Ensure directory integrity', align=Align.INLINE)
@@ -6381,21 +6385,23 @@ d.comment(0x8E0F, 'Increment page', align=Align.INLINE)
 d.comment(0x8E11, 'Continue searching', align=Align.INLINE)
 d.comment(0x8E15, 'Compare pointer with &16B1', align=Align.INLINE)
 d.comment(0x8E19, 'Below limit: slot found', align=Align.INLINE)
-d.comment(0x8E6F, 'Get OSFILE block pointer low', align=Align.INLINE)
-d.comment(0x8E71, 'Store in (&B8)', align=Align.INLINE)
-d.comment(0x8E73, 'Get OSFILE block pointer high', align=Align.INLINE)
-d.comment(0x8E75, 'Store in (&B9)', align=Align.INLINE)
-d.comment(0x8E77, 'Y=2: copy 3-byte start sector', align=Align.INLINE)
-d.comment(0x8E79, 'Get start sector byte from entry', align=Align.INLINE)
-d.comment(0x8E7F, 'Next byte (decreasing Y)', align=Align.INLINE)
-d.comment(0x8E85, 'Compare with 1 (round up sectors)', align=Align.INLINE)
-d.comment(0x8E8B, 'Y=&11: copy filename and attributes', align=Align.INLINE)
-d.comment(0x8E8D, 'Get name byte from workspace', align=Align.INLINE)
+d.comment(0x8E6F, 'Y=9: write 10 name bytes (9..0)', align=Align.INLINE)
+d.comment(0x8E71, 'Get leaf-name char from command line', align=Align.INLINE)
+d.comment(0x8E73, 'Strip bit 7 (force 7-bit ASCII)', align=Align.INLINE)
+d.comment(0x8E75, "Below '!': control char or space?", align=Align.INLINE)
+d.comment(0x8E77, 'Yes: pad with CR', align=Align.INLINE)
+d.comment(0x8E79, 'Is it a double-quote?', align=Align.INLINE)
+d.comment(0x8E7B, 'No: store the character as-is', align=Align.INLINE)
+d.comment(0x8E7F, 'Name byte 0 or 1?', align=Align.INLINE)
+d.comment(0x8E81, 'Bytes 2-9: no access bit', align=Align.INLINE)
+d.comment(0x8E85, 'Store name byte in entry', align=Align.INLINE)
+d.comment(0x8E8B, 'Y=&11: copy 18-byte OSFILE block', align=Align.INLINE)
+d.comment(0x8E8D, 'Get block byte (load/exec/start/end)', align=Align.INLINE)
 d.comment(0x8E92, 'Next byte', align=Align.INLINE)
-d.comment(0x8E93, 'Loop for 10 bytes', align=Align.INLINE)
-d.comment(0x8E95, 'Increment dir sequence number', align=Align.INLINE)
-d.comment(0x8E98, 'Store updated sequence in header', align=Align.INLINE)
-d.comment(0x8EA0, 'Store sequence in entry', align=Align.INLINE)
+d.comment(0x8E93, 'Loop for 18 bytes', align=Align.INLINE)
+d.comment(0x8E95, 'Y=&12: compute length = end - start', align=Align.INLINE)
+d.comment(0x8E98, 'X=3: 4-byte length field', align=Align.INLINE)
+d.comment(0x8EA0, 'Store length byte in entry', align=Align.INLINE)
 d.comment(0x8F4C, 'Save (&B6) for restore', align=Align.INLINE)
 d.comment(0x8F4F, 'Save (&B7)', align=Align.INLINE)
 d.comment(0x8F52, 'Y=&0D: copy load/exec/length', align=Align.INLINE)
@@ -6473,18 +6479,18 @@ d.comment(0x8E67, 'Store back in (&B4)', align=Align.INLINE)
 d.comment(0x8E69, 'Restore text pointer high', align=Align.INLINE)
 d.comment(0x8E6C, 'Store back in (&B5)', align=Align.INLINE)
 d.comment(0x8E6E, 'Return', align=Align.INLINE)
-d.comment(0x8E7D, 'A=CR: pad entry name', align=Align.INLINE)
-d.comment(0x8E83, 'Set bit 7 for D attribute', align=Align.INLINE)
-d.comment(0x8E87, 'Next byte', align=Align.INLINE)
-d.comment(0x8E88, 'Loop for all name bytes', align=Align.INLINE)
+d.comment(0x8E7D, 'CR pad: quote / non-printable / short', align=Align.INLINE)
+d.comment(0x8E83, 'Bytes 0,1: set bit 7 (R / W access)', align=Align.INLINE)
+d.comment(0x8E87, 'Next byte (decreasing)', align=Align.INLINE)
+d.comment(0x8E88, 'Loop for all 10 name bytes', align=Align.INLINE)
 d.comment(0x8E8A, 'Return', align=Align.INLINE)
-d.comment(0x8E97, 'Set carry for sector calculation', align=Align.INLINE)
+d.comment(0x8E97, 'Set carry for subtraction', align=Align.INLINE)
 d.comment(0x8EA2, 'Next byte', align=Align.INLINE)
 d.comment(0x8EA3, 'Decrement counter', align=Align.INLINE)
 d.comment(0x8EA4, 'Loop for required bytes', align=Align.INLINE)
-d.comment(0x8EA6, 'Y=&0A: copy access byte', align=Align.INLINE)
-d.comment(0x8EA8, 'Get OSFILE data byte', align=Align.INLINE)
-d.comment(0x8EAB, 'Store in directory entry', align=Align.INLINE)
+d.comment(0x8EA6, 'Y=&0A: copy load/exec addresses', align=Align.INLINE)
+d.comment(0x8EA8, 'Get address byte from workspace', align=Align.INLINE)
+d.comment(0x8EAB, 'Store in entry bytes &0A-&11', align=Align.INLINE)
 d.comment(0x8EAD, 'Next byte', align=Align.INLINE)
 d.comment(0x8EAE, 'Past length field (Y=&12)?', align=Align.INLINE)
 d.comment(0x8EB0, 'No: continue copying', align=Align.INLINE)
@@ -11259,14 +11265,38 @@ the path, and search the current directory.
 """, on_exit={'a': 'corrupted (Z set if found, (&B6) points to entry)', 'x': 'corrupted', 'y': 'corrupted'})
 
 
-d.subroutine(0x8D6E, 'set_up_directory_search', title='Validate path and check for wildcards', description="""Scan the filename at (&B4) checking for invalid
-characters and wildcards. Generates Bad name or
-Wild cards errors for invalid patterns.
+d.subroutine(0x8D6E, 'set_up_directory_search', title='Validate pathname syntax', description="""Walk the pathname at (zp_text_ptr), splitting on '.'
+separators and consuming the drive (':D'), root ('$'),
+parent ('^') and current ('@') specifiers. Any name
+component containing a character from tbl_forbidden_chars
+(DEL, '^', '@', ':', '$', '&') raises Bad name.
+
+The '*' and '#' wildcard check is not done here; it is
+applied to the leaf by the caller set_up_gsinit_path.
 """)
 
 
-d.subroutine(0x8E8B, 'copy_entry_from_template', title='Copy OSFILE template into directory entry', description="""Copy filename, attributes, and sector information from
-the OSFILE workspace into the directory entry at (&B6).
+d.subroutine(0x8DBD, 'set_up_gsinit_path', title='Validate pathname and reject leaf wildcards', description="""Validate the pathname via set_up_directory_search, then
+scan the final leaf component backwards from its end for
+the '*' and '#' wildcard characters (bit 7 stripped first),
+raising Wild cards if either is found. The scan stops at the
+'.' that begins the leaf, or when it runs off the start of
+the buffer.
+
+Called on the create/lookup paths (OSFILE, *CDIR, *RENAME)
+where a literal name, not a wildcard pattern, is required.
+""")
+
+
+d.subroutine(0x8E8B, 'copy_entry_from_template', title='Copy addresses and length into directory entry', description="""Fill in the address/length fields of the new directory
+entry at (zp_entry_ptr). The name field (bytes 0-9) has
+already been written by store_filename_in_entry.
+
+First copies the 18-byte OSFILE control block (load, exec,
+start and end addresses) from (zp_osfile_ptr) into the disc
+workspace, computes the file length as end - start into entry
+bytes &12-&15, then copies the load and exec addresses into
+entry bytes &0A-&11.
 """)
 
 
@@ -11322,9 +11352,31 @@ The entry has name '$' (padded with CR), access R/L/D
 """)
 
 
-d.subroutine(0x8E6F, 'allocate_disc_space_for_file', title='Allocate disc space and store in entry', description="""Allocate disc space from the FSM for the requested
-file size, then store the allocated sector address
-in the directory entry at (&B6).
+d.subroutine(0x8E6F, 'store_filename_in_entry', title='Store leaf name into new directory entry', description="""Write the 10-byte name field of the directory entry at
+(zp_entry_ptr) from the parsed leaf name at (zp_text_ptr).
+This is the canonical storage-layer name filter; *CDIR
+(cdir_name_validated) and *RENAME (merge_name_attributes_loop)
+apply the identical transform.
+
+Each of the 10 bytes is taken from the command-line text,
+masked to 7 bits (AND #&7F), then folded to CR (&0D) padding
+if it is a double-quote (&22) or any control/space code below
+'!' (&21). Every other value (&21, &23-&7E) is stored
+verbatim, so the field is effectively 7-bit ASCII. The name's
+case is preserved as supplied; case folding happens only when
+matching (see compare_filename).
+
+Bit 7 of each stored byte then carries an access attribute,
+not name data: this routine sets bit 7 on bytes 0 and 1
+(ORA #&80 when Y < 2), giving a newly created file default
+R (byte 0) and W (byte 1) access. See set_entry_access_from_osfile
+for the full bit-7 layout (R, W, L, D across bytes 0-3).
+
+The leaf is validated before reaching here: over-length names
+(>10 chars) raise Bad name in check_filename_length; '.', ':',
+'$', '&', '^', '@' and DEL raise Bad name in
+set_up_directory_search; '*' and '#' raise Wild cards in
+set_up_gsinit_path.
 """)
 
 

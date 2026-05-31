@@ -1487,14 +1487,21 @@
     {
       "addr": 36206,
       "name": "set_up_directory_search",
-      "title": "Validate path and check for wildcards",
-      "description": "Scan the filename at (&B4) checking for invalid\ncharacters and wildcards. Generates Bad name or\nWild cards errors for invalid patterns.\n"
+      "title": "Validate pathname syntax",
+      "description": "Walk the pathname at (zp_text_ptr), splitting on '.'\nseparators and consuming the drive (':D'), root ('$'),\nparent ('^') and current ('@') specifiers. Any name\ncomponent containing a character from tbl_forbidden_chars\n(DEL, '^', '@', ':', '$', '&') raises Bad name.\n\nThe '*' and '#' wildcard check is not done here; it is\napplied to the leaf by the caller set_up_gsinit_path.\n",
+      "fall_through": true
+    },
+    {
+      "addr": 36285,
+      "name": "set_up_gsinit_path",
+      "title": "Validate pathname and reject leaf wildcards",
+      "description": "Validate the pathname via set_up_directory_search, then\nscan the final leaf component backwards from its end for\nthe '*' and '#' wildcard characters (bit 7 stripped first),\nraising Wild cards if either is found. The scan stops at the\n'.' that begins the leaf, or when it runs off the start of\nthe buffer.\n\nCalled on the create/lookup paths (OSFILE, *CDIR, *RENAME)\nwhere a literal name, not a wildcard pattern, is required.\n"
     },
     {
       "addr": 36491,
       "name": "copy_entry_from_template",
-      "title": "Copy OSFILE template into directory entry",
-      "description": "Copy filename, attributes, and sector information from\nthe OSFILE workspace into the directory entry at (&B6).\n"
+      "title": "Copy addresses and length into directory entry",
+      "description": "Fill in the address/length fields of the new directory\nentry at (zp_entry_ptr). The name field (bytes 0-9) has\nalready been written by store_filename_in_entry.\n\nFirst copies the 18-byte OSFILE control block (load, exec,\nstart and end addresses) from (zp_osfile_ptr) into the disc\nworkspace, computes the file length as end - start into entry\nbytes &12-&15, then copies the load and exec addresses into\nentry bytes &0A-&11.\n"
     },
     {
       "addr": 37572,
@@ -1543,9 +1550,9 @@
     },
     {
       "addr": 36463,
-      "name": "allocate_disc_space_for_file",
-      "title": "Allocate disc space and store in entry",
-      "description": "Allocate disc space from the FSM for the requested\nfile size, then store the allocated sector address\nin the directory entry at (&B6).\n"
+      "name": "store_filename_in_entry",
+      "title": "Store leaf name into new directory entry",
+      "description": "Write the 10-byte name field of the directory entry at\n(zp_entry_ptr) from the parsed leaf name at (zp_text_ptr).\nThis is the canonical storage-layer name filter; *CDIR\n(cdir_name_validated) and *RENAME (merge_name_attributes_loop)\napply the identical transform.\n\nEach of the 10 bytes is taken from the command-line text,\nmasked to 7 bits (AND #&7F), then folded to CR (&0D) padding\nif it is a double-quote (&22) or any control/space code below\n'!' (&21). Every other value (&21, &23-&7E) is stored\nverbatim, so the field is effectively 7-bit ASCII. The name's\ncase is preserved as supplied; case folding happens only when\nmatching (see compare_filename).\n\nBit 7 of each stored byte then carries an access attribute,\nnot name data: this routine sets bit 7 on bytes 0 and 1\n(ORA #&80 when Y < 2), giving a newly created file default\nR (byte 0) and W (byte 1) access. See set_entry_access_from_osfile\nfor the full bit-7 layout (R, W, L, D across bytes 0-3).\n\nThe leaf is validated before reaching here: over-length names\n(>10 chars) raise Bad name in check_filename_length; '.', ':',\n'$', '&', '^', '@' and DEL raise Bad name in\nset_up_directory_search; '*' and '#' raise Wild cards in\nset_up_gsinit_path.\n"
     },
     {
       "addr": 36310,
@@ -25539,7 +25546,7 @@
       "labels": [
         "set_up_gsinit_path"
       ],
-      "comment_inline": "Save text pointer low",
+      "comment_inline": "Validate path: forbidden chars + dots",
       "xref_summaries": [
         "&8dbd referenced 3 times by &8cd4, &a50c, &b2fe"
       ],
@@ -25563,7 +25570,7 @@
       "labels": [
         "gsinit_scan_loop"
       ],
-      "comment_inline": "Save text pointer high",
+      "comment_inline": "Get leaf char (scanning backwards)",
       "xref_summaries": [
         "&8dc0 referenced 1 time by &8dd3"
       ],
@@ -25582,7 +25589,7 @@
         41,
         127
       ],
-      "comment_inline": "Push on stack",
+      "comment_inline": "Strip bit 7",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&7f"
@@ -25593,6 +25600,7 @@
         201,
         42
       ],
+      "comment_inline": "Is it '*' wildcard?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&2a"
@@ -25603,6 +25611,7 @@
         240,
         22
       ],
+      "comment_inline": "Yes: Wild cards error",
       "type": "code",
       "mnemonic": "beq",
       "operand": "wild_cards_error",
@@ -25615,6 +25624,7 @@
         201,
         35
       ],
+      "comment_inline": "Is it '#' wildcard?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&23"
@@ -25625,6 +25635,7 @@
         240,
         18
       ],
+      "comment_inline": "Yes: Wild cards error",
       "type": "code",
       "mnemonic": "beq",
       "operand": "wild_cards_error",
@@ -25648,7 +25659,7 @@
         240,
         5
       ],
-      "comment_inline": "Restore text pointer high",
+      "comment_inline": "Yes: leaf scanned, no wildcards",
       "type": "code",
       "mnemonic": "beq",
       "operand": "return_17",
@@ -25670,7 +25681,7 @@
         192,
         255
       ],
-      "comment_inline": "Restore text pointer low",
+      "comment_inline": "Wrapped past byte 0? End of leaf",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#&ff"
@@ -26704,9 +26715,9 @@
         9
       ],
       "labels": [
-        "allocate_disc_space_for_file"
+        "store_filename_in_entry"
       ],
-      "comment_inline": "Get OSFILE block pointer low",
+      "comment_inline": "Y=9: write 10 name bytes (9..0)",
       "xref_summaries": [
         "&8e6f referenced 3 times by &8f4f, &a64c, &a8df"
       ],
@@ -26726,9 +26737,9 @@
         180
       ],
       "labels": [
-        "copy_alloc_request_loop"
+        "store_name_byte_loop"
       ],
-      "comment_inline": "Store in (&B8)",
+      "comment_inline": "Get leaf-name char from command line",
       "xref_summaries": [
         "&8e71 referenced 1 time by &8e88"
       ],
@@ -26747,7 +26758,7 @@
         41,
         127
       ],
-      "comment_inline": "Get OSFILE block pointer high",
+      "comment_inline": "Strip bit 7 (force 7-bit ASCII)",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&7f"
@@ -26758,7 +26769,7 @@
         201,
         33
       ],
-      "comment_inline": "Store in (&B9)",
+      "comment_inline": "Below '!': control char or space?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&21"
@@ -26769,12 +26780,12 @@
         144,
         4
       ],
-      "comment_inline": "Y=2: copy 3-byte start sector",
+      "comment_inline": "Yes: pad with CR",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "store_allocated_sector",
+      "operand": "pad_name_with_cr",
       "target": 36477,
-      "target_label": "store_allocated_sector"
+      "target_label": "pad_name_with_cr"
     },
     {
       "addr": 36473,
@@ -26782,7 +26793,7 @@
         201,
         34
       ],
-      "comment_inline": "Get start sector byte from entry",
+      "comment_inline": "Is it a double-quote?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&22"
@@ -26793,11 +26804,12 @@
         208,
         2
       ],
+      "comment_inline": "No: store the character as-is",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "check_exact_alloc",
+      "operand": "merge_access_bits",
       "target": 36479,
-      "target_label": "check_exact_alloc"
+      "target_label": "merge_access_bits"
     },
     {
       "addr": 36477,
@@ -26806,9 +26818,9 @@
         13
       ],
       "labels": [
-        "store_allocated_sector"
+        "pad_name_with_cr"
       ],
-      "comment_inline": "A=CR: pad entry name",
+      "comment_inline": "CR pad: quote / non-printable / short",
       "xref_summaries": [
         "&8e7d referenced 1 time by &8e77"
       ],
@@ -26826,9 +26838,9 @@
         2
       ],
       "labels": [
-        "check_exact_alloc"
+        "merge_access_bits"
       ],
-      "comment_inline": "Next byte (decreasing Y)",
+      "comment_inline": "Name byte 0 or 1?",
       "xref_summaries": [
         "&8e7f referenced 1 time by &8e7b"
       ],
@@ -26845,11 +26857,12 @@
         176,
         2
       ],
+      "comment_inline": "Bytes 2-9: no access bit",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "reduce_alloc_to_available",
+      "operand": "store_name_byte",
       "target": 36485,
-      "target_label": "reduce_alloc_to_available"
+      "target_label": "store_name_byte"
     },
     {
       "addr": 36483,
@@ -26857,7 +26870,7 @@
         9,
         128
       ],
-      "comment_inline": "Set bit 7 for D attribute",
+      "comment_inline": "Bytes 0,1: set bit 7 (R / W access)",
       "type": "code",
       "mnemonic": "ora",
       "operand": "#&80"
@@ -26869,9 +26882,9 @@
         182
       ],
       "labels": [
-        "reduce_alloc_to_available"
+        "store_name_byte"
       ],
-      "comment_inline": "Compare with 1 (round up sectors)",
+      "comment_inline": "Store name byte in entry",
       "xref_summaries": [
         "&8e85 referenced 1 time by &8e81"
       ],
@@ -26889,7 +26902,7 @@
       "bytes": [
         136
       ],
-      "comment_inline": "Next byte",
+      "comment_inline": "Next byte (decreasing)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -26899,12 +26912,12 @@
         16,
         231
       ],
-      "comment_inline": "Loop for all name bytes",
+      "comment_inline": "Loop for all 10 name bytes",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "copy_alloc_request_loop",
+      "operand": "store_name_byte_loop",
       "target": 36465,
-      "target_label": "copy_alloc_request_loop"
+      "target_label": "store_name_byte_loop"
     },
     {
       "addr": 36490,
@@ -26924,7 +26937,7 @@
       "labels": [
         "copy_entry_from_template"
       ],
-      "comment_inline": "Y=&11: copy filename and attributes",
+      "comment_inline": "Y=&11: copy 18-byte OSFILE block",
       "xref_summaries": [
         "&8e8b referenced 2 times by &8f52, &a65d"
       ],
@@ -26943,9 +26956,9 @@
         184
       ],
       "labels": [
-        "copy_name_to_entry_loop"
+        "copy_osfile_block_to_wksp"
       ],
-      "comment_inline": "Get name byte from workspace",
+      "comment_inline": "Get block byte (load/exec/start/end)",
       "xref_summaries": [
         "&8e8d referenced 1 time by &8e93"
       ],
@@ -26986,12 +26999,12 @@
         16,
         248
       ],
-      "comment_inline": "Loop for 10 bytes",
+      "comment_inline": "Loop for 18 bytes",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "copy_name_to_entry_loop",
+      "operand": "copy_osfile_block_to_wksp",
       "target": 36493,
-      "target_label": "copy_name_to_entry_loop"
+      "target_label": "copy_osfile_block_to_wksp"
     },
     {
       "addr": 36501,
@@ -26999,7 +27012,7 @@
         160,
         18
       ],
-      "comment_inline": "Increment dir sequence number",
+      "comment_inline": "Y=&12: compute length = end - start",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&12"
@@ -27009,7 +27022,7 @@
       "bytes": [
         56
       ],
-      "comment_inline": "Set carry for sector calculation",
+      "comment_inline": "Set carry for subtraction",
       "type": "code",
       "mnemonic": "sec"
     },
@@ -27019,7 +27032,7 @@
         162,
         3
       ],
-      "comment_inline": "Store updated sequence in header",
+      "comment_inline": "X=3: 4-byte length field",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#3"
@@ -27032,7 +27045,7 @@
         16
       ],
       "labels": [
-        "copy_access_byte_loop"
+        "compute_entry_length_loop"
       ],
       "xref_summaries": [
         "&8e9a referenced 1 time by &8ea4"
@@ -27065,7 +27078,7 @@
         145,
         182
       ],
-      "comment_inline": "Store sequence in entry",
+      "comment_inline": "Store length byte in entry",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(zp_entry_ptr_lo),y",
@@ -27099,9 +27112,9 @@
       "comment_inline": "Loop for required bytes",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "copy_access_byte_loop",
+      "operand": "compute_entry_length_loop",
       "target": 36506,
-      "target_label": "copy_access_byte_loop"
+      "target_label": "compute_entry_length_loop"
     },
     {
       "addr": 36518,
@@ -27109,7 +27122,7 @@
         160,
         10
       ],
-      "comment_inline": "Y=&0A: copy access byte",
+      "comment_inline": "Y=&0A: copy load/exec addresses",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&0a"
@@ -27124,7 +27137,7 @@
       "labels": [
         "store_entry_lengths_loop"
       ],
-      "comment_inline": "Get OSFILE data byte",
+      "comment_inline": "Get address byte from workspace",
       "xref_summaries": [
         "&8ea8 referenced 1 time by &8eb0"
       ],
@@ -27143,7 +27156,7 @@
         145,
         182
       ],
-      "comment_inline": "Store in directory entry",
+      "comment_inline": "Store in entry bytes &0A-&11",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(zp_entry_ptr_lo),y",
@@ -28195,9 +28208,9 @@
       "comment_inline": "Save (&B7)",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "allocate_disc_space_for_file",
+      "operand": "store_filename_in_entry",
       "target": 36463,
-      "target_label": "allocate_disc_space_for_file"
+      "target_label": "store_filename_in_entry"
     },
     {
       "addr": 36690,
@@ -64951,9 +64964,9 @@
       "comment_inline": "Allocate disc space",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "allocate_disc_space_for_file",
+      "operand": "store_filename_in_entry",
       "target": 36463,
-      "target_label": "allocate_disc_space_for_file"
+      "target_label": "store_filename_in_entry"
     },
     {
       "addr": 42575,
@@ -69022,9 +69035,9 @@
       "comment_inline": "Allocate space for dest file",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "allocate_disc_space_for_file",
+      "operand": "store_filename_in_entry",
       "target": 36463,
-      "target_label": "allocate_disc_space_for_file"
+      "target_label": "store_filename_in_entry"
     },
     {
       "addr": 43234,
