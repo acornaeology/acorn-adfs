@@ -4947,7 +4947,7 @@ nmi_saved_rom = sub_c0d33+1
     ldx #4                                                            ; 938a: a2 04       ..       ; X=4: print 4-char option name
     jsr print_padded_name                                             ; 938c: 20 87 92     ..      ; Print boot option name (Off/Load/Run/Exec)
     jsr print_inline_string                                           ; 938f: 20 a0 92     ..   
-    equs ")", &0d, "Dir.", &a0                                        ; 9392: 29 0d 44... ).D...   ; ")" + CR + "Dir." + space: option close + dir label  ' ' + bit 7: end of inline string
+    equs ")", &0d, "Dir.", &a0                                        ; 9392: 29 0d 44... ).D...   ; ")" + CR + "Dir." + space: option close + dir label
     lda #0                                                            ; 9399: a9 00       ..       ; A=&00: CSD name low (wksp_csd_name)
     sta zp_entry_ptr_lo                                               ; 939b: 85 b6       ..       ; Store pointer low byte
     lda #&11                                                          ; 939d: a9 11       ..       ; A=&11: CSD name high (&1100)
@@ -6342,7 +6342,7 @@ str_run_boot = str_l_boot+2
     lda #osbyte_write_keys_pressed                                    ; 9b73: a9 78       .x       ; OSBYTE &78: clear keys pressed
     jsr osbyte                                                        ; 9b75: 20 f4 ff     ..      ; Write all keys pressed information
     jsr print_inline_string                                           ; 9b78: 20 a0 92     ..   
-    equs "Acorn ADFS", &0d, &8d                                       ; 9b7b: 41 63 6f... Aco...
+    equs "Acorn ADFS", &0d, &8d                                       ; 9b7b: 41 63 6f... Aco...   ; CR + bit 7: end of inline string
 ; &9b87 referenced 2 times by &9b3f, &9d0e
 .boot_run_option
     lda #6                                                            ; 9b87: a9 06       ..    

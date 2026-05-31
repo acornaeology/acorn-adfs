@@ -34967,7 +34967,7 @@
         46,
         160
       ],
-      "comment_inline": "\")\" + CR + \"Dir.\" + space: option close + dir label ' ' + bit 7: end of inline string",
+      "comment_inline": "\")\" + CR + \"Dir.\" + space: option close + dir label",
       "type": "string",
       "string": ").Dir. "
     },
@@ -47685,6 +47685,7 @@
         13,
         141
       ],
+      "comment_inline": "CR + bit 7: end of inline string",
       "type": "string",
       "string": "Acorn ADFS.."
     },
