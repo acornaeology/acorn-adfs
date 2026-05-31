@@ -19,7 +19,8 @@ def print_inline_string_hook(d, jsr_binary_addr):
     Acorn convention where the terminator is a separate 1-byte NOP that
     the routine returns *to*. Under that hook ADFS's &8D (= &0D | &80)
     terminators are mis-decoded as the 3-byte STA abs opcode, swallowing
-    the real instructions that follow each string.
+    the real instructions that follow each string. Tracked upstream as
+    acornaeology/dasmos#24; replace with a dasmos hook once available.
     """
     string_start = jsr_binary_addr + 3
     addr = string_start
