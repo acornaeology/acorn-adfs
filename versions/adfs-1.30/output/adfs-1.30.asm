@@ -62,6 +62,7 @@ osbyte_read_himem                        = &84
 osbyte_read_oshwm                        = &83
 osbyte_close_spool_exec                  = &77
 osword_read_clock                        = &01
+osbyte_startup_options                   = &ff
 
 ; Memory locations
 zp_user_ptr_0              = &00
@@ -918,24 +919,66 @@ nmi_saved_rom = sub_c0d33+1
     org &8000
 
 .pydis_start
-; Sideways ROM header
+; Acorn ADFS v&30
+; ***************************************************************************************
+; Sideways ROM header — language-entry slot (3 bytes)
+;
+; MOS dispatches JMP &8000 on language startup.
+;
+; Service-only ROM (rom_type bit 6 clear). Per-byte detail is inline.
+;
+; Reason code in A on entry:
+;
+; | A | Meaning                                           |
+; |---|---------------------------------------------------|
+; | 0 | No language available — MOS calling Tube ROM      |
+; | 1 | Normal startup                                    |
+; | 2 | Request next byte of softkey expansion (Electron) |
+; | 3 | Request length of softkey expansion (Electron)    |
 .language_entry
-.rom_header
-    equb &00, &00, &00                                                ; 8000: 00 00 00    ...   
+    equb &00                                                          ; 8000: 00          .        ; no-language sentinel (rom_type bit 6 clear)
+    equb &00, &00                                                     ; 8001: 00 00       ..       ; unused padding
+; ***************************************************************************************
+; Service-entry slot (3 bytes)
+;
+; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
+; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
+; The reason code arrives in A.
 .service_entry
-    jmp service_call_handler                                          ; 8003: 4c a3 9a    L..   
+    jmp service_handler                                               ; 8003: 4c a3 9a    L..   
+; ***************************************************************************************
+; ROM identification
+;
+; Six descriptive fields that follow the entry-point JMPs: ROM type flag byte,
+; copyright-string offset, binary version, title string, optional version string, and
+; copyright string. The MOS uses these for identification, dispatch-table lookup, and the
+; (C)-prefix validity check.
 .rom_type
-    equb &82                                                          ; 8006: 82          .     
+; ***************************************************************************************
+; ROM type byte
+;
+; | Bit | Value | Meaning                     |
+; |-----|-------|-----------------------------|
+; | 7   | 1     | Service entry present       |
+; | 6   | 0     | No language entry           |
+; | 5   | 0     | No Tube relocation          |
+; | 4   | 0     | No Electron firmkey         |
+; | 3-0 | 0010  | Processor: 6502 (non-BASIC) |
+    equb %10000010                                                    ; 8006: 82          .        ; ROM type
 .copyright_offset
-    equb copyright - rom_header                                       ; 8007: 18          .     
+    equb copyright - language_entry                                   ; 8007: 18          .        ; Offset of NUL preceding copyright (= &18 → copyright at &8018)
 .binary_version
-    equb &30                                                          ; 8008: 30          0     
+    equb &30                                                          ; 8008: 30          0        ; Binary version: &30 (informational, not used by MOS)
 .title
-    equs "Acorn ADFS", &00                                            ; 8009: 41 63 6f... Aco...
+    equs "Acorn ADFS"                                                 ; 8009: 41 63 6f... Aco...
+    equb &00                                                          ; 8013: 00          .        ; NUL terminator
 .version
     equs "1.30"                                                       ; 8014: 31 2e 33... 1.3...
 .copyright
-    equb &00, "(C)1983 Acorn", &00                                    ; 8018: 00 28 43... .(C...
+    equb &00                                                          ; 8018: 00          .        ; NUL preceding copyright string
+.copyright_string
+    equs "(C)1983 Acorn"                                              ; 8019: 28 43 29... (C)...
+    equb &00                                                          ; 8026: 00          .        ; NUL terminator
 ; ***************************************************************************************
 ; Claim Tube if present
 ;
@@ -6126,8 +6169,8 @@ str_run_boot = str_l_boot+2
 ; Main entry point for MOS service calls. Dispatches to individual handlers based on the
 ; service call number in A.
 ; &9aa3 referenced 1 time by &8003
-.service_call_handler
 .service_handler
+.service_call_handler
     pha                                                               ; 9aa3: 48          H        ; Save service call number
     cmp #1                                                            ; 9aa4: c9 01       ..       ; Service 1: absolute workspace claim?
     bne check_workspace_claimed                                       ; 9aa6: d0 08       ..       ; Not service 1, continue
@@ -11610,10 +11653,10 @@ la154 = sub_ca153+1
     lda #0                                                            ; bbb4: a9 00       ..       ; Clear side select flag
     sta nmi_step_rate                                                 ; bbb6: 8d 56 0d    .V.      ; Store in NMI side select
     sta wksp_fdc_cmd_step                                             ; bbb9: 8d e8 10    ...      ; Clear FDC step rate command bits
-    lda #osbyte_read_write_startup_options                            ; bbbc: a9 ff       ..       ; OSBYTE &FF: read startup options
+    lda #osbyte_startup_options                                       ; bbbc: a9 ff       ..       ; OSBYTE &FF: read startup options
     ldx #0                                                            ; bbbe: a2 00       ..       ; X=0: read current value
     tay                                                               ; bbc0: a8          .        ; Y=&FF: read current value
-    jsr osbyte                                                        ; bbc1: 20 f4 ff     ..      ; osbyte: read write startup options
+    jsr osbyte                                                        ; bbc1: 20 f4 ff     ..      ; osbyte: startup options
     txa                                                               ; bbc4: 8a          .        ; Get startup byte to A
     pha                                                               ; bbc5: 48          H        ; Save startup byte
     and #&20 ; ' '                                                    ; bbc6: 29 20       )        ; Test bit 5 (step rate high)
@@ -13853,7 +13896,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1264 bytes (8%)
 ;
 ;     Number of instructions   = 7039
-;     Number of data bytes     = 281 bytes
+;     Number of data bytes     = 284 bytes
 ;     Number of data words     = 44 bytes
-;     Number of string bytes   = 939 bytes
+;     Number of string bytes   = 936 bytes
 ;     Number of strings        = 106

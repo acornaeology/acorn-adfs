@@ -4,43 +4,7 @@ import sys
 from pathlib import Path
 import dasmos
 from dasmos import Align
-from dasmos.core.memory import BinaryAddr
-
-def print_inline_string_hook(d, jsr_binary_addr):
-    """Classify the inline text following a JSR to print_inline_string.
-
-    ADFS terminates the text with a byte that has bit 7 set; that byte
-    is the *last character* of the string (printed with bit 7 stripped)
-    and is consumed by the routine. print_inline_string (&92A0) computes
-    its return address as terminator+1, so the trace resumes at the byte
-    after the terminator.
-
-    This differs from dasmos's stringhi_hook, which implements the other
-    Acorn convention where the terminator is a separate 1-byte NOP that
-    the routine returns *to*. Under that hook ADFS's &8D (= &0D | &80)
-    terminators are mis-decoded as the 3-byte STA abs opcode, swallowing
-    the real instructions that follow each string. Tracked upstream as
-    acornaeology/dasmos#24; replace with a dasmos hook once available.
-    """
-    string_start = jsr_binary_addr + 3
-    addr = string_start
-    limit = d.cpu.address_space_size
-    while addr < limit:
-        if not d.memory.is_loaded(addr):
-            break
-        if d.memory.get_u8(addr) & 0x80:
-            # Terminator (last character): include it, resume after it.
-            length = addr - string_start + 1
-            runtime_start = int(d.moves.b2r(BinaryAddr(string_start)))
-            d.string(runtime_start, length)
-            return addr + 1
-        addr += 1
-    # No terminator found: classify what we have and resume there.
-    length = addr - string_start
-    if length > 0:
-        runtime_start = int(d.moves.b2r(BinaryAddr(string_start)))
-        d.string(runtime_start, length)
-    return addr
+from dasmos.hooks import stringhi_skip_hook
 
 def brk_error_hook(target, addr):
     """Handle inline BRK error blocks following JSR to error-raising routines.
@@ -820,7 +784,7 @@ d.label(0x8353, 'generate_error_suffix_x')
 d.label(0x83BB, 'generate_error_skip_no_suffix')
 
 d.label(0x92A0, 'print_inline_string')
-d.hook_subroutine(0x92A0, 'print_inline_string', print_inline_string_hook)
+d.hook_subroutine(0x92A0, 'print_inline_string', stringhi_skip_hook)
 d.hook_subroutine(0x8348, 'reload_fsm_and_dir_then_brk', brk_error_hook)
 d.hook_subroutine(0x832B, 'generate_disc_error', brk_error_hook)
 d.hook_subroutine(0x8353, 'generate_error_suffix_x', brk_error_hook)
