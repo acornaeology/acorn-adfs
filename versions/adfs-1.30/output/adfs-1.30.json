@@ -27658,7 +27658,7 @@
       "labels": [
         "skip_dot_in_path"
       ],
-      "comment_inline": "Strip to check for '$'",
+      "comment_inline": "Clear bit 1 to fold '&' onto '$'",
       "xref_summaries": [
         "&8d8d referenced 1 time by &8d7c"
       ],
@@ -27675,7 +27675,7 @@
         201,
         36
       ],
-      "comment_inline": "Is it '$' (root)?",
+      "comment_inline": "Is it '$' or '&' (root)?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&24"
@@ -28295,7 +28295,7 @@
       "labels": [
         "tbl_forbidden_chars"
       ],
-      "comment_inline": "&7F: DEL (control character)",
+      "comment_inline": "DEL (&7F, control character)",
       "xref_summaries": [
         "&8ded referenced 1 time by &8db2"
       ],
@@ -28312,55 +28312,45 @@
       "bytes": [
         94
       ],
-      "comment_inline": "'^': parent directory specifier",
-      "type": "byte",
-      "values": [
-        94
-      ]
+      "comment_inline": "Parent directory specifier",
+      "type": "string",
+      "string": "^"
     },
     {
       "addr": 36335,
       "bytes": [
         64
       ],
-      "comment_inline": "'@': current directory specifier",
-      "type": "byte",
-      "values": [
-        64
-      ]
+      "comment_inline": "Current directory specifier",
+      "type": "string",
+      "string": "@"
     },
     {
       "addr": 36336,
       "bytes": [
         58
       ],
-      "comment_inline": "':': drive separator",
-      "type": "byte",
-      "values": [
-        58
-      ]
+      "comment_inline": "Drive separator",
+      "type": "string",
+      "string": ":"
     },
     {
       "addr": 36337,
       "bytes": [
         36
       ],
-      "comment_inline": "'$': root directory specifier",
-      "type": "byte",
-      "values": [
-        36
-      ]
+      "comment_inline": "Root directory specifier",
+      "type": "string",
+      "string": "$"
     },
     {
       "addr": 36338,
       "bytes": [
         38
       ],
-      "comment_inline": "'&': hex number prefix",
-      "type": "byte",
-      "values": [
-        38
-      ]
+      "comment_inline": "Root directory specifier (synonym for '$')",
+      "type": "string",
+      "string": "&"
     },
     {
       "addr": 36339,

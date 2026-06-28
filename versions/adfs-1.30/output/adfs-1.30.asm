@@ -3789,8 +3789,8 @@ nmi_saved_rom = sub_c0d33+1
     jsr check_path_terminator                                         ; 8d8a: 20 d6 8d     ..      ; Get next character
 ; &8d8d referenced 1 time by &8d7c
 .skip_dot_in_path
-    and #&fd                                                          ; 8d8d: 29 fd       ).       ; Strip to check for '$'
-    cmp #&24 ; '$'                                                    ; 8d8f: c9 24       .$       ; Is it '$' (root)?
+    and #&fd                                                          ; 8d8d: 29 fd       ).       ; Clear bit 1 to fold '&' onto '$'
+    cmp #&24 ; '$'                                                    ; 8d8f: c9 24       .$       ; Is it '$' or '&' (root)?
     beq scan_name_bytes_loop                                          ; 8d91: f0 ec       ..       ; Yes: continue past root specifier
 ; &8d93 referenced 1 time by &8da9
 .scan_name_alpha_loop
@@ -3881,12 +3881,12 @@ nmi_saved_rom = sub_c0d33+1
 ; this table, rejecting any filename containing these characters.
 ; &8ded referenced 1 time by &8db2
 .tbl_forbidden_chars
-    equb &7f                                                          ; 8ded: 7f          .        ; &7F: DEL (control character)
-    equb &5e                                                          ; 8dee: 5e          ^        ; '^': parent directory specifier
-    equb &40                                                          ; 8def: 40          @        ; '@': current directory specifier
-    equb &3a                                                          ; 8df0: 3a          :        ; ':': drive separator
-    equb &24                                                          ; 8df1: 24          $        ; '$': root directory specifier
-    equb &26                                                          ; 8df2: 26          &        ; '&': hex number prefix
+    equb &7f                                                          ; 8ded: 7f          .        ; DEL (&7F, control character)
+    equs "^"                                                          ; 8dee: 5e          ^        ; Parent directory specifier
+    equs "@"                                                          ; 8def: 40          @        ; Current directory specifier
+    equs ":"                                                          ; 8df0: 3a          :        ; Drive separator
+    equs "$"                                                          ; 8df1: 24          $        ; Root directory specifier
+    equs "&"                                                          ; 8df2: 26          &        ; Root directory specifier (synonym for '$')
 ; ***************************************************************************************
 ; Copy OSFILE addresses and search for empty entry
 ;
@@ -13933,7 +13933,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1264 bytes (8%)
 ;
 ;     Number of instructions   = 7039
-;     Number of data bytes     = 284 bytes
+;     Number of data bytes     = 279 bytes
 ;     Number of data words     = 44 bytes
-;     Number of string bytes   = 936 bytes
-;     Number of strings        = 106
+;     Number of string bytes   = 941 bytes
+;     Number of strings        = 111
