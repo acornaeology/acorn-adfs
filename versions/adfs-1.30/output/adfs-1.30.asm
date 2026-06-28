@@ -241,33 +241,33 @@ fsm_s1_end_of_list_ptr     = &0ffe  ; Pointer to the end of the free-space list:
 ; &0ffe referenced 19 times by &84c3, &8550, &8567, &85c1, &85d5, &8600, &8605, &8614, &8637, &86dd, &86f1, &86f6, &9009, &9023, &9056, &9830, &a061, &a099, &b31c
 fsm_s1_checksum            = &0fff  ; Checksum byte of FSM sector 1 (validates the free-space length map and disc parameters).
 ; &0fff referenced 2 times by &8fcc, &8ff0
-wksp                       = &1000
+wksp                       = &1000  ; Base of ADFS's private workspace (&1000-&11FF); holds the default retry count.
 ; &1000 referenced 2 times by &8080, &9b97
-wksp_buf_sec_lo            = &1001
+wksp_buf_sec_lo            = &1001  ; Sector address of the data currently in the sector buffer, low byte (mid/high at &1002/&1003).
 ; &1001 referenced 7 times by &aae0, &ab18, &abed, &ac71, &b03b, &b050, &ba7e
 wksp_buf_sec_mid           = &1002
 ; &1002 referenced 7 times by &aada, &ab1e, &abf5, &ac7a, &b043, &b055, &ba82
 wksp_buf_sec_hi            = &1003
 ; &1003 referenced 9 times by &aad1, &ab24, &ab38, &abfd, &ac83, &aca1, &b04b, &b05a, &ba57
-wksp_buf_flag              = &1004
+wksp_buf_flag              = &1004  ; Sector-buffer state flag.
 ; &1004 referenced 27 times by &8b36, &9bdf, &a75a, &a983, &a98c, &aaa8, &aab5, &aaba, &aaf6, &ab08, &ab0d, &abde, &abe8, &ac0c, &ac17, &ac1f, &ac26, &ac34, &ac38, &ac45, &ac4f, &ac58, &ac5c, &acd1, &acd9, &b02f, &b032
 wksp_buf_flag_1            = &1008
 ; &1008 referenced 1 time by &9bd2
 wksp_buf_flag_2            = &100c
 ; &100c referenced 1 time by &9bd5
-wksp_entry_field_base      = &100d
+wksp_entry_field_base      = &100d  ; Base of the directory-entry field copy used when reading or writing an entry's load/exec/length/attribute fields.
 ; &100d referenced 2 times by &8e9d, &8ea8
 wksp_entry_len_base        = &100e
 ; &100e referenced 1 time by &8f1d
-wksp_osword_block          = &1010
+wksp_osword_block          = &1010  ; OSWORD parameter block used to issue low-level disc operations.
 ; &1010 referenced 1 time by &9bd8
 wksp_entry_calc_base       = &1011
 ; &1011 referenced 1 time by &8e9a
-wksp_disc_op_block         = &1014
+wksp_disc_op_block         = &1014  ; Low-level disc-operation control block: the result, transfer address, command, sector, count and control fields follow.
 ; &1014 referenced 4 times by &8c19, &9bdb, &a7d9, &a7fa
-wksp_disc_op_result        = &1015
+wksp_disc_op_result        = &1015  ; Disc-operation result / status byte.
 ; &1015 referenced 28 times by &89b4, &89f7, &8c29, &8c32, &8c6b, &8c76, &8e8f, &8efc, &8f04, &8f6c, &8f91, &9094, &909f, &90b5, &90c0, &94ad, &9d37, &9d9d, &a034, &a037, &a1ae, &a1f5, &a2ab, &a2ea, &a2f8, &a309, &a35a, &b76d
-wksp_disc_op_mem_addr      = &1016
+wksp_disc_op_mem_addr      = &1016  ; Host transfer address for the disc operation, byte 0 (4-byte address &1016-&1019).
 ; &1016 referenced 9 times by &8b49, &96dc, &a1bf, &a1d2, &a1f8, &a2b1, &a361, &b775, &bd6c
 wksp_disc_op_mem_addr_1    = &1017
 ; &1017 referenced 13 times by &8a7c, &8a7f, &8ae5, &8ae8, &8b4e, &96d7, &9786, &a1cc, &a1fb, &a2c6, &a2d3, &a2db, &bd71
@@ -275,19 +275,19 @@ wksp_disc_op_mem_addr_2    = &1018
 ; &1018 referenced 8 times by &8a84, &8aed, &8b53, &96e0, &a1c6, &a1fe, &a2cc, &a2d6
 wksp_disc_op_mem_addr_3    = &1019
 ; &1019 referenced 4 times by &8a89, &8af2, &8b5a, &96e3
-wksp_disc_op_command       = &101a
+wksp_disc_op_command       = &101a  ; Disc-operation command byte (read / write / verify, etc.).
 ; &101a referenced 14 times by &8a45, &8b6f, &8b74, &8c37, &8c45, &8f0c, &8f99, &970d, &9727, &978b, &9d3d, &a7eb, &a80c, &b784
-wksp_disc_op_sector        = &101b
+wksp_disc_op_sector        = &101b  ; Target sector for the disc operation, byte 0 (3-byte sector &101B-&101D).
 ; &101b referenced 13 times by &89c0, &8a00, &8a9c, &8ade, &8b0f, &8b12, &8b1e, &8fab, &94b9, &971f, &9739, &979d, &b7a2
 wksp_disc_op_sector_mid    = &101c
 ; &101c referenced 9 times by &8a09, &8a97, &8ad9, &8b27, &8fa5, &9719, &9733, &9797, &b79a
 wksp_disc_op_sector_lo     = &101d
 ; &101d referenced 11 times by &8a12, &8a8f, &8a92, &8ad1, &8ad4, &8b2d, &8f9f, &9713, &972d, &9791, &b792
-wksp_disc_op_sector_count  = &101e
+wksp_disc_op_sector_count  = &101e  ; Number of sectors to transfer in the disc operation.
 ; &101e referenced 16 times by &8a69, &8abc, &8aca, &8b64, &8b6a, &8f01, &8f11, &96d1, &9708, &974a, &97a2, &9d57, &ae41, &b7b3, &bd90, &bd97
-wksp_disc_op_control       = &101f
+wksp_disc_op_control       = &101f  ; Disc-operation control byte.
 ; &101f referenced 4 times by &8c3c, &8c52, &8f16, &b7b6
-wksp_disc_op_transfer_len  = &1020
+wksp_disc_op_transfer_len  = &1020  ; Partial-transfer byte count for the disc operation (4 bytes).
 ; &1020 referenced 4 times by &8a4c, &8a53, &8ac4, &b7b9
 wksp_disc_op_xfer_len_1    = &1021
 ; &1021 referenced 7 times by &8a56, &8a9f, &8aa5, &8ab7, &8acd, &8ae1, &b7c2
@@ -295,9 +295,9 @@ wksp_disc_op_xfer_len_2    = &1022
 ; &1022 referenced 4 times by &8a5b, &8a6f, &8aaa, &8ab2
 wksp_disc_op_xfer_len_3    = &1023
 ; &1023 referenced 7 times by &8a60, &8a6c, &8aaf, &907c, &9087, &90a8, &90c9
-wksp_entry_size_base       = &1024
+wksp_entry_size_base       = &1024  ; Scratch for an object's sector count during directory-entry processing.
 ; &1024 referenced 3 times by &8e05, &917b, &9886
-wksp_tube_transfer_addr    = &1026
+wksp_tube_transfer_addr    = &1026  ; Tube transfer address for the current operation (4 bytes), when data is moving via the Tube.
 ; &1026 referenced 1 time by &802f
 wksp_tube_transfer_addr_1  = &1027
 ; &1027 referenced 3 times by &8e2d, &8e64, &a1b1
@@ -305,55 +305,55 @@ wksp_tube_xfer_addr_2      = &1028
 ; &1028 referenced 3 times by &81dd, &8e32, &8e69
 wksp_tube_xfer_addr_3      = &1029
 ; &1029 referenced 1 time by &81e2
-wksp_csd_drive_temp        = &102a
+wksp_csd_drive_temp        = &102a  ; Temporary current-selected-directory (CSD) drive number.
 ; &102a referenced 3 times by &81e7, &8f32, &9883
-wksp_csd_sector_temp       = &102b
+wksp_csd_sector_temp       = &102b  ; Temporary CSD sector.
 ; &102b referenced 24 times by &847a, &8760, &8776, &8c81, &8c89, &8c8f, &8c99, &8ca0, &90d3, &90dc, &90df, &90e2, &90ee, &93d9, &93e5, &93ec, &9405, &9965, &998c, &99a0, &99ac, &a5c6, &a5d7, &b7aa
-wksp_csd_drive_sector      = &102c
+wksp_csd_drive_sector      = &102c  ; CSD drive+sector working copy.
 ; &102c referenced 21 times by &833c, &889b, &89a9, &8a0c, &9133, &9153, &91a5, &94a2, &955c, &9653, &9660, &9c17, &a46b, &a478, &a49c, &a573, &a85e, &ade3, &adfa, &ae66, &b088
 wksp_csd_drive_sector_mid  = &102d
 ; &102d referenced 2 times by &8a03, &ade9
 wksp_alt_sector_hi         = &102e
 ; &102e referenced 12 times by &8331, &8891, &899d, &89ea, &8a17, &913e, &9497, &9567, &a569, &adef, &ae71, &b7e0
-wksp_saved_drive           = &102f
+wksp_saved_drive           = &102f  ; Saved drive number.
 ; &102f referenced 23 times by &8291, &832b, &8345, &885d, &8866, &89d4, &89e0, &9141, &9194, &954d, &956a, &9642, &addd, &ae03, &ae5e, &ae74, &b080, &b541, &b548, &b55e, &b564, &b7d5, &b7dd
-wksp_temp_sector           = &1030
+wksp_temp_sector           = &1030  ; Temporary sector store.
 ; &1030 referenced 6 times by &9136, &9150, &a465, &a475, &adca, &adf7
-wksp_last_access_drive     = &1033
+wksp_last_access_drive     = &1033  ; Drive of the most recent disc access.
 ; &1033 referenced 5 times by &8e43, &a1e8, &a216, &add3, &ae00
-wksp_object_sector         = &1034
+wksp_object_sector         = &1034  ; Sector address of the object (file or directory) being processed, low byte (3 bytes).
 ; &1034 referenced 24 times by &84d3, &84ed, &8514, &856f, &8598, &85ee, &8e11, &9187, &91a2, &91cc, &91fa, &988c, &a560, &a590, &a679, &ae0e, &af66, &afc5, &afdf, &afef, &aff2, &b038, &b3f9, &b3ff
 wksp_object_sector_mid     = &1035
 ; &1035 referenced 8 times by &ae14, &afce, &afe4, &afec, &affa, &b040, &b402, &b408
 wksp_object_sector_hi      = &1036
 ; &1036 referenced 7 times by &ae1c, &afd7, &afe9, &b002, &b048, &b40b, &b411
-wksp_object_size           = &1037
+wksp_object_size           = &1037  ; Size in bytes of the object being processed, low byte (3 bytes).
 ; &1037 referenced 12 times by &84b5, &84f0, &8530, &8579, &85b2, &85f4, &9599, &a5eb, &aee4, &af78, &b41f, &b439
 wksp_object_size_mid       = &1038
 ; &1038 referenced 6 times by &84b8, &959c, &a601, &aeec, &b428, &b43e
 wksp_object_size_hi        = &1039
 ; &1039 referenced 5 times by &84bb, &959f, &aef4, &b431, &b443
-wksp_alloc_sector          = &103a
+wksp_alloc_sector          = &103a  ; Start sector of a newly allocated region.
 ; &103a referenced 10 times by &8682, &86d5, &8f5c, &8f69, &989c, &a637, &a8e7, &af31, &af6c, &af72
-wksp_saved_count           = &103b
+wksp_saved_count           = &103b  ; Saved sector / entry count.
 ; &103b referenced 3 times by &af3a, &b636, &b67a
 wksp_saved_count_1         = &103c
 ; &103c referenced 2 times by &a61a, &af43
-wksp_alloc_size            = &103d
+wksp_alloc_size            = &103d  ; Size of a newly allocated region, low byte (3 bytes).
 ; &103d referenced 6 times by &864d, &8691, &86a9, &86c3, &a8ed, &aef9
 wksp_alloc_size_mid        = &103e
 ; &103e referenced 1 time by &aeff
 wksp_alloc_size_hi         = &103f
 ; &103f referenced 2 times by &af05, &b6b9
-wksp_osfile_block          = &1040
+wksp_osfile_block          = &1040  ; OSFILE control block built and parsed here: filename pointer, load/exec/start/end addresses and attributes.
 ; &1040 referenced 14 times by &910e, &9584, &a1ef, &a205, &a20f, &a223, &a37c, &b1b9, &b363, &b658, &b743, &b749, &b750, &b755
 wksp_osfile_block_1        = &1041
 ; &1041 referenced 8 times by &9113, &9589, &a382, &b1c2, &b368, &b660, &b75d, &b7bf
-wksp_osfile_load_addr      = &1042
+wksp_osfile_load_addr      = &1042  ; OSFILE load address (4 bytes).
 ; &1042 referenced 4 times by &957c, &b316, &b668, &b760
 wksp_osfile_load_addr_1    = &1043
 ; &1043 referenced 2 times by &b670, &b763
-wksp_osfile_exec_addr      = &1046
+wksp_osfile_exec_addr      = &1046  ; OSFILE execution address (4 bytes).
 ; &1046 referenced 1 time by &b343
 wksp_osfile_exec_addr_1    = &1047
 ; &1047 referenced 1 time by &b346
@@ -361,7 +361,7 @@ wksp_osfile_exec_addr_2    = &1048
 ; &1048 referenced 1 time by &b349
 wksp_osfile_exec_addr_3    = &1049
 ; &1049 referenced 1 time by &b34c
-wksp_osfile_start_addr     = &104a
+wksp_osfile_start_addr     = &104a  ; OSFILE start address / length, byte 0 (4 bytes).
 ; &104a referenced 1 time by &a60a
 wksp_osfile_start_addr_1   = &104b
 ; &104b referenced 1 time by &a60d
@@ -373,65 +373,65 @@ wksp_osfile_end_addr_1     = &104f
 ; &104f referenced 3 times by &b32a, &b32f, &b33a
 wksp_osfile_end_addr_2     = &1050
 ; &1050 referenced 1 time by &b33e
-wksp_osfile_attr           = &1052
+wksp_osfile_attr           = &1052  ; Object attributes (access bits) in the OSFILE block.
 ; &1052 referenced 3 times by &98ba, &98ce, &9906
 wksp_osfile_attr_1         = &1053
 ; &1053 referenced 1 time by &98b2
 wksp_osfile_attr_2         = &1054
 ; &1054 referenced 1 time by &98b5
-wksp_access_accum          = &105d
+wksp_access_accum          = &105d  ; Accumulator for summing free space and sizes, low byte (3 bytes).
 ; &105d referenced 7 times by &860b, &8621, &8624, &864a, &a1bc, &a626, &a654
 wksp_access_accum_1        = &105e
 ; &105e referenced 1 time by &860e
-wksp_free_space_total      = &105f
+wksp_free_space_total      = &105f  ; Running total of free space (high byte of the accumulator).
 ; &105f referenced 1 time by &8611
-wksp_compact_start_page    = &1060
+wksp_compact_start_page    = &1060  ; Start page of the buffer used during *COMPACT.
 ; &1060 referenced 9 times by &96d4, &a28c, &a292, &a315, &a32c, &a335, &a8fb, &a905, &af5a
-wksp_compact_length        = &1061
+wksp_compact_length        = &1061  ; Length of data held in the compaction buffer.
 ; &1061 referenced 12 times by &96c9, &96ce, &96ea, &9705, &974d, &9756, &976a, &a295, &a324, &a338, &a908, &af5f
-wksp_object_name           = &1062
+wksp_object_name           = &1062  ; Name of the object being processed (10 bytes).
 ; &1062 referenced 4 times by &874a, &8757, &87a9, &88e7
 wksp_object_name_1         = &1063
 ; &1063 referenced 1 time by &88ec
-wksp_saved_dir_sector      = &106c
+wksp_saved_dir_sector      = &106c  ; Saved directory sector.
 ; &106c referenced 2 times by &a7e1, &a850
-wksp_drive_number          = &106f
+wksp_drive_number          = &106f  ; Working drive number (e.g. for *MOUNT).
 ; &106f referenced 9 times by &9c91, &a0ff, &a10d, &a120, &a135, &a161, &a17c, &a18c, &a911
-wksp_new_parent_sector     = &1070
+wksp_new_parent_sector     = &1070  ; New parent-directory sector for a created or moved object.
 ; &1070 referenced 4 times by &a691, &a6bb, &a802, &a87a
-wksp_dest_drive            = &1073
+wksp_dest_drive            = &1073  ; Destination drive for *COPY / *RENAME.
 ; &1073 referenced 1 time by &a91a
-wksp_dest_name             = &1074
+wksp_dest_name             = &1074  ; Destination object name (for *COPY / *RENAME).
 ; &1074 referenced 3 times by &a69d, &a6b0, &a8ce
-wksp_dest_filename_end     = &107e
+wksp_dest_filename_end     = &107e  ; End marker of the destination filename.
 ; &107e referenced 1 time by &a8d6
-wksp_copy_name_ptr         = &107f
+wksp_copy_name_ptr         = &107f  ; Pointer to the source name during *COPY, low byte (high at &1080).
 ; &107f referenced 1 time by &a827
 wksp_copy_name_ptr_hi      = &1080
 ; &1080 referenced 1 time by &a82c
-wksp_copy_osfile_params    = &1089
+wksp_copy_osfile_params    = &1089  ; Saved source OSFILE parameters during *COPY.
 ; &1089 referenced 2 times by &a8bb, &a8c2
 wksp_copy_osfile_exec      = &108c
 ; &108c referenced 2 times by &97ec, &97fd
-wksp_copy_dest_params      = &108d
+wksp_copy_dest_params      = &108d  ; Destination OSFILE parameters during *COPY.
 ; &108d referenced 1 time by &a8be
-wksp_filename_save         = &1091
+wksp_filename_save         = &1091  ; Saved filename pointer, low byte (high at &1092).
 ; &1091 referenced 2 times by &a7c0, &a843
 wksp_filename_save_hi      = &1092
 ; &1092 referenced 3 times by &9880, &a7c5, &a848
-wksp_entry_save            = &1093
+wksp_entry_save            = &1093  ; Saved directory-entry pointer, low byte (high at &1094).
 ; &1093 referenced 3 times by &a7cf, &a839, &a896
 wksp_entry_save_hi         = &1094
 ; &1094 referenced 3 times by &a7ca, &a83e, &a89b
-wksp_osgbpb_end_ptr        = &1095
+wksp_osgbpb_end_ptr        = &1095  ; OSGBPB working end pointer.
 ; &1095 referenced 5 times by &97dc, &abda, &abe5, &ac6b, &b5ee
-wksp_osgbpb_sector_lo      = &1096
+wksp_osgbpb_sector_lo      = &1096  ; OSGBPB working sector, low byte (3 bytes).
 ; &1096 referenced 9 times by &abf0, &ac6e, &ad96, &af98, &aff5, &b010, &b0f7, &b6d3, &b7f4
 wksp_osgbpb_sector_mid     = &1097
 ; &1097 referenced 9 times by &abf8, &ac77, &ad9f, &afa1, &affd, &b015, &b100, &b6db, &b7fd
 wksp_osgbpb_sector_hi      = &1098
 ; &1098 referenced 10 times by &ac00, &ac80, &ac8c, &ada8, &afaa, &b005, &b01a, &b109, &b6e3, &b806
-wksp_new_ptr_lo            = &109a
+wksp_new_ptr_lo            = &109a  ; Newly computed file PTR, low byte (multi-byte).
 ; &109a referenced 12 times by &a9d3, &aa71, &ae94, &aeb4, &afda, &b062, &b0c8, &b606, &b688, &b707, &b7e3, &b819
 wksp_new_ptr_mid           = &109b
 ; &109b referenced 11 times by &a9d8, &aa76, &ae8c, &aeac, &afbe, &b068, &b0d0, &b60f, &b694, &b6fd, &b7f1
@@ -443,43 +443,43 @@ wksp_new_ptr_4             = &109e
 ; &109e referenced 3 times by &aec7, &aefc, &af1f
 wksp_osgbpb_wksp_9f        = &109f
 ; &109f referenced 3 times by &aecf, &af02, &af28
-wksp_ch_buf_sector         = &10a0
+wksp_ch_buf_sector         = &10a0  ; Current sector held in the channel buffer.
 ; &10a0 referenced 3 times by &b205, &b2ca, &b2e1
 wksp_ch_buf_sector_1       = &10a1
 ; &10a1 referenced 2 times by &abca, &b02a
-wksp_copy_read_sector      = &10a2
+wksp_copy_read_sector      = &10a2  ; *COPY source (read) sector, byte 0.
 ; &10a2 referenced 18 times by &88d8, &894d, &8991, &9650, &9670, &9690, &9710, &9753, &9759, &97b5, &97c7, &9823, &9843, &9863, &9889, &a3be, &a8a5, &af69
 wksp_copy_read_sector_1    = &10a3
 ; &10a3 referenced 6 times by &9716, &975e, &97b8, &97ca, &a3c3, &a8ab
 wksp_copy_read_sector_2    = &10a4
 ; &10a4 referenced 7 times by &971c, &9763, &97bb, &97cd, &a8b4, &a914, &a917
-wksp_copy_write_sector     = &10a5
+wksp_copy_write_sector     = &10a5  ; *COPY destination (write) sector, byte 0.
 ; &10a5 referenced 8 times by &96b8, &96c6, &96e7, &96ed, &9702, &973f, &a8f0, &af7b
 wksp_copy_write_sector_1   = &10a6
 ; &10a6 referenced 5 times by &96b5, &96c1, &96f0, &96f5, &9742
 wksp_copy_write_sector_2   = &10a7
 ; &10a7 referenced 5 times by &96b2, &96be, &96f8, &96fd, &9745
-wksp_copy_src_sector       = &10a8
+wksp_copy_src_sector       = &10a8  ; *COPY source sector working copy.
 ; &10a8 referenced 11 times by &965d, &967d, &969d, &972a, &9767, &976d, &98a1, &a403, &a431, &a8ea, &af75
 wksp_copy_src_sector_1     = &10a9
 ; &10a9 referenced 2 times by &9730, &9772
 wksp_copy_src_sector_2     = &10aa
 ; &10aa referenced 5 times by &9736, &9777, &a428, &a91d, &a920
-wksp_copy_dest_sector      = &10ab
+wksp_copy_dest_sector      = &10ab  ; *COPY destination sector working copy.
 ; &10ab referenced 3 times by &97aa, &9826, &a421
 wksp_copy_dest_sector_1    = &10ac
 ; &10ac referenced 1 time by &97ad
 wksp_copy_dest_sector_2    = &10ad
 ; &10ad referenced 1 time by &97b0
-wksp_osgbpb_func           = &10b4
+wksp_osgbpb_func           = &10b4  ; OSGBPB function code (1-8).
 ; &10b4 referenced 11 times by &b582, &b599, &b5be, &b5c8, &b5f5, &b629, &b6e8, &b77d, &b80b, &b9a6, &b9c6
-wksp_osgbpb_mode           = &10b5
+wksp_osgbpb_mode           = &10b5  ; OSGBPB open mode / extension flag.
 ; &10b5 referenced 8 times by &ae5b, &af87, &b585, &b5f8, &b64d, &b718, &b925, &b958
-wksp_osgbpb_start          = &10b6
+wksp_osgbpb_start          = &10b6  ; OSGBPB transfer start position.
 ; &10b6 referenced 8 times by &b6f3, &b726, &b729, &b746, &b816, &b980, &b9ba, &b9cb
-wksp_osgbpb_end            = &10b7
+wksp_osgbpb_end            = &10b7  ; OSGBPB transfer end position.
 ; &10b7 referenced 6 times by &b592, &b6f8, &b70a, &b81c, &b983, &b9f5
-wksp_osgbpb_data_addr      = &10b8
+wksp_osgbpb_data_addr      = &10b8  ; OSGBPB cumulative data transfer address (4 bytes).
 ; &10b8 referenced 5 times by &b72d, &b730, &b772, &b850, &b9b6
 wksp_osgbpb_data_addr_1    = &10b9
 ; &10b9 referenced 5 times by &b735, &b7c5, &b7c8, &b855, &b9bf
@@ -489,19 +489,19 @@ wksp_osgbpb_data_addr_3    = &10bb
 ; &10bb referenced 3 times by &b73f, &b830, &b996
 wksp_osgbpb_wksp_bc        = &10bc
 ; &10bc referenced 2 times by &ae69, &b085
-wksp_osgbpb_byte_count     = &10bd
-wksp_osgbpb_name_offset    = &10be
-wksp_saved_drive_2         = &10bf
+wksp_osgbpb_byte_count     = &10bd  ; OSGBPB byte count for the transfer.
+wksp_osgbpb_name_offset    = &10be  ; OSGBPB offset into the name being read or written.
+wksp_saved_drive_2         = &10bf  ; Second saved drive number.
 ; &10bf referenced 2 times by &ae61, &b07d
-wksp_search_flag           = &10c0
+wksp_search_flag           = &10c0  ; Directory-search state flag.
 ; &10c0 referenced 4 times by &8717, &88f9, &8933, &89d0
-wksp_workspace_checksum    = &10c1
+wksp_workspace_checksum    = &10c1  ; Checksum of critical workspace, validated to detect corruption.
 ; &10c1 referenced 2 times by &a772, &a7ab
-wksp_drive_change_mask     = &10c2
+wksp_drive_change_mask     = &10c2  ; Bit mask of drives whose media may have changed.
 ; &10c2 referenced 5 times by &b4aa, &b4f1, &b501, &b518, &b531
-wksp_prev_clock            = &10c3
+wksp_prev_clock            = &10c3  ; Previous clock reading, for elapsed-time comparison.
 ; &10c3 referenced 2 times by &b4d1, &b4d8
-wksp_clock                 = &10c8
+wksp_clock                 = &10c8  ; Cached system clock value, byte 0 (5-byte TIME).
 ; &10c8 referenced 2 times by &b4cd, &b4d4
 wksp_clock_1               = &10c9
 ; &10c9 referenced 1 time by &b4ea
@@ -513,131 +513,131 @@ wksp_clock_4               = &10cc
 ; &10cc referenced 1 time by &b4df
 wksp_clock_5               = &10cd
 ; &10cd referenced 6 times by &b51e, &b528, &b536, &b53e, &b54b, &b554
-wksp_error_suppress        = &10ce
+wksp_error_suppress        = &10ce  ; Flag suppressing error reporting in some code paths.
 ; &10ce referenced 4 times by &83f2, &a73a, &a74f, &a7b3
-wksp_bput_modified         = &10cf
+wksp_bput_modified         = &10cf  ; Flag: the current channel buffer was modified by OSBPUT and needs flushing.
 ; &10cf referenced 4 times by &adb7, &b097, &b0e8, &b12a
-wksp_err_sector            = &10d0
+wksp_err_sector            = &10d0  ; Sector associated with the last disc error, low byte (3 bytes).
 ; &10d0 referenced 7 times by &80e5, &8258, &83ac, &8b30, &9d77, &ab1b, &ac74
 wksp_err_sector_mid        = &10d1
 ; &10d1 referenced 4 times by &80df, &8b2a, &ab21, &ac7d
 wksp_err_sector_hi         = &10d2
 ; &10d2 referenced 8 times by &80d9, &8263, &8266, &838f, &83a3, &8b24, &ab27, &ac86
-wksp_err_code              = &10d3
+wksp_err_code              = &10d3  ; Last disc error code.
 ; &10d3 referenced 2 times by &80e9, &826c
-wksp_err_handle            = &10d4
+wksp_err_handle            = &10d4  ; File handle associated with the last error.
 ; &10d4 referenced 2 times by &ab15, &abaf
-wksp_cur_channel           = &10d5
+wksp_cur_channel           = &10d5  ; Current open-file channel number.
 ; &10d5 referenced 10 times by &83bb, &83cd, &83dd, &83e6, &9245, &9a24, &9e5d, &a7b6, &ad00, &b1cb
-wksp_cmd_tail              = &10d6
+wksp_cmd_tail              = &10d6  ; Pointer to the *command tail, low byte (high at &10D7).
 ; &10d6 referenced 3 times by &891c, &9ed2, &a967
 wksp_cmd_tail_hi           = &10d7
 ; &10d7 referenced 3 times by &8921, &9ed7, &a96c
-wksp_compaction_reported   = &10d8
+wksp_compaction_reported   = &10d8  ; Flag: a compaction-needed condition has already been reported.
 ; &10d8 referenced 3 times by &83d7, &a094, &a7b0
-wksp_fdc_xfer_mode         = &10e0
+wksp_fdc_xfer_mode         = &10e0  ; WD1770 transfer direction / mode for the current floppy operation.
 ; &10e0 referenced 8 times by &ba2c, &bb1a, &bb36, &bb82, &bb86, &bba1, &bba6, &bfb2
-wksp_nmi_owner             = &10e1
+wksp_nmi_owner             = &10e1  ; Owner of the NMI, claimed during disc transfers and released afterwards.
 ; &10e1 referenced 2 times by &bbe3, &bbe7
-wksp_format_page           = &10e2
+wksp_format_page           = &10e2  ; Page counter / buffer during *FORMAT.
 ; &10e2 referenced 3 times by &bb25, &bd58, &bd7a
-wksp_err_number            = &10e3
+wksp_err_number            = &10e3  ; Working error number.
 ; &10e3 referenced 4 times by &bb44, &bb7c, &bfda, &bfe5
-wksp_fdc_head_state        = &10e4
+wksp_fdc_head_state        = &10e4  ; WD1770 head / load state.
 ; &10e4 referenced 20 times by &ba0e, &ba77, &ba7b, &baa9, &bab5, &bada, &bade, &bd4c, &bd54, &bea2, &bea6, &bf28, &bf2c, &bf40, &bf4c, &bfc4, &bfc8, &bfd0, &bfd5, &bfee
-wksp_fdc_track_0           = &10e5
+wksp_fdc_track_0           = &10e5  ; Last known track for drive 0 (head-position cache).
 ; &10e5 referenced 3 times by &baa4, &bf3b, &bfc1
-wksp_fdc_track_1           = &10e6
+wksp_fdc_track_1           = &10e6  ; Last known track for drive 1 (head-position cache).
 ; &10e6 referenced 3 times by &bab0, &bf47, &bfcd
-wksp_stack_save            = &10e7
+wksp_stack_save            = &10e7  ; Saved stack pointer for error recovery.
 ; &10e7 referenced 4 times by &ba31, &bb15, &bb29, &bfae
-wksp_fdc_cmd_step          = &10e8
+wksp_fdc_cmd_step          = &10e8  ; WD1770 command step-rate setting.
 ; &10e8 referenced 3 times by &bb95, &bbb9, &bbcc
-wksp_alt_csd_sector        = &10fe
+wksp_alt_csd_sector        = &10fe  ; Alternative CSD sector store.
 ; &10fe referenced 2 times by &89c3, &94bc
-wksp_csd_name              = &1100
+wksp_csd_name              = &1100  ; Name of the current selected directory (CSD), 10 characters.
 ; &1100 referenced 7 times by &8a27, &8a2f, &9547, &9be6, &9bee, &a14e, &a4b0
-wksp_lib_name              = &110a
+wksp_lib_name              = &110a  ; Name of the library directory, 10 characters.
 ; &110a referenced 2 times by &9c6e, &a44c
-wksp_csd_sector            = &1113
+wksp_csd_sector            = &1113  ; CSD sector marker / validity byte.
 ; &1113 referenced 4 times by &847d, &a563, &a595, &b7a7
-wksp_csd_sector_lo         = &1114
+wksp_csd_sector_lo         = &1114  ; Sector of the current selected directory, low byte (3 bytes).
 ; &1114 referenced 25 times by &8339, &8898, &88aa, &89a6, &8a0f, &8d35, &8f9c, &949f, &9602, &978e, &9903, &9c14, &a454, &a462, &a49f, &a570, &a68e, &a7e4, &a805, &a84d, &a85b, &a877, &adc7, &b22c, &b2aa
 wksp_csd_sector_mid        = &1115
 ; &1115 referenced 7 times by &88af, &8a06, &8d3d, &8fa2, &9794, &b234, &b2b0
 wksp_csd_sector_hi         = &1116
 ; &1116 referenced 8 times by &88b2, &89fd, &8d45, &8fa8, &979a, &a13f, &b23c, &b2b6
-wksp_current_drive         = &1117
+wksp_current_drive         = &1117  ; Current default drive number.
 ; &1117 referenced 61 times by &80d6, &80f1, &811e, &8294, &8342, &8863, &886f, &8875, &887b, &89db, &8b0c, &8b21, &8d2d, &8fb1, &919b, &91c2, &91f0, &9350, &9479, &9554, &9645, &9669, &9689, &9c20, &9c62, &9c8b, &9d4a, &9d4f, &a0c3, &a0d0, &a0da, &a0e0, &a0e6, &a0f8, &a132, &a13c, &a164, &a6c7, &a8b1, &a923, &a929, &a930, &a943, &add0, &af49, &b224, &b29e, &b474, &b47c, &b491, &b4f8, &b53b, &b54e, &b557, &b561, &b568, &b7b0, &b7d8, &b8d1, &b8e9, &bf03
-wksp_lib_sector            = &1118
+wksp_lib_sector            = &1118  ; Library directory sector marker / validity byte.
 ; &1118 referenced 7 times by &91cf, &9673, &9680, &9c29, &9c5b, &a457, &a468
-wksp_lib_sector_lo         = &1119
+wksp_lib_sector_lo         = &1119  ; Sector of the library directory, low byte (3 bytes).
 ; &1119 referenced 1 time by &9c30
 wksp_lib_sector_mid        = &111a
 ; &111a referenced 2 times by &9c33, &a193
 wksp_lib_sector_hi         = &111b
 ; &111b referenced 7 times by &91c5, &9666, &9c36, &9c65, &a189, &a196, &b90d
-wksp_prev_dir_sector       = &111c
+wksp_prev_dir_sector       = &111c  ; Previous directory (^) sector marker / validity byte.
 ; &111c referenced 7 times by &91fd, &9207, &955f, &9693, &96a0, &a499, &a4a2
-wksp_prev_dir_sector_lo    = &111d
+wksp_prev_dir_sector_lo    = &111d  ; Sector of the previous directory, low byte (3 bytes).
 ; &111d referenced 1 time by &920c
 wksp_prev_dir_sector_mid   = &111e
 ; &111e referenced 2 times by &920f, &a183
 wksp_prev_dir_sector_hi    = &111f
 ; &111f referenced 5 times by &91f3, &9557, &9686, &a179, &a186
-wksp_flags_save            = &1120
+wksp_flags_save            = &1120  ; Saved status flags.
 ; &1120 referenced 2 times by &8a1f, &9bf1
-wksp_disc_id_lo            = &1121
+wksp_disc_id_lo            = &1121  ; Cached disc identifier, low byte (high at &1122).
 ; &1121 referenced 3 times by &8fc0, &b485, &b49a
 wksp_disc_id_hi            = &1122
 ; &1122 referenced 3 times by &8fba, &b48b, &b4a2
-wksp_scsi_status           = &1131
+wksp_scsi_status           = &1131  ; Combined SCSI status from the last hard-disc operation.
 ; &1131 referenced 3 times by &ab9f, &aba5, &abac
-wksp_exec_handle           = &1132
+wksp_exec_handle           = &1132  ; File handle of the current *EXEC file.
 ; &1132 referenced 3 times by &a3df, &b1d4, &b1db
-wksp_current_drive_hi      = &1133
+wksp_current_drive_hi      = &1133  ; Current drive / LUN combined byte for the hard disc.
 ; &1133 referenced 6 times by &8121, &8244, &825e, &8b15, &8b41, &aad4
-wksp_ch_ext_h              = &1134
+wksp_ch_ext_h              = &1134  ; Channel table - file EXTENT (length), high byte. One byte per open channel.
 ; &1134 referenced 18 times by &aa17, &aa5a, &aa9b, &ad18, &ae99, &afa4, &b077, &b153, &b171, &b1ab, &b271, &b37d, &b3dc, &b40e, &b42e, &b459, &b66b, &b6a9
-wksp_ch_ext_mh             = &113e
+wksp_ch_ext_mh             = &113e  ; Channel table - file EXTENT, mid-high byte (per channel).
 ; &113e referenced 18 times by &aa12, &aa55, &aa96, &ad20, &aea1, &af9b, &b071, &b14d, &b16b, &b1a5, &b26b, &b37a, &b3d4, &b405, &b425, &b453, &b663, &b69d
-wksp_ch_ext_ml             = &1148
+wksp_ch_ext_ml             = &1148  ; Channel table - file EXTENT, mid-low byte (per channel).
 ; &1148 referenced 18 times by &aa0d, &aa50, &aa91, &ad28, &aea9, &af92, &b06b, &b147, &b165, &b19f, &b265, &b377, &b3cc, &b3fc, &b41c, &b44d, &b65b, &b691
-wksp_ch_ext_l              = &1152
+wksp_ch_ext_l              = &1152  ; Channel table - file EXTENT, low byte (per channel).
 ; &1152 referenced 17 times by &aa08, &aa4b, &aa8c, &ad30, &aeb1, &afb4, &b065, &b15b, &b199, &b25f, &b374, &b3c4, &b3f4, &b434, &b446, &b653, &b685
-wksp_ch_ptr_h              = &115c
+wksp_ch_ptr_h              = &115c  ; Channel table - file PTR (sequential position), high byte (per channel).
 ; &115c referenced 13 times by &a9b8, &a9fd, &aa2f, &ad1b, &ada5, &b0db, &b106, &b13c, &b150, &b1a8, &b2c7, &b624, &b6af
-wksp_ch_ptr_mh             = &1166
+wksp_ch_ptr_mh             = &1166  ; Channel table - file PTR, mid-high byte (per channel).
 ; &1166 referenced 13 times by &a9b3, &a9f8, &aa2a, &ad23, &ad9c, &b0d3, &b0fd, &b137, &b14a, &b1a2, &b2c4, &b61b, &b6a3
-wksp_ch_ptr_ml             = &1170
+wksp_ch_ptr_ml             = &1170  ; Channel table - file PTR, mid-low byte (per channel).
 ; &1170 referenced 13 times by &a9ae, &a9f3, &aa25, &ad2b, &ad93, &b0cb, &b0f4, &b132, &b144, &b19c, &b2c1, &b612, &b697
-wksp_ch_ptr_l              = &117a
+wksp_ch_ptr_l              = &117a  ; Channel table - file PTR, low byte (per channel).
 ; &117a referenced 13 times by &a9a9, &a9ee, &aa20, &ad33, &adb2, &b0c2, &b113, &b125, &b158, &b196, &b2be, &b609, &b68b
-wksp_ch_alloc_pad          = &1183
+wksp_ch_alloc_pad          = &1183  ; Channel table - allocated size, padding / first byte (per channel).
 ; &1183 referenced 1 time by &a79b
-wksp_ch_alloc_h            = &1184
+wksp_ch_alloc_h            = &1184  ; Channel table - allocated size, high byte (per channel).
 ; &1184 referenced 7 times by &ae79, &aeef, &af2e, &b174, &b28c, &b3df, &b42b
-wksp_ch_alloc_mh           = &118e
+wksp_ch_alloc_mh           = &118e  ; Channel table - allocated size, mid-high byte (per channel).
 ; &118e referenced 7 times by &ae81, &aee7, &af25, &b16e, &b286, &b3d7, &b422
-wksp_ch_alloc_ml           = &1198
+wksp_ch_alloc_ml           = &1198  ; Channel table - allocated size, mid-low byte (per channel).
 ; &1198 referenced 7 times by &ae89, &aedf, &af1c, &b168, &b280, &b3cf, &b419
-wksp_ch_alloc_l            = &11a2
+wksp_ch_alloc_l            = &11a2  ; Channel table - allocated size, low byte (per channel).
 ; &11a2 referenced 6 times by &ae91, &aeda, &af16, &b27a, &b3c7, &b414
-wksp_ch_flags              = &11ac
+wksp_ch_flags              = &11ac  ; Channel table - per-channel flags (open mode, modified, etc.).
 ; &11ac referenced 20 times by &8d23, &a116, &a9ca, &aa67, &ad10, &ad53, &ad58, &ad7b, &ad82, &ae2f, &b0b5, &b188, &b18e, &b1e3, &b21a, &b2cd, &b393, &b3b9, &b3be, &b46a
-wksp_ch_start_sec_h        = &11b6
+wksp_ch_start_sec_h        = &11b6  ; Channel table - file's start sector, high byte (per channel).
 ; &11b6 referenced 16 times by &8d28, &a11b, &ada2, &add8, &ae17, &af4c, &afa7, &afd4, &b103, &b21f, &b2a1, &b46f, &b5b5, &b6de, &b79d, &b800
-wksp_ch_start_sec_mh       = &11c0
+wksp_ch_start_sec_mh       = &11c0  ; Channel table - file's start sector, mid-high byte (per channel).
 ; &11c0 referenced 10 times by &ad99, &ae11, &af40, &af9e, &afcb, &b0fa, &b298, &b6d6, &b795, &b7f7
-wksp_ch_start_sec_ml       = &11ca
+wksp_ch_start_sec_ml       = &11ca  ; Channel table - file's start sector, mid-low byte (per channel).
 ; &11ca referenced 10 times by &ad90, &ae0b, &af37, &af95, &afc2, &b0f1, &b292, &b6ce, &b78d, &b7ee
-wksp_ch_dir_sec_h          = &11d4
+wksp_ch_dir_sec_h          = &11d4  ; Channel table - parent-directory sector, high byte (per channel).
 ; &11d4 referenced 4 times by &8d42, &adec, &b239, &b2b9
-wksp_ch_dir_sec_mh         = &11de
+wksp_ch_dir_sec_mh         = &11de  ; Channel table - parent-directory sector, mid-high byte (per channel).
 ; &11de referenced 4 times by &8d3a, &ade6, &b231, &b2b3
-wksp_ch_dir_sec_ml         = &11e8
+wksp_ch_dir_sec_ml         = &11e8  ; Channel table - parent-directory sector, mid-low byte (per channel).
 ; &11e8 referenced 4 times by &8d32, &ade0, &b229, &b2ad
-wksp_ch_seq_num            = &11f2
+wksp_ch_seq_num            = &11f2  ; Channel table - directory sequence number when the file was opened, for staleness checks (per channel).
 ; &11f2 referenced 4 times by &8d4e, &ae39, &b245, &b2a7
 dir_buffer                 = &1200  ; Directory buffer (&1200-&16FF, five sectors). Holds the currently loaded directory - a header, up to 47 26-byte entries, and a footer. This is the start of the header.
 ; &1200 referenced 3 times by &8492, &8ee7, &a6e6

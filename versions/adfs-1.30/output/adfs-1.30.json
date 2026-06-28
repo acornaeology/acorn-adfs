@@ -3451,14 +3451,16 @@
       "name": "wksp",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Base of ADFS's private workspace (&1000-&11FF); holds the default retry count."
     },
     {
       "addr": 4097,
       "name": "wksp_buf_sec_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Sector address of the data currently in the sector buffer, low byte (mid/high at &1002/&1003)."
     },
     {
       "addr": 4098,
@@ -3479,7 +3481,8 @@
       "name": "wksp_buf_flag",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Sector-buffer state flag."
     },
     {
       "addr": 4104,
@@ -3500,7 +3503,8 @@
       "name": "wksp_entry_field_base",
       "length": 1,
       "group": "ram_workspace",
-      "access": "r"
+      "access": "r",
+      "description": "Base of the directory-entry field copy used when reading or writing an entry's load/exec/length/attribute fields."
     },
     {
       "addr": 4110,
@@ -3514,7 +3518,8 @@
       "name": "wksp_osword_block",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "OSWORD parameter block used to issue low-level disc operations."
     },
     {
       "addr": 4113,
@@ -3528,21 +3533,24 @@
       "name": "wksp_disc_op_block",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Low-level disc-operation control block: the result, transfer address, command, sector, count and control fields follow."
     },
     {
       "addr": 4117,
       "name": "wksp_disc_op_result",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Disc-operation result / status byte."
     },
     {
       "addr": 4118,
       "name": "wksp_disc_op_mem_addr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Host transfer address for the disc operation, byte 0 (4-byte address &1016-&1019)."
     },
     {
       "addr": 4119,
@@ -3570,14 +3578,16 @@
       "name": "wksp_disc_op_command",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Disc-operation command byte (read / write / verify, etc.)."
     },
     {
       "addr": 4123,
       "name": "wksp_disc_op_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Target sector for the disc operation, byte 0 (3-byte sector &101B-&101D)."
     },
     {
       "addr": 4124,
@@ -3598,21 +3608,24 @@
       "name": "wksp_disc_op_sector_count",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Number of sectors to transfer in the disc operation."
     },
     {
       "addr": 4127,
       "name": "wksp_disc_op_control",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Disc-operation control byte."
     },
     {
       "addr": 4128,
       "name": "wksp_disc_op_transfer_len",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Partial-transfer byte count for the disc operation (4 bytes)."
     },
     {
       "addr": 4129,
@@ -3640,14 +3653,16 @@
       "name": "wksp_entry_size_base",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Scratch for an object's sector count during directory-entry processing."
     },
     {
       "addr": 4134,
       "name": "wksp_tube_transfer_addr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Tube transfer address for the current operation (4 bytes), when data is moving via the Tube."
     },
     {
       "addr": 4135,
@@ -3675,21 +3690,24 @@
       "name": "wksp_csd_drive_temp",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Temporary current-selected-directory (CSD) drive number."
     },
     {
       "addr": 4139,
       "name": "wksp_csd_sector_temp",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Temporary CSD sector."
     },
     {
       "addr": 4140,
       "name": "wksp_csd_drive_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "CSD drive+sector working copy."
     },
     {
       "addr": 4141,
@@ -3710,28 +3728,32 @@
       "name": "wksp_saved_drive",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved drive number."
     },
     {
       "addr": 4144,
       "name": "wksp_temp_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Temporary sector store."
     },
     {
       "addr": 4147,
       "name": "wksp_last_access_drive",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Drive of the most recent disc access."
     },
     {
       "addr": 4148,
       "name": "wksp_object_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Sector address of the object (file or directory) being processed, low byte (3 bytes)."
     },
     {
       "addr": 4149,
@@ -3752,7 +3774,8 @@
       "name": "wksp_object_size",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Size in bytes of the object being processed, low byte (3 bytes)."
     },
     {
       "addr": 4152,
@@ -3773,14 +3796,16 @@
       "name": "wksp_alloc_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Start sector of a newly allocated region."
     },
     {
       "addr": 4155,
       "name": "wksp_saved_count",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved sector / entry count."
     },
     {
       "addr": 4156,
@@ -3794,7 +3819,8 @@
       "name": "wksp_alloc_size",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Size of a newly allocated region, low byte (3 bytes)."
     },
     {
       "addr": 4158,
@@ -3815,7 +3841,8 @@
       "name": "wksp_osfile_block",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSFILE control block built and parsed here: filename pointer, load/exec/start/end addresses and attributes."
     },
     {
       "addr": 4161,
@@ -3829,7 +3856,8 @@
       "name": "wksp_osfile_load_addr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSFILE load address (4 bytes)."
     },
     {
       "addr": 4163,
@@ -3843,7 +3871,8 @@
       "name": "wksp_osfile_exec_addr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "OSFILE execution address (4 bytes)."
     },
     {
       "addr": 4167,
@@ -3871,7 +3900,8 @@
       "name": "wksp_osfile_start_addr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "OSFILE start address / length, byte 0 (4 bytes)."
     },
     {
       "addr": 4171,
@@ -3913,7 +3943,8 @@
       "name": "wksp_osfile_attr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Object attributes (access bits) in the OSFILE block."
     },
     {
       "addr": 4179,
@@ -3934,7 +3965,8 @@
       "name": "wksp_access_accum",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Accumulator for summing free space and sizes, low byte (3 bytes)."
     },
     {
       "addr": 4190,
@@ -3948,28 +3980,32 @@
       "name": "wksp_free_space_total",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Running total of free space (high byte of the accumulator)."
     },
     {
       "addr": 4192,
       "name": "wksp_compact_start_page",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Start page of the buffer used during *COMPACT."
     },
     {
       "addr": 4193,
       "name": "wksp_compact_length",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Length of data held in the compaction buffer."
     },
     {
       "addr": 4194,
       "name": "wksp_object_name",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Name of the object being processed (10 bytes)."
     },
     {
       "addr": 4195,
@@ -3983,49 +4019,56 @@
       "name": "wksp_saved_dir_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved directory sector."
     },
     {
       "addr": 4207,
       "name": "wksp_drive_number",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Working drive number (e.g. for *MOUNT)."
     },
     {
       "addr": 4208,
       "name": "wksp_new_parent_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "New parent-directory sector for a created or moved object."
     },
     {
       "addr": 4211,
       "name": "wksp_dest_drive",
       "length": 1,
       "group": "ram_workspace",
-      "access": "r"
+      "access": "r",
+      "description": "Destination drive for *COPY / *RENAME."
     },
     {
       "addr": 4212,
       "name": "wksp_dest_name",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Destination object name (for *COPY / *RENAME)."
     },
     {
       "addr": 4222,
       "name": "wksp_dest_filename_end",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "End marker of the destination filename."
     },
     {
       "addr": 4223,
       "name": "wksp_copy_name_ptr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Pointer to the source name during *COPY, low byte (high at &1080)."
     },
     {
       "addr": 4224,
@@ -4039,7 +4082,8 @@
       "name": "wksp_copy_osfile_params",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved source OSFILE parameters during *COPY."
     },
     {
       "addr": 4236,
@@ -4053,14 +4097,16 @@
       "name": "wksp_copy_dest_params",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Destination OSFILE parameters during *COPY."
     },
     {
       "addr": 4241,
       "name": "wksp_filename_save",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved filename pointer, low byte (high at &1092)."
     },
     {
       "addr": 4242,
@@ -4074,7 +4120,8 @@
       "name": "wksp_entry_save",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved directory-entry pointer, low byte (high at &1094)."
     },
     {
       "addr": 4244,
@@ -4088,14 +4135,16 @@
       "name": "wksp_osgbpb_end_ptr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSGBPB working end pointer."
     },
     {
       "addr": 4246,
       "name": "wksp_osgbpb_sector_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSGBPB working sector, low byte (3 bytes)."
     },
     {
       "addr": 4247,
@@ -4116,7 +4165,8 @@
       "name": "wksp_new_ptr_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Newly computed file PTR, low byte (multi-byte)."
     },
     {
       "addr": 4251,
@@ -4158,7 +4208,8 @@
       "name": "wksp_ch_buf_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Current sector held in the channel buffer."
     },
     {
       "addr": 4257,
@@ -4172,7 +4223,8 @@
       "name": "wksp_copy_read_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "*COPY source (read) sector, byte 0."
     },
     {
       "addr": 4259,
@@ -4193,7 +4245,8 @@
       "name": "wksp_copy_write_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "*COPY destination (write) sector, byte 0."
     },
     {
       "addr": 4262,
@@ -4214,7 +4267,8 @@
       "name": "wksp_copy_src_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "*COPY source sector working copy."
     },
     {
       "addr": 4265,
@@ -4235,7 +4289,8 @@
       "name": "wksp_copy_dest_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "*COPY destination sector working copy."
     },
     {
       "addr": 4268,
@@ -4256,35 +4311,40 @@
       "name": "wksp_osgbpb_func",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSGBPB function code (1-8)."
     },
     {
       "addr": 4277,
       "name": "wksp_osgbpb_mode",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSGBPB open mode / extension flag."
     },
     {
       "addr": 4278,
       "name": "wksp_osgbpb_start",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSGBPB transfer start position."
     },
     {
       "addr": 4279,
       "name": "wksp_osgbpb_end",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSGBPB transfer end position."
     },
     {
       "addr": 4280,
       "name": "wksp_osgbpb_data_addr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSGBPB cumulative data transfer address (4 bytes)."
     },
     {
       "addr": 4281,
@@ -4319,56 +4379,64 @@
       "name": "wksp_osgbpb_byte_count",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSGBPB byte count for the transfer."
     },
     {
       "addr": 4286,
       "name": "wksp_osgbpb_name_offset",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "OSGBPB offset into the name being read or written."
     },
     {
       "addr": 4287,
       "name": "wksp_saved_drive_2",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Second saved drive number."
     },
     {
       "addr": 4288,
       "name": "wksp_search_flag",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Directory-search state flag."
     },
     {
       "addr": 4289,
       "name": "wksp_workspace_checksum",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Checksum of critical workspace, validated to detect corruption."
     },
     {
       "addr": 4290,
       "name": "wksp_drive_change_mask",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Bit mask of drives whose media may have changed."
     },
     {
       "addr": 4291,
       "name": "wksp_prev_clock",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Previous clock reading, for elapsed-time comparison."
     },
     {
       "addr": 4296,
       "name": "wksp_clock",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Cached system clock value, byte 0 (5-byte TIME)."
     },
     {
       "addr": 4297,
@@ -4410,21 +4478,24 @@
       "name": "wksp_error_suppress",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Flag suppressing error reporting in some code paths."
     },
     {
       "addr": 4303,
       "name": "wksp_bput_modified",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Flag: the current channel buffer was modified by OSBPUT and needs flushing."
     },
     {
       "addr": 4304,
       "name": "wksp_err_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Sector associated with the last disc error, low byte (3 bytes)."
     },
     {
       "addr": 4305,
@@ -4445,28 +4516,32 @@
       "name": "wksp_err_code",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Last disc error code."
     },
     {
       "addr": 4308,
       "name": "wksp_err_handle",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "File handle associated with the last error."
     },
     {
       "addr": 4309,
       "name": "wksp_cur_channel",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Current open-file channel number."
     },
     {
       "addr": 4310,
       "name": "wksp_cmd_tail",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the *command tail, low byte (high at &10D7)."
     },
     {
       "addr": 4311,
@@ -4480,105 +4555,120 @@
       "name": "wksp_compaction_reported",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Flag: a compaction-needed condition has already been reported."
     },
     {
       "addr": 4320,
       "name": "wksp_fdc_xfer_mode",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 transfer direction / mode for the current floppy operation."
     },
     {
       "addr": 4321,
       "name": "wksp_nmi_owner",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Owner of the NMI, claimed during disc transfers and released afterwards."
     },
     {
       "addr": 4322,
       "name": "wksp_format_page",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Page counter / buffer during *FORMAT."
     },
     {
       "addr": 4323,
       "name": "wksp_err_number",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Working error number."
     },
     {
       "addr": 4324,
       "name": "wksp_fdc_head_state",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 head / load state."
     },
     {
       "addr": 4325,
       "name": "wksp_fdc_track_0",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Last known track for drive 0 (head-position cache)."
     },
     {
       "addr": 4326,
       "name": "wksp_fdc_track_1",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Last known track for drive 1 (head-position cache)."
     },
     {
       "addr": 4327,
       "name": "wksp_stack_save",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved stack pointer for error recovery."
     },
     {
       "addr": 4328,
       "name": "wksp_fdc_cmd_step",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 command step-rate setting."
     },
     {
       "addr": 4350,
       "name": "wksp_alt_csd_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Alternative CSD sector store."
     },
     {
       "addr": 4352,
       "name": "wksp_csd_name",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Name of the current selected directory (CSD), 10 characters."
     },
     {
       "addr": 4362,
       "name": "wksp_lib_name",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Name of the library directory, 10 characters."
     },
     {
       "addr": 4371,
       "name": "wksp_csd_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "CSD sector marker / validity byte."
     },
     {
       "addr": 4372,
       "name": "wksp_csd_sector_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Sector of the current selected directory, low byte (3 bytes)."
     },
     {
       "addr": 4373,
@@ -4599,21 +4689,24 @@
       "name": "wksp_current_drive",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Current default drive number."
     },
     {
       "addr": 4376,
       "name": "wksp_lib_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Library directory sector marker / validity byte."
     },
     {
       "addr": 4377,
       "name": "wksp_lib_sector_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "r"
+      "access": "r",
+      "description": "Sector of the library directory, low byte (3 bytes)."
     },
     {
       "addr": 4378,
@@ -4634,14 +4727,16 @@
       "name": "wksp_prev_dir_sector",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Previous directory (^) sector marker / validity byte."
     },
     {
       "addr": 4381,
       "name": "wksp_prev_dir_sector_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Sector of the previous directory, low byte (3 bytes)."
     },
     {
       "addr": 4382,
@@ -4662,14 +4757,16 @@
       "name": "wksp_flags_save",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved status flags."
     },
     {
       "addr": 4385,
       "name": "wksp_disc_id_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Cached disc identifier, low byte (high at &1122)."
     },
     {
       "addr": 4386,
@@ -4683,168 +4780,192 @@
       "name": "wksp_scsi_status",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Combined SCSI status from the last hard-disc operation."
     },
     {
       "addr": 4402,
       "name": "wksp_exec_handle",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "File handle of the current *EXEC file."
     },
     {
       "addr": 4403,
       "name": "wksp_current_drive_hi",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Current drive / LUN combined byte for the hard disc."
     },
     {
       "addr": 4404,
       "name": "wksp_ch_ext_h",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file EXTENT (length), high byte. One byte per open channel."
     },
     {
       "addr": 4414,
       "name": "wksp_ch_ext_mh",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file EXTENT, mid-high byte (per channel)."
     },
     {
       "addr": 4424,
       "name": "wksp_ch_ext_ml",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file EXTENT, mid-low byte (per channel)."
     },
     {
       "addr": 4434,
       "name": "wksp_ch_ext_l",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file EXTENT, low byte (per channel)."
     },
     {
       "addr": 4444,
       "name": "wksp_ch_ptr_h",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file PTR (sequential position), high byte (per channel)."
     },
     {
       "addr": 4454,
       "name": "wksp_ch_ptr_mh",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file PTR, mid-high byte (per channel)."
     },
     {
       "addr": 4464,
       "name": "wksp_ch_ptr_ml",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file PTR, mid-low byte (per channel)."
     },
     {
       "addr": 4474,
       "name": "wksp_ch_ptr_l",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file PTR, low byte (per channel)."
     },
     {
       "addr": 4483,
       "name": "wksp_ch_alloc_pad",
       "length": 1,
       "group": "ram_workspace",
-      "access": "r"
+      "access": "r",
+      "description": "Channel table - allocated size, padding / first byte (per channel)."
     },
     {
       "addr": 4484,
       "name": "wksp_ch_alloc_h",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - allocated size, high byte (per channel)."
     },
     {
       "addr": 4494,
       "name": "wksp_ch_alloc_mh",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - allocated size, mid-high byte (per channel)."
     },
     {
       "addr": 4504,
       "name": "wksp_ch_alloc_ml",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - allocated size, mid-low byte (per channel)."
     },
     {
       "addr": 4514,
       "name": "wksp_ch_alloc_l",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - allocated size, low byte (per channel)."
     },
     {
       "addr": 4524,
       "name": "wksp_ch_flags",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - per-channel flags (open mode, modified, etc.)."
     },
     {
       "addr": 4534,
       "name": "wksp_ch_start_sec_h",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file's start sector, high byte (per channel)."
     },
     {
       "addr": 4544,
       "name": "wksp_ch_start_sec_mh",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file's start sector, mid-high byte (per channel)."
     },
     {
       "addr": 4554,
       "name": "wksp_ch_start_sec_ml",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - file's start sector, mid-low byte (per channel)."
     },
     {
       "addr": 4564,
       "name": "wksp_ch_dir_sec_h",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - parent-directory sector, high byte (per channel)."
     },
     {
       "addr": 4574,
       "name": "wksp_ch_dir_sec_mh",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - parent-directory sector, mid-high byte (per channel)."
     },
     {
       "addr": 4584,
       "name": "wksp_ch_dir_sec_ml",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - parent-directory sector, mid-low byte (per channel)."
     },
     {
       "addr": 4594,
       "name": "wksp_ch_seq_num",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Channel table - directory sequence number when the file was opened, for staleness checks (per channel)."
     },
     {
       "addr": 4608,

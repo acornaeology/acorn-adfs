@@ -276,33 +276,33 @@ d.label(0x0FFE, 'fsm_s1_end_of_list_ptr', length=1, group='free_space_map', acce
 
 d.label(0x0FFF, 'fsm_s1_checksum', length=1, group='free_space_map', access='rw', description="Checksum byte of FSM sector 1 (validates the free-space length map and disc parameters).")
 
-d.label(0x1000, 'wksp', length=1, group='ram_workspace', access='rw')
+d.label(0x1000, 'wksp', length=1, group='ram_workspace', access='rw', description="Base of ADFS's private workspace (&1000-&11FF); holds the default retry count.")
 
-d.label(0x1001, 'wksp_buf_sec_lo', length=1, group='ram_workspace', access='rw')
+d.label(0x1001, 'wksp_buf_sec_lo', length=1, group='ram_workspace', access='rw', description="Sector address of the data currently in the sector buffer, low byte (mid/high at &1002/&1003).")
 
 d.label(0x1002, 'wksp_buf_sec_mid', length=1, group='ram_workspace', access='rw')
 
 d.label(0x1003, 'wksp_buf_sec_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1004, 'wksp_buf_flag', length=1, group='ram_workspace', access='rw')
+d.label(0x1004, 'wksp_buf_flag', length=1, group='ram_workspace', access='rw', description="Sector-buffer state flag.")
 
 d.label(0x1008, 'wksp_buf_flag_1', length=1, group='ram_workspace', access='w')
 
 d.label(0x100C, 'wksp_buf_flag_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x100D, 'wksp_entry_field_base', length=1, group='ram_workspace', access='r')
+d.label(0x100D, 'wksp_entry_field_base', length=1, group='ram_workspace', access='r', description="Base of the directory-entry field copy used when reading or writing an entry's load/exec/length/attribute fields.")
 
 d.label(0x100E, 'wksp_entry_len_base', length=1, group='ram_workspace', access='w')
 
-d.label(0x1010, 'wksp_osword_block', length=1, group='ram_workspace', access='w')
+d.label(0x1010, 'wksp_osword_block', length=1, group='ram_workspace', access='w', description="OSWORD parameter block used to issue low-level disc operations.")
 
 d.label(0x1011, 'wksp_entry_calc_base', length=1, group='ram_workspace', access='r')
 
-d.label(0x1014, 'wksp_disc_op_block', length=1, group='ram_workspace', access='w')
+d.label(0x1014, 'wksp_disc_op_block', length=1, group='ram_workspace', access='w', description="Low-level disc-operation control block: the result, transfer address, command, sector, count and control fields follow.")
 
-d.label(0x1015, 'wksp_disc_op_result', length=1, group='ram_workspace', access='rw')
+d.label(0x1015, 'wksp_disc_op_result', length=1, group='ram_workspace', access='rw', description="Disc-operation result / status byte.")
 
-d.label(0x1016, 'wksp_disc_op_mem_addr', length=1, group='ram_workspace', access='rw')
+d.label(0x1016, 'wksp_disc_op_mem_addr', length=1, group='ram_workspace', access='rw', description="Host transfer address for the disc operation, byte 0 (4-byte address &1016-&1019).")
 
 d.label(0x1017, 'wksp_disc_op_mem_addr_1', length=1, group='ram_workspace', access='rw')
 
@@ -310,19 +310,19 @@ d.label(0x1018, 'wksp_disc_op_mem_addr_2', length=1, group='ram_workspace', acce
 
 d.label(0x1019, 'wksp_disc_op_mem_addr_3', length=1, group='ram_workspace', access='rw')
 
-d.label(0x101A, 'wksp_disc_op_command', length=1, group='ram_workspace', access='rw')
+d.label(0x101A, 'wksp_disc_op_command', length=1, group='ram_workspace', access='rw', description="Disc-operation command byte (read / write / verify, etc.).")
 
-d.label(0x101B, 'wksp_disc_op_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x101B, 'wksp_disc_op_sector', length=1, group='ram_workspace', access='rw', description="Target sector for the disc operation, byte 0 (3-byte sector &101B-&101D).")
 
 d.label(0x101C, 'wksp_disc_op_sector_mid', length=1, group='ram_workspace', access='rw')
 
 d.label(0x101D, 'wksp_disc_op_sector_lo', length=1, group='ram_workspace', access='rw')
 
-d.label(0x101E, 'wksp_disc_op_sector_count', length=1, group='ram_workspace', access='rw')
+d.label(0x101E, 'wksp_disc_op_sector_count', length=1, group='ram_workspace', access='rw', description="Number of sectors to transfer in the disc operation.")
 
-d.label(0x101F, 'wksp_disc_op_control', length=1, group='ram_workspace', access='w')
+d.label(0x101F, 'wksp_disc_op_control', length=1, group='ram_workspace', access='w', description="Disc-operation control byte.")
 
-d.label(0x1020, 'wksp_disc_op_transfer_len', length=1, group='ram_workspace', access='rw')
+d.label(0x1020, 'wksp_disc_op_transfer_len', length=1, group='ram_workspace', access='rw', description="Partial-transfer byte count for the disc operation (4 bytes).")
 
 d.label(0x1021, 'wksp_disc_op_xfer_len_1', length=1, group='ram_workspace', access='rw')
 
@@ -330,9 +330,9 @@ d.label(0x1022, 'wksp_disc_op_xfer_len_2', length=1, group='ram_workspace', acce
 
 d.label(0x1023, 'wksp_disc_op_xfer_len_3', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1024, 'wksp_entry_size_base', length=1, group='ram_workspace', access='w')
+d.label(0x1024, 'wksp_entry_size_base', length=1, group='ram_workspace', access='w', description="Scratch for an object's sector count during directory-entry processing.")
 
-d.label(0x1026, 'wksp_tube_transfer_addr', length=1, group='ram_workspace', access='w')
+d.label(0x1026, 'wksp_tube_transfer_addr', length=1, group='ram_workspace', access='w', description="Tube transfer address for the current operation (4 bytes), when data is moving via the Tube.")
 
 d.label(0x1027, 'wksp_tube_transfer_addr_1', length=1, group='ram_workspace', access='rw')
 
@@ -340,55 +340,55 @@ d.label(0x1028, 'wksp_tube_xfer_addr_2', length=1, group='ram_workspace', access
 
 d.label(0x1029, 'wksp_tube_xfer_addr_3', length=1, group='ram_workspace', access='rw')
 
-d.label(0x102A, 'wksp_csd_drive_temp', length=1, group='ram_workspace', access='rw')
+d.label(0x102A, 'wksp_csd_drive_temp', length=1, group='ram_workspace', access='rw', description="Temporary current-selected-directory (CSD) drive number.")
 
-d.label(0x102B, 'wksp_csd_sector_temp', length=1, group='ram_workspace', access='rw')
+d.label(0x102B, 'wksp_csd_sector_temp', length=1, group='ram_workspace', access='rw', description="Temporary CSD sector.")
 
-d.label(0x102C, 'wksp_csd_drive_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x102C, 'wksp_csd_drive_sector', length=1, group='ram_workspace', access='rw', description="CSD drive+sector working copy.")
 
 d.label(0x102D, 'wksp_csd_drive_sector_mid', length=1, group='ram_workspace', access='rw')
 
 d.label(0x102E, 'wksp_alt_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x102F, 'wksp_saved_drive', length=1, group='ram_workspace', access='rw')
+d.label(0x102F, 'wksp_saved_drive', length=1, group='ram_workspace', access='rw', description="Saved drive number.")
 
-d.label(0x1030, 'wksp_temp_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x1030, 'wksp_temp_sector', length=1, group='ram_workspace', access='rw', description="Temporary sector store.")
 
-d.label(0x1033, 'wksp_last_access_drive', length=1, group='ram_workspace', access='rw')
+d.label(0x1033, 'wksp_last_access_drive', length=1, group='ram_workspace', access='rw', description="Drive of the most recent disc access.")
 
-d.label(0x1034, 'wksp_object_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x1034, 'wksp_object_sector', length=1, group='ram_workspace', access='rw', description="Sector address of the object (file or directory) being processed, low byte (3 bytes).")
 
 d.label(0x1035, 'wksp_object_sector_mid', length=1, group='ram_workspace', access='rw')
 
 d.label(0x1036, 'wksp_object_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1037, 'wksp_object_size', length=1, group='ram_workspace', access='rw')
+d.label(0x1037, 'wksp_object_size', length=1, group='ram_workspace', access='rw', description="Size in bytes of the object being processed, low byte (3 bytes).")
 
 d.label(0x1038, 'wksp_object_size_mid', length=1, group='ram_workspace', access='rw')
 
 d.label(0x1039, 'wksp_object_size_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x103A, 'wksp_alloc_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x103A, 'wksp_alloc_sector', length=1, group='ram_workspace', access='rw', description="Start sector of a newly allocated region.")
 
-d.label(0x103B, 'wksp_saved_count', length=1, group='ram_workspace', access='rw')
+d.label(0x103B, 'wksp_saved_count', length=1, group='ram_workspace', access='rw', description="Saved sector / entry count.")
 
 d.label(0x103C, 'wksp_saved_count_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x103D, 'wksp_alloc_size', length=1, group='ram_workspace', access='rw')
+d.label(0x103D, 'wksp_alloc_size', length=1, group='ram_workspace', access='rw', description="Size of a newly allocated region, low byte (3 bytes).")
 
 d.label(0x103E, 'wksp_alloc_size_mid', length=1, group='ram_workspace', access='w')
 
 d.label(0x103F, 'wksp_alloc_size_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1040, 'wksp_osfile_block', length=1, group='ram_workspace', access='rw')
+d.label(0x1040, 'wksp_osfile_block', length=1, group='ram_workspace', access='rw', description="OSFILE control block built and parsed here: filename pointer, load/exec/start/end addresses and attributes.")
 
 d.label(0x1041, 'wksp_osfile_block_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1042, 'wksp_osfile_load_addr', length=1, group='ram_workspace', access='rw')
+d.label(0x1042, 'wksp_osfile_load_addr', length=1, group='ram_workspace', access='rw', description="OSFILE load address (4 bytes).")
 
 d.label(0x1043, 'wksp_osfile_load_addr_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1046, 'wksp_osfile_exec_addr', length=1, group='ram_workspace', access='w')
+d.label(0x1046, 'wksp_osfile_exec_addr', length=1, group='ram_workspace', access='w', description="OSFILE execution address (4 bytes).")
 
 d.label(0x1047, 'wksp_osfile_exec_addr_1', length=1, group='ram_workspace', access='w')
 
@@ -396,7 +396,7 @@ d.label(0x1048, 'wksp_osfile_exec_addr_2', length=1, group='ram_workspace', acce
 
 d.label(0x1049, 'wksp_osfile_exec_addr_3', length=1, group='ram_workspace', access='w')
 
-d.label(0x104A, 'wksp_osfile_start_addr', length=1, group='ram_workspace', access='w')
+d.label(0x104A, 'wksp_osfile_start_addr', length=1, group='ram_workspace', access='w', description="OSFILE start address / length, byte 0 (4 bytes).")
 
 d.label(0x104B, 'wksp_osfile_start_addr_1', length=1, group='ram_workspace', access='w')
 
@@ -408,65 +408,65 @@ d.label(0x104F, 'wksp_osfile_end_addr_1', length=1, group='ram_workspace', acces
 
 d.label(0x1050, 'wksp_osfile_end_addr_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x1052, 'wksp_osfile_attr', length=1, group='ram_workspace', access='rw')
+d.label(0x1052, 'wksp_osfile_attr', length=1, group='ram_workspace', access='rw', description="Object attributes (access bits) in the OSFILE block.")
 
 d.label(0x1053, 'wksp_osfile_attr_1', length=1, group='ram_workspace', access='w')
 
 d.label(0x1054, 'wksp_osfile_attr_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x105D, 'wksp_access_accum', length=1, group='ram_workspace', access='rw')
+d.label(0x105D, 'wksp_access_accum', length=1, group='ram_workspace', access='rw', description="Accumulator for summing free space and sizes, low byte (3 bytes).")
 
 d.label(0x105E, 'wksp_access_accum_1', length=1, group='ram_workspace', access='w')
 
-d.label(0x105F, 'wksp_free_space_total', length=1, group='ram_workspace', access='w')
+d.label(0x105F, 'wksp_free_space_total', length=1, group='ram_workspace', access='w', description="Running total of free space (high byte of the accumulator).")
 
-d.label(0x1060, 'wksp_compact_start_page', length=1, group='ram_workspace', access='rw')
+d.label(0x1060, 'wksp_compact_start_page', length=1, group='ram_workspace', access='rw', description="Start page of the buffer used during *COMPACT.")
 
-d.label(0x1061, 'wksp_compact_length', length=1, group='ram_workspace', access='rw')
+d.label(0x1061, 'wksp_compact_length', length=1, group='ram_workspace', access='rw', description="Length of data held in the compaction buffer.")
 
-d.label(0x1062, 'wksp_object_name', length=1, group='ram_workspace', access='rw')
+d.label(0x1062, 'wksp_object_name', length=1, group='ram_workspace', access='rw', description="Name of the object being processed (10 bytes).")
 
 d.label(0x1063, 'wksp_object_name_1', length=1, group='ram_workspace', access='w')
 
-d.label(0x106C, 'wksp_saved_dir_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x106C, 'wksp_saved_dir_sector', length=1, group='ram_workspace', access='rw', description="Saved directory sector.")
 
-d.label(0x106F, 'wksp_drive_number', length=1, group='ram_workspace', access='rw')
+d.label(0x106F, 'wksp_drive_number', length=1, group='ram_workspace', access='rw', description="Working drive number (e.g. for *MOUNT).")
 
-d.label(0x1070, 'wksp_new_parent_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x1070, 'wksp_new_parent_sector', length=1, group='ram_workspace', access='rw', description="New parent-directory sector for a created or moved object.")
 
-d.label(0x1073, 'wksp_dest_drive', length=1, group='ram_workspace', access='r')
+d.label(0x1073, 'wksp_dest_drive', length=1, group='ram_workspace', access='r', description="Destination drive for *COPY / *RENAME.")
 
-d.label(0x1074, 'wksp_dest_name', length=1, group='ram_workspace', access='rw')
+d.label(0x1074, 'wksp_dest_name', length=1, group='ram_workspace', access='rw', description="Destination object name (for *COPY / *RENAME).")
 
-d.label(0x107E, 'wksp_dest_filename_end', length=1, group='ram_workspace', access='w')
+d.label(0x107E, 'wksp_dest_filename_end', length=1, group='ram_workspace', access='w', description="End marker of the destination filename.")
 
-d.label(0x107F, 'wksp_copy_name_ptr', length=1, group='ram_workspace', access='w')
+d.label(0x107F, 'wksp_copy_name_ptr', length=1, group='ram_workspace', access='w', description="Pointer to the source name during *COPY, low byte (high at &1080).")
 
 d.label(0x1080, 'wksp_copy_name_ptr_hi', length=1, group='ram_workspace', access='w')
 
-d.label(0x1089, 'wksp_copy_osfile_params', length=1, group='ram_workspace', access='rw')
+d.label(0x1089, 'wksp_copy_osfile_params', length=1, group='ram_workspace', access='rw', description="Saved source OSFILE parameters during *COPY.")
 
 d.label(0x108C, 'wksp_copy_osfile_exec', length=1, group='ram_workspace', access='rw')
 
-d.label(0x108D, 'wksp_copy_dest_params', length=1, group='ram_workspace', access='w')
+d.label(0x108D, 'wksp_copy_dest_params', length=1, group='ram_workspace', access='w', description="Destination OSFILE parameters during *COPY.")
 
-d.label(0x1091, 'wksp_filename_save', length=1, group='ram_workspace', access='rw')
+d.label(0x1091, 'wksp_filename_save', length=1, group='ram_workspace', access='rw', description="Saved filename pointer, low byte (high at &1092).")
 
 d.label(0x1092, 'wksp_filename_save_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1093, 'wksp_entry_save', length=1, group='ram_workspace', access='rw')
+d.label(0x1093, 'wksp_entry_save', length=1, group='ram_workspace', access='rw', description="Saved directory-entry pointer, low byte (high at &1094).")
 
 d.label(0x1094, 'wksp_entry_save_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1095, 'wksp_osgbpb_end_ptr', length=1, group='ram_workspace', access='rw')
+d.label(0x1095, 'wksp_osgbpb_end_ptr', length=1, group='ram_workspace', access='rw', description="OSGBPB working end pointer.")
 
-d.label(0x1096, 'wksp_osgbpb_sector_lo', length=1, group='ram_workspace', access='rw')
+d.label(0x1096, 'wksp_osgbpb_sector_lo', length=1, group='ram_workspace', access='rw', description="OSGBPB working sector, low byte (3 bytes).")
 
 d.label(0x1097, 'wksp_osgbpb_sector_mid', length=1, group='ram_workspace', access='rw')
 
 d.label(0x1098, 'wksp_osgbpb_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x109A, 'wksp_new_ptr_lo', length=1, group='ram_workspace', access='rw')
+d.label(0x109A, 'wksp_new_ptr_lo', length=1, group='ram_workspace', access='rw', description="Newly computed file PTR, low byte (multi-byte).")
 
 d.label(0x109B, 'wksp_new_ptr_mid', length=1, group='ram_workspace', access='rw')
 
@@ -478,43 +478,43 @@ d.label(0x109E, 'wksp_new_ptr_4', length=1, group='ram_workspace', access='rw')
 
 d.label(0x109F, 'wksp_osgbpb_wksp_9f', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A0, 'wksp_ch_buf_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x10A0, 'wksp_ch_buf_sector', length=1, group='ram_workspace', access='rw', description="Current sector held in the channel buffer.")
 
 d.label(0x10A1, 'wksp_ch_buf_sector_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A2, 'wksp_copy_read_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x10A2, 'wksp_copy_read_sector', length=1, group='ram_workspace', access='rw', description="*COPY source (read) sector, byte 0.")
 
 d.label(0x10A3, 'wksp_copy_read_sector_1', length=1, group='ram_workspace', access='rw')
 
 d.label(0x10A4, 'wksp_copy_read_sector_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A5, 'wksp_copy_write_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x10A5, 'wksp_copy_write_sector', length=1, group='ram_workspace', access='rw', description="*COPY destination (write) sector, byte 0.")
 
 d.label(0x10A6, 'wksp_copy_write_sector_1', length=1, group='ram_workspace', access='rw')
 
 d.label(0x10A7, 'wksp_copy_write_sector_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A8, 'wksp_copy_src_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x10A8, 'wksp_copy_src_sector', length=1, group='ram_workspace', access='rw', description="*COPY source sector working copy.")
 
 d.label(0x10A9, 'wksp_copy_src_sector_1', length=1, group='ram_workspace', access='rw')
 
 d.label(0x10AA, 'wksp_copy_src_sector_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10AB, 'wksp_copy_dest_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x10AB, 'wksp_copy_dest_sector', length=1, group='ram_workspace', access='rw', description="*COPY destination sector working copy.")
 
 d.label(0x10AC, 'wksp_copy_dest_sector_1', length=1, group='ram_workspace', access='w')
 
 d.label(0x10AD, 'wksp_copy_dest_sector_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x10B4, 'wksp_osgbpb_func', length=1, group='ram_workspace', access='rw')
+d.label(0x10B4, 'wksp_osgbpb_func', length=1, group='ram_workspace', access='rw', description="OSGBPB function code (1-8).")
 
-d.label(0x10B5, 'wksp_osgbpb_mode', length=1, group='ram_workspace', access='rw')
+d.label(0x10B5, 'wksp_osgbpb_mode', length=1, group='ram_workspace', access='rw', description="OSGBPB open mode / extension flag.")
 
-d.label(0x10B6, 'wksp_osgbpb_start', length=1, group='ram_workspace', access='rw')
+d.label(0x10B6, 'wksp_osgbpb_start', length=1, group='ram_workspace', access='rw', description="OSGBPB transfer start position.")
 
-d.label(0x10B7, 'wksp_osgbpb_end', length=1, group='ram_workspace', access='rw')
+d.label(0x10B7, 'wksp_osgbpb_end', length=1, group='ram_workspace', access='rw', description="OSGBPB transfer end position.")
 
-d.label(0x10B8, 'wksp_osgbpb_data_addr', length=1, group='ram_workspace', access='rw')
+d.label(0x10B8, 'wksp_osgbpb_data_addr', length=1, group='ram_workspace', access='rw', description="OSGBPB cumulative data transfer address (4 bytes).")
 
 d.label(0x10B9, 'wksp_osgbpb_data_addr_1', length=1, group='ram_workspace', access='rw')
 
@@ -524,21 +524,21 @@ d.label(0x10BB, 'wksp_osgbpb_data_addr_3', length=1, group='ram_workspace', acce
 
 d.label(0x10BC, 'wksp_osgbpb_wksp_bc', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10BD, 'wksp_osgbpb_byte_count', length=1, group='ram_workspace', access='rw')
+d.label(0x10BD, 'wksp_osgbpb_byte_count', length=1, group='ram_workspace', access='rw', description="OSGBPB byte count for the transfer.")
 
-d.label(0x10BE, 'wksp_osgbpb_name_offset', length=1, group='ram_workspace', access='rw')
+d.label(0x10BE, 'wksp_osgbpb_name_offset', length=1, group='ram_workspace', access='rw', description="OSGBPB offset into the name being read or written.")
 
-d.label(0x10BF, 'wksp_saved_drive_2', length=1, group='ram_workspace', access='rw')
+d.label(0x10BF, 'wksp_saved_drive_2', length=1, group='ram_workspace', access='rw', description="Second saved drive number.")
 
-d.label(0x10C0, 'wksp_search_flag', length=1, group='ram_workspace', access='rw')
+d.label(0x10C0, 'wksp_search_flag', length=1, group='ram_workspace', access='rw', description="Directory-search state flag.")
 
-d.label(0x10C1, 'wksp_workspace_checksum', length=1, group='ram_workspace', access='rw')
+d.label(0x10C1, 'wksp_workspace_checksum', length=1, group='ram_workspace', access='rw', description="Checksum of critical workspace, validated to detect corruption.")
 
-d.label(0x10C2, 'wksp_drive_change_mask', length=1, group='ram_workspace', access='rw')
+d.label(0x10C2, 'wksp_drive_change_mask', length=1, group='ram_workspace', access='rw', description="Bit mask of drives whose media may have changed.")
 
-d.label(0x10C3, 'wksp_prev_clock', length=1, group='ram_workspace', access='rw')
+d.label(0x10C3, 'wksp_prev_clock', length=1, group='ram_workspace', access='rw', description="Previous clock reading, for elapsed-time comparison.")
 
-d.label(0x10C8, 'wksp_clock', length=1, group='ram_workspace', access='rw')
+d.label(0x10C8, 'wksp_clock', length=1, group='ram_workspace', access='rw', description="Cached system clock value, byte 0 (5-byte TIME).")
 
 d.label(0x10C9, 'wksp_clock_1', length=1, group='ram_workspace', access='r')
 
@@ -550,131 +550,131 @@ d.label(0x10CC, 'wksp_clock_4', length=1, group='ram_workspace', access='r')
 
 d.label(0x10CD, 'wksp_clock_5', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10CE, 'wksp_error_suppress', length=1, group='ram_workspace', access='rw')
+d.label(0x10CE, 'wksp_error_suppress', length=1, group='ram_workspace', access='rw', description="Flag suppressing error reporting in some code paths.")
 
-d.label(0x10CF, 'wksp_bput_modified', length=1, group='ram_workspace', access='rw')
+d.label(0x10CF, 'wksp_bput_modified', length=1, group='ram_workspace', access='rw', description="Flag: the current channel buffer was modified by OSBPUT and needs flushing.")
 
-d.label(0x1100, 'wksp_csd_name', length=1, group='ram_workspace', access='rw')
+d.label(0x1100, 'wksp_csd_name', length=1, group='ram_workspace', access='rw', description="Name of the current selected directory (CSD), 10 characters.")
 
-d.label(0x110A, 'wksp_lib_name', length=1, group='ram_workspace', access='w')
+d.label(0x110A, 'wksp_lib_name', length=1, group='ram_workspace', access='w', description="Name of the library directory, 10 characters.")
 
-d.label(0x1113, 'wksp_csd_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x1113, 'wksp_csd_sector', length=1, group='ram_workspace', access='rw', description="CSD sector marker / validity byte.")
 
-d.label(0x1114, 'wksp_csd_sector_lo', length=1, group='ram_workspace', access='rw')
+d.label(0x1114, 'wksp_csd_sector_lo', length=1, group='ram_workspace', access='rw', description="Sector of the current selected directory, low byte (3 bytes).")
 
 d.label(0x1115, 'wksp_csd_sector_mid', length=1, group='ram_workspace', access='rw')
 
 d.label(0x1116, 'wksp_csd_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1117, 'wksp_current_drive', length=1, group='ram_workspace', access='rw')
+d.label(0x1117, 'wksp_current_drive', length=1, group='ram_workspace', access='rw', description="Current default drive number.")
 
-d.label(0x1118, 'wksp_lib_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x1118, 'wksp_lib_sector', length=1, group='ram_workspace', access='rw', description="Library directory sector marker / validity byte.")
 
-d.label(0x1119, 'wksp_lib_sector_lo', length=1, group='ram_workspace', access='r')
+d.label(0x1119, 'wksp_lib_sector_lo', length=1, group='ram_workspace', access='r', description="Sector of the library directory, low byte (3 bytes).")
 
 d.label(0x111A, 'wksp_lib_sector_mid', length=1, group='ram_workspace', access='rw')
 
 d.label(0x111B, 'wksp_lib_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x111C, 'wksp_prev_dir_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x111C, 'wksp_prev_dir_sector', length=1, group='ram_workspace', access='rw', description="Previous directory (^) sector marker / validity byte.")
 
-d.label(0x111D, 'wksp_prev_dir_sector_lo', length=1, group='ram_workspace', access='w')
+d.label(0x111D, 'wksp_prev_dir_sector_lo', length=1, group='ram_workspace', access='w', description="Sector of the previous directory, low byte (3 bytes).")
 
 d.label(0x111E, 'wksp_prev_dir_sector_mid', length=1, group='ram_workspace', access='w')
 
 d.label(0x111F, 'wksp_prev_dir_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1120, 'wksp_flags_save', length=1, group='ram_workspace', access='rw')
+d.label(0x1120, 'wksp_flags_save', length=1, group='ram_workspace', access='rw', description="Saved status flags.")
 
-d.label(0x1121, 'wksp_disc_id_lo', length=1, group='ram_workspace', access='rw')
+d.label(0x1121, 'wksp_disc_id_lo', length=1, group='ram_workspace', access='rw', description="Cached disc identifier, low byte (high at &1122).")
 
 d.label(0x1122, 'wksp_disc_id_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1131, 'wksp_scsi_status', length=1, group='ram_workspace', access='rw')
+d.label(0x1131, 'wksp_scsi_status', length=1, group='ram_workspace', access='rw', description="Combined SCSI status from the last hard-disc operation.")
 
-d.label(0x1132, 'wksp_exec_handle', length=1, group='ram_workspace', access='rw')
+d.label(0x1132, 'wksp_exec_handle', length=1, group='ram_workspace', access='rw', description="File handle of the current *EXEC file.")
 
-d.label(0x1133, 'wksp_current_drive_hi', length=1, group='ram_workspace', access='rw')
+d.label(0x1133, 'wksp_current_drive_hi', length=1, group='ram_workspace', access='rw', description="Current drive / LUN combined byte for the hard disc.")
 
-d.label(0x1134, 'wksp_ch_ext_h', length=1, group='ram_workspace', access='rw')
+d.label(0x1134, 'wksp_ch_ext_h', length=1, group='ram_workspace', access='rw', description="Channel table - file EXTENT (length), high byte. One byte per open channel.")
 
-d.label(0x113E, 'wksp_ch_ext_mh', length=1, group='ram_workspace', access='rw')
+d.label(0x113E, 'wksp_ch_ext_mh', length=1, group='ram_workspace', access='rw', description="Channel table - file EXTENT, mid-high byte (per channel).")
 
-d.label(0x1148, 'wksp_ch_ext_ml', length=1, group='ram_workspace', access='rw')
+d.label(0x1148, 'wksp_ch_ext_ml', length=1, group='ram_workspace', access='rw', description="Channel table - file EXTENT, mid-low byte (per channel).")
 
-d.label(0x1152, 'wksp_ch_ext_l', length=1, group='ram_workspace', access='rw')
+d.label(0x1152, 'wksp_ch_ext_l', length=1, group='ram_workspace', access='rw', description="Channel table - file EXTENT, low byte (per channel).")
 
-d.label(0x115C, 'wksp_ch_ptr_h', length=1, group='ram_workspace', access='rw')
+d.label(0x115C, 'wksp_ch_ptr_h', length=1, group='ram_workspace', access='rw', description="Channel table - file PTR (sequential position), high byte (per channel).")
 
-d.label(0x1166, 'wksp_ch_ptr_mh', length=1, group='ram_workspace', access='rw')
+d.label(0x1166, 'wksp_ch_ptr_mh', length=1, group='ram_workspace', access='rw', description="Channel table - file PTR, mid-high byte (per channel).")
 
-d.label(0x1170, 'wksp_ch_ptr_ml', length=1, group='ram_workspace', access='rw')
+d.label(0x1170, 'wksp_ch_ptr_ml', length=1, group='ram_workspace', access='rw', description="Channel table - file PTR, mid-low byte (per channel).")
 
-d.label(0x117A, 'wksp_ch_ptr_l', length=1, group='ram_workspace', access='rw')
+d.label(0x117A, 'wksp_ch_ptr_l', length=1, group='ram_workspace', access='rw', description="Channel table - file PTR, low byte (per channel).")
 
-d.label(0x1183, 'wksp_ch_alloc_pad', length=1, group='ram_workspace', access='r')
+d.label(0x1183, 'wksp_ch_alloc_pad', length=1, group='ram_workspace', access='r', description="Channel table - allocated size, padding / first byte (per channel).")
 
-d.label(0x1184, 'wksp_ch_alloc_h', length=1, group='ram_workspace', access='rw')
+d.label(0x1184, 'wksp_ch_alloc_h', length=1, group='ram_workspace', access='rw', description="Channel table - allocated size, high byte (per channel).")
 
-d.label(0x118E, 'wksp_ch_alloc_mh', length=1, group='ram_workspace', access='rw')
+d.label(0x118E, 'wksp_ch_alloc_mh', length=1, group='ram_workspace', access='rw', description="Channel table - allocated size, mid-high byte (per channel).")
 
-d.label(0x1198, 'wksp_ch_alloc_ml', length=1, group='ram_workspace', access='rw')
+d.label(0x1198, 'wksp_ch_alloc_ml', length=1, group='ram_workspace', access='rw', description="Channel table - allocated size, mid-low byte (per channel).")
 
-d.label(0x11A2, 'wksp_ch_alloc_l', length=1, group='ram_workspace', access='rw')
+d.label(0x11A2, 'wksp_ch_alloc_l', length=1, group='ram_workspace', access='rw', description="Channel table - allocated size, low byte (per channel).")
 
-d.label(0x11AC, 'wksp_ch_flags', length=1, group='ram_workspace', access='rw')
+d.label(0x11AC, 'wksp_ch_flags', length=1, group='ram_workspace', access='rw', description="Channel table - per-channel flags (open mode, modified, etc.).")
 
-d.label(0x11B6, 'wksp_ch_start_sec_h', length=1, group='ram_workspace', access='rw')
+d.label(0x11B6, 'wksp_ch_start_sec_h', length=1, group='ram_workspace', access='rw', description="Channel table - file's start sector, high byte (per channel).")
 
-d.label(0x11C0, 'wksp_ch_start_sec_mh', length=1, group='ram_workspace', access='rw')
+d.label(0x11C0, 'wksp_ch_start_sec_mh', length=1, group='ram_workspace', access='rw', description="Channel table - file's start sector, mid-high byte (per channel).")
 
-d.label(0x11CA, 'wksp_ch_start_sec_ml', length=1, group='ram_workspace', access='rw')
+d.label(0x11CA, 'wksp_ch_start_sec_ml', length=1, group='ram_workspace', access='rw', description="Channel table - file's start sector, mid-low byte (per channel).")
 
-d.label(0x11D4, 'wksp_ch_dir_sec_h', length=1, group='ram_workspace', access='rw')
+d.label(0x11D4, 'wksp_ch_dir_sec_h', length=1, group='ram_workspace', access='rw', description="Channel table - parent-directory sector, high byte (per channel).")
 
-d.label(0x11DE, 'wksp_ch_dir_sec_mh', length=1, group='ram_workspace', access='rw')
+d.label(0x11DE, 'wksp_ch_dir_sec_mh', length=1, group='ram_workspace', access='rw', description="Channel table - parent-directory sector, mid-high byte (per channel).")
 
-d.label(0x11E8, 'wksp_ch_dir_sec_ml', length=1, group='ram_workspace', access='rw')
+d.label(0x11E8, 'wksp_ch_dir_sec_ml', length=1, group='ram_workspace', access='rw', description="Channel table - parent-directory sector, mid-low byte (per channel).")
 
-d.label(0x11F2, 'wksp_ch_seq_num', length=1, group='ram_workspace', access='rw')
+d.label(0x11F2, 'wksp_ch_seq_num', length=1, group='ram_workspace', access='rw', description="Channel table - directory sequence number when the file was opened, for staleness checks (per channel).")
 
-d.label(0x10D0, 'wksp_err_sector', length=1, group='ram_workspace', access='rw')
+d.label(0x10D0, 'wksp_err_sector', length=1, group='ram_workspace', access='rw', description="Sector associated with the last disc error, low byte (3 bytes).")
 
 d.label(0x10D1, 'wksp_err_sector_mid', length=1, group='ram_workspace', access='w')
 
 d.label(0x10D2, 'wksp_err_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D3, 'wksp_err_code', length=1, group='ram_workspace', access='rw')
+d.label(0x10D3, 'wksp_err_code', length=1, group='ram_workspace', access='rw', description="Last disc error code.")
 
-d.label(0x10D4, 'wksp_err_handle', length=1, group='ram_workspace', access='rw')
+d.label(0x10D4, 'wksp_err_handle', length=1, group='ram_workspace', access='rw', description="File handle associated with the last error.")
 
-d.label(0x10D5, 'wksp_cur_channel', length=1, group='ram_workspace', access='rw')
+d.label(0x10D5, 'wksp_cur_channel', length=1, group='ram_workspace', access='rw', description="Current open-file channel number.")
 
-d.label(0x10D6, 'wksp_cmd_tail', length=1, group='ram_workspace', access='rw')
+d.label(0x10D6, 'wksp_cmd_tail', length=1, group='ram_workspace', access='rw', description="Pointer to the *command tail, low byte (high at &10D7).")
 
 d.label(0x10D7, 'wksp_cmd_tail_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D8, 'wksp_compaction_reported', length=1, group='ram_workspace', access='rw')
+d.label(0x10D8, 'wksp_compaction_reported', length=1, group='ram_workspace', access='rw', description="Flag: a compaction-needed condition has already been reported.")
 
-d.label(0x10E0, 'wksp_fdc_xfer_mode', length=1, group='ram_workspace', access='rw')
+d.label(0x10E0, 'wksp_fdc_xfer_mode', length=1, group='ram_workspace', access='rw', description="WD1770 transfer direction / mode for the current floppy operation.")
 
-d.label(0x10E1, 'wksp_nmi_owner', length=1, group='ram_workspace', access='rw')
+d.label(0x10E1, 'wksp_nmi_owner', length=1, group='ram_workspace', access='rw', description="Owner of the NMI, claimed during disc transfers and released afterwards.")
 
-d.label(0x10E2, 'wksp_format_page', length=1, group='ram_workspace', access='rw')
+d.label(0x10E2, 'wksp_format_page', length=1, group='ram_workspace', access='rw', description="Page counter / buffer during *FORMAT.")
 
-d.label(0x10E3, 'wksp_err_number', length=1, group='ram_workspace', access='rw')
+d.label(0x10E3, 'wksp_err_number', length=1, group='ram_workspace', access='rw', description="Working error number.")
 
-d.label(0x10E4, 'wksp_fdc_head_state', length=1, group='ram_workspace', access='rw')
+d.label(0x10E4, 'wksp_fdc_head_state', length=1, group='ram_workspace', access='rw', description="WD1770 head / load state.")
 
-d.label(0x10E5, 'wksp_fdc_track_0', length=1, group='ram_workspace', access='rw')
+d.label(0x10E5, 'wksp_fdc_track_0', length=1, group='ram_workspace', access='rw', description="Last known track for drive 0 (head-position cache).")
 
-d.label(0x10E6, 'wksp_fdc_track_1', length=1, group='ram_workspace', access='rw')
+d.label(0x10E6, 'wksp_fdc_track_1', length=1, group='ram_workspace', access='rw', description="Last known track for drive 1 (head-position cache).")
 
-d.label(0x10E7, 'wksp_stack_save', length=1, group='ram_workspace', access='rw')
+d.label(0x10E7, 'wksp_stack_save', length=1, group='ram_workspace', access='rw', description="Saved stack pointer for error recovery.")
 
-d.label(0x10E8, 'wksp_fdc_cmd_step', length=1, group='ram_workspace', access='rw')
+d.label(0x10E8, 'wksp_fdc_cmd_step', length=1, group='ram_workspace', access='rw', description="WD1770 command step-rate setting.")
 
-d.label(0x10FE, 'wksp_alt_csd_sector', length=1, group='ram_workspace', access='w')
+d.label(0x10FE, 'wksp_alt_csd_sector', length=1, group='ram_workspace', access='w', description="Alternative CSD sector store.")
 
 d.label(0x1200, 'dir_buffer', length=1, group='dir_buffer', access='rw', description="Directory buffer (&1200-&16FF, five sectors). Holds the currently loaded directory - a header, up to 47 26-byte entries, and a footer. This is the start of the header.")
 
