@@ -59,103 +59,104 @@ osword_read_clock                        = &01
 osbyte_startup_options                   = &ff
 
 ; Memory locations
-zp_user_ptr_0              = &00
+zp_user_ptr_0              = &00  ; Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers.
 ; &00 referenced 9 times by &a96a, &a9ac, &a9d1, &a9ec, &aa0b, &aa1e, &aa4e, &aa6f, &aa8a
-zp_user_ptr_1              = &01
+zp_user_ptr_1              = &01  ; Caller's zero-page pointer, byte 1 (X-indexed base+1).
 ; &01 referenced 9 times by &a96f, &a9b1, &a9d6, &a9f1, &aa10, &aa23, &aa53, &aa74, &aa8f
-zp_user_ptr_2              = &02
+zp_user_ptr_2              = &02  ; Caller's zero-page pointer, byte 2 (X-indexed base+2).
 ; &02 referenced 9 times by &a972, &a9b6, &a9db, &a9f6, &aa15, &aa28, &aa58, &aa79, &aa94
-zp_user_ptr_3              = &03
+zp_user_ptr_3              = &03  ; Caller's zero-page pointer, byte 3 (X-indexed base+3).
 ; &03 referenced 9 times by &a974, &a9bb, &a9e0, &a9fb, &aa1a, &aa2d, &aa5d, &aa7e, &aa99
-zp_floppy_error            = &a0
+zp_floppy_error            = &a0  ; WD1770 floppy driver: result / error code from the last disc operation.
 ; &a0 referenced 7 times by &bb9d, &bc97, &bcda, &bf15, &bf68, &bf82, &bfd8
-zp_floppy_control          = &a1
+zp_floppy_control          = &a1  ; WD1770 floppy driver: control flags for the current operation (read vs write direction, etc.).
 ; &a1 referenced 16 times by &ba3d, &baec, &baf8, &bba9, &bc09, &bc16, &bc1a, &bc2d, &bc3a, &bc40, &bc5c, &bc99, &bc9c, &bcfd, &be1c, &bf6c
-zp_floppy_state            = &a2
+zp_floppy_state            = &a2  ; WD1770 floppy driver: transfer state-machine flags, rotated through as the operation proceeds.
 ; &a2 referenced 20 times by &bb9f, &bc9e, &bca1, &bca5, &bcc2, &bd2b, &bd2e, &bd31, &bd35, &bd38, &bd3c, &bda9, &bdad, &be36, &be4e, &be72, &be75, &bec9, &becf, &bed3
-zp_floppy_track            = &a3
+zp_floppy_track            = &a3  ; WD1770 floppy driver: target track for the current operation.
 ; &a3 referenced 18 times by &baa7, &bab3, &bad6, &baf6, &bb09, &bd01, &bd41, &bd69, &bd78, &bd85, &bd9b, &bda3, &be4a, &be5a, &bebe, &bf3e, &bf4a, &bfbd
-zp_floppy_sector           = &a4
+zp_floppy_sector           = &a4  ; WD1770 floppy driver: target sector for the current operation.
 ; &a4 referenced 7 times by &ba8c, &bd7d, &bde1, &bee1, &bef2, &bef4, &bf93
-zp_floppy_track_num        = &a5
+zp_floppy_track_num        = &a5  ; WD1770 floppy driver: physical track number, adjusted for the selected head / side.
 ; &a5 referenced 7 times by &ba8e, &ba96, &baf4, &bd6f, &bd9d, &bf95, &bf9d
-zp_floppy_dest_page        = &a6
+zp_floppy_dest_page        = &a6  ; WD1770 floppy driver: high byte of the host transfer address (destination page).
 ; &a6 referenced 7 times by &bd74, &be29, &be2e, &be7b, &bf06, &bf0f, &bf19
-zp_ctrl_blk_lo             = &b0
+zp_ctrl_blk_lo             = &b0  ; Pointer to the current OSWORD &72 disc-access control block, low byte.
 ; &b0 referenced 48 times by &802d, &808c, &8095, &80d4, &80dd, &80e3, &80ef, &80fa, &80ff, &8104, &810b, &8116, &811c, &8127, &8138, &81b1, &8b08, &ac94, &ac99, &accb, &b931, &b96d, &b973, &bafe, &bb32, &bb49, &bb4e, &bb53, &bb57, &bb6c, &bbfe, &bc04, &bc6d, &bc73, &bdb1, &bdb7, &bdbb, &bdda, &bde6, &bdfd, &bf01, &bf57, &bf60, &bf74, &bf78, &bf88, &bf8c, &bfe3
-zp_ctrl_blk_hi             = &b1
+zp_ctrl_blk_hi             = &b1  ; Pointer to the current OSWORD &72 disc-access control block, high byte.
 ; &b1 referenced 10 times by &808e, &81b3, &8b0a, &ac92, &accd, &b939, &b96b, &b979, &bb2e, &bff1
-zp_mem_ptr_lo              = &b2
+zp_mem_ptr_lo              = &b2  ; Pointer to the host memory address for the current data transfer, low byte.
 ; &b2 referenced 35 times by &80fc, &8164, &816e, &81c5, &81d4, &8354, &8362, &84cb, &84d8, &84e1, &84e6, &8504, &8519, &8526, &8540, &8588, &85aa, &85d8, &86bd, &86cd, &86db, &86ff, &8703, &8b4c, &8baa, &982e, &983b, &9848, &9851, &b853, &b867, &b9bd, &b9d8, &b9dc, &bb4b
-zp_mem_ptr_hi              = &b3
+zp_mem_ptr_hi              = &b3  ; Pointer to the host memory address for the current data transfer, high byte.
 ; &b3 referenced 19 times by &8101, &8173, &81cd, &81d9, &8357, &845a, &8460, &8464, &8634, &863c, &8689, &86a1, &86fa, &8701, &8b51, &b858, &b86d, &b9c4, &bb50
-zp_text_ptr_lo             = &b4
+zp_text_ptr_lo             = &b4  ; Pointer to the command / text string being parsed, low byte.
 ; &b4 referenced 100 times by &8708, &871a, &87d3, &8905, &890d, &890f, &891a, &8928, &8995, &8997, &8bca, &8cac, &8ccd, &8cf0, &8dc0, &8e2b, &8e37, &8e49, &8e4b, &8e4d, &8e59, &8e5f, &8e67, &8e71, &910c, &9260, &9451, &9473, &9582, &95b7, &960d, &9806, &9819, &98c3, &98f3, &9914, &996a, &9979, &9988, &99e6, &99fb, &9a27, &9a39, &9baa, &9bbb, &9c3d, &9e50, &9e68, &9e9a, &9ea0, &9eab, &9eb7, &9ec5, &9ec7, &9ed0, &9fdd, &a104, &a170, &a25d, &a27b, &a2af, &a2b5, &a2c0, &a2ca, &a2e0, &a36b, &a373, &a37a, &a399, &a3ab, &a3bc, &a4c7, &a4c9, &a4d3, &a4ed, &a4ef, &a4f8, &a503, &a523, &a52c, &a581, &a59f, &a5a6, &a5b6, &a5b8, &a5c9, &a670, &a6a5, &a7c3, &a841, &ad3a, &b1bc, &b366, &b87f, &b8f1, &b915, &b952, &b956, &b960, &b965
-zp_text_ptr_hi             = &b5
+zp_text_ptr_hi             = &b5  ; Pointer to the command / text string being parsed, high byte.
 ; &b5 referenced 59 times by &870c, &8908, &8913, &8915, &891f, &8925, &899b, &8cb1, &8cd2, &8e30, &8e3b, &8e53, &8e5d, &8e6c, &9111, &9265, &9587, &980a, &981d, &98c7, &98fb, &9918, &99e9, &99f8, &9a2a, &9a36, &9bac, &9c41, &9e52, &9e6a, &9ecb, &9ed5, &a000, &a174, &a368, &a380, &a39d, &a3af, &a3c1, &a4cd, &a4f3, &a506, &a527, &a57d, &a59c, &a5bc, &a66d, &a6a9, &a7c8, &a846, &ad50, &b1c5, &b1de, &b36b, &b3a8, &b8f5, &b919, &b950, &b969
-zp_entry_ptr_lo            = &b6
+zp_entry_ptr_lo            = &b6  ; Pointer to the current directory entry being scanned in the directory buffer, low byte.
 ; &b6 referenced 173 times by &8746, &87f2, &87fd, &8801, &88f1, &892e, &8952, &895f, &8963, &896b, &8977, &897d, &89be, &8bc1, &8bec, &8c0c, &8c27, &8c43, &8c50, &8c69, &8c86, &8cba, &8d09, &8d12, &8d4c, &8dfc, &8e03, &8e0f, &8e4f, &8e85, &8ea0, &8eab, &8eb2, &8eba, &8ec2, &8ec8, &8ed0, &8ed4, &8ef1, &8ef8, &8f1b, &8f27, &8f30, &8f41, &8f44, &8f47, &8f5f, &90a2, &90c3, &90d8, &90eb, &90f2, &912d, &9172, &9179, &9185, &9190, &9214, &921f, &9221, &9223, &9229, &9283, &9289, &92a1, &92a8, &92b9, &92c7, &92d8, &92ea, &9309, &932f, &935e, &9384, &939b, &93b5, &93c7, &93de, &93f9, &93fd, &943b, &9443, &9447, &945b, &9469, &9486, &94b7, &9509, &950e, &951f, &95c5, &95cf, &95d3, &95db, &95df, &97c3, &97df, &97ef, &97fb, &9804, &980c, &9811, &981b, &9877, &987c, &989f, &98df, &98e5, &98f1, &9929, &992c, &9930, &9947, &994b, &9956, &995b, &9961, &9963, &999a, &999e, &99cd, &99d1, &9c4a, &9c59, &9c6a, &a3c8, &a3cd, &a3d6, &a3eb, &a3ee, &a3f1, &a413, &a417, &a519, &a55c, &a58e, &a5c2, &a5da, &a5f2, &a5f6, &a5ff, &a618, &a623, &a635, &a651, &a658, &a687, &a699, &a7d2, &a837, &a885, &a888, &a894, &a8a3, &a8a9, &a8af, &a8ca, &b243, &b252, &b25d, &b263, &b269, &b26f, &b278, &b27e, &b284, &b28a, &b290, &b296, &b29c, &b2a5, &b2f4, &b30b
-zp_entry_ptr_hi            = &b7
+zp_entry_ptr_hi            = &b7  ; Pointer to the current directory entry being scanned in the directory buffer, high byte.
 ; &b7 referenced 36 times by &8805, &88f5, &8967, &8e55, &8eb5, &8ebe, &8ed8, &8eee, &9227, &922f, &927e, &92a4, &92be, &92ca, &92d5, &9333, &9362, &9388, &939f, &93b9, &93cb, &9401, &944b, &945f, &946d, &94c3, &9808, &9815, &981f, &98f9, &9923, &9934, &a3d8, &a7cd, &a83c, &a899
-zp_osfile_ptr_lo           = &b8
+zp_osfile_ptr_lo           = &b8  ; Pointer to the OSFILE control block, low byte.
 ; &b8 referenced 42 times by &8a37, &8c12, &8c17, &8c79, &8ca5, &8caa, &8caf, &8ccb, &8cd0, &8e8d, &9092, &90b3, &90d1, &9118, &923e, &925e, &9263, &958e, &99ee, &9e84, &a40a, &a54c, &a643, &a81f, &ae21, &ae2b, &ae37, &ae3f, &ae4c, &ae51, &af14, &af1a, &af23, &af2c, &af35, &af3e, &af47, &b351, &b44b, &b451, &b457, &b45d
-zp_osfile_ptr_hi           = &b9
+zp_osfile_ptr_hi           = &b9  ; Pointer to the OSFILE control block, high byte.
 ; &b9 referenced 13 times by &8a39, &911c, &9240, &9592, &99f2, &9e88, &a40c, &a550, &a647, &a823, &ae25, &ae55, &b355
-zp_wksp_ptr_lo             = &ba
+zp_wksp_ptr_lo             = &ba  ; Saved pointer into ADFS workspace, low byte.
 ; &ba referenced 16 times by &8a2a, &8a32, &9b08, &9b14, &9be4, &9bec, &9c08, &9d2d, &9d35, &9d61, &a717, &a721, &a726, &a72e, &a734, &a941
-zp_wksp_ptr_hi             = &bb
+zp_wksp_ptr_hi             = &bb  ; Saved pointer into ADFS workspace, high byte.
 ; &bb referenced 2 times by &9d31, &a713
-zp_buf_src_lo              = &bc
+zp_buf_src_lo              = &bc  ; Source pointer for buffer copies, low byte.
 ; &bc referenced 5 times by &ab06, &ab63, &b863, &b86f, &ba41
-zp_buf_src_hi              = &bd
+zp_buf_src_hi              = &bd  ; Source pointer for buffer copies, high byte.
 ; &bd referenced 5 times by &ab02, &b84e, &b865, &b869, &ba46
-zp_buf_dest_lo             = &be
+zp_buf_dest_lo             = &be  ; Destination pointer for buffer copies, low byte.
 ; &be referenced 11 times by &abd5, &acc1, &adbd, &afb9, &b025, &b117, &b9d6, &b9de, &b9e7, &b9f1, &ba4d
-zp_buf_dest_hi             = &bf
+zp_buf_dest_hi             = &bf  ; Destination pointer for buffer copies, high byte.
 ; &bf referenced 2 times by &abd1, &ba52
-zp_name_ptr_lo             = &c0
+zp_name_ptr_lo             = &c0  ; Pointer to the filename being matched, low byte.
 ; &c0 referenced 13 times by &98b0, &98e9, &98f5, &98f7, &98fd, &98ff, &990e, &991f, &9921, &9925, &9927, &a39b, &a3a9
-zp_name_ptr_hi             = &c1
+zp_name_ptr_hi             = &c1  ; Pointer to the filename being matched, high byte.
 ; &c1 referenced 7 times by &98bf, &a39f, &a3ad, &ab30, &ab3d, &ab4b, &ab75
-zp_save_y                  = &c2
+zp_save_y                  = &c2  ; Scratch save slot for the Y register (also reused to hold a file handle).
 ; &c2 referenced 6 times by &a9c4, &acfe, &ad85, &adbf, &b11e, &b5dd
-zp_save_x                  = &c3
+zp_save_x                  = &c3  ; Scratch save slot for the X register (zero-page pointer base).
 ; &c3 referenced 17 times by &a962, &a976, &a998, &a9a7, &a9c2, &a9cf, &a9e8, &aa03, &aa49, &aa65, &aa86, &ad63, &ad87, &adc1, &b08f, &b120, &b5eb
-zp_osfind_y                = &c4
+zp_osfind_y                = &c4  ; Saved Y register across OSFIND processing.
 ; &c4 referenced 4 times by &b1c0, &b2de, &b383, &b3ec
-zp_osfind_x                = &c5
+zp_osfind_x                = &c5  ; Saved X register across OSFIND processing.
 ; &c5 referenced 5 times by &b1be, &b2dc, &b38f, &b3a0, &b3ee
-zp_gspb_ptr_lo             = &c6
+zp_gspb_ptr_lo             = &c6  ; Pointer to the OSGBPB control block, low byte. The free-space-map compaction code at &A069 reuses this location as a scratch map index.
 ; &c6 referenced 28 times by &a069, &a07f, &a090, &b58a, &b590, &b5a9, &b5d3, &b5e9, &b60c, &b615, &b61e, &b627, &b634, &b63b, &b678, &b67d, &b68e, &b69a, &b6a6, &b6b2, &b6bc, &b6be, &b71b, &b92b, &b92f, &b937, &b975, &b97b
-zp_gspb_ptr_hi             = &c7
+zp_gspb_ptr_hi             = &c7  ; Pointer to the OSGBPB control block, high byte.
 ; &c7 referenced 2 times by &b588, &b71d
-zp_temp_ptr                = &c8
+zp_temp_ptr                = &c8  ; Temporary 4-byte pointer (byte 0) used for disc-sector address arithmetic, e.g. adding or subtracting a PTR offset.
 ; &c8 referenced 5 times by &b5d5, &b656, &b6c4, &b6f1, &b789
-zp_temp_ptr_1              = &c9
+zp_temp_ptr_1              = &c9  ; Temporary 4-byte pointer, byte 1.
 ; &c9 referenced 4 times by &b65e, &b6d1, &b700, &b790
-zp_temp_ptr_2              = &ca
+zp_temp_ptr_2              = &ca  ; Temporary 4-byte pointer, byte 2.
 ; &ca referenced 3 times by &b666, &b6d9, &b798
-zp_temp_ptr_3              = &cb
+zp_temp_ptr_3              = &cb  ; Temporary 4-byte pointer, byte 3.
 ; &cb referenced 3 times by &b66e, &b6e1, &b7a0
-zp_scsi_status             = &cc
+zp_scsi_status             = &cc  ; Holds a SCSI status byte read back from the host adapter while waiting for the bus to settle.
 ; &cc referenced 3 times by &805a, &805f, &8318
-zp_adfs_flags              = &cd
+zp_adfs_flags              = &cd  ; Primary ADFS state flags, the most heavily consulted flag byte. Bit 6 = Tube in use; also records Tube presence and other per-operation conditions.
 ; &cd referenced 68 times by &8029, &8035, &8039, &8043, &804e, &8052, &80c6, &8149, &815e, &81ba, &830a, &834b, &834f, &8359, &835d, &8837, &887e, &8882, &888b, &888f, &8a1d, &8b18, &8b7f, &8b9e, &8fd6, &8fda, &94fa, &96a6, &977d, &9b1a, &9b1d, &9bf6, &9c00, &9c04, &9c7c, &9c85, &9d8c, &9fe7, &9fed, &9ff1, &a34a, &a34e, &a353, &a357, &a434, &a90b, &a90f, &ab32, &ab6d, &ab6f, &ab78, &ab91, &ab94, &ac9b, &af52, &af56, &b825, &b83c, &b840, &b85b, &b98b, &b99d, &b9a1, &b9d0, &bb63, &bbab, &bc12, &bd7f
-zp_retry_count             = &ce
+zp_retry_count             = &ce  ; Retry counter for disc operations, decremented on each failed attempt.
 ; &ce referenced 6 times by &8083, &80c2, &8b00, &ab44, &ab5c, &acab
-zp_channel_offset          = &cf
+zp_channel_offset          = &cf  ; Index of the current open-file channel within the channel tables.
 ; &cf referenced 36 times by &a9a2, &a9ea, &aa05, &aa88, &aaae, &ac12, &ad0d, &ad16, &ad79, &ad8d, &adb0, &add6, &ae09, &ae27, &ae77, &af12, &af8f, &afb2, &b060, &b0ee, &b111, &b123, &b18c, &b203, &b25b, &b276, &b372, &b3aa, &b3af, &b5b3, &b604, &b650, &b683, &b6cb, &b787, &b7eb
-zp_osbyte_last_a           = &ef
+zp_osbyte_last_a           = &ef  ; MOS scratch: A on entry to the last OSBYTE / OSWORD. ADFS reads the OSWORD routine number here when dispatching OSWORD &72.
 ; &ef referenced 1 time by &9d25
-zp_osbyte_last_x           = &f0
+zp_osword_pb_ptr           = &f0  ; MOS scratch (X on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, low byte. ADFS reads the disc-access control-block address here.
 ; &f0 referenced 5 times by &9d2b, &9d7a, &9d8a, &9d8f, &9da0
-zp_osbyte_last_y           = &f1
+zp_osword_pb_ptr_hi        = &f1  ; MOS scratch (Y on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, high byte.
 ; &f1 referenced 1 time by &9d2f
-os_text_ptr                = &f2
+os_text_ptr                = &f2  ; MOS command-line text pointer (&F2/&F3). ADFS reads through it to fetch each character of a *command tail.
 ; &f2 referenced 7 times by &9cdf, &9cee, &9cff, &9dc0, &9ddb, &9df1, &9e02
-romsel_copy                = &f4
+romsel_copy                = &f4  ; MOS RAM copy of the paged-ROM select latch. ADFS reads it to discover its own ROM bank number.
 ; &f4 referenced 17 times by &9acc, &9ade, &9ae8, &9b32, &9b66, &9bb9, &9ca4, &9d16, &9d63, &9d6a, &9dd5, &a327, &a70e, &bc27, &bca9, &bcae, &bcbb
-zp_escape_flag             = &ff
+osrdsc_ptr                 = &f6  ; MOS address pointer (&F6/&F7) used with paged-ROM / OSRDSC access.
+zp_escape_flag             = &ff  ; MOS Escape flag (bit 7 set when an Escape is pending); ADFS polls it during long operations.
 ; &ff referenced 2 times by &80af, &bccf
 brk_error_block            = &0100
 ; &0100 referenced 11 times by &8364, &836e, &8389, &839a, &83a0, &83b8, &83c7, &83fc, &8419, &843a, &8471
@@ -6686,9 +6687,9 @@ str_run_boot = str_l_boot+2
     lda zp_osbyte_last_a                                              ; 9d25: a5 ef       ..       ; Get OSWORD number from &EF
     cmp #&72 ; 'r'                                                    ; 9d27: c9 72       .r       ; Is it OSWORD &72 (disc access)?
     bne check_transfer_complete                                       ; 9d29: d0 46       .F       ; No, check other OSWORD numbers
-    lda zp_osbyte_last_x                                              ; 9d2b: a5 f0       ..       ; Get control block address from &F0
+    lda zp_osword_pb_ptr                                              ; 9d2b: a5 f0       ..       ; Get control block address from &F0
     sta zp_wksp_ptr_lo                                                ; 9d2d: 85 ba       ..       ; Store in (&BA) for access
-    lda zp_osbyte_last_y                                              ; 9d2f: a5 f1       ..       ; Get control block high byte
+    lda zp_osword_pb_ptr_hi                                           ; 9d2f: a5 f1       ..       ; Get control block high byte
     sta zp_wksp_ptr_hi                                                ; 9d31: 85 bb       ..       ; Store in (&BB)
     ldy #&0f                                                          ; 9d33: a0 0f       ..       ; Y=&0F: copy 16 bytes of ctrl block
 ; &9d35 referenced 1 time by &9d3b
@@ -6743,7 +6744,7 @@ str_run_boot = str_l_boot+2
 ; &9d77 referenced 1 time by &9d7d
 .copy_transfer_count_loop
     lda wksp_err_sector,y                                             ; 9d77: b9 d0 10    ...      ; Copy error sector+code to block
-    sta (zp_osbyte_last_x),y                                          ; 9d7a: 91 f0       ..       ; Store error byte in control block
+    sta (zp_osword_pb_ptr),y                                          ; 9d7a: 91 f0       ..       ; Store error byte in control block
     dey                                                               ; 9d7c: 88          .        ; Next byte
     bpl copy_transfer_count_loop                                      ; 9d7d: 10 f8       ..       ; Loop for 5 error bytes
     bmi set_result_error_code                                         ; 9d7f: 30 e2       0.       ; Return as claimed
@@ -6753,10 +6754,10 @@ str_run_boot = str_l_boot+2
     bne store_adjusted_count                                          ; 9d83: d0 0f       ..       ; No, check next
     lda dir_master_sequence                                           ; 9d85: ad fa 16    ...      ; Get directory master sequence
     ldy #0                                                            ; 9d88: a0 00       ..       ; Y=0: store at block+0
-    sta (zp_osbyte_last_x),y                                          ; 9d8a: 91 f0       ..       ; Write sequence number to block
+    sta (zp_osword_pb_ptr),y                                          ; 9d8a: 91 f0       ..       ; Write sequence number to block
     lda zp_adfs_flags                                                 ; 9d8c: a5 cd       ..       ; Get ADFS flags
     iny                                                               ; 9d8e: c8          .     
-    sta (zp_osbyte_last_x),y                                          ; 9d8f: 91 f0       ..       ; Write flags to block+1
+    sta (zp_osword_pb_ptr),y                                          ; 9d8f: 91 f0       ..       ; Write flags to block+1
     jmp set_result_error_code                                         ; 9d91: 4c 63 9d    Lc.      ; Return as claimed
 ; &9d94 referenced 1 time by &9d83
 .store_adjusted_count
@@ -6767,7 +6768,7 @@ str_run_boot = str_l_boot+2
 ; &9d9d referenced 1 time by &9da3
 .copy_adjusted_bytes_loop
     lda wksp_disc_op_result,y                                         ; 9d9d: b9 15 10    ...      ; Copy free space to control block
-    sta (zp_osbyte_last_x),y                                          ; 9da0: 91 f0       ..       ; Store free space byte
+    sta (zp_osword_pb_ptr),y                                          ; 9da0: 91 f0       ..       ; Store free space byte
     dey                                                               ; 9da2: 88          .        ; Next byte
     bpl copy_adjusted_bytes_loop                                      ; 9da3: 10 f8       ..       ; Loop for 4 bytes
     bmi set_result_error_code                                         ; 9da5: 30 bc       0.       ; Return as claimed
@@ -12619,8 +12620,8 @@ save pydis_start, pydis_end
 ;     wksp_prev_dir_sector_hi:                   5
 ;     zp_buf_src_hi:                             5
 ;     zp_buf_src_lo:                             5
-;     zp_osbyte_last_x:                          5
 ;     zp_osfind_x:                               5
+;     zp_osword_pb_ptr:                          5
 ;     zp_temp_ptr:                               5
 ;     bad_drive_name:                            4
 ;     bad_name_in_path:                          4
@@ -13860,7 +13861,7 @@ save pydis_start, pydis_end
 ;     zero_entire_sector_loop:                   1
 ;     zero_fill_sector_loop:                     1
 ;     zp_osbyte_last_a:                          1
-;     zp_osbyte_last_y:                          1
+;     zp_osword_pb_ptr_hi:                       1
 
 ; Automatically generated labels:
 ;     c8dab

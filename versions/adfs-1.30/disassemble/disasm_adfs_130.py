@@ -131,21 +131,24 @@ d.constant(0xDF, 'err_eof')
 d.constant(0xFD, 'err_wild_cards')
 d.constant(0xFE, 'err_bad_command')
 
-d.label(0x0000, 'zp_user_ptr_0', length=1, group='zero_page', access='rw')
+d.label(0x0000, 'zp_user_ptr_0', length=1, group='zero_page', access='rw', description="Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers.")
 
-d.label(0x0001, 'zp_user_ptr_1', length=1, group='zero_page', access='rw')
+d.label(0x0001, 'zp_user_ptr_1', length=1, group='zero_page', access='rw', description="Caller's zero-page pointer, byte 1 (X-indexed base+1).")
 
-d.label(0x0002, 'zp_user_ptr_2', length=1, group='zero_page', access='rw')
+d.label(0x0002, 'zp_user_ptr_2', length=1, group='zero_page', access='rw', description="Caller's zero-page pointer, byte 2 (X-indexed base+2).")
 
-d.label(0x0003, 'zp_user_ptr_3', length=1, group='zero_page', access='rw')
+d.label(0x0003, 'zp_user_ptr_3', length=1, group='zero_page', access='rw', description="Caller's zero-page pointer, byte 3 (X-indexed base+3).")
 
-d.label(0x00EF, 'zp_osbyte_last_a', length=1, group='zero_page', access='r')
+d.label(0x00EF, 'zp_osbyte_last_a', length=1, group='zero_page', access='r', description="MOS scratch: A on entry to the last OSBYTE / OSWORD. ADFS reads the OSWORD routine number here when dispatching OSWORD &72.")
 
-d.label(0x00F0, 'zp_osbyte_last_x', length=1, group='zero_page', access='rw')
+d.label(0x00F0, 'zp_osword_pb_ptr', length=1, group='zero_page', access='rw', description="MOS scratch (X on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, low byte. ADFS reads the disc-access control-block address here.")
 
-d.label(0x00F1, 'zp_osbyte_last_y', length=1, group='zero_page', access='r')
+d.label(0x00F1, 'zp_osword_pb_ptr_hi', length=1, group='zero_page', access='r', description="MOS scratch (Y on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, high byte.")
 
-d.label(0x00FF, 'zp_escape_flag', length=1, group='zero_page', access='r')
+d.label(0x00F2, 'os_text_ptr', length=2, group='zero_page', access='r', description="MOS command-line text pointer (&F2/&F3). ADFS reads through it to fetch each character of a *command tail.")
+d.label(0x00F4, 'romsel_copy', length=1, group='zero_page', access='rw', description="MOS RAM copy of the paged-ROM select latch. ADFS reads it to discover its own ROM bank number.")
+d.label(0x00F6, 'osrdsc_ptr', length=2, group='zero_page', access='rw', description="MOS address pointer (&F6/&F7) used with paged-ROM / OSRDSC access.")
+d.label(0x00FF, 'zp_escape_flag', length=1, group='zero_page', access='r', description="MOS Escape flag (bit 7 set when an Escape is pending); ADFS polls it during long operations.")
 
 d.label(0x0100, 'brk_error_block')
 
@@ -167,83 +170,83 @@ d.label(0x0E03, 'fsm_s0_first_length', length=1, group='free_space_map', access=
 
 d.label(0xFFFF, 'nmi_patched_addr')
 
-d.label(0x00A0, 'zp_floppy_error', length=1, group='zero_page', access='rw')
+d.label(0x00A0, 'zp_floppy_error', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: result / error code from the last disc operation.")
 
-d.label(0x00A1, 'zp_floppy_control', length=1, group='zero_page', access='rw')
+d.label(0x00A1, 'zp_floppy_control', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: control flags for the current operation (read vs write direction, etc.).")
 
-d.label(0x00A2, 'zp_floppy_state', length=1, group='zero_page', access='rw')
+d.label(0x00A2, 'zp_floppy_state', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: transfer state-machine flags, rotated through as the operation proceeds.")
 
-d.label(0x00A3, 'zp_floppy_track', length=1, group='zero_page', access='rw')
+d.label(0x00A3, 'zp_floppy_track', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: target track for the current operation.")
 
-d.label(0x00A4, 'zp_floppy_sector', length=1, group='zero_page', access='rw')
+d.label(0x00A4, 'zp_floppy_sector', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: target sector for the current operation.")
 
-d.label(0x00A5, 'zp_floppy_track_num', length=1, group='zero_page', access='rw')
+d.label(0x00A5, 'zp_floppy_track_num', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: physical track number, adjusted for the selected head / side.")
 
-d.label(0x00A6, 'zp_floppy_dest_page', length=1, group='zero_page', access='rw')
+d.label(0x00A6, 'zp_floppy_dest_page', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: high byte of the host transfer address (destination page).")
 
-d.label(0x00B0, 'zp_ctrl_blk_lo', length=1, group='zero_page', access='rw')
+d.label(0x00B0, 'zp_ctrl_blk_lo', length=1, group='zero_page', access='rw', description="Pointer to the current OSWORD &72 disc-access control block, low byte.")
 
-d.label(0x00B1, 'zp_ctrl_blk_hi', length=1, group='zero_page', access='rw')
+d.label(0x00B1, 'zp_ctrl_blk_hi', length=1, group='zero_page', access='rw', description="Pointer to the current OSWORD &72 disc-access control block, high byte.")
 
-d.label(0x00B2, 'zp_mem_ptr_lo', length=1, group='zero_page', access='rw')
+d.label(0x00B2, 'zp_mem_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the host memory address for the current data transfer, low byte.")
 
-d.label(0x00B3, 'zp_mem_ptr_hi', length=1, group='zero_page', access='rw')
+d.label(0x00B3, 'zp_mem_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the host memory address for the current data transfer, high byte.")
 
-d.label(0x00B4, 'zp_text_ptr_lo', length=1, group='zero_page', access='rw')
+d.label(0x00B4, 'zp_text_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the command / text string being parsed, low byte.")
 
-d.label(0x00B5, 'zp_text_ptr_hi', length=1, group='zero_page', access='rw')
+d.label(0x00B5, 'zp_text_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the command / text string being parsed, high byte.")
 
-d.label(0x00B6, 'zp_entry_ptr_lo', length=1, group='zero_page', access='rw')
+d.label(0x00B6, 'zp_entry_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the current directory entry being scanned in the directory buffer, low byte.")
 
-d.label(0x00B7, 'zp_entry_ptr_hi', length=1, group='zero_page', access='rw')
+d.label(0x00B7, 'zp_entry_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the current directory entry being scanned in the directory buffer, high byte.")
 
-d.label(0x00B8, 'zp_osfile_ptr_lo', length=1, group='zero_page', access='rw')
+d.label(0x00B8, 'zp_osfile_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the OSFILE control block, low byte.")
 
-d.label(0x00B9, 'zp_osfile_ptr_hi', length=1, group='zero_page', access='rw')
+d.label(0x00B9, 'zp_osfile_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the OSFILE control block, high byte.")
 
-d.label(0x00BA, 'zp_wksp_ptr_lo', length=1, group='zero_page', access='rw')
+d.label(0x00BA, 'zp_wksp_ptr_lo', length=1, group='zero_page', access='rw', description="Saved pointer into ADFS workspace, low byte.")
 
-d.label(0x00BB, 'zp_wksp_ptr_hi', length=1, group='zero_page', access='w')
+d.label(0x00BB, 'zp_wksp_ptr_hi', length=1, group='zero_page', access='w', description="Saved pointer into ADFS workspace, high byte.")
 
-d.label(0x00BC, 'zp_buf_src_lo', length=1, group='zero_page', access='rw')
+d.label(0x00BC, 'zp_buf_src_lo', length=1, group='zero_page', access='rw', description="Source pointer for buffer copies, low byte.")
 
-d.label(0x00BD, 'zp_buf_src_hi', length=1, group='zero_page', access='rw')
+d.label(0x00BD, 'zp_buf_src_hi', length=1, group='zero_page', access='rw', description="Source pointer for buffer copies, high byte.")
 
-d.label(0x00BE, 'zp_buf_dest_lo', length=1, group='zero_page', access='rw')
+d.label(0x00BE, 'zp_buf_dest_lo', length=1, group='zero_page', access='rw', description="Destination pointer for buffer copies, low byte.")
 
-d.label(0x00BF, 'zp_buf_dest_hi', length=1, group='zero_page', access='rw')
+d.label(0x00BF, 'zp_buf_dest_hi', length=1, group='zero_page', access='rw', description="Destination pointer for buffer copies, high byte.")
 
-d.label(0x00C0, 'zp_name_ptr_lo', length=1, group='zero_page', access='rw')
+d.label(0x00C0, 'zp_name_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the filename being matched, low byte.")
 
-d.label(0x00C1, 'zp_name_ptr_hi', length=1, group='zero_page', access='rw')
+d.label(0x00C1, 'zp_name_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the filename being matched, high byte.")
 
-d.label(0x00C2, 'zp_save_y', length=1, group='zero_page', access='rw')
+d.label(0x00C2, 'zp_save_y', length=1, group='zero_page', access='rw', description="Scratch save slot for the Y register (also reused to hold a file handle).")
 
-d.label(0x00C3, 'zp_save_x', length=1, group='zero_page', access='rw')
+d.label(0x00C3, 'zp_save_x', length=1, group='zero_page', access='rw', description="Scratch save slot for the X register (zero-page pointer base).")
 
-d.label(0x00C4, 'zp_osfind_y', length=1, group='zero_page', access='rw')
+d.label(0x00C4, 'zp_osfind_y', length=1, group='zero_page', access='rw', description="Saved Y register across OSFIND processing.")
 
-d.label(0x00C5, 'zp_osfind_x', length=1, group='zero_page', access='rw')
+d.label(0x00C5, 'zp_osfind_x', length=1, group='zero_page', access='rw', description="Saved X register across OSFIND processing.")
 
-d.label(0x00C6, 'zp_gspb_ptr_lo', length=1, group='zero_page', access='rw')
+d.label(0x00C6, 'zp_gspb_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the OSGBPB control block, low byte. The free-space-map compaction code at [&A069](address:A069) reuses this location as a scratch map index.")
 
-d.label(0x00C7, 'zp_gspb_ptr_hi', length=1, group='zero_page', access='rw')
+d.label(0x00C7, 'zp_gspb_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the OSGBPB control block, high byte.")
 
-d.label(0x00C8, 'zp_temp_ptr', length=1, group='zero_page', access='rw')
+d.label(0x00C8, 'zp_temp_ptr', length=1, group='zero_page', access='rw', description="Temporary 4-byte pointer (byte 0) used for disc-sector address arithmetic, e.g. adding or subtracting a PTR offset.")
 
-d.label(0x00C9, 'zp_temp_ptr_1', length=1, group='zero_page', access='r')
+d.label(0x00C9, 'zp_temp_ptr_1', length=1, group='zero_page', access='r', description="Temporary 4-byte pointer, byte 1.")
 
-d.label(0x00CA, 'zp_temp_ptr_2', length=1, group='zero_page', access='r')
+d.label(0x00CA, 'zp_temp_ptr_2', length=1, group='zero_page', access='r', description="Temporary 4-byte pointer, byte 2.")
 
-d.label(0x00CB, 'zp_temp_ptr_3', length=1, group='zero_page', access='r')
+d.label(0x00CB, 'zp_temp_ptr_3', length=1, group='zero_page', access='r', description="Temporary 4-byte pointer, byte 3.")
 
-d.label(0x00CC, 'zp_scsi_status', length=1, group='zero_page', access='rw')
+d.label(0x00CC, 'zp_scsi_status', length=1, group='zero_page', access='rw', description="Holds a SCSI status byte read back from the host adapter while waiting for the bus to settle.")
 
-d.label(0x00CD, 'zp_adfs_flags', length=1, group='zero_page', access='rw')
+d.label(0x00CD, 'zp_adfs_flags', length=1, group='zero_page', access='rw', description="Primary ADFS state flags, the most heavily consulted flag byte. Bit 6 = Tube in use; also records Tube presence and other per-operation conditions.")
 
-d.label(0x00CE, 'zp_retry_count', length=1, group='zero_page', access='rw')
+d.label(0x00CE, 'zp_retry_count', length=1, group='zero_page', access='rw', description="Retry counter for disc operations, decremented on each failed attempt.")
 
-d.label(0x00CF, 'zp_channel_offset', length=1, group='zero_page', access='rw')
+d.label(0x00CF, 'zp_channel_offset', length=1, group='zero_page', access='rw', description="Index of the current open-file channel within the channel tables.")
 
 d.label(0x0E00, 'fsm_sector_0', length=1, group='free_space_map', access='rw')
 

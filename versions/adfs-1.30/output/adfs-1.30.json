@@ -2339,8 +2339,8 @@
     "zp_retry_count": 206,
     "zp_channel_offset": 207,
     "zp_osbyte_last_a": 239,
-    "zp_osbyte_last_x": 240,
-    "zp_osbyte_last_y": 241,
+    "zp_osword_pb_ptr": 240,
+    "zp_osword_pb_ptr_hi": 241,
     "os_text_ptr": 242,
     "romsel_copy": 244,
     "osrdsc_ptr": 246,
@@ -2727,329 +2727,400 @@
       "name": "zp_user_ptr_0",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers."
     },
     {
       "addr": 1,
       "name": "zp_user_ptr_1",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Caller's zero-page pointer, byte 1 (X-indexed base+1)."
     },
     {
       "addr": 2,
       "name": "zp_user_ptr_2",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Caller's zero-page pointer, byte 2 (X-indexed base+2)."
     },
     {
       "addr": 3,
       "name": "zp_user_ptr_3",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Caller's zero-page pointer, byte 3 (X-indexed base+3)."
     },
     {
       "addr": 160,
       "name": "zp_floppy_error",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 floppy driver: result / error code from the last disc operation."
     },
     {
       "addr": 161,
       "name": "zp_floppy_control",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 floppy driver: control flags for the current operation (read vs write direction, etc.)."
     },
     {
       "addr": 162,
       "name": "zp_floppy_state",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 floppy driver: transfer state-machine flags, rotated through as the operation proceeds."
     },
     {
       "addr": 163,
       "name": "zp_floppy_track",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 floppy driver: target track for the current operation."
     },
     {
       "addr": 164,
       "name": "zp_floppy_sector",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 floppy driver: target sector for the current operation."
     },
     {
       "addr": 165,
       "name": "zp_floppy_track_num",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 floppy driver: physical track number, adjusted for the selected head / side."
     },
     {
       "addr": 166,
       "name": "zp_floppy_dest_page",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "WD1770 floppy driver: high byte of the host transfer address (destination page)."
     },
     {
       "addr": 176,
       "name": "zp_ctrl_blk_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the current OSWORD &72 disc-access control block, low byte."
     },
     {
       "addr": 177,
       "name": "zp_ctrl_blk_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the current OSWORD &72 disc-access control block, high byte."
     },
     {
       "addr": 178,
       "name": "zp_mem_ptr_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the host memory address for the current data transfer, low byte."
     },
     {
       "addr": 179,
       "name": "zp_mem_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the host memory address for the current data transfer, high byte."
     },
     {
       "addr": 180,
       "name": "zp_text_ptr_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the command / text string being parsed, low byte."
     },
     {
       "addr": 181,
       "name": "zp_text_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the command / text string being parsed, high byte."
     },
     {
       "addr": 182,
       "name": "zp_entry_ptr_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the current directory entry being scanned in the directory buffer, low byte."
     },
     {
       "addr": 183,
       "name": "zp_entry_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the current directory entry being scanned in the directory buffer, high byte."
     },
     {
       "addr": 184,
       "name": "zp_osfile_ptr_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the OSFILE control block, low byte."
     },
     {
       "addr": 185,
       "name": "zp_osfile_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the OSFILE control block, high byte."
     },
     {
       "addr": 186,
       "name": "zp_wksp_ptr_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved pointer into ADFS workspace, low byte."
     },
     {
       "addr": 187,
       "name": "zp_wksp_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "w"
+      "access": "w",
+      "description": "Saved pointer into ADFS workspace, high byte."
     },
     {
       "addr": 188,
       "name": "zp_buf_src_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Source pointer for buffer copies, low byte."
     },
     {
       "addr": 189,
       "name": "zp_buf_src_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Source pointer for buffer copies, high byte."
     },
     {
       "addr": 190,
       "name": "zp_buf_dest_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Destination pointer for buffer copies, low byte."
     },
     {
       "addr": 191,
       "name": "zp_buf_dest_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Destination pointer for buffer copies, high byte."
     },
     {
       "addr": 192,
       "name": "zp_name_ptr_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the filename being matched, low byte."
     },
     {
       "addr": 193,
       "name": "zp_name_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the filename being matched, high byte."
     },
     {
       "addr": 194,
       "name": "zp_save_y",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Scratch save slot for the Y register (also reused to hold a file handle)."
     },
     {
       "addr": 195,
       "name": "zp_save_x",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Scratch save slot for the X register (zero-page pointer base)."
     },
     {
       "addr": 196,
       "name": "zp_osfind_y",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved Y register across OSFIND processing."
     },
     {
       "addr": 197,
       "name": "zp_osfind_x",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Saved X register across OSFIND processing."
     },
     {
       "addr": 198,
       "name": "zp_gspb_ptr_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the OSGBPB control block, low byte. The free-space-map compaction code at [&A069](address:A069) reuses this location as a scratch map index."
     },
     {
       "addr": 199,
       "name": "zp_gspb_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Pointer to the OSGBPB control block, high byte."
     },
     {
       "addr": 200,
       "name": "zp_temp_ptr",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Temporary 4-byte pointer (byte 0) used for disc-sector address arithmetic, e.g. adding or subtracting a PTR offset."
     },
     {
       "addr": 201,
       "name": "zp_temp_ptr_1",
       "length": 1,
       "group": "zero_page",
-      "access": "r"
+      "access": "r",
+      "description": "Temporary 4-byte pointer, byte 1."
     },
     {
       "addr": 202,
       "name": "zp_temp_ptr_2",
       "length": 1,
       "group": "zero_page",
-      "access": "r"
+      "access": "r",
+      "description": "Temporary 4-byte pointer, byte 2."
     },
     {
       "addr": 203,
       "name": "zp_temp_ptr_3",
       "length": 1,
       "group": "zero_page",
-      "access": "r"
+      "access": "r",
+      "description": "Temporary 4-byte pointer, byte 3."
     },
     {
       "addr": 204,
       "name": "zp_scsi_status",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Holds a SCSI status byte read back from the host adapter while waiting for the bus to settle."
     },
     {
       "addr": 205,
       "name": "zp_adfs_flags",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Primary ADFS state flags, the most heavily consulted flag byte. Bit 6 = Tube in use; also records Tube presence and other per-operation conditions."
     },
     {
       "addr": 206,
       "name": "zp_retry_count",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Retry counter for disc operations, decremented on each failed attempt."
     },
     {
       "addr": 207,
       "name": "zp_channel_offset",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "Index of the current open-file channel within the channel tables."
     },
     {
       "addr": 239,
       "name": "zp_osbyte_last_a",
       "length": 1,
       "group": "zero_page",
-      "access": "r"
+      "access": "r",
+      "description": "MOS scratch: A on entry to the last OSBYTE / OSWORD. ADFS reads the OSWORD routine number here when dispatching OSWORD &72."
     },
     {
       "addr": 240,
-      "name": "zp_osbyte_last_x",
+      "name": "zp_osword_pb_ptr",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": "rw",
+      "description": "MOS scratch (X on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, low byte. ADFS reads the disc-access control-block address here."
     },
     {
       "addr": 241,
-      "name": "zp_osbyte_last_y",
+      "name": "zp_osword_pb_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "r"
+      "access": "r",
+      "description": "MOS scratch (Y on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, high byte."
+    },
+    {
+      "addr": 242,
+      "name": "os_text_ptr",
+      "length": 2,
+      "group": "zero_page",
+      "access": "r",
+      "description": "MOS command-line text pointer (&F2/&F3). ADFS reads through it to fetch each character of a *command tail."
+    },
+    {
+      "addr": 244,
+      "name": "romsel_copy",
+      "length": 1,
+      "group": "zero_page",
+      "access": "rw",
+      "description": "MOS RAM copy of the paged-ROM select latch. ADFS reads it to discover its own ROM bank number."
+    },
+    {
+      "addr": 246,
+      "name": "osrdsc_ptr",
+      "length": 2,
+      "group": "zero_page",
+      "access": "rw",
+      "description": "MOS address pointer (&F6/&F7) used with paged-ROM / OSRDSC access."
     },
     {
       "addr": 255,
       "name": "zp_escape_flag",
       "length": 1,
       "group": "zero_page",
-      "access": "r"
+      "access": "r",
+      "description": "MOS Escape flag (bit 7 set when an Escape is pending); ADFS polls it during long operations."
     },
     {
       "addr": 530,
@@ -52564,9 +52635,9 @@
       "comment_inline": "Get control block address from &F0",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "zp_osbyte_last_x",
+      "operand": "zp_osword_pb_ptr",
       "target": 240,
-      "target_label": "zp_osbyte_last_x"
+      "target_label": "zp_osword_pb_ptr"
     },
     {
       "addr": 40237,
@@ -52590,9 +52661,9 @@
       "comment_inline": "Get control block high byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "zp_osbyte_last_y",
+      "operand": "zp_osword_pb_ptr_hi",
       "target": 241,
-      "target_label": "zp_osbyte_last_y"
+      "target_label": "zp_osword_pb_ptr_hi"
     },
     {
       "addr": 40241,
@@ -53116,9 +53187,9 @@
       "comment_inline": "Store error byte in control block",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "(zp_osbyte_last_x),y",
+      "operand": "(zp_osword_pb_ptr),y",
       "target": 240,
-      "target_label": "zp_osbyte_last_x"
+      "target_label": "zp_osword_pb_ptr"
     },
     {
       "addr": 40316,
@@ -53222,9 +53293,9 @@
       "comment_inline": "Write sequence number to block",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "(zp_osbyte_last_x),y",
+      "operand": "(zp_osword_pb_ptr),y",
       "target": 240,
-      "target_label": "zp_osbyte_last_x"
+      "target_label": "zp_osword_pb_ptr"
     },
     {
       "addr": 40332,
@@ -53256,9 +53327,9 @@
       "comment_inline": "Write flags to block+1",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "(zp_osbyte_last_x),y",
+      "operand": "(zp_osword_pb_ptr),y",
       "target": 240,
-      "target_label": "zp_osbyte_last_x"
+      "target_label": "zp_osword_pb_ptr"
     },
     {
       "addr": 40337,
@@ -53364,9 +53435,9 @@
       "comment_inline": "Store free space byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "(zp_osbyte_last_x),y",
+      "operand": "(zp_osword_pb_ptr),y",
       "target": 240,
-      "target_label": "zp_osbyte_last_x"
+      "target_label": "zp_osword_pb_ptr"
     },
     {
       "addr": 40354,
