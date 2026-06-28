@@ -131,21 +131,21 @@ d.constant(0xDF, 'err_eof')
 d.constant(0xFD, 'err_wild_cards')
 d.constant(0xFE, 'err_bad_command')
 
-d.label(0x0000, 'zp_user_ptr_0')
+d.label(0x0000, 'zp_user_ptr_0', length=1, group='zero_page', access='rw')
 
-d.label(0x0001, 'zp_user_ptr_1')
+d.label(0x0001, 'zp_user_ptr_1', length=1, group='zero_page', access='rw')
 
-d.label(0x0002, 'zp_user_ptr_2')
+d.label(0x0002, 'zp_user_ptr_2', length=1, group='zero_page', access='rw')
 
-d.label(0x0003, 'zp_user_ptr_3')
+d.label(0x0003, 'zp_user_ptr_3', length=1, group='zero_page', access='rw')
 
-d.label(0x00EF, 'zp_osbyte_last_a')
+d.label(0x00EF, 'zp_osbyte_last_a', length=1, group='zero_page', access='r')
 
-d.label(0x00F0, 'zp_osbyte_last_x')
+d.label(0x00F0, 'zp_osbyte_last_x', length=1, group='zero_page', access='rw')
 
-d.label(0x00F1, 'zp_osbyte_last_y')
+d.label(0x00F1, 'zp_osbyte_last_y', length=1, group='zero_page', access='r')
 
-d.label(0x00FF, 'zp_escape_flag')
+d.label(0x00FF, 'zp_escape_flag', length=1, group='zero_page', access='r')
 
 d.label(0x0100, 'brk_error_block')
 
@@ -161,599 +161,599 @@ d.label(0x0406, 'tube_entry')
 
 d.label(0x06A9, 'ext_vec_fsc_lo')
 
-d.label(0x0D18, 'nmi_transfer_done')
+d.label(0x0D18, 'nmi_transfer_done', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0E03, 'fsm_s0_first_length')
+d.label(0x0E03, 'fsm_s0_first_length', length=1, group='free_space_map', access='w')
 
 d.label(0xFFFF, 'nmi_patched_addr')
 
-d.label(0x00A0, 'zp_floppy_error')
+d.label(0x00A0, 'zp_floppy_error', length=1, group='zero_page', access='rw')
 
-d.label(0x00A1, 'zp_floppy_control')
+d.label(0x00A1, 'zp_floppy_control', length=1, group='zero_page', access='rw')
 
-d.label(0x00A2, 'zp_floppy_state')
+d.label(0x00A2, 'zp_floppy_state', length=1, group='zero_page', access='rw')
 
-d.label(0x00A3, 'zp_floppy_track')
+d.label(0x00A3, 'zp_floppy_track', length=1, group='zero_page', access='rw')
 
-d.label(0x00A4, 'zp_floppy_sector')
+d.label(0x00A4, 'zp_floppy_sector', length=1, group='zero_page', access='rw')
 
-d.label(0x00A5, 'zp_floppy_track_num')
+d.label(0x00A5, 'zp_floppy_track_num', length=1, group='zero_page', access='rw')
 
-d.label(0x00A6, 'zp_floppy_dest_page')
+d.label(0x00A6, 'zp_floppy_dest_page', length=1, group='zero_page', access='rw')
 
-d.label(0x00B0, 'zp_ctrl_blk_lo')
+d.label(0x00B0, 'zp_ctrl_blk_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00B1, 'zp_ctrl_blk_hi')
+d.label(0x00B1, 'zp_ctrl_blk_hi', length=1, group='zero_page', access='rw')
 
-d.label(0x00B2, 'zp_mem_ptr_lo')
+d.label(0x00B2, 'zp_mem_ptr_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00B3, 'zp_mem_ptr_hi')
+d.label(0x00B3, 'zp_mem_ptr_hi', length=1, group='zero_page', access='rw')
 
-d.label(0x00B4, 'zp_text_ptr_lo')
+d.label(0x00B4, 'zp_text_ptr_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00B5, 'zp_text_ptr_hi')
+d.label(0x00B5, 'zp_text_ptr_hi', length=1, group='zero_page', access='rw')
 
-d.label(0x00B6, 'zp_entry_ptr_lo')
+d.label(0x00B6, 'zp_entry_ptr_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00B7, 'zp_entry_ptr_hi')
+d.label(0x00B7, 'zp_entry_ptr_hi', length=1, group='zero_page', access='rw')
 
-d.label(0x00B8, 'zp_osfile_ptr_lo')
+d.label(0x00B8, 'zp_osfile_ptr_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00B9, 'zp_osfile_ptr_hi')
+d.label(0x00B9, 'zp_osfile_ptr_hi', length=1, group='zero_page', access='rw')
 
-d.label(0x00BA, 'zp_wksp_ptr_lo')
+d.label(0x00BA, 'zp_wksp_ptr_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00BB, 'zp_wksp_ptr_hi')
+d.label(0x00BB, 'zp_wksp_ptr_hi', length=1, group='zero_page', access='w')
 
-d.label(0x00BC, 'zp_buf_src_lo')
+d.label(0x00BC, 'zp_buf_src_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00BD, 'zp_buf_src_hi')
+d.label(0x00BD, 'zp_buf_src_hi', length=1, group='zero_page', access='rw')
 
-d.label(0x00BE, 'zp_buf_dest_lo')
+d.label(0x00BE, 'zp_buf_dest_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00BF, 'zp_buf_dest_hi')
+d.label(0x00BF, 'zp_buf_dest_hi', length=1, group='zero_page', access='rw')
 
-d.label(0x00C0, 'zp_name_ptr_lo')
+d.label(0x00C0, 'zp_name_ptr_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00C1, 'zp_name_ptr_hi')
+d.label(0x00C1, 'zp_name_ptr_hi', length=1, group='zero_page', access='rw')
 
-d.label(0x00C2, 'zp_save_y')
+d.label(0x00C2, 'zp_save_y', length=1, group='zero_page', access='rw')
 
-d.label(0x00C3, 'zp_save_x')
+d.label(0x00C3, 'zp_save_x', length=1, group='zero_page', access='rw')
 
-d.label(0x00C4, 'zp_osfind_y')
+d.label(0x00C4, 'zp_osfind_y', length=1, group='zero_page', access='rw')
 
-d.label(0x00C5, 'zp_osfind_x')
+d.label(0x00C5, 'zp_osfind_x', length=1, group='zero_page', access='rw')
 
-d.label(0x00C6, 'zp_gspb_ptr_lo')
+d.label(0x00C6, 'zp_gspb_ptr_lo', length=1, group='zero_page', access='rw')
 
-d.label(0x00C7, 'zp_gspb_ptr_hi')
+d.label(0x00C7, 'zp_gspb_ptr_hi', length=1, group='zero_page', access='rw')
 
-d.label(0x00C8, 'zp_temp_ptr')
+d.label(0x00C8, 'zp_temp_ptr', length=1, group='zero_page', access='rw')
 
-d.label(0x00C9, 'zp_temp_ptr_1')
+d.label(0x00C9, 'zp_temp_ptr_1', length=1, group='zero_page', access='r')
 
-d.label(0x00CA, 'zp_temp_ptr_2')
+d.label(0x00CA, 'zp_temp_ptr_2', length=1, group='zero_page', access='r')
 
-d.label(0x00CB, 'zp_temp_ptr_3')
+d.label(0x00CB, 'zp_temp_ptr_3', length=1, group='zero_page', access='r')
 
-d.label(0x00CC, 'zp_scsi_status')
+d.label(0x00CC, 'zp_scsi_status', length=1, group='zero_page', access='rw')
 
-d.label(0x00CD, 'zp_adfs_flags')
+d.label(0x00CD, 'zp_adfs_flags', length=1, group='zero_page', access='rw')
 
-d.label(0x00CE, 'zp_retry_count')
+d.label(0x00CE, 'zp_retry_count', length=1, group='zero_page', access='rw')
 
-d.label(0x00CF, 'zp_channel_offset')
+d.label(0x00CF, 'zp_channel_offset', length=1, group='zero_page', access='rw')
 
-d.label(0x0E00, 'fsm_sector_0')
+d.label(0x0E00, 'fsm_sector_0', length=1, group='free_space_map', access='rw')
 
-d.label(0x0F00, 'fsm_sector_1')
+d.label(0x0F00, 'fsm_sector_1', length=1, group='free_space_map', access='rw')
 
-d.label(0x0EFA, 'fsm_s0_reserved')
+d.label(0x0EFA, 'fsm_s0_reserved', length=1, group='free_space_map', access='r')
 
-d.label(0x0EFB, 'fsm_s0_pre_disc_size')
+d.label(0x0EFB, 'fsm_s0_pre_disc_size', length=1, group='free_space_map', access='r')
 
-d.label(0x0EFC, 'fsm_s0_disc_size_lo')
+d.label(0x0EFC, 'fsm_s0_disc_size_lo', length=1, group='free_space_map', access='rw')
 
-d.label(0x0EFD, 'fsm_s0_disc_size_mid')
+d.label(0x0EFD, 'fsm_s0_disc_size_mid', length=1, group='free_space_map', access='rw')
 
-d.label(0x0EFE, 'fsm_s0_disc_size_hi')
+d.label(0x0EFE, 'fsm_s0_disc_size_hi', length=1, group='free_space_map', access='r')
 
-d.label(0x0EFF, 'fsm_s0_checksum')
+d.label(0x0EFF, 'fsm_s0_checksum', length=1, group='free_space_map', access='rw')
 
-d.label(0x0F03, 'fsm_s1_first_length')
+d.label(0x0F03, 'fsm_s1_first_length', length=1, group='free_space_map', access='w')
 
-d.label(0x0FFB, 'fsm_s1_disc_id_lo')
+d.label(0x0FFB, 'fsm_s1_disc_id_lo', length=1, group='free_space_map', access='rw')
 
-d.label(0x0FFC, 'fsm_s1_disc_id_hi')
+d.label(0x0FFC, 'fsm_s1_disc_id_hi', length=1, group='free_space_map', access='r')
 
-d.label(0x0FFD, 'fsm_s1_boot_option')
+d.label(0x0FFD, 'fsm_s1_boot_option', length=1, group='free_space_map', access='rw')
 
-d.label(0x0FFE, 'fsm_s1_end_of_list_ptr')
+d.label(0x0FFE, 'fsm_s1_end_of_list_ptr', length=1, group='free_space_map', access='rw')
 
-d.label(0x0FFF, 'fsm_s1_checksum')
+d.label(0x0FFF, 'fsm_s1_checksum', length=1, group='free_space_map', access='rw')
 
-d.label(0x1000, 'wksp')
+d.label(0x1000, 'wksp', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1001, 'wksp_buf_sec_lo')
+d.label(0x1001, 'wksp_buf_sec_lo', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1002, 'wksp_buf_sec_mid')
+d.label(0x1002, 'wksp_buf_sec_mid', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1003, 'wksp_buf_sec_hi')
+d.label(0x1003, 'wksp_buf_sec_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1004, 'wksp_buf_flag')
+d.label(0x1004, 'wksp_buf_flag', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1008, 'wksp_buf_flag_1')
+d.label(0x1008, 'wksp_buf_flag_1', length=1, group='ram_workspace', access='w')
 
-d.label(0x100C, 'wksp_buf_flag_2')
+d.label(0x100C, 'wksp_buf_flag_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x100D, 'wksp_entry_field_base')
+d.label(0x100D, 'wksp_entry_field_base', length=1, group='ram_workspace', access='r')
 
-d.label(0x100E, 'wksp_entry_len_base')
+d.label(0x100E, 'wksp_entry_len_base', length=1, group='ram_workspace', access='w')
 
-d.label(0x1010, 'wksp_osword_block')
+d.label(0x1010, 'wksp_osword_block', length=1, group='ram_workspace', access='w')
 
-d.label(0x1011, 'wksp_entry_calc_base')
+d.label(0x1011, 'wksp_entry_calc_base', length=1, group='ram_workspace', access='r')
 
-d.label(0x1014, 'wksp_disc_op_block')
+d.label(0x1014, 'wksp_disc_op_block', length=1, group='ram_workspace', access='w')
 
-d.label(0x1015, 'wksp_disc_op_result')
+d.label(0x1015, 'wksp_disc_op_result', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1016, 'wksp_disc_op_mem_addr')
+d.label(0x1016, 'wksp_disc_op_mem_addr', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1017, 'wksp_disc_op_mem_addr_1')
+d.label(0x1017, 'wksp_disc_op_mem_addr_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1018, 'wksp_disc_op_mem_addr_2')
+d.label(0x1018, 'wksp_disc_op_mem_addr_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1019, 'wksp_disc_op_mem_addr_3')
+d.label(0x1019, 'wksp_disc_op_mem_addr_3', length=1, group='ram_workspace', access='rw')
 
-d.label(0x101A, 'wksp_disc_op_command')
+d.label(0x101A, 'wksp_disc_op_command', length=1, group='ram_workspace', access='rw')
 
-d.label(0x101B, 'wksp_disc_op_sector')
+d.label(0x101B, 'wksp_disc_op_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x101C, 'wksp_disc_op_sector_mid')
+d.label(0x101C, 'wksp_disc_op_sector_mid', length=1, group='ram_workspace', access='rw')
 
-d.label(0x101D, 'wksp_disc_op_sector_lo')
+d.label(0x101D, 'wksp_disc_op_sector_lo', length=1, group='ram_workspace', access='rw')
 
-d.label(0x101E, 'wksp_disc_op_sector_count')
+d.label(0x101E, 'wksp_disc_op_sector_count', length=1, group='ram_workspace', access='rw')
 
-d.label(0x101F, 'wksp_disc_op_control')
+d.label(0x101F, 'wksp_disc_op_control', length=1, group='ram_workspace', access='w')
 
-d.label(0x1020, 'wksp_disc_op_transfer_len')
+d.label(0x1020, 'wksp_disc_op_transfer_len', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1021, 'wksp_disc_op_xfer_len_1')
+d.label(0x1021, 'wksp_disc_op_xfer_len_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1022, 'wksp_disc_op_xfer_len_2')
+d.label(0x1022, 'wksp_disc_op_xfer_len_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1023, 'wksp_disc_op_xfer_len_3')
+d.label(0x1023, 'wksp_disc_op_xfer_len_3', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1024, 'wksp_entry_size_base')
+d.label(0x1024, 'wksp_entry_size_base', length=1, group='ram_workspace', access='w')
 
-d.label(0x1026, 'wksp_tube_transfer_addr')
+d.label(0x1026, 'wksp_tube_transfer_addr', length=1, group='ram_workspace', access='w')
 
-d.label(0x1027, 'wksp_tube_transfer_addr_1')
+d.label(0x1027, 'wksp_tube_transfer_addr_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1028, 'wksp_tube_xfer_addr_2')
+d.label(0x1028, 'wksp_tube_xfer_addr_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1029, 'wksp_tube_xfer_addr_3')
+d.label(0x1029, 'wksp_tube_xfer_addr_3', length=1, group='ram_workspace', access='rw')
 
-d.label(0x102A, 'wksp_csd_drive_temp')
+d.label(0x102A, 'wksp_csd_drive_temp', length=1, group='ram_workspace', access='rw')
 
-d.label(0x102B, 'wksp_csd_sector_temp')
+d.label(0x102B, 'wksp_csd_sector_temp', length=1, group='ram_workspace', access='rw')
 
-d.label(0x102C, 'wksp_csd_drive_sector')
+d.label(0x102C, 'wksp_csd_drive_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x102D, 'wksp_csd_drive_sector_mid')
+d.label(0x102D, 'wksp_csd_drive_sector_mid', length=1, group='ram_workspace', access='rw')
 
-d.label(0x102E, 'wksp_alt_sector_hi')
+d.label(0x102E, 'wksp_alt_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x102F, 'wksp_saved_drive')
+d.label(0x102F, 'wksp_saved_drive', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1030, 'wksp_temp_sector')
+d.label(0x1030, 'wksp_temp_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1033, 'wksp_last_access_drive')
+d.label(0x1033, 'wksp_last_access_drive', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1034, 'wksp_object_sector')
+d.label(0x1034, 'wksp_object_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1035, 'wksp_object_sector_mid')
+d.label(0x1035, 'wksp_object_sector_mid', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1036, 'wksp_object_sector_hi')
+d.label(0x1036, 'wksp_object_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1037, 'wksp_object_size')
+d.label(0x1037, 'wksp_object_size', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1038, 'wksp_object_size_mid')
+d.label(0x1038, 'wksp_object_size_mid', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1039, 'wksp_object_size_hi')
+d.label(0x1039, 'wksp_object_size_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x103A, 'wksp_alloc_sector')
+d.label(0x103A, 'wksp_alloc_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x103B, 'wksp_saved_count')
+d.label(0x103B, 'wksp_saved_count', length=1, group='ram_workspace', access='rw')
 
-d.label(0x103C, 'wksp_saved_count_1')
+d.label(0x103C, 'wksp_saved_count_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x103D, 'wksp_alloc_size')
+d.label(0x103D, 'wksp_alloc_size', length=1, group='ram_workspace', access='rw')
 
-d.label(0x103E, 'wksp_alloc_size_mid')
+d.label(0x103E, 'wksp_alloc_size_mid', length=1, group='ram_workspace', access='w')
 
-d.label(0x103F, 'wksp_alloc_size_hi')
+d.label(0x103F, 'wksp_alloc_size_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1040, 'wksp_osfile_block')
+d.label(0x1040, 'wksp_osfile_block', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1041, 'wksp_osfile_block_1')
+d.label(0x1041, 'wksp_osfile_block_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1042, 'wksp_osfile_load_addr')
+d.label(0x1042, 'wksp_osfile_load_addr', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1043, 'wksp_osfile_load_addr_1')
+d.label(0x1043, 'wksp_osfile_load_addr_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1046, 'wksp_osfile_exec_addr')
+d.label(0x1046, 'wksp_osfile_exec_addr', length=1, group='ram_workspace', access='w')
 
-d.label(0x1047, 'wksp_osfile_exec_addr_1')
+d.label(0x1047, 'wksp_osfile_exec_addr_1', length=1, group='ram_workspace', access='w')
 
-d.label(0x1048, 'wksp_osfile_exec_addr_2')
+d.label(0x1048, 'wksp_osfile_exec_addr_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x1049, 'wksp_osfile_exec_addr_3')
+d.label(0x1049, 'wksp_osfile_exec_addr_3', length=1, group='ram_workspace', access='w')
 
-d.label(0x104A, 'wksp_osfile_start_addr')
+d.label(0x104A, 'wksp_osfile_start_addr', length=1, group='ram_workspace', access='w')
 
-d.label(0x104B, 'wksp_osfile_start_addr_1')
+d.label(0x104B, 'wksp_osfile_start_addr_1', length=1, group='ram_workspace', access='w')
 
-d.label(0x104C, 'wksp_osfile_start_addr_2')
+d.label(0x104C, 'wksp_osfile_start_addr_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x104D, 'wksp_osfile_start_addr_3')
+d.label(0x104D, 'wksp_osfile_start_addr_3', length=1, group='ram_workspace', access='w')
 
-d.label(0x104F, 'wksp_osfile_end_addr_1')
+d.label(0x104F, 'wksp_osfile_end_addr_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1050, 'wksp_osfile_end_addr_2')
+d.label(0x1050, 'wksp_osfile_end_addr_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x1052, 'wksp_osfile_attr')
+d.label(0x1052, 'wksp_osfile_attr', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1053, 'wksp_osfile_attr_1')
+d.label(0x1053, 'wksp_osfile_attr_1', length=1, group='ram_workspace', access='w')
 
-d.label(0x1054, 'wksp_osfile_attr_2')
+d.label(0x1054, 'wksp_osfile_attr_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x105D, 'wksp_access_accum')
+d.label(0x105D, 'wksp_access_accum', length=1, group='ram_workspace', access='rw')
 
-d.label(0x105E, 'wksp_access_accum_1')
+d.label(0x105E, 'wksp_access_accum_1', length=1, group='ram_workspace', access='w')
 
-d.label(0x105F, 'wksp_free_space_total')
+d.label(0x105F, 'wksp_free_space_total', length=1, group='ram_workspace', access='w')
 
-d.label(0x1060, 'wksp_compact_start_page')
+d.label(0x1060, 'wksp_compact_start_page', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1061, 'wksp_compact_length')
+d.label(0x1061, 'wksp_compact_length', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1062, 'wksp_object_name')
+d.label(0x1062, 'wksp_object_name', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1063, 'wksp_object_name_1')
+d.label(0x1063, 'wksp_object_name_1', length=1, group='ram_workspace', access='w')
 
-d.label(0x106C, 'wksp_saved_dir_sector')
+d.label(0x106C, 'wksp_saved_dir_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x106F, 'wksp_drive_number')
+d.label(0x106F, 'wksp_drive_number', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1070, 'wksp_new_parent_sector')
+d.label(0x1070, 'wksp_new_parent_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1073, 'wksp_dest_drive')
+d.label(0x1073, 'wksp_dest_drive', length=1, group='ram_workspace', access='r')
 
-d.label(0x1074, 'wksp_dest_name')
+d.label(0x1074, 'wksp_dest_name', length=1, group='ram_workspace', access='rw')
 
-d.label(0x107E, 'wksp_dest_filename_end')
+d.label(0x107E, 'wksp_dest_filename_end', length=1, group='ram_workspace', access='w')
 
-d.label(0x107F, 'wksp_copy_name_ptr')
+d.label(0x107F, 'wksp_copy_name_ptr', length=1, group='ram_workspace', access='w')
 
-d.label(0x1080, 'wksp_copy_name_ptr_hi')
+d.label(0x1080, 'wksp_copy_name_ptr_hi', length=1, group='ram_workspace', access='w')
 
-d.label(0x1089, 'wksp_copy_osfile_params')
+d.label(0x1089, 'wksp_copy_osfile_params', length=1, group='ram_workspace', access='rw')
 
-d.label(0x108C, 'wksp_copy_osfile_exec')
+d.label(0x108C, 'wksp_copy_osfile_exec', length=1, group='ram_workspace', access='rw')
 
-d.label(0x108D, 'wksp_copy_dest_params')
+d.label(0x108D, 'wksp_copy_dest_params', length=1, group='ram_workspace', access='w')
 
-d.label(0x1091, 'wksp_filename_save')
+d.label(0x1091, 'wksp_filename_save', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1092, 'wksp_filename_save_hi')
+d.label(0x1092, 'wksp_filename_save_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1093, 'wksp_entry_save')
+d.label(0x1093, 'wksp_entry_save', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1094, 'wksp_entry_save_hi')
+d.label(0x1094, 'wksp_entry_save_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1095, 'wksp_osgbpb_end_ptr')
+d.label(0x1095, 'wksp_osgbpb_end_ptr', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1096, 'wksp_osgbpb_sector_lo')
+d.label(0x1096, 'wksp_osgbpb_sector_lo', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1097, 'wksp_osgbpb_sector_mid')
+d.label(0x1097, 'wksp_osgbpb_sector_mid', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1098, 'wksp_osgbpb_sector_hi')
+d.label(0x1098, 'wksp_osgbpb_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x109A, 'wksp_new_ptr_lo')
+d.label(0x109A, 'wksp_new_ptr_lo', length=1, group='ram_workspace', access='rw')
 
-d.label(0x109B, 'wksp_new_ptr_mid')
+d.label(0x109B, 'wksp_new_ptr_mid', length=1, group='ram_workspace', access='rw')
 
-d.label(0x109C, 'wksp_new_ptr_mid_hi')
+d.label(0x109C, 'wksp_new_ptr_mid_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x109D, 'wksp_new_ptr_hi')
+d.label(0x109D, 'wksp_new_ptr_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x109E, 'wksp_new_ptr_4')
+d.label(0x109E, 'wksp_new_ptr_4', length=1, group='ram_workspace', access='rw')
 
-d.label(0x109F, 'wksp_osgbpb_wksp_9f')
+d.label(0x109F, 'wksp_osgbpb_wksp_9f', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A0, 'wksp_ch_buf_sector')
+d.label(0x10A0, 'wksp_ch_buf_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A1, 'wksp_ch_buf_sector_1')
+d.label(0x10A1, 'wksp_ch_buf_sector_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A2, 'wksp_copy_read_sector')
+d.label(0x10A2, 'wksp_copy_read_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A3, 'wksp_copy_read_sector_1')
+d.label(0x10A3, 'wksp_copy_read_sector_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A4, 'wksp_copy_read_sector_2')
+d.label(0x10A4, 'wksp_copy_read_sector_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A5, 'wksp_copy_write_sector')
+d.label(0x10A5, 'wksp_copy_write_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A6, 'wksp_copy_write_sector_1')
+d.label(0x10A6, 'wksp_copy_write_sector_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A7, 'wksp_copy_write_sector_2')
+d.label(0x10A7, 'wksp_copy_write_sector_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A8, 'wksp_copy_src_sector')
+d.label(0x10A8, 'wksp_copy_src_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10A9, 'wksp_copy_src_sector_1')
+d.label(0x10A9, 'wksp_copy_src_sector_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10AA, 'wksp_copy_src_sector_2')
+d.label(0x10AA, 'wksp_copy_src_sector_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10AB, 'wksp_copy_dest_sector')
+d.label(0x10AB, 'wksp_copy_dest_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10AC, 'wksp_copy_dest_sector_1')
+d.label(0x10AC, 'wksp_copy_dest_sector_1', length=1, group='ram_workspace', access='w')
 
-d.label(0x10AD, 'wksp_copy_dest_sector_2')
+d.label(0x10AD, 'wksp_copy_dest_sector_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x10B4, 'wksp_osgbpb_func')
+d.label(0x10B4, 'wksp_osgbpb_func', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10B5, 'wksp_osgbpb_mode')
+d.label(0x10B5, 'wksp_osgbpb_mode', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10B6, 'wksp_osgbpb_start')
+d.label(0x10B6, 'wksp_osgbpb_start', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10B7, 'wksp_osgbpb_end')
+d.label(0x10B7, 'wksp_osgbpb_end', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10B8, 'wksp_osgbpb_data_addr')
+d.label(0x10B8, 'wksp_osgbpb_data_addr', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10B9, 'wksp_osgbpb_data_addr_1')
+d.label(0x10B9, 'wksp_osgbpb_data_addr_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10BA, 'wksp_osgbpb_data_addr_2')
+d.label(0x10BA, 'wksp_osgbpb_data_addr_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10BB, 'wksp_osgbpb_data_addr_3')
+d.label(0x10BB, 'wksp_osgbpb_data_addr_3', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10BC, 'wksp_osgbpb_wksp_bc')
+d.label(0x10BC, 'wksp_osgbpb_wksp_bc', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10BD, 'wksp_osgbpb_byte_count')
+d.label(0x10BD, 'wksp_osgbpb_byte_count', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10BE, 'wksp_osgbpb_name_offset')
+d.label(0x10BE, 'wksp_osgbpb_name_offset', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10BF, 'wksp_saved_drive_2')
+d.label(0x10BF, 'wksp_saved_drive_2', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10C0, 'wksp_search_flag')
+d.label(0x10C0, 'wksp_search_flag', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10C1, 'wksp_workspace_checksum')
+d.label(0x10C1, 'wksp_workspace_checksum', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10C2, 'wksp_drive_change_mask')
+d.label(0x10C2, 'wksp_drive_change_mask', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10C3, 'wksp_prev_clock')
+d.label(0x10C3, 'wksp_prev_clock', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10C8, 'wksp_clock')
+d.label(0x10C8, 'wksp_clock', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10C9, 'wksp_clock_1')
+d.label(0x10C9, 'wksp_clock_1', length=1, group='ram_workspace', access='r')
 
-d.label(0x10CA, 'wksp_clock_2')
+d.label(0x10CA, 'wksp_clock_2', length=1, group='ram_workspace', access='r')
 
-d.label(0x10CB, 'wksp_clock_3')
+d.label(0x10CB, 'wksp_clock_3', length=1, group='ram_workspace', access='r')
 
-d.label(0x10CC, 'wksp_clock_4')
+d.label(0x10CC, 'wksp_clock_4', length=1, group='ram_workspace', access='r')
 
-d.label(0x10CD, 'wksp_clock_5')
+d.label(0x10CD, 'wksp_clock_5', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10CE, 'wksp_error_suppress')
+d.label(0x10CE, 'wksp_error_suppress', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10CF, 'wksp_bput_modified')
+d.label(0x10CF, 'wksp_bput_modified', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1100, 'wksp_csd_name')
+d.label(0x1100, 'wksp_csd_name', length=1, group='ram_workspace', access='rw')
 
-d.label(0x110A, 'wksp_lib_name')
+d.label(0x110A, 'wksp_lib_name', length=1, group='ram_workspace', access='w')
 
-d.label(0x1113, 'wksp_csd_sector')
+d.label(0x1113, 'wksp_csd_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1114, 'wksp_csd_sector_lo')
+d.label(0x1114, 'wksp_csd_sector_lo', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1115, 'wksp_csd_sector_mid')
+d.label(0x1115, 'wksp_csd_sector_mid', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1116, 'wksp_csd_sector_hi')
+d.label(0x1116, 'wksp_csd_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1117, 'wksp_current_drive')
+d.label(0x1117, 'wksp_current_drive', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1118, 'wksp_lib_sector')
+d.label(0x1118, 'wksp_lib_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1119, 'wksp_lib_sector_lo')
+d.label(0x1119, 'wksp_lib_sector_lo', length=1, group='ram_workspace', access='r')
 
-d.label(0x111A, 'wksp_lib_sector_mid')
+d.label(0x111A, 'wksp_lib_sector_mid', length=1, group='ram_workspace', access='rw')
 
-d.label(0x111B, 'wksp_lib_sector_hi')
+d.label(0x111B, 'wksp_lib_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x111C, 'wksp_prev_dir_sector')
+d.label(0x111C, 'wksp_prev_dir_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x111D, 'wksp_prev_dir_sector_lo')
+d.label(0x111D, 'wksp_prev_dir_sector_lo', length=1, group='ram_workspace', access='w')
 
-d.label(0x111E, 'wksp_prev_dir_sector_mid')
+d.label(0x111E, 'wksp_prev_dir_sector_mid', length=1, group='ram_workspace', access='w')
 
-d.label(0x111F, 'wksp_prev_dir_sector_hi')
+d.label(0x111F, 'wksp_prev_dir_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1120, 'wksp_flags_save')
+d.label(0x1120, 'wksp_flags_save', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1121, 'wksp_disc_id_lo')
+d.label(0x1121, 'wksp_disc_id_lo', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1122, 'wksp_disc_id_hi')
+d.label(0x1122, 'wksp_disc_id_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1131, 'wksp_scsi_status')
+d.label(0x1131, 'wksp_scsi_status', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1132, 'wksp_exec_handle')
+d.label(0x1132, 'wksp_exec_handle', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1133, 'wksp_current_drive_hi')
+d.label(0x1133, 'wksp_current_drive_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1134, 'wksp_ch_ext_h')
+d.label(0x1134, 'wksp_ch_ext_h', length=1, group='ram_workspace', access='rw')
 
-d.label(0x113E, 'wksp_ch_ext_mh')
+d.label(0x113E, 'wksp_ch_ext_mh', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1148, 'wksp_ch_ext_ml')
+d.label(0x1148, 'wksp_ch_ext_ml', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1152, 'wksp_ch_ext_l')
+d.label(0x1152, 'wksp_ch_ext_l', length=1, group='ram_workspace', access='rw')
 
-d.label(0x115C, 'wksp_ch_ptr_h')
+d.label(0x115C, 'wksp_ch_ptr_h', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1166, 'wksp_ch_ptr_mh')
+d.label(0x1166, 'wksp_ch_ptr_mh', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1170, 'wksp_ch_ptr_ml')
+d.label(0x1170, 'wksp_ch_ptr_ml', length=1, group='ram_workspace', access='rw')
 
-d.label(0x117A, 'wksp_ch_ptr_l')
+d.label(0x117A, 'wksp_ch_ptr_l', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1183, 'wksp_ch_alloc_pad')
+d.label(0x1183, 'wksp_ch_alloc_pad', length=1, group='ram_workspace', access='r')
 
-d.label(0x1184, 'wksp_ch_alloc_h')
+d.label(0x1184, 'wksp_ch_alloc_h', length=1, group='ram_workspace', access='rw')
 
-d.label(0x118E, 'wksp_ch_alloc_mh')
+d.label(0x118E, 'wksp_ch_alloc_mh', length=1, group='ram_workspace', access='rw')
 
-d.label(0x1198, 'wksp_ch_alloc_ml')
+d.label(0x1198, 'wksp_ch_alloc_ml', length=1, group='ram_workspace', access='rw')
 
-d.label(0x11A2, 'wksp_ch_alloc_l')
+d.label(0x11A2, 'wksp_ch_alloc_l', length=1, group='ram_workspace', access='rw')
 
-d.label(0x11AC, 'wksp_ch_flags')
+d.label(0x11AC, 'wksp_ch_flags', length=1, group='ram_workspace', access='rw')
 
-d.label(0x11B6, 'wksp_ch_start_sec_h')
+d.label(0x11B6, 'wksp_ch_start_sec_h', length=1, group='ram_workspace', access='rw')
 
-d.label(0x11C0, 'wksp_ch_start_sec_mh')
+d.label(0x11C0, 'wksp_ch_start_sec_mh', length=1, group='ram_workspace', access='rw')
 
-d.label(0x11CA, 'wksp_ch_start_sec_ml')
+d.label(0x11CA, 'wksp_ch_start_sec_ml', length=1, group='ram_workspace', access='rw')
 
-d.label(0x11D4, 'wksp_ch_dir_sec_h')
+d.label(0x11D4, 'wksp_ch_dir_sec_h', length=1, group='ram_workspace', access='rw')
 
-d.label(0x11DE, 'wksp_ch_dir_sec_mh')
+d.label(0x11DE, 'wksp_ch_dir_sec_mh', length=1, group='ram_workspace', access='rw')
 
-d.label(0x11E8, 'wksp_ch_dir_sec_ml')
+d.label(0x11E8, 'wksp_ch_dir_sec_ml', length=1, group='ram_workspace', access='rw')
 
-d.label(0x11F2, 'wksp_ch_seq_num')
+d.label(0x11F2, 'wksp_ch_seq_num', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D0, 'wksp_err_sector')
+d.label(0x10D0, 'wksp_err_sector', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D1, 'wksp_err_sector_mid')
+d.label(0x10D1, 'wksp_err_sector_mid', length=1, group='ram_workspace', access='w')
 
-d.label(0x10D2, 'wksp_err_sector_hi')
+d.label(0x10D2, 'wksp_err_sector_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D3, 'wksp_err_code')
+d.label(0x10D3, 'wksp_err_code', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D4, 'wksp_err_handle')
+d.label(0x10D4, 'wksp_err_handle', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D5, 'wksp_cur_channel')
+d.label(0x10D5, 'wksp_cur_channel', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D6, 'wksp_cmd_tail')
+d.label(0x10D6, 'wksp_cmd_tail', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D7, 'wksp_cmd_tail_hi')
+d.label(0x10D7, 'wksp_cmd_tail_hi', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10D8, 'wksp_compaction_reported')
+d.label(0x10D8, 'wksp_compaction_reported', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10E0, 'wksp_fdc_xfer_mode')
+d.label(0x10E0, 'wksp_fdc_xfer_mode', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10E1, 'wksp_nmi_owner')
+d.label(0x10E1, 'wksp_nmi_owner', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10E2, 'wksp_format_page')
+d.label(0x10E2, 'wksp_format_page', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10E3, 'wksp_err_number')
+d.label(0x10E3, 'wksp_err_number', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10E4, 'wksp_fdc_head_state')
+d.label(0x10E4, 'wksp_fdc_head_state', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10E5, 'wksp_fdc_track_0')
+d.label(0x10E5, 'wksp_fdc_track_0', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10E6, 'wksp_fdc_track_1')
+d.label(0x10E6, 'wksp_fdc_track_1', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10E7, 'wksp_stack_save')
+d.label(0x10E7, 'wksp_stack_save', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10E8, 'wksp_fdc_cmd_step')
+d.label(0x10E8, 'wksp_fdc_cmd_step', length=1, group='ram_workspace', access='rw')
 
-d.label(0x10FE, 'wksp_alt_csd_sector')
+d.label(0x10FE, 'wksp_alt_csd_sector', length=1, group='ram_workspace', access='w')
 
-d.label(0x1200, 'dir_buffer')
+d.label(0x1200, 'dir_buffer', length=1, group='dir_buffer', access='rw')
 
-d.label(0x1205, 'dir_first_entry')
+d.label(0x1205, 'dir_first_entry', length=1, group='dir_buffer', access='r')
 
-d.label(0x16B1, 'dir_last_entry_area')
+d.label(0x16B1, 'dir_last_entry_area', length=1, group='dir_buffer', access='r')
 
-d.label(0x16CC, 'dir_name')
+d.label(0x16CC, 'dir_name', length=1, group='dir_buffer', access='rw')
 
-d.label(0x16D6, 'dir_parent_sector')
+d.label(0x16D6, 'dir_parent_sector', length=1, group='dir_buffer', access='w')
 
-d.label(0x16D9, 'dir_title')
+d.label(0x16D9, 'dir_title', length=1, group='dir_buffer', access='rw')
 
-d.label(0x16FA, 'dir_master_sequence')
+d.label(0x16FA, 'dir_master_sequence', length=1, group='dir_buffer', access='rw')
 
-d.label(0x16FB, 'dir_identity_string')
+d.label(0x16FB, 'dir_identity_string', length=1, group='dir_buffer', access='rw')
 
-d.label(0x1700, 'ra_buffer_1')
+d.label(0x1700, 'ra_buffer_1', length=1, group='ra_buffers', access='w')
 
-d.label(0x1800, 'ra_buffer_2')
+d.label(0x1800, 'ra_buffer_2', length=1, group='ra_buffers', access='w')
 
-d.label(0x1900, 'ra_buffer_3')
+d.label(0x1900, 'ra_buffer_3', length=1, group='ra_buffers', access='w')
 
-d.label(0x1A00, 'ra_buffer_4')
+d.label(0x1A00, 'ra_buffer_4', length=1, group='ra_buffers', access='w')
 
-d.label(0x1B00, 'ra_buffer_5')
+d.label(0x1B00, 'ra_buffer_5', length=1, group='ra_buffers', access='w')
 
-d.label(0x1BCC, 'dir2_name')
+d.label(0x1BCC, 'dir2_name', length=1, group='ra_buffers', access='w')
 
-d.label(0x1BD6, 'dir2_parent_sector')
+d.label(0x1BD6, 'dir2_parent_sector', length=1, group='ra_buffers', access='w')
 
-d.label(0x1BD9, 'dir2_title')
+d.label(0x1BD9, 'dir2_title', length=1, group='ra_buffers', access='w')
 
-d.label(0x1BFA, 'dir2_master_sequence')
+d.label(0x1BFA, 'dir2_master_sequence', length=1, group='ra_buffers', access='w')
 
-d.label(0x0D00, 'nmi_workspace')
+d.label(0x0D00, 'nmi_workspace', length=1, group='page_d_workspace', access='w')
 
-d.label(0x0D05, 'nmi_rw_opcode')
+d.label(0x0D05, 'nmi_rw_opcode', length=1, group='page_d_workspace', access='w')
 
-d.label(0x0D0A, 'nmi_rw_code')
+d.label(0x0D0A, 'nmi_rw_code', length=1, group='page_d_workspace', access='w')
 
-d.label(0x0D0B, 'nmi_write_addr_lo')
+d.label(0x0D0B, 'nmi_write_addr_lo', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D0C, 'nmi_write_addr_hi')
+d.label(0x0D0C, 'nmi_write_addr_hi', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D0E, 'nmi_read_addr_lo')
+d.label(0x0D0E, 'nmi_read_addr_lo', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D0F, 'nmi_read_addr_hi')
+d.label(0x0D0F, 'nmi_read_addr_hi', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D34, 'nmi_saved_rom')
+d.label(0x0D34, 'nmi_saved_rom', length=1, group='page_d_workspace', access='w')
 
-d.label(0x0D56, 'nmi_step_rate')
+d.label(0x0D56, 'nmi_step_rate', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D57, 'nmi_tracks_remaining')
+d.label(0x0D57, 'nmi_tracks_remaining', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D58, 'nmi_secs_this_track')
+d.label(0x0D58, 'nmi_secs_this_track', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D59, 'nmi_secs_last_track')
+d.label(0x0D59, 'nmi_secs_last_track', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D5A, 'nmi_sec_position')
+d.label(0x0D5A, 'nmi_sec_position', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D5C, 'nmi_drive_cmd')
+d.label(0x0D5C, 'nmi_drive_cmd', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D5D, 'nmi_adfs_flags')
+d.label(0x0D5D, 'nmi_adfs_flags', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D5E, 'nmi_drive_ctrl')
+d.label(0x0D5E, 'nmi_drive_ctrl', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0D5F, 'nmi_completion')
+d.label(0x0D5F, 'nmi_completion', length=1, group='page_d_workspace', access='w')
 
-d.label(0x0DF0, 'rom_wksp_table')
+d.label(0x0DF0, 'rom_wksp_table', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0DFA, 'fsm_s0_pre6')
+d.label(0x0DFA, 'fsm_s0_pre6', length=1, group='page_d_workspace', access='r')
 
-d.label(0x0DFD, 'fsm_s0_pre3')
+d.label(0x0DFD, 'fsm_s0_pre3', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0DFF, 'fsm_s0_pre1')
+d.label(0x0DFF, 'fsm_s0_pre1', length=1, group='page_d_workspace', access='r')
 
-d.label(0x0212, 'filev')
+d.label(0x0212, 'filev', length=2, group='os_vectors', access='w')
 
-d.label(0x021E, 'fscv')
+d.label(0x021E, 'fscv', length=2, group='os_vectors', access='rw')
 
-d.label(0x028D, 'last_break_type')
+d.label(0x028D, 'last_break_type', length=1, group='os_vectors', access='r')
 d.entry(0x8027)
 
 d.label(0x8027, 'claim_tube')
@@ -1109,11 +1109,11 @@ with nmi_main_move_id:
     d.entry(0x0D00)
     d.entry(0x0D0A)
     d.entry(0x0D18)
-    d.label(0x0D1A, 'nmi_check_status_error')
+    d.label(0x0D1A, 'nmi_check_status_error', length=1, group='page_d_workspace', access='rw')
     d.entry(0x0D1A)
-    d.label(0x0D25, 'nmi_set_transfer_complete')
+    d.label(0x0D25, 'nmi_set_transfer_complete', length=1, group='page_d_workspace', access='rw')
     d.entry(0x0D25)
-    d.label(0x0D2C, 'nmi_check_end_of_operation')
+    d.label(0x0D2C, 'nmi_check_end_of_operation', length=1, group='page_d_workspace', access='rw')
     d.entry(0x0D2C)
 d.entry(0xBCC2)
 
