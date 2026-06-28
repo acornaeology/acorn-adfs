@@ -2630,10 +2630,10 @@
     "dir2_parent_sector": 7126,
     "dir2_title": 7129,
     "dir2_master_sequence": 7162,
-    "fred_hard_drive_0": 64576,
-    "fred_hard_drive_1": 64577,
-    "fred_hard_drive_2": 64578,
-    "fred_hard_drive_3": 64579,
+    "scsi_data": 64576,
+    "scsi_status": 64577,
+    "scsi_select": 64578,
+    "scsi_irq_enable": 64579,
     "crtc_address_register": 65024,
     "crtc_register_data": 65025,
     "acia_control_or_status": 65032,
@@ -5105,7 +5105,7 @@
     },
     {
       "addr": 64576,
-      "name": "fred_hard_drive_0",
+      "name": "scsi_data",
       "length": 1,
       "group": "mmio",
       "access": "rw",
@@ -5113,7 +5113,7 @@
     },
     {
       "addr": 64577,
-      "name": "fred_hard_drive_1",
+      "name": "scsi_status",
       "length": 1,
       "group": "mmio",
       "access": "r",
@@ -5121,7 +5121,7 @@
     },
     {
       "addr": 64578,
-      "name": "fred_hard_drive_2",
+      "name": "scsi_select",
       "length": 1,
       "group": "mmio",
       "access": "w",
@@ -5129,7 +5129,7 @@
     },
     {
       "addr": 64579,
-      "name": "fred_hard_drive_3",
+      "name": "scsi_irq_enable",
       "length": 1,
       "group": "mmio",
       "access": "w",
@@ -5786,9 +5786,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_1",
+      "operand": "scsi_status",
       "target": 64577,
-      "target_label": "fred_hard_drive_1"
+      "target_label": "scsi_status"
     },
     {
       "addr": 32858,
@@ -5813,9 +5813,9 @@
       "comment_inline": "Read SCSI status register again",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_1",
+      "operand": "scsi_status",
       "target": 64577,
-      "target_label": "fred_hard_drive_1"
+      "target_label": "scsi_status"
     },
     {
       "addr": 32863,
@@ -5978,9 +5978,9 @@
       "comment_inline": "Assert ID on SCSI data bus",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 32885,
@@ -5992,9 +5992,9 @@
       "comment_inline": "Assert SEL to select target",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_2",
+      "operand": "scsi_select",
       "target": 64578,
-      "target_label": "fred_hard_drive_2"
+      "target_label": "scsi_select"
     },
     {
       "addr": 32888,
@@ -7613,9 +7613,9 @@
       "comment_inline": "Write to SCSI data register",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33129,
@@ -7649,9 +7649,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33134,
@@ -7770,9 +7770,9 @@
       "comment_inline": "Write to SCSI data register",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33152,
@@ -7806,9 +7806,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33157,
@@ -7899,9 +7899,9 @@
       "comment_inline": "Read status byte from SCSI data",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33171,
@@ -7983,9 +7983,9 @@
       "comment_inline": "Read final data byte",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33186,
@@ -8274,9 +8274,9 @@
       "comment_inline": "Write to SCSI data register",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33226,
@@ -8346,9 +8346,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33236,
@@ -8841,9 +8841,9 @@
       "comment_inline": "Write to SCSI data register",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33305,
@@ -8992,9 +8992,9 @@
       "comment_inline": "Read byte from SCSI data register",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33326,
@@ -9251,9 +9251,9 @@
       "comment_inline": "Read sense data from SCSI bus",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33368,
@@ -9382,9 +9382,9 @@
       "comment_inline": "Read status byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33394,
@@ -9410,9 +9410,9 @@
       "comment_inline": "Read message byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33400,
@@ -10392,9 +10392,9 @@
       "comment_inline": "Write data byte to SCSI bus",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 33571,
@@ -24459,9 +24459,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 35738,
@@ -48230,9 +48230,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 39535,
@@ -48255,9 +48255,9 @@
       "comment_inline": "Disable SCSI interrupts",
       "type": "code",
       "mnemonic": "stx",
-      "operand": "fred_hard_drive_3",
+      "operand": "scsi_irq_enable",
       "target": 64579,
-      "target_label": "fred_hard_drive_3"
+      "target_label": "scsi_irq_enable"
     },
     {
       "addr": 39540,
@@ -48269,9 +48269,9 @@
       "comment_inline": "Read back: does value match?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 39543,
@@ -75246,9 +75246,9 @@
       "comment_inline": "Write to SCSI data bus",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 43880,
@@ -75328,9 +75328,9 @@
       "comment_inline": "Write to SCSI IRQ enable register",
       "type": "code",
       "mnemonic": "sty",
-      "operand": "fred_hard_drive_3",
+      "operand": "scsi_irq_enable",
       "target": 64579,
-      "target_label": "fred_hard_drive_3"
+      "target_label": "scsi_irq_enable"
     },
     {
       "addr": 43893,
@@ -75538,9 +75538,9 @@
       "comment_inline": "Write to SCSI IRQ enable",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fred_hard_drive_3",
+      "operand": "scsi_irq_enable",
       "target": 64579,
-      "target_label": "fred_hard_drive_3"
+      "target_label": "scsi_irq_enable"
     },
     {
       "addr": 43921,
@@ -75587,9 +75587,9 @@
       "comment_inline": "Read SCSI status byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 43929,
@@ -75615,9 +75615,9 @@
       "comment_inline": "OR with final status byte",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 43935,
@@ -77336,9 +77336,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fred_hard_drive_0",
+      "operand": "scsi_data",
       "target": 64576,
-      "target_label": "fred_hard_drive_0"
+      "target_label": "scsi_data"
     },
     {
       "addr": 44225,

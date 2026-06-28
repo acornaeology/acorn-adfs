@@ -672,13 +672,13 @@ dir2_title                 = &1bd9  ; Title of the second directory, in its foot
 ; &1bd9 referenced 2 times by &961b, &9629
 dir2_master_sequence       = &1bfa  ; Master sequence number of the second directory, in its footer.
 ; &1bfa referenced 1 time by &95ff
-fred_hard_drive_0          = &fc40  ; SCSI data-bus register. Each read or write transfers one byte to or from the Adaptec ACB-4000 controller during the data, status, message and command phases of the SCSI handshake.
+scsi_data                  = &fc40  ; SCSI data-bus register. Each read or write transfers one byte to or from the Adaptec ACB-4000 controller during the data, status, message and command phases of the SCSI handshake.
 ; &fc40 referenced 22 times by &8072, &8166, &816b, &817d, &8182, &8190, &819f, &81c7, &81d1, &8216, &822b, &8255, &826f, &8275, &8320, &8b97, &9a6c, &9a74, &ab65, &ab96, &ab9c, &acbe
-fred_hard_drive_1          = &fc41  ; SCSI bus-status register. Reflects the control-bus phase lines (BSY, REQ, C/D, I/O, MSG) so the driver can step through the SCSI handshake.
+scsi_status                = &fc41  ; SCSI bus-status register. Reflects the control-bus phase lines (BSY, REQ, C/D, I/O, MSG) so the driver can step through the SCSI handshake.
 ; &fc41 referenced 2 times by &8057, &805c
-fred_hard_drive_2          = &fc42  ; SCSI select register. A write asserts SEL to start the selection phase and address the controller.
+scsi_select                = &fc42  ; SCSI select register. A write asserts SEL to start the selection phase and address the controller.
 ; &fc42 referenced 1 time by &8075
-fred_hard_drive_3          = &fc43  ; SCSI interrupt-enable register. Controls whether the host adapter raises IRQ on a SCSI data request.
+scsi_irq_enable            = &fc43  ; SCSI interrupt-enable register. Controls whether the host adapter raises IRQ on a SCSI data request.
 ; &fc43 referenced 3 times by &9a71, &ab72, &ab8e
 romsel                     = &fe30  ; Paged-ROM select latch. ADFS writes a bank number here to page in sideways ROM 0 (and to restore the previous bank afterwards) when reaching code or data in another bank.
 ; &fe30 referenced 2 times by &bcb0, &bcbd
@@ -1041,9 +1041,9 @@ nmi_saved_rom = sub_c0d33+1
     php                                                               ; 8056: 08          .        ; Save processor flags
 ; &8057 referenced 1 time by &8061
 .scsi_read_settle_loop
-    lda fred_hard_drive_1                                             ; 8057: ad 41 fc    .A.      ; Read SCSI status register
+    lda scsi_status                                                   ; 8057: ad 41 fc    .A.      ; Read SCSI status register
     sta zp_scsi_status                                                ; 805a: 85 cc       ..       ; Store first reading
-    lda fred_hard_drive_1                                             ; 805c: ad 41 fc    .A.      ; Read SCSI status register again
+    lda scsi_status                                                   ; 805c: ad 41 fc    .A.      ; Read SCSI status register again
     cmp zp_scsi_status                                                ; 805f: c5 cc       ..       ; Has it settled?
     bne scsi_read_settle_loop                                         ; 8061: d0 f4       ..       ; No, try again
     plp                                                               ; 8063: 28          (        ; Restore processor flags
@@ -1066,8 +1066,8 @@ nmi_saved_rom = sub_c0d33+1
     and #2                                                            ; 806d: 29 02       ).       ; Check BSY bit
     bne wait_bus_free_loop                                            ; 806f: d0 f9       ..       ; Loop while BSY asserted
     pla                                                               ; 8071: 68          h        ; Retrieve SCSI ID
-    sta fred_hard_drive_0                                             ; 8072: 8d 40 fc    .@.      ; Assert ID on SCSI data bus
-    sta fred_hard_drive_2                                             ; 8075: 8d 42 fc    .B.      ; Assert SEL to select target
+    sta scsi_data                                                     ; 8072: 8d 40 fc    .@.      ; Assert ID on SCSI data bus
+    sta scsi_select                                                   ; 8075: 8d 42 fc    .B.      ; Assert SEL to select target
 ; &8078 referenced 1 time by &807d
 .wait_target_bsy_loop
     jsr scsi_get_status                                               ; 8078: 20 56 80     V.      ; Wait for target to assert BSY
@@ -1254,11 +1254,11 @@ nmi_saved_rom = sub_c0d33+1
     bvs read_scsi_via_tube                                            ; 8160: 70 16       p.       ; Yes, use Tube path
     bcs read_scsi_to_memory                                           ; 8162: b0 07       ..       ; Reading from SCSI?
     lda (zp_mem_ptr_lo),y                                             ; 8164: b1 b2       ..       ; Writing: get byte from memory
-    sta fred_hard_drive_0                                             ; 8166: 8d 40 fc    .@.      ; Write to SCSI data register
+    sta scsi_data                                                     ; 8166: 8d 40 fc    .@.      ; Write to SCSI data register
     bcc advance_memory_page                                           ; 8169: 90 05       ..       ; Always branch to increment
 ; &816b referenced 1 time by &8162
 .read_scsi_to_memory
-    lda fred_hard_drive_0                                             ; 816b: ad 40 fc    .@.      ; Reading: get byte from SCSI
+    lda scsi_data                                                     ; 816b: ad 40 fc    .@.      ; Reading: get byte from SCSI
     sta (zp_mem_ptr_lo),y                                             ; 816e: 91 b2       ..       ; Store in memory
 ; &8170 referenced 1 time by &8169
 .advance_memory_page
@@ -1270,11 +1270,11 @@ nmi_saved_rom = sub_c0d33+1
 .read_scsi_via_tube
     bcs write_tube_to_scsi                                            ; 8178: b0 08       ..       ; Reading from SCSI via Tube?
     lda tube_data_register_3                                          ; 817a: ad e5 fe    ...      ; Writing via Tube: read from Tube R3
-    sta fred_hard_drive_0                                             ; 817d: 8d 40 fc    .@.      ; Write to SCSI data register
+    sta scsi_data                                                     ; 817d: 8d 40 fc    .@.      ; Write to SCSI data register
     bcc wait_data_phase                                               ; 8180: 90 d7       ..       ; Always branch back
 ; &8182 referenced 1 time by &8178
 .write_tube_to_scsi
-    lda fred_hard_drive_0                                             ; 8182: ad 40 fc    .@.      ; Reading via Tube: read from SCSI
+    lda scsi_data                                                     ; 8182: ad 40 fc    .@.      ; Reading via Tube: read from SCSI
     sta tube_data_register_3                                          ; 8185: 8d e5 fe    ...      ; Write to Tube R3
     bcs wait_data_phase                                               ; 8188: b0 cf       ..       ; Always branch back
 ; ***************************************************************************************
@@ -1293,14 +1293,14 @@ nmi_saved_rom = sub_c0d33+1
 ; &818d referenced 1 time by &819c
 .wait_status_phase
     jsr scsi_wait_for_req                                             ; 818d: 20 0f 83     ..      ; Wait for SCSI REQ (status phase)
-    lda fred_hard_drive_0                                             ; 8190: ad 40 fc    .@.      ; Read status byte from SCSI data
+    lda scsi_data                                                     ; 8190: ad 40 fc    .@.      ; Read status byte from SCSI data
     jsr scsi_wait_for_req                                             ; 8193: 20 0f 83     ..      ; Wait for SCSI REQ (message phase)
     tay                                                               ; 8196: a8          .        ; Save status in Y
     jsr scsi_get_status                                               ; 8197: 20 56 80     V.      ; Read SCSI status register
     and #1                                                            ; 819a: 29 01       ).       ; Check BSY still asserted
     beq wait_status_phase                                             ; 819c: f0 ef       ..       ; Loop until bus free
     tya                                                               ; 819e: 98          .        ; Retrieve status byte
-    ldx fred_hard_drive_0                                             ; 819f: ae 40 fc    .@.      ; Read final data byte
+    ldx scsi_data                                                     ; 819f: ae 40 fc    .@.      ; Read final data byte
     beq check_scsi_error_bit                                          ; 81a2: f0 03       ..       ; Status OK?
     jmp unrecoverable_scsi_error                                      ; 81a4: 4c 82 82    L..      ; No, return error &FF
 ; &81a7 referenced 1 time by &81a2
@@ -1336,14 +1336,14 @@ nmi_saved_rom = sub_c0d33+1
 ; &81c5 referenced 1 time by &81cb
 .write_sector_byte_loop
     lda (zp_mem_ptr_lo),y                                             ; 81c5: b1 b2       ..       ; Writing: get byte from memory
-    sta fred_hard_drive_0                                             ; 81c7: 8d 40 fc    .@.      ; Write to SCSI data register
+    sta scsi_data                                                     ; 81c7: 8d 40 fc    .@.      ; Write to SCSI data register
     iny                                                               ; 81ca: c8          .        ; Next byte
     bne write_sector_byte_loop                                        ; 81cb: d0 f8       ..       ; Continue for 256 bytes
     inc zp_mem_ptr_hi                                                 ; 81cd: e6 b3       ..       ; Next page
     bvc wait_req_and_transfer                                         ; 81cf: 50 ed       P.       ; Continue transfer
 ; &81d1 referenced 2 times by &81c3, &81d7
 .read_sector_byte_loop
-    lda fred_hard_drive_0                                             ; 81d1: ad 40 fc    .@.      ; Reading: get byte from SCSI
+    lda scsi_data                                                     ; 81d1: ad 40 fc    .@.      ; Reading: get byte from SCSI
     sta (zp_mem_ptr_lo),y                                             ; 81d4: 91 b2       ..       ; Store in memory
     iny                                                               ; 81d6: c8          .        ; Next byte
     bne read_sector_byte_loop                                         ; 81d7: d0 f8       ..       ; Continue for 256 bytes
@@ -1412,7 +1412,7 @@ nmi_saved_rom = sub_c0d33+1
     nop                                                               ; 8211: ea          .        ; NOP timing delay
     nop                                                               ; 8212: ea          .        ; NOP timing delay
     lda tube_data_register_3                                          ; 8213: ad e5 fe    ...      ; Read byte from Tube R3
-    sta fred_hard_drive_0                                             ; 8216: 8d 40 fc    .@.      ; Write to SCSI data register
+    sta scsi_data                                                     ; 8216: 8d 40 fc    .@.      ; Write to SCSI data register
     iny                                                               ; 8219: c8          .        ; Next byte
     bne tube_write_byte_loop                                          ; 821a: d0 f4       ..       ; Continue for 256 bytes
     jsr increment_tube_xfer_addr                                      ; 821c: 20 dd 81     ..      ; Increment transfer address
@@ -1428,7 +1428,7 @@ nmi_saved_rom = sub_c0d33+1
     nop                                                               ; 8228: ea          .        ; NOP timing delay for Tube
     nop                                                               ; 8229: ea          .        ; NOP timing delay
     nop                                                               ; 822a: ea          .        ; NOP timing delay
-    lda fred_hard_drive_0                                             ; 822b: ad 40 fc    .@.      ; Read byte from SCSI data register
+    lda scsi_data                                                     ; 822b: ad 40 fc    .@.      ; Read byte from SCSI data register
     sta tube_data_register_3                                          ; 822e: 8d e5 fe    ...      ; Write to Tube R3
     iny                                                               ; 8231: c8          .        ; Next byte
     bne tube_read_byte_loop                                           ; 8232: d0 f4       ..       ; Continue for 256 bytes
@@ -1463,7 +1463,7 @@ nmi_saved_rom = sub_c0d33+1
 ; &8252 referenced 1 time by &825c
 .receive_sense_data_loop
     jsr scsi_wait_for_req                                             ; 8252: 20 0f 83     ..      ; Receive sense data bytes
-    lda fred_hard_drive_0                                             ; 8255: ad 40 fc    .@.      ; Read sense data from SCSI bus
+    lda scsi_data                                                     ; 8255: ad 40 fc    .@.      ; Read sense data from SCSI bus
     sta wksp_err_sector,x                                             ; 8258: 9d d0 10    ...      ; Store in error workspace
     dex                                                               ; 825b: ca          .        ; Next byte
     bpl receive_sense_data_loop                                       ; 825c: 10 f4       ..       ; Loop for 4 bytes
@@ -1473,9 +1473,9 @@ nmi_saved_rom = sub_c0d33+1
     sta wksp_err_sector_hi                                            ; 8266: 8d d2 10    ...      ; Store back
     jsr scsi_wait_for_req                                             ; 8269: 20 0f 83     ..      ; Wait for status phase
     ldx wksp_err_code                                                 ; 826c: ae d3 10    ...      ; Get error code from workspace
-    lda fred_hard_drive_0                                             ; 826f: ad 40 fc    .@.      ; Read status byte
+    lda scsi_data                                                     ; 826f: ad 40 fc    .@.      ; Read status byte
     jsr scsi_wait_for_req                                             ; 8272: 20 0f 83     ..      ; Wait for message phase
-    ldy fred_hard_drive_0                                             ; 8275: ac 40 fc    .@.      ; Read message byte
+    ldy scsi_data                                                     ; 8275: ac 40 fc    .@.      ; Read message byte
     bne unrecoverable_scsi_error                                      ; 8278: d0 08       ..       ; Message byte non-zero? Error
     and #2                                                            ; 827a: 29 02       ).       ; Check status error bit
     bne unrecoverable_scsi_error                                      ; 827c: d0 04       ..       ; Error bit set? Return error
@@ -1623,7 +1623,7 @@ nmi_saved_rom = sub_c0d33+1
 .scsi_send_byte_a
     jsr scsi_wait_for_req                                             ; 831b: 20 0f 83     ..      ; Wait for SCSI REQ
     bvs write_scsi_data_byte                                          ; 831e: 70 06       p.       ; MSG phase? Abort command
-    sta fred_hard_drive_0                                             ; 8320: 8d 40 fc    .@.      ; Write data byte to SCSI bus
+    sta scsi_data                                                     ; 8320: 8d 40 fc    .@.      ; Write data byte to SCSI bus
     lda #0                                                            ; 8323: a9 00       ..       ; A=0: success
     rts                                                               ; 8325: 60          `        ; Return (byte sent OK)
 ; &8326 referenced 1 time by &831e
@@ -3396,7 +3396,7 @@ nmi_saved_rom = sub_c0d33+1
     bmi execute_partial_disc_op                                       ; 8b95: 30 19       0.       ; Status phase: transfer complete
 ; &8b97 referenced 1 time by &8bae
 .copy_write_data_loop
-    lda fred_hard_drive_0                                             ; 8b97: ad 40 fc    .@.      ; Read byte from SCSI data bus
+    lda scsi_data                                                     ; 8b97: ad 40 fc    .@.      ; Read byte from SCSI data bus
     cpx #0                                                            ; 8b9a: e0 00       ..       ; Byte count exhausted?
     beq partial_read_from_disc                                        ; 8b9c: f0 0f       ..       ; Yes: discard remaining bytes
     bit zp_adfs_flags                                                 ; 8b9e: 24 cd       $.       ; Tube in use?
@@ -6143,10 +6143,10 @@ nmi_saved_rom = sub_c0d33+1
     lda #&a5                                                          ; 9a6a: a9 a5       ..       ; Write complement &A5
 ; &9a6c referenced 1 time by &9a65
 .scsi_write_read_test
-    sta fred_hard_drive_0                                             ; 9a6c: 8d 40 fc    .@.      ; Write test value to SCSI data port
+    sta scsi_data                                                     ; 9a6c: 8d 40 fc    .@.      ; Write test value to SCSI data port
     ldx #0                                                            ; 9a6f: a2 00       ..       ; X=0: clear IRQ enable register
-    stx fred_hard_drive_3                                             ; 9a71: 8e 43 fc    .C.      ; Disable SCSI interrupts
-    cmp fred_hard_drive_0                                             ; 9a74: cd 40 fc    .@.      ; Read back: does value match?
+    stx scsi_irq_enable                                               ; 9a71: 8e 43 fc    .C.      ; Disable SCSI interrupts
+    cmp scsi_data                                                     ; 9a74: cd 40 fc    .@.      ; Read back: does value match?
 ; &9a77 referenced 2 times by &9a68, &9c9c
 .return_22
     rts                                                               ; 9a77: 60          `        ; Return
@@ -9152,14 +9152,14 @@ la154 = sub_ca153+1
 ; &ab63 referenced 2 times by &ab57, &ab69
 .scsi_write_page
     lda (zp_buf_src_lo),y                                             ; ab63: b1 bc       ..       ; Get byte from buffer
-    sta fred_hard_drive_0                                             ; ab65: 8d 40 fc    .@.      ; Write to SCSI data bus
+    sta scsi_data                                                     ; ab65: 8d 40 fc    .@.      ; Write to SCSI data bus
     iny                                                               ; ab68: c8          .        ; Next byte
     bne scsi_write_page                                               ; ab69: d0 f8       ..       ; Loop for 256 bytes
     lda #1                                                            ; ab6b: a9 01       ..       ; Set ensuring flag
     ora zp_adfs_flags                                                 ; ab6d: 05 cd       ..       ; OR into ADFS flags
     sta zp_adfs_flags                                                 ; ab6f: 85 cd       ..       ; Store updated flags
     dey                                                               ; ab71: 88          .        ; Y=&FF: disable SCSI IRQ
-    sty fred_hard_drive_3                                             ; ab72: 8c 43 fc    .C.      ; Write to SCSI IRQ enable register
+    sty scsi_irq_enable                                               ; ab72: 8c 43 fc    .C.      ; Write to SCSI IRQ enable register
 ; &ab75 referenced 1 time by &ab42
 .write_buffer_to_scsi_loop
     ldx zp_name_ptr_hi                                                ; ab75: a6 c1       ..       ; Restore channel index
@@ -9183,13 +9183,13 @@ la154 = sub_ca153+1
     tya                                                               ; ab8a: 98          .        ; Save Y
     pha                                                               ; ab8b: 48          H        ; Push on stack
     lda #0                                                            ; ab8c: a9 00       ..       ; A=0: clear SCSI IRQ
-    sta fred_hard_drive_3                                             ; ab8e: 8d 43 fc    .C.      ; Write to SCSI IRQ enable
+    sta scsi_irq_enable                                               ; ab8e: 8d 43 fc    .C.      ; Write to SCSI IRQ enable
     ror zp_adfs_flags                                                 ; ab91: 66 cd       f.       ; Clear ensuring flag (bit 0)
     clc                                                               ; ab93: 18          .        ; Clear carry
     rol zp_adfs_flags                                                 ; ab94: 26 cd       &.       ; Restore bit 0 cleared
-    lda fred_hard_drive_0                                             ; ab96: ad 40 fc    .@.      ; Read SCSI status byte
+    lda scsi_data                                                     ; ab96: ad 40 fc    .@.      ; Read SCSI status byte
     jsr scsi_wait_for_req                                             ; ab99: 20 0f 83     ..      ; Wait for message phase
-    ora fred_hard_drive_0                                             ; ab9c: 0d 40 fc    .@.      ; OR with final status byte
+    ora scsi_data                                                     ; ab9c: 0d 40 fc    .@.      ; OR with final status byte
     sta wksp_scsi_status                                              ; ab9f: 8d 31 11    .1.      ; Store combined status
     jmp set_result_error_code                                         ; aba2: 4c 63 9d    Lc.      ; Return to service dispatcher
 ; &aba5 referenced 1 time by &aaf3
@@ -9370,7 +9370,7 @@ la154 = sub_ca153+1
     ldy #0                                                            ; acbc: a0 00       ..       ; Y=0: read data byte index
 ; &acbe referenced 1 time by &acc4
 .read_complete_check
-    lda fred_hard_drive_0                                             ; acbe: ad 40 fc    .@.      ; Read byte from SCSI data bus
+    lda scsi_data                                                     ; acbe: ad 40 fc    .@.      ; Read byte from SCSI data bus
     sta (zp_buf_dest_lo),y                                            ; acc1: 91 be       ..       ; Store in buffer
     iny                                                               ; acc3: c8          .        ; Next byte
     bne read_complete_check                                           ; acc4: d0 f8       ..       ; Loop for 256 bytes
@@ -12445,7 +12445,7 @@ save pydis_start, pydis_end
 ;     wksp_csd_sector_temp:                     24
 ;     wksp_object_sector:                       24
 ;     wksp_saved_drive:                         23
-;     fred_hard_drive_0:                        22
+;     scsi_data:                                22
 ;     wksp_csd_drive_sector:                    21
 ;     wksp_ch_flags:                            20
 ;     wksp_fdc_head_state:                      20
@@ -12711,7 +12711,6 @@ save pydis_start, pydis_end
 ;     find_file_and_validate:                    3
 ;     floppy_ts_b0_block:                        3
 ;     flush_dirty_channel_buffer:                3
-;     fred_hard_drive_3:                         3
 ;     fsm_s1_disc_id_hi:                         3
 ;     fsm_s1_disc_id_lo:                         3
 ;     get_drive_bit_mask:                        3
@@ -12739,6 +12738,7 @@ save pydis_start, pydis_end
 ;     return_15:                                 3
 ;     return_18:                                 3
 ;     return_after_flag_update:                  3
+;     scsi_irq_enable:                           3
 ;     scsi_start_command:                        3
 ;     set_drive_from_channel:                    3
 ;     set_up_gsinit_path:                        3
@@ -12866,7 +12866,6 @@ save pydis_start, pydis_end
 ;     flush_all_channels:                        2
 ;     format_init_dir:                           2
 ;     format_init_fsm:                           2
-;     fred_hard_drive_1:                         2
 ;     fsm_s0_pre1:                               2
 ;     fsm_s1_checksum:                           2
 ;     generate_error_no_suffix:                  2
@@ -12940,6 +12939,7 @@ save pydis_start, pydis_end
 ;     save_and_return_handle:                    2
 ;     save_byte_count_for_write:                 2
 ;     save_text_ptr_after_match:                 2
+;     scsi_status:                               2
 ;     scsi_write_page:                           2
 ;     search_dir_for_channel:                    2
 ;     search_dir_for_file:                       2
@@ -13379,7 +13379,6 @@ save pydis_start, pydis_end
 ;     format_verify_pass:                        1
 ;     format_write_sectors_loop:                 1
 ;     found_insertion_point:                     1
-;     fred_hard_drive_2:                         1
 ;     fsc6_new_filing_system:                    1
 ;     fscv:                                      1
 ;     fscv_dispatch_hi:                          1
@@ -13645,6 +13644,7 @@ save pydis_start, pydis_end
 ;     scan_title_length_loop:                    1
 ;     scsi_read_settle_loop:                     1
 ;     scsi_request_sense:                        1
+;     scsi_select:                               1
 ;     scsi_send_byte_wrapper:                    1
 ;     scsi_start_command2:                       1
 ;     scsi_write_read_test:                      1

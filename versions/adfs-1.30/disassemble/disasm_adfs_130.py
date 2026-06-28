@@ -34,21 +34,21 @@ d.use_environment('acorn_fdc_1770')
 # metadata (group/length/access/description) so it appears on the
 # per-version Memory Map page.
 # &FC40-&FC43 are the Acorn SCSI/Winchester host adapter, occupying the
-# first four "FRED" 1 MHz-bus hard-drive register slots. The environment
-# names (fred_hard_drive_0..3) are kept; the SCSI role of each is given
-# in the description.
-d.label(0xFC40, 'fred_hard_drive_0', length=1, group='mmio', access='rw',
+# first four "FRED" 1 MHz-bus hard-drive register slots. The dasmos
+# Acorn environment names these scsi_data / scsi_status / scsi_select /
+# scsi_irq_enable; here they are enriched with memory-map metadata.
+d.label(0xFC40, 'scsi_data', length=1, group='mmio', access='rw',
         description="SCSI data-bus register. Each read or write transfers "
         "one byte to or from the Adaptec ACB-4000 controller during the "
         "data, status, message and command phases of the SCSI handshake.")
-d.label(0xFC41, 'fred_hard_drive_1', length=1, group='mmio', access='r',
+d.label(0xFC41, 'scsi_status', length=1, group='mmio', access='r',
         description="SCSI bus-status register. Reflects the control-bus "
         "phase lines (BSY, REQ, C/D, I/O, MSG) so the driver can step "
         "through the SCSI handshake.")
-d.label(0xFC42, 'fred_hard_drive_2', length=1, group='mmio', access='w',
+d.label(0xFC42, 'scsi_select', length=1, group='mmio', access='w',
         description="SCSI select register. A write asserts SEL to start "
         "the selection phase and address the controller.")
-d.label(0xFC43, 'fred_hard_drive_3', length=1, group='mmio', access='w',
+d.label(0xFC43, 'scsi_irq_enable', length=1, group='mmio', access='w',
         description="SCSI interrupt-enable register. Controls whether the "
         "host adapter raises IRQ on a SCSI data request.")
 
