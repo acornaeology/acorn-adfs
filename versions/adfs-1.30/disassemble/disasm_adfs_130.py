@@ -1609,14 +1609,14 @@ d.entry(0x9CD6)
 
 d.label(0x9E48, 'tbl_help_param_ptrs')
 d.entry(0x9E48)
-_help_param_ptrs = [(0x9E48, 'help_param_none', '(no parameter)'), (0x9E49, 'help_param_list_spec', '"<List Spec>"'), (0x9E4A, 'help_param_ob_spec', '"<Ob Spec>"'), (0x9E4B, 'help_param_wild_ob_spec', '"<*Ob Spec*>"'), (0x9E4C, 'help_param_drive', '"(<Drive>)"'), (0x9E4D, 'help_param_sp_lp', '"<SP> <LP>"'), (0x9E4E, 'help_param_access', '"(L)(W)(R)(E)"'), (0x9E4F, 'help_param_title', '"<Title>"')]
+_help_param_ptrs = [(0x9E48, 'help_param_none', '(no parameter)'), (0x9E49, 'help_param_list_spec', '"<List Spec>"'), (0x9E4A, 'help_param_ob_spec', '"<Ob Spec>"'), (0x9E4B, 'help_param_wild_ob_spec', '"<\\*Ob Spec\\*>"'), (0x9E4C, 'help_param_drive', '"(<Drive>)"'), (0x9E4D, 'help_param_sp_lp', '"<SP> <LP>"'), (0x9E4E, 'help_param_access', '"(L)(W)(R)(E)"'), (0x9E4F, 'help_param_title', '"<Title>"')]
 for addr, target, desc in _help_param_ptrs:
     d.byte(addr)
     d.expr(addr, f'<({target})')
     d.comment(addr, desc, align=Align.INLINE)
 d.entry(0x9E6D)
 d.entry(0x9EE3)
-_cmd_table = [(0x9EE3, 6, 'ACCESS', 0x9EE9, 0x9EEA, 0x9EEB, 'star_access', 'Params &16: <List Spec> (L)(W)(R)(E)'), (0x9EEC, 4, 'BACK', 0x9EF0, 0x9EF1, 0x9EF2, 'star_back', 'Params &00: (none)'), (0x9EF3, 3, 'BYE', 0x9EF6, 0x9EF7, 0x9EF8, 'star_bye', 'Params &00: (none)'), (0x9EF9, 4, 'CDIR', 0x9EFD, 0x9EFE, 0x9EFF, 'star_cdir', 'Params &20: <Ob Spec>'), (0x9F00, 5, 'CLOSE', 0x9F05, 0x9F06, 0x9F07, 'star_close', 'Params &00: (none)'), (0x9F08, 7, 'COMPACT', 0x9F0F, 0x9F10, 0x9F11, 'star_compact', 'Params &50: <SP> <LP>'), (0x9F12, 4, 'COPY', 0x9F16, 0x9F17, 0x9F18, 'star_copy', 'Params &13: <List Spec> <*Ob Spec*>'), (0x9F19, 6, 'DELETE', 0x9F1F, 0x9F20, 0x9F21, 'star_delete', 'Params &20: <Ob Spec>'), (0x9F22, 7, 'DESTROY', 0x9F29, 0x9F2A, 0x9F2B, 'star_destroy', 'Params &10: <List Spec>'), (0x9F2C, 3, 'DIR', 0x9F2F, 0x9F30, 0x9F31, 'star_dir', 'Params &20: <Ob Spec>'), (0x9F32, 8, 'DISMOUNT', 0x9F3A, 0x9F3B, 0x9F3C, 'star_dismount', 'Params &40: (<Drive>)'), (0x9F3D, 2, 'EX', 0x9F3F, 0x9F40, 0x9F41, 'star_ex', 'Params &30: <*Ob Spec*>'), (0x9F42, 4, 'FREE', 0x9F46, 0x9F47, 0x9F48, 'star_free', 'Params &00: (none)'), (0x9F49, 4, 'INFO', 0x9F4D, 0x9F4E, 0x9F4F, 'star_info', 'Params &10: <List Spec>'), (0x9F50, 4, 'LCAT', 0x9F54, 0x9F55, 0x9F56, 'star_lcat', 'Params &00: (none)'), (0x9F57, 3, 'LEX', 0x9F5A, 0x9F5B, 0x9F5C, 'star_lex', 'Params &00: (none)'), (0x9F5D, 3, 'LIB', 0x9F60, 0x9F61, 0x9F62, 'star_lib', 'Params &30: <*Ob Spec*>'), (0x9F63, 3, 'MAP', 0x9F66, 0x9F67, 0x9F68, 'star_map', 'Params &00: (none)'), (0x9F69, 5, 'MOUNT', 0x9F6E, 0x9F6F, 0x9F70, 'star_mount', 'Params &40: (<Drive>)'), (0x9F71, 6, 'REMOVE', 0x9F77, 0x9F78, 0x9F79, 'star_remove', 'Params &20: <Ob Spec>'), (0x9F7A, 6, 'RENAME', 0x9F80, 0x9F81, 0x9F82, 'star_rename', 'Params &22: <Ob Spec> <Ob Spec>'), (0x9F83, 5, 'TITLE', 0x9F88, 0x9F89, 0x9F8A, 'star_title', 'Params &70: <Title>')]
+_cmd_table = [(0x9EE3, 6, 'ACCESS', 0x9EE9, 0x9EEA, 0x9EEB, 'star_access', 'Params &16: <List Spec> (L)(W)(R)(E)'), (0x9EEC, 4, 'BACK', 0x9EF0, 0x9EF1, 0x9EF2, 'star_back', 'Params &00: (none)'), (0x9EF3, 3, 'BYE', 0x9EF6, 0x9EF7, 0x9EF8, 'star_bye', 'Params &00: (none)'), (0x9EF9, 4, 'CDIR', 0x9EFD, 0x9EFE, 0x9EFF, 'star_cdir', 'Params &20: <Ob Spec>'), (0x9F00, 5, 'CLOSE', 0x9F05, 0x9F06, 0x9F07, 'star_close', 'Params &00: (none)'), (0x9F08, 7, 'COMPACT', 0x9F0F, 0x9F10, 0x9F11, 'star_compact', 'Params &50: <SP> <LP>'), (0x9F12, 4, 'COPY', 0x9F16, 0x9F17, 0x9F18, 'star_copy', 'Params &13: <List Spec> <\\*Ob Spec\\*>'), (0x9F19, 6, 'DELETE', 0x9F1F, 0x9F20, 0x9F21, 'star_delete', 'Params &20: <Ob Spec>'), (0x9F22, 7, 'DESTROY', 0x9F29, 0x9F2A, 0x9F2B, 'star_destroy', 'Params &10: <List Spec>'), (0x9F2C, 3, 'DIR', 0x9F2F, 0x9F30, 0x9F31, 'star_dir', 'Params &20: <Ob Spec>'), (0x9F32, 8, 'DISMOUNT', 0x9F3A, 0x9F3B, 0x9F3C, 'star_dismount', 'Params &40: (<Drive>)'), (0x9F3D, 2, 'EX', 0x9F3F, 0x9F40, 0x9F41, 'star_ex', 'Params &30: <\\*Ob Spec\\*>'), (0x9F42, 4, 'FREE', 0x9F46, 0x9F47, 0x9F48, 'star_free', 'Params &00: (none)'), (0x9F49, 4, 'INFO', 0x9F4D, 0x9F4E, 0x9F4F, 'star_info', 'Params &10: <List Spec>'), (0x9F50, 4, 'LCAT', 0x9F54, 0x9F55, 0x9F56, 'star_lcat', 'Params &00: (none)'), (0x9F57, 3, 'LEX', 0x9F5A, 0x9F5B, 0x9F5C, 'star_lex', 'Params &00: (none)'), (0x9F5D, 3, 'LIB', 0x9F60, 0x9F61, 0x9F62, 'star_lib', 'Params &30: <\\*Ob Spec\\*>'), (0x9F63, 3, 'MAP', 0x9F66, 0x9F67, 0x9F68, 'star_map', 'Params &00: (none)'), (0x9F69, 5, 'MOUNT', 0x9F6E, 0x9F6F, 0x9F70, 'star_mount', 'Params &40: (<Drive>)'), (0x9F71, 6, 'REMOVE', 0x9F77, 0x9F78, 0x9F79, 'star_remove', 'Params &20: <Ob Spec>'), (0x9F7A, 6, 'RENAME', 0x9F80, 0x9F81, 0x9F82, 'star_rename', 'Params &22: <Ob Spec> <Ob Spec>'), (0x9F83, 5, 'TITLE', 0x9F88, 0x9F89, 0x9F8A, 'star_title', 'Params &70: <Title>')]
 for name_addr, name_len, name, hi_addr, lo_addr, param_addr, handler, params in _cmd_table:
     d.string(name_addr, name_len)
     d.comment(name_addr, f'"{name}" command name', align=Align.INLINE)
@@ -11969,7 +11969,7 @@ producing "ACCESS <List Spec> (L)(W)(R)(E)" in the listing.
   0: (none)         4: (<Drive>)
   1: <List Spec>    5: <SP> <LP>
   2: <Ob Spec>      6: (L)(W)(R)(E)
-  3: <*Ob Spec*>    7: <Title>
+  3: <\\*Ob Spec\\*>    7: <Title>
 """)
 
 
@@ -12000,7 +12000,7 @@ output for commands with no parameters.
 
   1: "<List Spec>"     Wildcard file specification
   2: "<Ob Spec>"       Single object specification
-  3: "<*Ob Spec*>"     Optional wildcard specification
+  3: "<\\*Ob Spec\\*>"     Optional wildcard specification
   4: "(<Drive>)"       Optional drive number
   5: "<SP> <LP>"       Start page and length page
   6: "(L)(W)(R)(E)"    Access attribute flags

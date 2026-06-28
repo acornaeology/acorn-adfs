@@ -2173,7 +2173,7 @@
       "addr": 40520,
       "name": "tbl_help_param_ptrs",
       "title": "*HELP parameter format string pointer table",
-      "description": "Eight low-byte pointers into the &9Fxx page, indexing the\nparameter format strings displayed after each command name\nin the *HELP ADFS output. Each command's third table byte\npacks two nibble indices: the high nibble selects the first\nparameter string, the low nibble selects the second. For\nexample, *ACCESS has byte &16 meaning index 1 then index 6,\nproducing \"ACCESS <List Spec> (L)(W)(R)(E)\" in the listing.\n\n  0: (none)         4: (<Drive>)\n  1: <List Spec>    5: <SP> <LP>\n  2: <Ob Spec>      6: (L)(W)(R)(E)\n  3: <*Ob Spec*>    7: <Title>\n"
+      "description": "Eight low-byte pointers into the &9Fxx page, indexing the\nparameter format strings displayed after each command name\nin the *HELP ADFS output. Each command's third table byte\npacks two nibble indices: the high nibble selects the first\nparameter string, the low nibble selects the second. For\nexample, *ACCESS has byte &16 meaning index 1 then index 6,\nproducing \"ACCESS <List Spec> (L)(W)(R)(E)\" in the listing.\n\n  0: (none)         4: (<Drive>)\n  1: <List Spec>    5: <SP> <LP>\n  2: <Ob Spec>      6: (L)(W)(R)(E)\n  3: <\\*Ob Spec\\*>    7: <Title>\n"
     },
     {
       "addr": 40557,
@@ -2191,7 +2191,7 @@
       "addr": 40845,
       "name": "help_param_list_spec",
       "title": "*HELP parameter format strings",
-      "description": "Seven NUL-terminated strings displayed after command names in\nthe *HELP ADFS listing. Indexed via tbl_help_param_ptrs using\nnibble pairs from each command's parameter byte. Index 0 points\nto the NUL at &9FD7 (end of the last string), producing no\noutput for commands with no parameters.\n\n  1: \"<List Spec>\"     Wildcard file specification\n  2: \"<Ob Spec>\"       Single object specification\n  3: \"<*Ob Spec*>\"     Optional wildcard specification\n  4: \"(<Drive>)\"       Optional drive number\n  5: \"<SP> <LP>\"       Start page and length page\n  6: \"(L)(W)(R)(E)\"    Access attribute flags\n  7: \"<Title>\"         Directory title string\n"
+      "description": "Seven NUL-terminated strings displayed after command names in\nthe *HELP ADFS listing. Indexed via tbl_help_param_ptrs using\nnibble pairs from each command's parameter byte. Index 0 points\nto the NUL at &9FD7 (end of the last string), producing no\noutput for commands with no parameters.\n\n  1: \"<List Spec>\"     Wildcard file specification\n  2: \"<Ob Spec>\"       Single object specification\n  3: \"<\\*Ob Spec\\*>\"     Optional wildcard specification\n  4: \"(<Drive>)\"       Optional drive number\n  5: \"<SP> <LP>\"       Start page and length page\n  6: \"(L)(W)(R)(E)\"    Access attribute flags\n  7: \"<Title>\"         Directory title string\n"
     },
     {
       "addr": 40920,
@@ -52278,7 +52278,7 @@
       "bytes": [
         163
       ],
-      "comment_inline": "\"<*Ob Spec*>\"",
+      "comment_inline": "\"<\\*Ob Spec\\*>\"",
       "type": "byte",
       "values": [
         163
@@ -53849,7 +53849,7 @@
       "bytes": [
         19
       ],
-      "comment_inline": "Params &13: <List Spec> <*Ob Spec*>",
+      "comment_inline": "Params &13: <List Spec> <\\*Ob Spec\\*>",
       "type": "byte",
       "values": [
         19
@@ -54110,7 +54110,7 @@
       "bytes": [
         48
       ],
-      "comment_inline": "Params &30: <*Ob Spec*>",
+      "comment_inline": "Params &30: <\\*Ob Spec\\*>",
       "type": "byte",
       "values": [
         48
@@ -54363,7 +54363,7 @@
       "bytes": [
         48
       ],
-      "comment_inline": "Params &30: <*Ob Spec*>",
+      "comment_inline": "Params &30: <\\*Ob Spec\\*>",
       "type": "byte",
       "values": [
         48

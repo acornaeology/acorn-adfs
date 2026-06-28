@@ -6901,13 +6901,13 @@ str_run_boot = str_l_boot+2
 ; index 6, producing "ACCESS <List Spec> (L)(W)(R)(E)" in the listing.
 ;
 ; 0: (none)         4: (<Drive>) 1: <List Spec>    5: <SP> <LP> 2: <Ob Spec>      6:
-; (L)(W)(R)(E) 3: <Ob Spec>    7: <Title>
+; (L)(W)(R)(E) 3: <*Ob Spec*>    7: <Title>
 ; &9e48 referenced 1 time by &9280
 .tbl_help_param_ptrs
     equb <(help_param_none)                                           ; 9e48: d7          .        ; (no parameter)
     equb <(help_param_list_spec)                                      ; 9e49: 8d          .        ; "<List Spec>"
     equb <(help_param_ob_spec)                                        ; 9e4a: 99          .        ; "<Ob Spec>"
-    equb <(help_param_wild_ob_spec)                                   ; 9e4b: a3          .        ; "<Ob Spec>"
+    equb <(help_param_wild_ob_spec)                                   ; 9e4b: a3          .        ; "<*Ob Spec*>"
     equb <(help_param_drive)                                          ; 9e4c: af          .        ; "(<Drive>)"
     equb <(help_param_sp_lp)                                          ; 9e4d: b9          .        ; "<SP> <LP>"
     equb <(help_param_access)                                         ; 9e4e: c3          .        ; "(L)(W)(R)(E)"
@@ -7079,7 +7079,7 @@ l9ee5 = tbl_commands+2
     equs "COPY"                                                       ; 9f12: 43 4f 50... COP...   ; "COPY" command name
     equb >(star_copy-1)                                               ; 9f16: a8          .        ; Dispatch hi-1 -> star_copy
     equb <(star_copy-1)                                               ; 9f17: 1c          .        ; Dispatch lo-1 -> star_copy
-    equb &13                                                          ; 9f18: 13          .        ; Params &13: <List Spec> <Ob Spec>
+    equb &13                                                          ; 9f18: 13          .        ; Params &13: <List Spec> <*Ob Spec*>
     equs "DELETE"                                                     ; 9f19: 44 45 4c... DEL...   ; "DELETE" command name
     equb >(star_delete-1)                                             ; 9f1f: a0          .        ; Dispatch hi-1 -> star_delete
     equb <(star_delete-1)                                             ; 9f20: ba          .        ; Dispatch lo-1 -> star_delete
@@ -7099,7 +7099,7 @@ l9ee5 = tbl_commands+2
     equs "EX"                                                         ; 9f3d: 45 58       EX       ; "EX" command name
     equb >(star_ex-1)                                                 ; 9f3f: 94          .        ; Dispatch hi-1 -> star_ex
     equb <(star_ex-1)                                                 ; 9f40: 32          2        ; Dispatch lo-1 -> star_ex
-    equb &30                                                          ; 9f41: 30          0        ; Params &30: <Ob Spec>
+    equb &30                                                          ; 9f41: 30          0        ; Params &30: <*Ob Spec*>
     equs "FREE"                                                       ; 9f42: 46 52 45... FRE...   ; "FREE" command name
     equb >(star_free-1)                                               ; 9f46: a0          .        ; Dispatch hi-1 -> star_free
     equb <(star_free-1)                                               ; 9f47: 1a          .        ; Dispatch lo-1 -> star_free
@@ -7119,7 +7119,7 @@ l9ee5 = tbl_commands+2
     equs "LIB"                                                        ; 9f5d: 4c 49 42    LIB      ; "LIB" command name
     equb >(star_lib-1)                                                ; 9f60: a4          .        ; Dispatch hi-1 -> star_lib
     equb <(star_lib-1)                                                ; 9f61: 43          C        ; Dispatch lo-1 -> star_lib
-    equb &30                                                          ; 9f62: 30          0        ; Params &30: <Ob Spec>
+    equb &30                                                          ; 9f62: 30          0        ; Params &30: <*Ob Spec*>
     equs "MAP"                                                        ; 9f63: 4d 41 50    MAP      ; "MAP" command name
     equb >(star_map-1)                                                ; 9f66: a0          .        ; Dispatch hi-1 -> star_map
     equb <(star_map-1)                                                ; 9f67: 49          I        ; Dispatch lo-1 -> star_map
@@ -7151,7 +7151,7 @@ l9ee5 = tbl_commands+2
 ; commands with no parameters.
 ;
 ; 1: "<List Spec>"     Wildcard file specification 2: "<Ob Spec>"       Single object
-; specification 3: "<Ob Spec>"     Optional wildcard specification 4: "(<Drive>)"
+; specification 3: "<*Ob Spec*>"     Optional wildcard specification 4: "(<Drive>)"
 ; Optional drive number 5: "<SP> <LP>"       Start page and length page 6: "(L)(W)(R)(E)"
 ; Access attribute flags 7: "<Title>"         Directory title string
 .help_param_list_spec
