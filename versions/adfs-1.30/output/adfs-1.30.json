@@ -3127,119 +3127,176 @@
       "name": "filev",
       "length": 2,
       "group": "os_vectors",
-      "access": "w"
+      "access": "w",
+      "description": "MOS FILEV vector (OSFILE). ADFS points it at its own OSFILE handler when the filing system is selected."
+    },
+    {
+      "addr": 532,
+      "name": "argsv",
+      "length": 2,
+      "group": "os_vectors",
+      "access": "w",
+      "description": "MOS ARGSV vector (OSARGS), claimed by ADFS on selection."
+    },
+    {
+      "addr": 534,
+      "name": "bgetv",
+      "length": 2,
+      "group": "os_vectors",
+      "access": "w",
+      "description": "MOS BGETV vector (OSBGET), claimed by ADFS on selection."
+    },
+    {
+      "addr": 536,
+      "name": "bputv",
+      "length": 2,
+      "group": "os_vectors",
+      "access": "w",
+      "description": "MOS BPUTV vector (OSBPUT), claimed by ADFS on selection."
+    },
+    {
+      "addr": 538,
+      "name": "gbpbv",
+      "length": 2,
+      "group": "os_vectors",
+      "access": "w",
+      "description": "MOS GBPBV vector (OSGBPB), claimed by ADFS on selection."
+    },
+    {
+      "addr": 540,
+      "name": "findv",
+      "length": 2,
+      "group": "os_vectors",
+      "access": "w",
+      "description": "MOS FINDV vector (OSFIND), claimed by ADFS on selection."
     },
     {
       "addr": 542,
       "name": "fscv",
       "length": 2,
       "group": "os_vectors",
-      "access": "rw"
+      "access": "rw",
+      "description": "MOS FSCV vector (filing-system control). ADFS claims it on selection and the MOS calls through it for *commands, file-system selection and similar control operations."
     },
     {
       "addr": 653,
       "name": "last_break_type",
       "length": 1,
       "group": "os_vectors",
-      "access": "r"
+      "access": "r",
+      "description": "MOS last-break-type flag (0=soft, 1=power-on, 2=hard). ADFS reads it during initialisation to decide how much state to rebuild."
     },
     {
       "addr": 3338,
       "name": "nmi_rw_code",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "Relocated NMI transfer handler. ADFS copies its sector read/write routine into the page-&0D NMI workspace and patches it at runtime; this is the routine's working area."
     },
     {
       "addr": 3339,
       "name": "nmi_write_addr_lo",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Patch site in the NMI handler: host buffer address for sector WRITES, low byte."
     },
     {
       "addr": 3340,
       "name": "nmi_write_addr_hi",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Patch site in the NMI handler: host buffer address for sector WRITES, high byte."
     },
     {
       "addr": 3342,
       "name": "nmi_read_addr_lo",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Patch site in the NMI handler: host buffer address for sector READS, low byte."
     },
     {
       "addr": 3343,
       "name": "nmi_read_addr_hi",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "Patch site in the NMI handler: host buffer address for sector READS, high byte."
     },
     {
       "addr": 3414,
       "name": "nmi_step_rate",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "NMI workspace: drive step-rate / side-select bits for the current transfer."
     },
     {
       "addr": 3415,
       "name": "nmi_tracks_remaining",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "NMI workspace: number of whole tracks still to transfer."
     },
     {
       "addr": 3416,
       "name": "nmi_secs_this_track",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "NMI workspace: sectors to transfer on the current track."
     },
     {
       "addr": 3417,
       "name": "nmi_secs_last_track",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "NMI workspace: sectors to transfer on the final track."
     },
     {
       "addr": 3418,
       "name": "nmi_sec_position",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "NMI workspace: current sector position within the transfer."
     },
     {
       "addr": 3420,
       "name": "nmi_drive_cmd",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "NMI workspace: drive command byte, with the drive-select bits OR'd in."
     },
     {
       "addr": 3421,
       "name": "nmi_adfs_flags",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "NMI workspace: copy of the ADFS flags consulted by the NMI handler."
     },
     {
       "addr": 3422,
       "name": "nmi_drive_ctrl",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "rw"
+      "access": "rw",
+      "description": "NMI workspace: drive-control byte for the current transfer."
     },
     {
       "addr": 3423,
       "name": "nmi_completion",
       "length": 1,
       "group": "page_d_workspace",
-      "access": "w"
+      "access": "w",
+      "description": "NMI workspace: completion flag the handler sets when the transfer finishes."
     },
     {
       "addr": 3568,
@@ -4794,119 +4851,136 @@
       "name": "dir_buffer",
       "length": 1,
       "group": "dir_buffer",
-      "access": "rw"
+      "access": "rw",
+      "description": "Directory buffer (&1200-&16FF, five sectors). Holds the currently loaded directory - a header, up to 47 26-byte entries, and a footer. This is the start of the header."
     },
     {
       "addr": 4613,
       "name": "dir_first_entry",
       "length": 1,
       "group": "dir_buffer",
-      "access": "r"
+      "access": "r",
+      "description": "First 26-byte directory entry (offset &05 into the buffer, just past the header)."
     },
     {
       "addr": 5809,
       "name": "dir_last_entry_area",
       "length": 1,
       "group": "dir_buffer",
-      "access": "r"
+      "access": "r",
+      "description": "End of the directory entry area; the entry list is searched up to this limit when looking for a free slot."
     },
     {
       "addr": 5836,
       "name": "dir_name",
       "length": 1,
       "group": "dir_buffer",
-      "access": "rw"
+      "access": "rw",
+      "description": "Directory's own name, stored in the footer."
     },
     {
       "addr": 5846,
       "name": "dir_parent_sector",
       "length": 1,
       "group": "dir_buffer",
-      "access": "w"
+      "access": "w",
+      "description": "Sector address of this directory's parent (3 bytes), stored in the footer."
     },
     {
       "addr": 5849,
       "name": "dir_title",
       "length": 1,
       "group": "dir_buffer",
-      "access": "rw"
+      "access": "rw",
+      "description": "Directory title string, stored in the footer."
     },
     {
       "addr": 5882,
       "name": "dir_master_sequence",
       "length": 1,
       "group": "dir_buffer",
-      "access": "rw"
+      "access": "rw",
+      "description": "Master sequence number in the footer, bumped on each change to detect concurrent updates."
     },
     {
       "addr": 5883,
       "name": "dir_identity_string",
       "length": 1,
       "group": "dir_buffer",
-      "access": "rw"
+      "access": "rw",
+      "description": "Footer identity string ('Hugo'); must match the header's copy to validate the directory."
     },
     {
       "addr": 5888,
       "name": "ra_buffer_1",
       "length": 1,
       "group": "ra_buffers",
-      "access": "w"
+      "access": "w",
+      "description": "General-purpose buffer page 1 (&1700). Used for sector read-ahead and as scratch during directory and free-space operations; also reused as a second directory header."
     },
     {
       "addr": 6144,
       "name": "ra_buffer_2",
       "length": 1,
       "group": "ra_buffers",
-      "access": "w"
+      "access": "w",
+      "description": "General-purpose buffer page 2 (&1800)."
     },
     {
       "addr": 6400,
       "name": "ra_buffer_3",
       "length": 1,
       "group": "ra_buffers",
-      "access": "w"
+      "access": "w",
+      "description": "General-purpose buffer page 3 (&1900)."
     },
     {
       "addr": 6656,
       "name": "ra_buffer_4",
       "length": 1,
       "group": "ra_buffers",
-      "access": "w"
+      "access": "w",
+      "description": "General-purpose buffer page 4 (&1A00)."
     },
     {
       "addr": 6912,
       "name": "ra_buffer_5",
       "length": 1,
       "group": "ra_buffers",
-      "access": "w"
+      "access": "w",
+      "description": "General-purpose buffer page 5 (&1B00); also holds a second directory image when an operation works on two directories at once."
     },
     {
       "addr": 7116,
       "name": "dir2_name",
       "length": 1,
       "group": "ra_buffers",
-      "access": "w"
+      "access": "w",
+      "description": "Footer name of the second directory held in the &1B00 buffer (used by operations that touch two directories, such as *COPY or rename across directories)."
     },
     {
       "addr": 7126,
       "name": "dir2_parent_sector",
       "length": 1,
       "group": "ra_buffers",
-      "access": "w"
+      "access": "w",
+      "description": "Parent-directory sector of the second directory, in its footer."
     },
     {
       "addr": 7129,
       "name": "dir2_title",
       "length": 1,
       "group": "ra_buffers",
-      "access": "w"
+      "access": "w",
+      "description": "Title of the second directory, in its footer."
     },
     {
       "addr": 7162,
       "name": "dir2_master_sequence",
       "length": 1,
       "group": "ra_buffers",
-      "access": "w"
+      "access": "w",
+      "description": "Master sequence number of the second directory, in its footer."
     },
     {
       "addr": 64576,

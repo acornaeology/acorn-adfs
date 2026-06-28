@@ -676,73 +676,73 @@ d.label(0x10E8, 'wksp_fdc_cmd_step', length=1, group='ram_workspace', access='rw
 
 d.label(0x10FE, 'wksp_alt_csd_sector', length=1, group='ram_workspace', access='w')
 
-d.label(0x1200, 'dir_buffer', length=1, group='dir_buffer', access='rw')
+d.label(0x1200, 'dir_buffer', length=1, group='dir_buffer', access='rw', description="Directory buffer (&1200-&16FF, five sectors). Holds the currently loaded directory - a header, up to 47 26-byte entries, and a footer. This is the start of the header.")
 
-d.label(0x1205, 'dir_first_entry', length=1, group='dir_buffer', access='r')
+d.label(0x1205, 'dir_first_entry', length=1, group='dir_buffer', access='r', description="First 26-byte directory entry (offset &05 into the buffer, just past the header).")
 
-d.label(0x16B1, 'dir_last_entry_area', length=1, group='dir_buffer', access='r')
+d.label(0x16B1, 'dir_last_entry_area', length=1, group='dir_buffer', access='r', description="End of the directory entry area; the entry list is searched up to this limit when looking for a free slot.")
 
-d.label(0x16CC, 'dir_name', length=1, group='dir_buffer', access='rw')
+d.label(0x16CC, 'dir_name', length=1, group='dir_buffer', access='rw', description="Directory's own name, stored in the footer.")
 
-d.label(0x16D6, 'dir_parent_sector', length=1, group='dir_buffer', access='w')
+d.label(0x16D6, 'dir_parent_sector', length=1, group='dir_buffer', access='w', description="Sector address of this directory's parent (3 bytes), stored in the footer.")
 
-d.label(0x16D9, 'dir_title', length=1, group='dir_buffer', access='rw')
+d.label(0x16D9, 'dir_title', length=1, group='dir_buffer', access='rw', description="Directory title string, stored in the footer.")
 
-d.label(0x16FA, 'dir_master_sequence', length=1, group='dir_buffer', access='rw')
+d.label(0x16FA, 'dir_master_sequence', length=1, group='dir_buffer', access='rw', description="Master sequence number in the footer, bumped on each change to detect concurrent updates.")
 
-d.label(0x16FB, 'dir_identity_string', length=1, group='dir_buffer', access='rw')
+d.label(0x16FB, 'dir_identity_string', length=1, group='dir_buffer', access='rw', description="Footer identity string ('Hugo'); must match the header's copy to validate the directory.")
 
-d.label(0x1700, 'ra_buffer_1', length=1, group='ra_buffers', access='w')
+d.label(0x1700, 'ra_buffer_1', length=1, group='ra_buffers', access='w', description="General-purpose buffer page 1 (&1700). Used for sector read-ahead and as scratch during directory and free-space operations; also reused as a second directory header.")
 
-d.label(0x1800, 'ra_buffer_2', length=1, group='ra_buffers', access='w')
+d.label(0x1800, 'ra_buffer_2', length=1, group='ra_buffers', access='w', description="General-purpose buffer page 2 (&1800).")
 
-d.label(0x1900, 'ra_buffer_3', length=1, group='ra_buffers', access='w')
+d.label(0x1900, 'ra_buffer_3', length=1, group='ra_buffers', access='w', description="General-purpose buffer page 3 (&1900).")
 
-d.label(0x1A00, 'ra_buffer_4', length=1, group='ra_buffers', access='w')
+d.label(0x1A00, 'ra_buffer_4', length=1, group='ra_buffers', access='w', description="General-purpose buffer page 4 (&1A00).")
 
-d.label(0x1B00, 'ra_buffer_5', length=1, group='ra_buffers', access='w')
+d.label(0x1B00, 'ra_buffer_5', length=1, group='ra_buffers', access='w', description="General-purpose buffer page 5 (&1B00); also holds a second directory image when an operation works on two directories at once.")
 
-d.label(0x1BCC, 'dir2_name', length=1, group='ra_buffers', access='w')
+d.label(0x1BCC, 'dir2_name', length=1, group='ra_buffers', access='w', description="Footer name of the second directory held in the &1B00 buffer (used by operations that touch two directories, such as *COPY or rename across directories).")
 
-d.label(0x1BD6, 'dir2_parent_sector', length=1, group='ra_buffers', access='w')
+d.label(0x1BD6, 'dir2_parent_sector', length=1, group='ra_buffers', access='w', description="Parent-directory sector of the second directory, in its footer.")
 
-d.label(0x1BD9, 'dir2_title', length=1, group='ra_buffers', access='w')
+d.label(0x1BD9, 'dir2_title', length=1, group='ra_buffers', access='w', description="Title of the second directory, in its footer.")
 
-d.label(0x1BFA, 'dir2_master_sequence', length=1, group='ra_buffers', access='w')
+d.label(0x1BFA, 'dir2_master_sequence', length=1, group='ra_buffers', access='w', description="Master sequence number of the second directory, in its footer.")
 
 d.label(0x0D00, 'nmi_workspace', length=1, group='page_d_workspace', access='w')
 
 d.label(0x0D05, 'nmi_rw_opcode', length=1, group='page_d_workspace', access='w')
 
-d.label(0x0D0A, 'nmi_rw_code', length=1, group='page_d_workspace', access='w')
+d.label(0x0D0A, 'nmi_rw_code', length=1, group='page_d_workspace', access='w', description="Relocated NMI transfer handler. ADFS copies its sector read/write routine into the page-&0D NMI workspace and patches it at runtime; this is the routine's working area.")
 
-d.label(0x0D0B, 'nmi_write_addr_lo', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D0B, 'nmi_write_addr_lo', length=1, group='page_d_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector WRITES, low byte.")
 
-d.label(0x0D0C, 'nmi_write_addr_hi', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D0C, 'nmi_write_addr_hi', length=1, group='page_d_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector WRITES, high byte.")
 
-d.label(0x0D0E, 'nmi_read_addr_lo', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D0E, 'nmi_read_addr_lo', length=1, group='page_d_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector READS, low byte.")
 
-d.label(0x0D0F, 'nmi_read_addr_hi', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D0F, 'nmi_read_addr_hi', length=1, group='page_d_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector READS, high byte.")
 
 d.label(0x0D34, 'nmi_saved_rom', length=1, group='page_d_workspace', access='w')
 
-d.label(0x0D56, 'nmi_step_rate', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D56, 'nmi_step_rate', length=1, group='page_d_workspace', access='rw', description="NMI workspace: drive step-rate / side-select bits for the current transfer.")
 
-d.label(0x0D57, 'nmi_tracks_remaining', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D57, 'nmi_tracks_remaining', length=1, group='page_d_workspace', access='rw', description="NMI workspace: number of whole tracks still to transfer.")
 
-d.label(0x0D58, 'nmi_secs_this_track', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D58, 'nmi_secs_this_track', length=1, group='page_d_workspace', access='rw', description="NMI workspace: sectors to transfer on the current track.")
 
-d.label(0x0D59, 'nmi_secs_last_track', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D59, 'nmi_secs_last_track', length=1, group='page_d_workspace', access='rw', description="NMI workspace: sectors to transfer on the final track.")
 
-d.label(0x0D5A, 'nmi_sec_position', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D5A, 'nmi_sec_position', length=1, group='page_d_workspace', access='rw', description="NMI workspace: current sector position within the transfer.")
 
-d.label(0x0D5C, 'nmi_drive_cmd', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D5C, 'nmi_drive_cmd', length=1, group='page_d_workspace', access='rw', description="NMI workspace: drive command byte, with the drive-select bits OR'd in.")
 
-d.label(0x0D5D, 'nmi_adfs_flags', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D5D, 'nmi_adfs_flags', length=1, group='page_d_workspace', access='rw', description="NMI workspace: copy of the ADFS flags consulted by the NMI handler.")
 
-d.label(0x0D5E, 'nmi_drive_ctrl', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D5E, 'nmi_drive_ctrl', length=1, group='page_d_workspace', access='rw', description="NMI workspace: drive-control byte for the current transfer.")
 
-d.label(0x0D5F, 'nmi_completion', length=1, group='page_d_workspace', access='w')
+d.label(0x0D5F, 'nmi_completion', length=1, group='page_d_workspace', access='w', description="NMI workspace: completion flag the handler sets when the transfer finishes.")
 
 d.label(0x0DF0, 'rom_wksp_table', length=1, group='page_d_workspace', access='rw')
 
@@ -752,11 +752,27 @@ d.label(0x0DFD, 'fsm_s0_pre3', length=1, group='page_d_workspace', access='rw')
 
 d.label(0x0DFF, 'fsm_s0_pre1', length=1, group='page_d_workspace', access='r')
 
-d.label(0x0212, 'filev', length=2, group='os_vectors', access='w')
+# The filing-system vector block (&0212-&021F). When ADFS is selected
+# it claims these MOS vectors by writing its own handler addresses, so
+# OSFILE/OSARGS/OSBGET/OSBPUT/OSGBPB/OSFIND and the filing-system
+# control calls route into the ROM.
+d.label(0x0212, 'filev', length=2, group='os_vectors', access='w',
+        description="MOS FILEV vector (OSFILE). ADFS points it at its own OSFILE handler when the filing system is selected.")
+d.label(0x0214, 'argsv', length=2, group='os_vectors', access='w',
+        description="MOS ARGSV vector (OSARGS), claimed by ADFS on selection.")
+d.label(0x0216, 'bgetv', length=2, group='os_vectors', access='w',
+        description="MOS BGETV vector (OSBGET), claimed by ADFS on selection.")
+d.label(0x0218, 'bputv', length=2, group='os_vectors', access='w',
+        description="MOS BPUTV vector (OSBPUT), claimed by ADFS on selection.")
+d.label(0x021A, 'gbpbv', length=2, group='os_vectors', access='w',
+        description="MOS GBPBV vector (OSGBPB), claimed by ADFS on selection.")
+d.label(0x021C, 'findv', length=2, group='os_vectors', access='w',
+        description="MOS FINDV vector (OSFIND), claimed by ADFS on selection.")
+d.label(0x021E, 'fscv', length=2, group='os_vectors', access='rw',
+        description="MOS FSCV vector (filing-system control). ADFS claims it on selection and the MOS calls through it for *commands, file-system selection and similar control operations.")
 
-d.label(0x021E, 'fscv', length=2, group='os_vectors', access='rw')
-
-d.label(0x028D, 'last_break_type', length=1, group='os_vectors', access='r')
+d.label(0x028D, 'last_break_type', length=1, group='os_vectors', access='r',
+        description="MOS last-break-type flag (0=soft, 1=power-on, 2=hard). ADFS reads it during initialisation to decide how much state to rebuild.")
 d.entry(0x8027)
 
 d.label(0x8027, 'claim_tube')

@@ -168,36 +168,41 @@ brk_error_block_3          = &0103
 ; &0103 referenced 1 time by &a77c
 brk_error_block_4          = &0104
 ; &0104 referenced 1 time by &92ce
-filev                      = &0212
+filev                      = &0212  ; MOS FILEV vector (OSFILE). ADFS points it at its own OSFILE handler when the filing system is selected.
 ; &0212 referenced 1 time by &9b9f
-fscv                       = &021e
+argsv                      = &0214  ; MOS ARGSV vector (OSARGS), claimed by ADFS on selection.
+bgetv                      = &0216  ; MOS BGETV vector (OSBGET), claimed by ADFS on selection.
+bputv                      = &0218  ; MOS BPUTV vector (OSBPUT), claimed by ADFS on selection.
+gbpbv                      = &021a  ; MOS GBPBV vector (OSGBPB), claimed by ADFS on selection.
+findv                      = &021c  ; MOS FINDV vector (OSFIND), claimed by ADFS on selection.
+fscv                       = &021e  ; MOS FSCV vector (filing-system control). ADFS claims it on selection and the MOS calls through it for *commands, file-system selection and similar control operations.
 ; &021e referenced 1 time by &9a43
-last_break_type            = &028d
+last_break_type            = &028d  ; MOS last-break-type flag (0=soft, 1=power-on, 2=hard). ADFS reads it during initialisation to decide how much state to rebuild.
 ; &028d referenced 2 times by &9af6, &9b50
 tube_entry                 = &0406
 ; &0406 referenced 8 times by &803d, &8049, &81f0, &8b8b, &a441, &b848, &b9b2, &bc37
 ext_vec_fsc_lo             = &06a9
-nmi_read_addr_lo           = &0d0e
+nmi_read_addr_lo           = &0d0e  ; Patch site in the NMI handler: host buffer address for sector READS, low byte.
 ; &0d0e referenced 4 times by &ba4f, &bc00, &bc89, &bd60
-nmi_read_addr_hi           = &0d0f
+nmi_read_addr_hi           = &0d0f  ; Patch site in the NMI handler: host buffer address for sector READS, high byte.
 ; &0d0f referenced 4 times by &ba54, &bc06, &bc8e, &bd5b
-nmi_step_rate              = &0d56
+nmi_step_rate              = &0d56  ; NMI workspace: drive step-rate / side-select bits for the current transfer.
 ; &0d56 referenced 4 times by &bbb6, &bbd6, &bd09, &be22
-nmi_tracks_remaining       = &0d57
+nmi_tracks_remaining       = &0d57  ; NMI workspace: number of whole tracks still to transfer.
 ; &0d57 referenced 5 times by &bdf3, &be04, &be11, &be89, &bed5
-nmi_secs_this_track        = &0d58
+nmi_secs_this_track        = &0d58  ; NMI workspace: sectors to transfer on the current track.
 ; &0d58 referenced 9 times by &bdb3, &bdc2, &bdc5, &bde3, &bde9, &bdff, &be14, &be84, &beed
-nmi_secs_last_track        = &0d59
+nmi_secs_last_track        = &0d59  ; NMI workspace: sectors to transfer on the final track.
 ; &0d59 referenced 6 times by &bdbd, &bdc9, &bdf6, &be09, &be8e, &be97
-nmi_sec_position           = &0d5a
+nmi_sec_position           = &0d5a  ; NMI workspace: current sector position within the transfer.
 ; &0d5a referenced 4 times by &be0e, &be9d, &bedc, &bee7
-nmi_drive_cmd              = &0d5c
+nmi_drive_cmd              = &0d5c  ; NMI workspace: drive command byte, with the drive-select bits OR'd in.
 ; &0d5c referenced 5 times by &bae3, &bb98, &bd43, &be44, &be61
-nmi_adfs_flags             = &0d5d
+nmi_adfs_flags             = &0d5d  ; NMI workspace: copy of the ADFS flags consulted by the NMI handler.
 ; &0d5d referenced 2 times by &bbad, &bcc8
-nmi_drive_ctrl             = &0d5e
+nmi_drive_ctrl             = &0d5e  ; NMI workspace: drive-control byte for the current transfer.
 ; &0d5e referenced 11 times by &ba74, &ba9b, &bd19, &bd1e, &bd22, &bd27, &beb0, &bec3, &bf25, &bf32, &bfb9
-nmi_completion             = &0d5f
+nmi_completion             = &0d5f  ; NMI workspace: completion flag the handler sets when the transfer finishes.
 ; &0d5f referenced 1 time by &bc24
 rom_wksp_table             = &0df0
 ; &0df0 referenced 7 times by &9aa8, &9aad, &9ab0, &9ae0, &9af2, &a329, &a710
@@ -634,38 +639,38 @@ wksp_ch_dir_sec_ml         = &11e8
 ; &11e8 referenced 4 times by &8d32, &ade0, &b229, &b2ad
 wksp_ch_seq_num            = &11f2
 ; &11f2 referenced 4 times by &8d4e, &ae39, &b245, &b2a7
-dir_buffer                 = &1200
+dir_buffer                 = &1200  ; Directory buffer (&1200-&16FF, five sectors). Holds the currently loaded directory - a header, up to 47 26-byte entries, and a footer. This is the start of the header.
 ; &1200 referenced 3 times by &8492, &8ee7, &a6e6
-dir_first_entry            = &1205
+dir_first_entry            = &1205  ; First 26-byte directory entry (offset &05 into the buffer, just past the header).
 ; &1205 referenced 1 time by &9147
-dir_last_entry_area        = &16b1
+dir_last_entry_area        = &16b1  ; End of the directory entry area; the entry list is searched up to this limit when looking for a free slot.
 ; &16b1 referenced 1 time by &8e19
-dir_name                   = &16cc
+dir_name                   = &16cc  ; Directory's own name, stored in the footer.
 ; &16cc referenced 4 times by &9544, &a449, &a4ad, &a6b3
-dir_parent_sector          = &16d6
+dir_parent_sector          = &16d6  ; Sector address of this directory's parent (3 bytes), stored in the footer.
 ; &16d6 referenced 2 times by &98d1, &a6be
-dir_title                  = &16d9
+dir_title                  = &16d9  ; Directory title string, stored in the footer.
 ; &16d9 referenced 3 times by &a26b, &b8a7, &b8bb
-dir_master_sequence        = &16fa
+dir_master_sequence        = &16fa  ; Master sequence number in the footer, bumped on each change to detect concurrent updates.
 ; &16fa referenced 9 times by &8eca, &8edc, &8ee4, &8ef5, &933f, &9d85, &a6e3, &a6eb, &b928
-dir_identity_string        = &16fb
-ra_buffer_1                = &1700
+dir_identity_string        = &16fb  ; Footer identity string ('Hugo'); must match the header's copy to validate the directory.
+ra_buffer_1                = &1700  ; General-purpose buffer page 1 (&1700). Used for sector read-ahead and as scratch during directory and free-space operations; also reused as a second directory header.
 ; &1700 referenced 2 times by &95e8, &95fc
-ra_buffer_2                = &1800
+ra_buffer_2                = &1800  ; General-purpose buffer page 2 (&1800).
 ; &1800 referenced 1 time by &95e5
-ra_buffer_3                = &1900
+ra_buffer_3                = &1900  ; General-purpose buffer page 3 (&1900).
 ; &1900 referenced 1 time by &95eb
-ra_buffer_4                = &1a00
+ra_buffer_4                = &1a00  ; General-purpose buffer page 4 (&1A00).
 ; &1a00 referenced 1 time by &95ee
-ra_buffer_5                = &1b00
+ra_buffer_5                = &1b00  ; General-purpose buffer page 5 (&1B00); also holds a second directory image when an operation works on two directories at once.
 ; &1b00 referenced 1 time by &95f1
-dir2_name                  = &1bcc
+dir2_name                  = &1bcc  ; Footer name of the second directory held in the &1B00 buffer (used by operations that touch two directories, such as *COPY or rename across directories).
 ; &1bcc referenced 1 time by &961e
-dir2_parent_sector         = &1bd6
+dir2_parent_sector         = &1bd6  ; Parent-directory sector of the second directory, in its footer.
 ; &1bd6 referenced 1 time by &9605
-dir2_title                 = &1bd9
+dir2_title                 = &1bd9  ; Title of the second directory, in its footer.
 ; &1bd9 referenced 2 times by &961b, &9629
-dir2_master_sequence       = &1bfa
+dir2_master_sequence       = &1bfa  ; Master sequence number of the second directory, in its footer.
 ; &1bfa referenced 1 time by &95ff
 fred_hard_drive_0          = &fc40  ; SCSI data-bus register. Each read or write transfers one byte to or from the Adaptec ACB-4000 controller during the data, status, message and command phases of the SCSI handshake.
 ; &fc40 referenced 22 times by &8072, &8166, &816b, &817d, &8182, &8190, &819f, &81c7, &81d1, &8216, &822b, &8255, &826f, &8275, &8320, &8b97, &9a6c, &9a74, &ab65, &ab96, &ab9c, &acbe
