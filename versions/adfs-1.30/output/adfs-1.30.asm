@@ -207,34 +207,34 @@ fsm_s0_pre3                = &0dfd
 ; &0dfd referenced 7 times by &850d, &855e, &8591, &868e, &8694, &86e5, &902f
 fsm_s0_pre1                = &0dff
 ; &0dff referenced 2 times by &9010, &9060
-fsm_sector_0               = &0e00
+fsm_sector_0               = &0e00  ; Free space map sector 0 (&0E00-&0EFF), the RAM image of on-disc sector 0. Holds the START sector address of each free-space fragment, 3 bytes per fragment, lowest first.
 ; &0e00 referenced 13 times by &848f, &84d0, &84f4, &855b, &8572, &85dd, &85f1, &867f, &86d2, &86e2, &9040, &9840, &a06e
-fsm_s0_first_length        = &0e03
+fsm_s0_start_1             = &0e03  ; Start-address slot for free-space fragment 1 (sector 0, offset 3). The fragment list is kept sorted and is compacted three bytes at a time.
 ; &0e03 referenced 1 time by &85e0
-fsm_s0_reserved            = &0efa
+fsm_s0_reserved            = &0efa  ; Reserved byte in FSM sector 0, just below the total-disc-size field.
 ; &0efa referenced 1 time by &985f
-fsm_s0_pre_disc_size       = &0efb
+fsm_s0_pre_disc_size       = &0efb  ; Byte just below the total-disc-size field in FSM sector 0; read by the Y-indexed loop that fetches the size.
 ; &0efb referenced 1 time by &a031
-fsm_s0_disc_size_lo        = &0efc
-fsm_s0_disc_size_mid       = &0efd
+fsm_s0_disc_size_lo        = &0efc  ; Total number of sectors on the disc (3-byte little-endian), low byte, in FSM sector 0.
+fsm_s0_disc_size_mid       = &0efd  ; Total number of sectors on the disc, middle byte.
 ; &0efd referenced 14 times by &8510, &852d, &8533, &8543, &8549, &8558, &8594, &85af, &85b5, &86a6, &86ac, &86eb, &9032, &b327
-fsm_s0_disc_size_hi        = &0efe
+fsm_s0_disc_size_hi        = &0efe  ; Total number of sectors on the disc, high byte.
 ; &0efe referenced 1 time by &b321
-fsm_s0_checksum            = &0eff
+fsm_s0_checksum            = &0eff  ; Checksum byte of FSM sector 0 (validates the free-space start-address map).
 ; &0eff referenced 5 times by &8fc9, &8ff5, &9013, &906a, &b324
-fsm_sector_1               = &0f00
+fsm_sector_1               = &0f00  ; Free space map sector 1 (&0F00-&0FFF), the RAM image of on-disc sector 1. Holds the LENGTH in sectors of each free-space fragment, 3 bytes each, paired by index with the start addresses in sector 0.
 ; &0f00 referenced 11 times by &848c, &8546, &8555, &8576, &857c, &85e3, &85f7, &861e, &86c0, &86e8, &a084
-fsm_s1_first_length        = &0f03
+fsm_s1_length_1            = &0f03  ; Length slot for free-space fragment 1 (sector 1, offset 3).
 ; &0f03 referenced 1 time by &85e6
-fsm_s1_disc_id_lo          = &0ffb
+fsm_s1_disc_id_lo          = &0ffb  ; Disc identifier (random 16-bit value assigned at format), low byte, in FSM sector 1.
 ; &0ffb referenced 3 times by &8fc3, &b482, &b497
-fsm_s1_disc_id_hi          = &0ffc
+fsm_s1_disc_id_hi          = &0ffc  ; Disc identifier, high byte.
 ; &0ffc referenced 3 times by &8fb7, &b488, &b49f
-fsm_s1_boot_option         = &0ffd
+fsm_s1_boot_option         = &0ffd  ; Boot option (*OPT 4 value, 0-3) stored in FSM sector 1.
 ; &0ffd referenced 5 times by &9373, &937e, &9c97, &a004, &b8cb
-fsm_s1_end_of_list_ptr     = &0ffe
+fsm_s1_end_of_list_ptr     = &0ffe  ; Pointer to the end of the free-space list: the number of free-space fragments times 3. Zero means the disc is full.
 ; &0ffe referenced 19 times by &84c3, &8550, &8567, &85c1, &85d5, &8600, &8605, &8614, &8637, &86dd, &86f1, &86f6, &9009, &9023, &9056, &9830, &a061, &a099, &b31c
-fsm_s1_checksum            = &0fff
+fsm_s1_checksum            = &0fff  ; Checksum byte of FSM sector 1 (validates the free-space length map and disc parameters).
 ; &0fff referenced 2 times by &8fcc, &8ff0
 wksp                       = &1000
 ; &1000 referenced 2 times by &8080, &9b97
@@ -2247,9 +2247,9 @@ nmi_saved_rom = sub_c0d33+1
     beq store_new_entry                                               ; 85da: f0 10       ..       ; Yes: insert here
     dex                                                               ; 85dc: ca          .        ; Shift entries up by 3 bytes
     lda fsm_sector_0,x                                                ; 85dd: bd 00 0e    ...      ; Get FSM address byte to shift
-    sta fsm_s0_first_length,x                                         ; 85e0: 9d 03 0e    ...      ; Store 3 bytes higher
+    sta fsm_s0_start_1,x                                              ; 85e0: 9d 03 0e    ...      ; Store 3 bytes higher
     lda fsm_sector_1,x                                                ; 85e3: bd 00 0f    ...      ; Get FSM length byte to shift
-    sta fsm_s1_first_length,x                                         ; 85e6: 9d 03 0f    ...      ; Store 3 bytes higher
+    sta fsm_s1_length_1,x                                             ; 85e6: 9d 03 0f    ...      ; Store 3 bytes higher
     jmp shift_entries_up_loop                                         ; 85e9: 4c d8 85    L..      ; Continue shifting
 ; &85ec referenced 1 time by &85da
 .store_new_entry
@@ -13380,11 +13380,11 @@ save pydis_start, pydis_end
 ;     fscv_dispatch_hi:                          1
 ;     fscv_dispatch_lo:                          1
 ;     fsm_s0_disc_size_hi:                       1
-;     fsm_s0_first_length:                       1
 ;     fsm_s0_pre6:                               1
 ;     fsm_s0_pre_disc_size:                      1
 ;     fsm_s0_reserved:                           1
-;     fsm_s1_first_length:                       1
+;     fsm_s0_start_1:                            1
+;     fsm_s1_length_1:                           1
 ;     full_pathname_parser:                      1
 ;     generate_error_skip_no_suffix:             1
 ;     get_first_path_char:                       1

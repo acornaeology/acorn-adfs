@@ -166,7 +166,7 @@ d.label(0x06A9, 'ext_vec_fsc_lo')
 
 d.label(0x0D18, 'nmi_transfer_done', length=1, group='page_d_workspace', access='rw')
 
-d.label(0x0E03, 'fsm_s0_first_length', length=1, group='free_space_map', access='w')
+d.label(0x0E03, 'fsm_s0_start_1', length=1, group='free_space_map', access='w', description="Start-address slot for free-space fragment 1 (sector 0, offset 3). The fragment list is kept sorted and is compacted three bytes at a time.")
 
 d.label(0xFFFF, 'nmi_patched_addr')
 
@@ -248,33 +248,33 @@ d.label(0x00CE, 'zp_retry_count', length=1, group='zero_page', access='rw', desc
 
 d.label(0x00CF, 'zp_channel_offset', length=1, group='zero_page', access='rw', description="Index of the current open-file channel within the channel tables.")
 
-d.label(0x0E00, 'fsm_sector_0', length=1, group='free_space_map', access='rw')
+d.label(0x0E00, 'fsm_sector_0', length=1, group='free_space_map', access='rw', description="Free space map sector 0 (&0E00-&0EFF), the RAM image of on-disc sector 0. Holds the START sector address of each free-space fragment, 3 bytes per fragment, lowest first.")
 
-d.label(0x0F00, 'fsm_sector_1', length=1, group='free_space_map', access='rw')
+d.label(0x0F00, 'fsm_sector_1', length=1, group='free_space_map', access='rw', description="Free space map sector 1 (&0F00-&0FFF), the RAM image of on-disc sector 1. Holds the LENGTH in sectors of each free-space fragment, 3 bytes each, paired by index with the start addresses in [sector 0](address:0E00).")
 
-d.label(0x0EFA, 'fsm_s0_reserved', length=1, group='free_space_map', access='r')
+d.label(0x0EFA, 'fsm_s0_reserved', length=1, group='free_space_map', access='r', description="Reserved byte in FSM sector 0, just below the total-disc-size field.")
 
-d.label(0x0EFB, 'fsm_s0_pre_disc_size', length=1, group='free_space_map', access='r')
+d.label(0x0EFB, 'fsm_s0_pre_disc_size', length=1, group='free_space_map', access='r', description="Byte just below the total-disc-size field in FSM sector 0; read by the Y-indexed loop that fetches the size.")
 
-d.label(0x0EFC, 'fsm_s0_disc_size_lo', length=1, group='free_space_map', access='rw')
+d.label(0x0EFC, 'fsm_s0_disc_size_lo', length=1, group='free_space_map', access='rw', description="Total number of sectors on the disc (3-byte little-endian), low byte, in FSM sector 0.")
 
-d.label(0x0EFD, 'fsm_s0_disc_size_mid', length=1, group='free_space_map', access='rw')
+d.label(0x0EFD, 'fsm_s0_disc_size_mid', length=1, group='free_space_map', access='rw', description="Total number of sectors on the disc, middle byte.")
 
-d.label(0x0EFE, 'fsm_s0_disc_size_hi', length=1, group='free_space_map', access='r')
+d.label(0x0EFE, 'fsm_s0_disc_size_hi', length=1, group='free_space_map', access='r', description="Total number of sectors on the disc, high byte.")
 
-d.label(0x0EFF, 'fsm_s0_checksum', length=1, group='free_space_map', access='rw')
+d.label(0x0EFF, 'fsm_s0_checksum', length=1, group='free_space_map', access='rw', description="Checksum byte of FSM sector 0 (validates the free-space start-address map).")
 
-d.label(0x0F03, 'fsm_s1_first_length', length=1, group='free_space_map', access='w')
+d.label(0x0F03, 'fsm_s1_length_1', length=1, group='free_space_map', access='w', description="Length slot for free-space fragment 1 (sector 1, offset 3).")
 
-d.label(0x0FFB, 'fsm_s1_disc_id_lo', length=1, group='free_space_map', access='rw')
+d.label(0x0FFB, 'fsm_s1_disc_id_lo', length=1, group='free_space_map', access='rw', description="Disc identifier (random 16-bit value assigned at format), low byte, in FSM sector 1.")
 
-d.label(0x0FFC, 'fsm_s1_disc_id_hi', length=1, group='free_space_map', access='r')
+d.label(0x0FFC, 'fsm_s1_disc_id_hi', length=1, group='free_space_map', access='r', description="Disc identifier, high byte.")
 
-d.label(0x0FFD, 'fsm_s1_boot_option', length=1, group='free_space_map', access='rw')
+d.label(0x0FFD, 'fsm_s1_boot_option', length=1, group='free_space_map', access='rw', description="Boot option (*OPT 4 value, 0-3) stored in FSM sector 1.")
 
-d.label(0x0FFE, 'fsm_s1_end_of_list_ptr', length=1, group='free_space_map', access='rw')
+d.label(0x0FFE, 'fsm_s1_end_of_list_ptr', length=1, group='free_space_map', access='rw', description="Pointer to the end of the free-space list: the number of free-space fragments times 3. Zero means the disc is full.")
 
-d.label(0x0FFF, 'fsm_s1_checksum', length=1, group='free_space_map', access='rw')
+d.label(0x0FFF, 'fsm_s1_checksum', length=1, group='free_space_map', access='rw', description="Checksum byte of FSM sector 1 (validates the free-space length map and disc parameters).")
 
 d.label(0x1000, 'wksp', length=1, group='ram_workspace', access='rw')
 
