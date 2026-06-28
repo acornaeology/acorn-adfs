@@ -97204,7 +97204,7 @@
         229,
         254
       ],
-      "comment_inline": "Write to Tube R4",
+      "comment_inline": "Write to Tube R3",
       "type": "code",
       "mnemonic": "sta",
       "operand": "tube_data_register_3",
@@ -97234,7 +97234,7 @@
       "labels": [
         "read_byte_from_tube"
       ],
-      "comment_inline": "Write file: read byte from Tube R4",
+      "comment_inline": "Write file: read byte from Tube R3",
       "xref_summaries": [
         "&b9ee referenced 1 time by &b9e5"
       ],

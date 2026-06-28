@@ -11343,11 +11343,11 @@ la154 = sub_ca153+1
     jsr tube_delay2                                                   ; b9e2: 20 f8 81     ..      ; Tube: delay for synchronisation
     bcc read_byte_from_tube                                           ; b9e5: 90 07       ..       ; C clear: writing to file from Tube
     lda (zp_buf_dest_lo),y                                            ; b9e7: b1 be       ..       ; Read file: get byte from buffer
-    sta tube_data_register_3                                          ; b9e9: 8d e5 fe    ...      ; Write to Tube R4
+    sta tube_data_register_3                                          ; b9e9: 8d e5 fe    ...      ; Write to Tube R3
     bcs advance_byte_position                                         ; b9ec: b0 05       ..       ; Always branch to advance
 ; &b9ee referenced 1 time by &b9e5
 .read_byte_from_tube
-    lda tube_data_register_3                                          ; b9ee: ad e5 fe    ...      ; Write file: read byte from Tube R4
+    lda tube_data_register_3                                          ; b9ee: ad e5 fe    ...      ; Write file: read byte from Tube R3
     sta (zp_buf_dest_lo),y                                            ; b9f1: 91 be       ..       ; Store in sector buffer
 ; &b9f3 referenced 3 times by &b9da, &b9e0, &b9ec
 .advance_byte_position
