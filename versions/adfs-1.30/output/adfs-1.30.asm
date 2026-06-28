@@ -1,10 +1,4 @@
 ; Constants
-scsi_data                                = &fc40
-scsi_status                              = &fc41
-scsi_select                              = &fc42
-scsi_irq_enable                          = &fc43
-via_t1c_h                                = &fe44
-tube_r4_data                             = &fee5
 adfs_filing_system_number                = &08
 osbyte_issue_service_request             = &8f
 osbyte_read_address_of_rom_pointer_table = &a8
@@ -672,29 +666,29 @@ dir2_title                 = &1bd9
 ; &1bd9 referenced 2 times by &961b, &9629
 dir2_master_sequence       = &1bfa
 ; &1bfa referenced 1 time by &95ff
-fred_hard_drive_0          = &fc40
+fred_hard_drive_0          = &fc40  ; SCSI data-bus register. Each read or write transfers one byte to or from the Adaptec ACB-4000 controller during the data, status, message and command phases of the SCSI handshake.
 ; &fc40 referenced 22 times by &8072, &8166, &816b, &817d, &8182, &8190, &819f, &81c7, &81d1, &8216, &822b, &8255, &826f, &8275, &8320, &8b97, &9a6c, &9a74, &ab65, &ab96, &ab9c, &acbe
-fred_hard_drive_1          = &fc41
+fred_hard_drive_1          = &fc41  ; SCSI bus-status register. Reflects the control-bus phase lines (BSY, REQ, C/D, I/O, MSG) so the driver can step through the SCSI handshake.
 ; &fc41 referenced 2 times by &8057, &805c
-fred_hard_drive_2          = &fc42
+fred_hard_drive_2          = &fc42  ; SCSI select register. A write asserts SEL to start the selection phase and address the controller.
 ; &fc42 referenced 1 time by &8075
-fred_hard_drive_3          = &fc43
+fred_hard_drive_3          = &fc43  ; SCSI interrupt-enable register. Controls whether the host adapter raises IRQ on a SCSI data request.
 ; &fc43 referenced 3 times by &9a71, &ab72, &ab8e
-romsel                     = &fe30
+romsel                     = &fe30  ; Paged-ROM select latch. ADFS writes a bank number here to page in sideways ROM 0 (and to restore the previous bank afterwards) when reaching code or data in another bank.
 ; &fe30 referenced 2 times by &bcb0, &bcbd
-system_via_t1c_l           = &fe44
+system_via_t1c_l           = &fe44  ; System VIA Timer 1 counter, low byte. ADFS reads the free-running counter to seed the low byte of a newly formatted disc's identifier; the read also clears the Timer 1 interrupt flag.
 ; &fe44 referenced 1 time by &8fbd
-fdc_1770_drive_control     = &fe80
+fdc_1770_drive_control     = &fe80  ; WD1770 drive-control latch (external to the FDC). Selects the drive, side and density, and drives the controller reset line.
 ; &fe80 referenced 5 times by &ba1d, &ba9e, &bcd5, &bec6, &bf35
-fdc_1770_command_or_status = &fe84
+fdc_1770_command_or_status = &fe84  ; WD1770 command register (write) / status register (read).
 ; &fe84 referenced 8 times by &bae6, &bc7a, &bd13, &bd46, &be30, &be47, &be64, &be80
-fdc_1770_track             = &fe85
+fdc_1770_track             = &fe85  ; WD1770 track register — current track number under the head.
 ; &fe85 referenced 5 times by &ba13, &ba16, &bb0b, &bb0e, &bea9
-fdc_1770_sector            = &fe86
+fdc_1770_sector            = &fe86  ; WD1770 sector register — target sector for the next read or write.
 ; &fe86 referenced 2 times by &bef6, &bef9
-fdc_1770_data              = &fe87
+fdc_1770_data              = &fe87  ; WD1770 data register — byte transferred to or from the disc.
 ; &fe87 referenced 4 times by &bc83, &bce2, &bcf0, &bcf5
-tube_data_register_3       = &fee5
+tube_data_register_3       = &fee5  ; Tube FIFO register 3 data port. When a second processor is attached, ADFS streams file data through Tube R3 rather than moving it through host memory.
 ; &fee5 referenced 11 times by &817a, &8185, &8213, &822e, &8ba5, &b85f, &b9e9, &b9ee, &bced, &bcf8, &bd8c
 osargs                     = &ffda
 ; &ffda referenced 1 time by &9d1e

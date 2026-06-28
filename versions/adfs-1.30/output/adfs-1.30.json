@@ -5,30 +5,6 @@
   },
   "constants": [
     {
-      "name": "scsi_data",
-      "value": 64576
-    },
-    {
-      "name": "scsi_status",
-      "value": 64577
-    },
-    {
-      "name": "scsi_select",
-      "value": 64578
-    },
-    {
-      "name": "scsi_irq_enable",
-      "value": 64579
-    },
-    {
-      "name": "via_t1c_h",
-      "value": 65092
-    },
-    {
-      "name": "tube_r4_data",
-      "value": 65253
-    },
-    {
       "name": "adfs_filing_system_number",
       "value": 8
     },
@@ -2745,7 +2721,104 @@
     "oscli": 65527,
     "nmi_patched_addr": 65535
   },
-  "memory_map": [],
+  "memory_map": [
+    {
+      "addr": 64576,
+      "name": "fred_hard_drive_0",
+      "length": 1,
+      "group": "mmio",
+      "access": "rw",
+      "description": "SCSI data-bus register. Each read or write transfers one byte to or from the Adaptec ACB-4000 controller during the data, status, message and command phases of the SCSI handshake."
+    },
+    {
+      "addr": 64577,
+      "name": "fred_hard_drive_1",
+      "length": 1,
+      "group": "mmio",
+      "access": "r",
+      "description": "SCSI bus-status register. Reflects the control-bus phase lines (BSY, REQ, C/D, I/O, MSG) so the driver can step through the SCSI handshake."
+    },
+    {
+      "addr": 64578,
+      "name": "fred_hard_drive_2",
+      "length": 1,
+      "group": "mmio",
+      "access": "w",
+      "description": "SCSI select register. A write asserts SEL to start the selection phase and address the controller."
+    },
+    {
+      "addr": 64579,
+      "name": "fred_hard_drive_3",
+      "length": 1,
+      "group": "mmio",
+      "access": "w",
+      "description": "SCSI interrupt-enable register. Controls whether the host adapter raises IRQ on a SCSI data request."
+    },
+    {
+      "addr": 65072,
+      "name": "romsel",
+      "length": 1,
+      "group": "mmio",
+      "access": "w",
+      "description": "Paged-ROM select latch. ADFS writes a bank number here to page in sideways ROM 0 (and to restore the previous bank afterwards) when reaching code or data in another bank."
+    },
+    {
+      "addr": 65092,
+      "name": "system_via_t1c_l",
+      "length": 1,
+      "group": "mmio",
+      "access": "r",
+      "description": "System VIA Timer 1 counter, low byte. ADFS reads the free-running counter to seed the low byte of a newly formatted disc's identifier; the read also clears the Timer 1 interrupt flag."
+    },
+    {
+      "addr": 65152,
+      "name": "fdc_1770_drive_control",
+      "length": 1,
+      "group": "mmio",
+      "access": "rw",
+      "description": "WD1770 drive-control latch (external to the FDC). Selects the drive, side and density, and drives the controller reset line."
+    },
+    {
+      "addr": 65156,
+      "name": "fdc_1770_command_or_status",
+      "length": 1,
+      "group": "mmio",
+      "access": "rw",
+      "description": "WD1770 command register (write) / status register (read)."
+    },
+    {
+      "addr": 65157,
+      "name": "fdc_1770_track",
+      "length": 1,
+      "group": "mmio",
+      "access": "rw",
+      "description": "WD1770 track register \u2014 current track number under the head."
+    },
+    {
+      "addr": 65158,
+      "name": "fdc_1770_sector",
+      "length": 1,
+      "group": "mmio",
+      "access": "rw",
+      "description": "WD1770 sector register \u2014 target sector for the next read or write."
+    },
+    {
+      "addr": 65159,
+      "name": "fdc_1770_data",
+      "length": 1,
+      "group": "mmio",
+      "access": "rw",
+      "description": "WD1770 data register \u2014 byte transferred to or from the disc."
+    },
+    {
+      "addr": 65253,
+      "name": "tube_data_register_3",
+      "length": 1,
+      "group": "mmio",
+      "access": "rw",
+      "description": "Tube FIFO register 3 data port. When a second processor is attached, ADFS streams file data through Tube R3 rather than moving it through host memory."
+    }
+  ],
   "items": [
     {
       "addr": 32768,

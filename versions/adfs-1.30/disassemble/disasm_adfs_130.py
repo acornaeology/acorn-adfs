@@ -27,16 +27,63 @@ d.use_environment('acorn_mos')
 d.use_environment('acorn_model_b_hardware')
 d.use_environment('acorn_sideways_rom')
 d.use_environment('acorn_fdc_1770')
-d.constant(0xFC40, 'scsi_data')
-d.constant(0xFC41, 'scsi_status')
-d.constant(0xFC42, 'scsi_select')
-d.constant(0xFC43, 'scsi_irq_enable')
+# Memory-mapped I/O actually touched by ADFS 1.30. The SCSI host
+# adapter (Acorn Winchester interface) lives in the &FCxx "FRED" 1 MHz
+# bus page; the WD1770 floppy controller and the registers below it are
+# in the &FExx "SHEILA" page. Each register is enriched with memory-map
+# metadata (group/length/access/description) so it appears on the
+# per-version Memory Map page.
+# &FC40-&FC43 are the Acorn SCSI/Winchester host adapter, occupying the
+# first four "FRED" 1 MHz-bus hard-drive register slots. The environment
+# names (fred_hard_drive_0..3) are kept; the SCSI role of each is given
+# in the description.
+d.label(0xFC40, 'fred_hard_drive_0', length=1, group='mmio', access='rw',
+        description="SCSI data-bus register. Each read or write transfers "
+        "one byte to or from the Adaptec ACB-4000 controller during the "
+        "data, status, message and command phases of the SCSI handshake.")
+d.label(0xFC41, 'fred_hard_drive_1', length=1, group='mmio', access='r',
+        description="SCSI bus-status register. Reflects the control-bus "
+        "phase lines (BSY, REQ, C/D, I/O, MSG) so the driver can step "
+        "through the SCSI handshake.")
+d.label(0xFC42, 'fred_hard_drive_2', length=1, group='mmio', access='w',
+        description="SCSI select register. A write asserts SEL to start "
+        "the selection phase and address the controller.")
+d.label(0xFC43, 'fred_hard_drive_3', length=1, group='mmio', access='w',
+        description="SCSI interrupt-enable register. Controls whether the "
+        "host adapter raises IRQ on a SCSI data request.")
 
-d.label(0xFE80, 'fdc_1770_drive_control')
+d.label(0xFE30, 'romsel', length=1, group='mmio', access='w',
+        description="Paged-ROM select latch. ADFS writes a bank number "
+        "here to page in sideways ROM 0 (and to restore the previous "
+        "bank afterwards) when reaching code or data in another bank.")
+d.label(0xFE44, 'system_via_t1c_l', length=1, group='mmio', access='r',
+        description="System VIA Timer 1 counter, low byte. ADFS reads the "
+        "free-running counter to seed the low byte of a newly formatted "
+        "disc's identifier; the read also clears the Timer 1 interrupt "
+        "flag.")
 
-d.label(0xFE84, 'fdc_1770_command_or_status')
-d.constant(0xFE44, 'via_t1c_h')
-d.constant(0xFEE5, 'tube_r4_data')
+d.label(0xFE80, 'fdc_1770_drive_control', length=1, group='mmio', access='rw',
+        description="WD1770 drive-control latch (external to the FDC). "
+        "Selects the drive, side and density, and drives the controller "
+        "reset line.")
+d.label(0xFE84, 'fdc_1770_command_or_status', length=1, group='mmio',
+        access='rw',
+        description="WD1770 command register (write) / status register "
+        "(read).")
+d.label(0xFE85, 'fdc_1770_track', length=1, group='mmio', access='rw',
+        description="WD1770 track register — current track number under "
+        "the head.")
+d.label(0xFE86, 'fdc_1770_sector', length=1, group='mmio', access='rw',
+        description="WD1770 sector register — target sector for the next "
+        "read or write.")
+d.label(0xFE87, 'fdc_1770_data', length=1, group='mmio', access='rw',
+        description="WD1770 data register — byte transferred to or from "
+        "the disc.")
+
+d.label(0xFEE5, 'tube_data_register_3', length=1, group='mmio', access='rw',
+        description="Tube FIFO register 3 data port. When a second "
+        "processor is attached, ADFS streams file data through Tube R3 "
+        "rather than moving it through host memory.")
 d.constant(0x08, 'adfs_filing_system_number')
 d.constant(0x8F, 'osbyte_issue_service_request')
 d.constant(0xA8, 'osbyte_read_address_of_rom_pointer_table')
