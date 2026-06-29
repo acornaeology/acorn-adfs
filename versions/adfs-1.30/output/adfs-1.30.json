@@ -2645,6 +2645,7 @@
     "video_ula_border_colour_and_palette_control": 65058,
     "video_ula_palette_selection": 65059,
     "romsel": 65072,
+    "acccon": 65076,
     "system_via_orb_irb": 65088,
     "system_via_ora_ira": 65089,
     "system_via_ddrb": 65090,
