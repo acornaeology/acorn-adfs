@@ -139,16 +139,16 @@ d.label(0x0002, 'zp_user_ptr_2', length=1, group='zero_page', access='rw', descr
 
 d.label(0x0003, 'zp_user_ptr_3', length=1, group='zero_page', access='rw', description="Caller's zero-page pointer, byte 3 (X-indexed base+3).")
 
-d.label(0x00EF, 'zp_osbyte_last_a', length=1, group='zero_page', access='r', description="MOS scratch: A on entry to the last OSBYTE / OSWORD. ADFS reads the OSWORD routine number here when dispatching OSWORD &72.")
+d.label(0x00EF, 'zp_osbyte_last_a', length=1, group='mos_zero_page', access='r', description="MOS scratch: A on entry to the last OSBYTE / OSWORD. ADFS reads the OSWORD routine number here when dispatching OSWORD &72.")
 
-d.label(0x00F0, 'zp_osword_pb_ptr', length=1, group='zero_page', access='rw', description="MOS scratch (X on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, low byte. ADFS reads the disc-access control-block address here.")
+d.label(0x00F0, 'zp_osword_pb_ptr', length=1, group='mos_zero_page', access='rw', description="MOS scratch (X on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, low byte. ADFS reads the disc-access control-block address here.")
 
-d.label(0x00F1, 'zp_osword_pb_ptr_hi', length=1, group='zero_page', access='r', description="MOS scratch (Y on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, high byte.")
+d.label(0x00F1, 'zp_osword_pb_ptr_hi', length=1, group='mos_zero_page', access='r', description="MOS scratch (Y on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, high byte.")
 
-d.label(0x00F2, 'os_text_ptr', length=2, group='zero_page', access='r', description="MOS command-line text pointer (&F2/&F3). ADFS reads through it to fetch each character of a *command tail.")
-d.label(0x00F4, 'romsel_copy', length=1, group='zero_page', access='rw', description="MOS RAM copy of the paged-ROM select latch. ADFS reads it to discover its own ROM bank number.")
-d.label(0x00F6, 'osrdsc_ptr', length=2, group='zero_page', access='rw', description="MOS address pointer (&F6/&F7) used with paged-ROM / OSRDSC access.")
-d.label(0x00FF, 'zp_escape_flag', length=1, group='zero_page', access='r', description="MOS Escape flag (bit 7 set when an Escape is pending); ADFS polls it during long operations.")
+d.label(0x00F2, 'os_text_ptr', length=2, group='mos_zero_page', access='r', description="MOS command-line text pointer (&F2/&F3). ADFS reads through it to fetch each character of a *command tail.")
+d.label(0x00F4, 'romsel_copy', length=1, group='mos_zero_page', access='rw', description="MOS RAM copy of the paged-ROM select latch. ADFS reads it to discover its own ROM bank number.")
+d.label(0x00F6, 'osrdsc_ptr', length=2, group='mos_zero_page', access='rw', description="MOS address pointer (&F6/&F7) used with paged-ROM / OSRDSC access.")
+d.label(0x00FF, 'zp_escape_flag', length=1, group='mos_zero_page', access='r', description="MOS Escape flag (bit 7 set when an Escape is pending); ADFS polls it during long operations.")
 
 d.label(0x0100, 'brk_error_block')
 
@@ -164,89 +164,89 @@ d.label(0x0406, 'tube_entry')
 
 d.label(0x06A9, 'ext_vec_fsc_lo')
 
-d.label(0x0D18, 'nmi_transfer_done', length=1, group='page_d_workspace', access='rw')
+d.label(0x0D18, 'nmi_transfer_done', length=1, group='nmi_workspace', access='rw')
 
 d.label(0x0E03, 'fsm_s0_start_1', length=1, group='free_space_map', access='w', description="Start-address slot for free-space fragment 1 (sector 0, offset 3). The fragment list is kept sorted and is compacted three bytes at a time.")
 
 d.label(0xFFFF, 'nmi_patched_addr')
 
-d.label(0x00A0, 'zp_floppy_error', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: result / error code from the last disc operation.")
+d.label(0x00A0, 'zp_floppy_error', length=1, group='floppy_workspace', access='rw', description="WD1770 floppy driver: result / error code from the last disc operation.")
 
-d.label(0x00A1, 'zp_floppy_control', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: control flags for the current operation (read vs write direction, etc.).")
+d.label(0x00A1, 'zp_floppy_control', length=1, group='floppy_workspace', access='rw', description="WD1770 floppy driver: control flags for the current operation (read vs write direction, etc.).")
 
-d.label(0x00A2, 'zp_floppy_state', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: transfer state-machine flags, rotated through as the operation proceeds.")
+d.label(0x00A2, 'zp_floppy_state', length=1, group='floppy_workspace', access='rw', description="WD1770 floppy driver: transfer state-machine flags, rotated through as the operation proceeds.")
 
-d.label(0x00A3, 'zp_floppy_track', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: target track for the current operation.")
+d.label(0x00A3, 'zp_floppy_track', length=1, group='floppy_workspace', access='rw', description="WD1770 floppy driver: target track for the current operation.")
 
-d.label(0x00A4, 'zp_floppy_sector', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: target sector for the current operation.")
+d.label(0x00A4, 'zp_floppy_sector', length=1, group='floppy_workspace', access='rw', description="WD1770 floppy driver: target sector for the current operation.")
 
-d.label(0x00A5, 'zp_floppy_track_num', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: physical track number, adjusted for the selected head / side.")
+d.label(0x00A5, 'zp_floppy_track_num', length=1, group='floppy_workspace', access='rw', description="WD1770 floppy driver: physical track number, adjusted for the selected head / side.")
 
-d.label(0x00A6, 'zp_floppy_dest_page', length=1, group='zero_page', access='rw', description="WD1770 floppy driver: high byte of the host transfer address (destination page).")
+d.label(0x00A6, 'zp_floppy_dest_page', length=1, group='floppy_workspace', access='rw', description="WD1770 floppy driver: high byte of the host transfer address (destination page).")
 
-d.label(0x00B0, 'zp_ctrl_blk_lo', length=1, group='zero_page', access='rw', description="Pointer to the current OSWORD &72 disc-access control block, low byte.")
+d.label(0x00B0, 'zp_ctrl_blk_lo', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the current OSWORD &72 disc-access control block, low byte.")
 
-d.label(0x00B1, 'zp_ctrl_blk_hi', length=1, group='zero_page', access='rw', description="Pointer to the current OSWORD &72 disc-access control block, high byte.")
+d.label(0x00B1, 'zp_ctrl_blk_hi', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the current OSWORD &72 disc-access control block, high byte.")
 
-d.label(0x00B2, 'zp_mem_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the host memory address for the current data transfer, low byte.")
+d.label(0x00B2, 'zp_mem_ptr_lo', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the host memory address for the current data transfer, low byte.")
 
-d.label(0x00B3, 'zp_mem_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the host memory address for the current data transfer, high byte.")
+d.label(0x00B3, 'zp_mem_ptr_hi', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the host memory address for the current data transfer, high byte.")
 
-d.label(0x00B4, 'zp_text_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the command / text string being parsed, low byte.")
+d.label(0x00B4, 'zp_text_ptr_lo', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the command / text string being parsed, low byte.")
 
-d.label(0x00B5, 'zp_text_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the command / text string being parsed, high byte.")
+d.label(0x00B5, 'zp_text_ptr_hi', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the command / text string being parsed, high byte.")
 
-d.label(0x00B6, 'zp_entry_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the current directory entry being scanned in the directory buffer, low byte.")
+d.label(0x00B6, 'zp_entry_ptr_lo', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the current directory entry being scanned in the directory buffer, low byte.")
 
-d.label(0x00B7, 'zp_entry_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the current directory entry being scanned in the directory buffer, high byte.")
+d.label(0x00B7, 'zp_entry_ptr_hi', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the current directory entry being scanned in the directory buffer, high byte.")
 
-d.label(0x00B8, 'zp_osfile_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the OSFILE control block, low byte.")
+d.label(0x00B8, 'zp_osfile_ptr_lo', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the OSFILE control block, low byte.")
 
-d.label(0x00B9, 'zp_osfile_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the OSFILE control block, high byte.")
+d.label(0x00B9, 'zp_osfile_ptr_hi', length=1, group='fs_workspace_temp', access='rw', description="Pointer to the OSFILE control block, high byte.")
 
-d.label(0x00BA, 'zp_wksp_ptr_lo', length=1, group='zero_page', access='rw', description="Saved pointer into ADFS workspace, low byte.")
+d.label(0x00BA, 'zp_wksp_ptr_lo', length=1, group='fs_workspace_temp', access='rw', description="Saved pointer into ADFS workspace, low byte.")
 
-d.label(0x00BB, 'zp_wksp_ptr_hi', length=1, group='zero_page', access='w', description="Saved pointer into ADFS workspace, high byte.")
+d.label(0x00BB, 'zp_wksp_ptr_hi', length=1, group='fs_workspace_temp', access='w', description="Saved pointer into ADFS workspace, high byte.")
 
-d.label(0x00BC, 'zp_buf_src_lo', length=1, group='zero_page', access='rw', description="Source pointer for buffer copies, low byte.")
+d.label(0x00BC, 'zp_buf_src_lo', length=1, group='fs_workspace_temp', access='rw', description="Source pointer for buffer copies, low byte.")
 
-d.label(0x00BD, 'zp_buf_src_hi', length=1, group='zero_page', access='rw', description="Source pointer for buffer copies, high byte.")
+d.label(0x00BD, 'zp_buf_src_hi', length=1, group='fs_workspace_temp', access='rw', description="Source pointer for buffer copies, high byte.")
 
-d.label(0x00BE, 'zp_buf_dest_lo', length=1, group='zero_page', access='rw', description="Destination pointer for buffer copies, low byte.")
+d.label(0x00BE, 'zp_buf_dest_lo', length=1, group='fs_workspace_temp', access='rw', description="Destination pointer for buffer copies, low byte.")
 
-d.label(0x00BF, 'zp_buf_dest_hi', length=1, group='zero_page', access='rw', description="Destination pointer for buffer copies, high byte.")
+d.label(0x00BF, 'zp_buf_dest_hi', length=1, group='fs_workspace_temp', access='rw', description="Destination pointer for buffer copies, high byte.")
 
-d.label(0x00C0, 'zp_name_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the filename being matched, low byte.")
+d.label(0x00C0, 'zp_name_ptr_lo', length=1, group='fs_workspace_persistent', access='rw', description="Pointer to the filename being matched, low byte.")
 
-d.label(0x00C1, 'zp_name_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the filename being matched, high byte.")
+d.label(0x00C1, 'zp_name_ptr_hi', length=1, group='fs_workspace_persistent', access='rw', description="Pointer to the filename being matched, high byte.")
 
-d.label(0x00C2, 'zp_save_y', length=1, group='zero_page', access='rw', description="Scratch save slot for the Y register (also reused to hold a file handle).")
+d.label(0x00C2, 'zp_save_y', length=1, group='fs_workspace_persistent', access='rw', description="Scratch save slot for the Y register (also reused to hold a file handle).")
 
-d.label(0x00C3, 'zp_save_x', length=1, group='zero_page', access='rw', description="Scratch save slot for the X register (zero-page pointer base).")
+d.label(0x00C3, 'zp_save_x', length=1, group='fs_workspace_persistent', access='rw', description="Scratch save slot for the X register (zero-page pointer base).")
 
-d.label(0x00C4, 'zp_osfind_y', length=1, group='zero_page', access='rw', description="Saved Y register across OSFIND processing.")
+d.label(0x00C4, 'zp_osfind_y', length=1, group='fs_workspace_persistent', access='rw', description="Saved Y register across OSFIND processing.")
 
-d.label(0x00C5, 'zp_osfind_x', length=1, group='zero_page', access='rw', description="Saved X register across OSFIND processing.")
+d.label(0x00C5, 'zp_osfind_x', length=1, group='fs_workspace_persistent', access='rw', description="Saved X register across OSFIND processing.")
 
-d.label(0x00C6, 'zp_gspb_ptr_lo', length=1, group='zero_page', access='rw', description="Pointer to the OSGBPB control block, low byte. The free-space-map compaction code at [&A069](address:A069) reuses this location as a scratch map index.")
+d.label(0x00C6, 'zp_gspb_ptr_lo', length=1, group='fs_workspace_persistent', access='rw', description="Pointer to the OSGBPB control block, low byte. The free-space-map compaction code at [&A069](address:A069) reuses this location as a scratch map index.")
 
-d.label(0x00C7, 'zp_gspb_ptr_hi', length=1, group='zero_page', access='rw', description="Pointer to the OSGBPB control block, high byte.")
+d.label(0x00C7, 'zp_gspb_ptr_hi', length=1, group='fs_workspace_persistent', access='rw', description="Pointer to the OSGBPB control block, high byte.")
 
-d.label(0x00C8, 'zp_temp_ptr', length=1, group='zero_page', access='rw', description="Temporary 4-byte pointer (byte 0) used for disc-sector address arithmetic, e.g. adding or subtracting a PTR offset.")
+d.label(0x00C8, 'zp_temp_ptr', length=1, group='fs_workspace_persistent', access='rw', description="Temporary 4-byte pointer (byte 0) used for disc-sector address arithmetic, e.g. adding or subtracting a PTR offset.")
 
-d.label(0x00C9, 'zp_temp_ptr_1', length=1, group='zero_page', access='r', description="Temporary 4-byte pointer, byte 1.")
+d.label(0x00C9, 'zp_temp_ptr_1', length=1, group='fs_workspace_persistent', access='r', description="Temporary 4-byte pointer, byte 1.")
 
-d.label(0x00CA, 'zp_temp_ptr_2', length=1, group='zero_page', access='r', description="Temporary 4-byte pointer, byte 2.")
+d.label(0x00CA, 'zp_temp_ptr_2', length=1, group='fs_workspace_persistent', access='r', description="Temporary 4-byte pointer, byte 2.")
 
-d.label(0x00CB, 'zp_temp_ptr_3', length=1, group='zero_page', access='r', description="Temporary 4-byte pointer, byte 3.")
+d.label(0x00CB, 'zp_temp_ptr_3', length=1, group='fs_workspace_persistent', access='r', description="Temporary 4-byte pointer, byte 3.")
 
-d.label(0x00CC, 'zp_scsi_status', length=1, group='zero_page', access='rw', description="Holds a SCSI status byte read back from the host adapter while waiting for the bus to settle.")
+d.label(0x00CC, 'zp_scsi_status', length=1, group='fs_workspace_persistent', access='rw', description="Holds a SCSI status byte read back from the host adapter while waiting for the bus to settle.")
 
-d.label(0x00CD, 'zp_adfs_flags', length=1, group='zero_page', access='rw', description="Primary ADFS state flags, the most heavily consulted flag byte. Bit 6 = Tube in use; also records Tube presence and other per-operation conditions.")
+d.label(0x00CD, 'zp_adfs_flags', length=1, group='fs_workspace_persistent', access='rw', description="Primary ADFS state flags, the most heavily consulted flag byte. Bit 6 = Tube in use; also records Tube presence and other per-operation conditions.")
 
-d.label(0x00CE, 'zp_retry_count', length=1, group='zero_page', access='rw', description="Retry counter for disc operations, decremented on each failed attempt.")
+d.label(0x00CE, 'zp_retry_count', length=1, group='fs_workspace_persistent', access='rw', description="Retry counter for disc operations, decremented on each failed attempt.")
 
-d.label(0x00CF, 'zp_channel_offset', length=1, group='zero_page', access='rw', description="Index of the current open-file channel within the channel tables.")
+d.label(0x00CF, 'zp_channel_offset', length=1, group='fs_workspace_persistent', access='rw', description="Index of the current open-file channel within the channel tables.")
 
 d.label(0x0E00, 'fsm_sector_0', length=1, group='free_space_map', access='rw', description="Free space map sector 0 (&0E00-&0EFF), the RAM image of on-disc sector 0. Holds the START sector address of each free-space fragment, 3 bytes per fragment, lowest first.")
 
@@ -710,47 +710,47 @@ d.label(0x1BD9, 'dir2_title', length=1, group='ra_buffers', access='w', descript
 
 d.label(0x1BFA, 'dir2_master_sequence', length=1, group='ra_buffers', access='w', description="Master sequence number of the second directory, in its footer.")
 
-d.label(0x0D00, 'nmi_workspace', length=1, group='page_d_workspace', access='w')
+d.label(0x0D00, 'nmi_workspace', length=1, group='nmi_workspace', access='w')
 
-d.label(0x0D05, 'nmi_rw_opcode', length=1, group='page_d_workspace', access='w')
+d.label(0x0D05, 'nmi_rw_opcode', length=1, group='nmi_workspace', access='w')
 
-d.label(0x0D0A, 'nmi_rw_code', length=1, group='page_d_workspace', access='w', description="Relocated NMI transfer handler. ADFS copies its sector read/write routine into the page-&0D NMI workspace and patches it at runtime; this is the routine's working area.")
+d.label(0x0D0A, 'nmi_rw_code', length=1, group='nmi_workspace', access='w', description="Relocated NMI transfer handler. ADFS copies its sector read/write routine into the page-&0D NMI workspace and patches it at runtime; this is the routine's working area.")
 
-d.label(0x0D0B, 'nmi_write_addr_lo', length=1, group='page_d_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector WRITES, low byte.")
+d.label(0x0D0B, 'nmi_write_addr_lo', length=1, group='nmi_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector WRITES, low byte.")
 
-d.label(0x0D0C, 'nmi_write_addr_hi', length=1, group='page_d_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector WRITES, high byte.")
+d.label(0x0D0C, 'nmi_write_addr_hi', length=1, group='nmi_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector WRITES, high byte.")
 
-d.label(0x0D0E, 'nmi_read_addr_lo', length=1, group='page_d_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector READS, low byte.")
+d.label(0x0D0E, 'nmi_read_addr_lo', length=1, group='nmi_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector READS, low byte.")
 
-d.label(0x0D0F, 'nmi_read_addr_hi', length=1, group='page_d_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector READS, high byte.")
+d.label(0x0D0F, 'nmi_read_addr_hi', length=1, group='nmi_workspace', access='rw', description="Patch site in the NMI handler: host buffer address for sector READS, high byte.")
 
-d.label(0x0D34, 'nmi_saved_rom', length=1, group='page_d_workspace', access='w')
+d.label(0x0D34, 'nmi_saved_rom', length=1, group='nmi_workspace', access='w')
 
-d.label(0x0D56, 'nmi_step_rate', length=1, group='page_d_workspace', access='rw', description="NMI workspace: drive step-rate / side-select bits for the current transfer.")
+d.label(0x0D56, 'nmi_step_rate', length=1, group='nmi_workspace', access='rw', description="NMI workspace: drive step-rate / side-select bits for the current transfer.")
 
-d.label(0x0D57, 'nmi_tracks_remaining', length=1, group='page_d_workspace', access='rw', description="NMI workspace: number of whole tracks still to transfer.")
+d.label(0x0D57, 'nmi_tracks_remaining', length=1, group='nmi_workspace', access='rw', description="NMI workspace: number of whole tracks still to transfer.")
 
-d.label(0x0D58, 'nmi_secs_this_track', length=1, group='page_d_workspace', access='rw', description="NMI workspace: sectors to transfer on the current track.")
+d.label(0x0D58, 'nmi_secs_this_track', length=1, group='nmi_workspace', access='rw', description="NMI workspace: sectors to transfer on the current track.")
 
-d.label(0x0D59, 'nmi_secs_last_track', length=1, group='page_d_workspace', access='rw', description="NMI workspace: sectors to transfer on the final track.")
+d.label(0x0D59, 'nmi_secs_last_track', length=1, group='nmi_workspace', access='rw', description="NMI workspace: sectors to transfer on the final track.")
 
-d.label(0x0D5A, 'nmi_sec_position', length=1, group='page_d_workspace', access='rw', description="NMI workspace: current sector position within the transfer.")
+d.label(0x0D5A, 'nmi_sec_position', length=1, group='nmi_workspace', access='rw', description="NMI workspace: current sector position within the transfer.")
 
-d.label(0x0D5C, 'nmi_drive_cmd', length=1, group='page_d_workspace', access='rw', description="NMI workspace: drive command byte, with the drive-select bits OR'd in.")
+d.label(0x0D5C, 'nmi_drive_cmd', length=1, group='nmi_workspace', access='rw', description="NMI workspace: drive command byte, with the drive-select bits OR'd in.")
 
-d.label(0x0D5D, 'nmi_adfs_flags', length=1, group='page_d_workspace', access='rw', description="NMI workspace: copy of the ADFS flags consulted by the NMI handler.")
+d.label(0x0D5D, 'nmi_adfs_flags', length=1, group='nmi_workspace', access='rw', description="NMI workspace: copy of the ADFS flags consulted by the NMI handler.")
 
-d.label(0x0D5E, 'nmi_drive_ctrl', length=1, group='page_d_workspace', access='rw', description="NMI workspace: drive-control byte for the current transfer.")
+d.label(0x0D5E, 'nmi_drive_ctrl', length=1, group='nmi_workspace', access='rw', description="NMI workspace: drive-control byte for the current transfer.")
 
-d.label(0x0D5F, 'nmi_completion', length=1, group='page_d_workspace', access='w', description="NMI workspace: completion flag the handler sets when the transfer finishes.")
+d.label(0x0D5F, 'nmi_completion', length=1, group='nmi_workspace', access='w', description="NMI workspace: completion flag the handler sets when the transfer finishes.")
 
-d.label(0x0DF0, 'rom_wksp_table', length=1, group='page_d_workspace', access='rw')
+d.label(0x0DF0, 'rom_wksp_table', length=1, group='rom_wksp_table', access='rw', description="Base of the sideways-ROM private workspace table (&0DF0-&0DFF, one byte per ROM bank holding the high byte of that ROM's private RAM). ADFS reads and updates its own bank's entry.")
 
-d.label(0x0DFA, 'fsm_s0_pre6', length=1, group='page_d_workspace', access='r')
+d.label(0x0DFA, 'fsm_s0_pre6', length=1, group='rom_wksp_table', access='r', description="Byte at &0DFA in the sideways-ROM workspace table; the free-space-map compaction code reaches it as the sixth byte below FSM sector 0 ([&0E00](address:0E00)), the notional slot before the first entry.")
 
-d.label(0x0DFD, 'fsm_s0_pre3', length=1, group='page_d_workspace', access='rw')
+d.label(0x0DFD, 'fsm_s0_pre3', length=1, group='rom_wksp_table', access='rw', description="Byte at &0DFD in the sideways-ROM workspace table, read by FSM compaction as the third byte below sector 0 ([&0E00](address:0E00)) - the start of the notional entry preceding the first.")
 
-d.label(0x0DFF, 'fsm_s0_pre1', length=1, group='page_d_workspace', access='r')
+d.label(0x0DFF, 'fsm_s0_pre1', length=1, group='rom_wksp_table', access='r', description="Byte at &0DFF in the sideways-ROM workspace table, read by FSM compaction as the byte immediately below sector 0 ([&0E00](address:0E00)).")
 
 # The filing-system vector block (&0212-&021F). When ADFS is selected
 # it claims these MOS vectors by writing its own handler addresses, so
@@ -1128,11 +1128,11 @@ with nmi_main_move_id:
     d.entry(0x0D00)
     d.entry(0x0D0A)
     d.entry(0x0D18)
-    d.label(0x0D1A, 'nmi_check_status_error', length=1, group='page_d_workspace', access='rw')
+    d.label(0x0D1A, 'nmi_check_status_error', length=1, group='nmi_workspace', access='rw')
     d.entry(0x0D1A)
-    d.label(0x0D25, 'nmi_set_transfer_complete', length=1, group='page_d_workspace', access='rw')
+    d.label(0x0D25, 'nmi_set_transfer_complete', length=1, group='nmi_workspace', access='rw')
     d.entry(0x0D25)
-    d.label(0x0D2C, 'nmi_check_end_of_operation', length=1, group='page_d_workspace', access='rw')
+    d.label(0x0D2C, 'nmi_check_end_of_operation', length=1, group='nmi_workspace', access='rw')
     d.entry(0x0D2C)
 d.entry(0xBCC2)
 

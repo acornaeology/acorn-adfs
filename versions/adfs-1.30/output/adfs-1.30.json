@@ -2758,7 +2758,7 @@
       "addr": 160,
       "name": "zp_floppy_error",
       "length": 1,
-      "group": "zero_page",
+      "group": "floppy_workspace",
       "access": "rw",
       "description": "WD1770 floppy driver: result / error code from the last disc operation."
     },
@@ -2766,7 +2766,7 @@
       "addr": 161,
       "name": "zp_floppy_control",
       "length": 1,
-      "group": "zero_page",
+      "group": "floppy_workspace",
       "access": "rw",
       "description": "WD1770 floppy driver: control flags for the current operation (read vs write direction, etc.)."
     },
@@ -2774,7 +2774,7 @@
       "addr": 162,
       "name": "zp_floppy_state",
       "length": 1,
-      "group": "zero_page",
+      "group": "floppy_workspace",
       "access": "rw",
       "description": "WD1770 floppy driver: transfer state-machine flags, rotated through as the operation proceeds."
     },
@@ -2782,7 +2782,7 @@
       "addr": 163,
       "name": "zp_floppy_track",
       "length": 1,
-      "group": "zero_page",
+      "group": "floppy_workspace",
       "access": "rw",
       "description": "WD1770 floppy driver: target track for the current operation."
     },
@@ -2790,7 +2790,7 @@
       "addr": 164,
       "name": "zp_floppy_sector",
       "length": 1,
-      "group": "zero_page",
+      "group": "floppy_workspace",
       "access": "rw",
       "description": "WD1770 floppy driver: target sector for the current operation."
     },
@@ -2798,7 +2798,7 @@
       "addr": 165,
       "name": "zp_floppy_track_num",
       "length": 1,
-      "group": "zero_page",
+      "group": "floppy_workspace",
       "access": "rw",
       "description": "WD1770 floppy driver: physical track number, adjusted for the selected head / side."
     },
@@ -2806,7 +2806,7 @@
       "addr": 166,
       "name": "zp_floppy_dest_page",
       "length": 1,
-      "group": "zero_page",
+      "group": "floppy_workspace",
       "access": "rw",
       "description": "WD1770 floppy driver: high byte of the host transfer address (destination page)."
     },
@@ -2814,7 +2814,7 @@
       "addr": 176,
       "name": "zp_ctrl_blk_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the current OSWORD &72 disc-access control block, low byte."
     },
@@ -2822,7 +2822,7 @@
       "addr": 177,
       "name": "zp_ctrl_blk_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the current OSWORD &72 disc-access control block, high byte."
     },
@@ -2830,7 +2830,7 @@
       "addr": 178,
       "name": "zp_mem_ptr_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the host memory address for the current data transfer, low byte."
     },
@@ -2838,7 +2838,7 @@
       "addr": 179,
       "name": "zp_mem_ptr_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the host memory address for the current data transfer, high byte."
     },
@@ -2846,7 +2846,7 @@
       "addr": 180,
       "name": "zp_text_ptr_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the command / text string being parsed, low byte."
     },
@@ -2854,7 +2854,7 @@
       "addr": 181,
       "name": "zp_text_ptr_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the command / text string being parsed, high byte."
     },
@@ -2862,7 +2862,7 @@
       "addr": 182,
       "name": "zp_entry_ptr_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the current directory entry being scanned in the directory buffer, low byte."
     },
@@ -2870,7 +2870,7 @@
       "addr": 183,
       "name": "zp_entry_ptr_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the current directory entry being scanned in the directory buffer, high byte."
     },
@@ -2878,7 +2878,7 @@
       "addr": 184,
       "name": "zp_osfile_ptr_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the OSFILE control block, low byte."
     },
@@ -2886,7 +2886,7 @@
       "addr": 185,
       "name": "zp_osfile_ptr_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Pointer to the OSFILE control block, high byte."
     },
@@ -2894,7 +2894,7 @@
       "addr": 186,
       "name": "zp_wksp_ptr_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Saved pointer into ADFS workspace, low byte."
     },
@@ -2902,7 +2902,7 @@
       "addr": 187,
       "name": "zp_wksp_ptr_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "w",
       "description": "Saved pointer into ADFS workspace, high byte."
     },
@@ -2910,7 +2910,7 @@
       "addr": 188,
       "name": "zp_buf_src_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Source pointer for buffer copies, low byte."
     },
@@ -2918,7 +2918,7 @@
       "addr": 189,
       "name": "zp_buf_src_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Source pointer for buffer copies, high byte."
     },
@@ -2926,7 +2926,7 @@
       "addr": 190,
       "name": "zp_buf_dest_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Destination pointer for buffer copies, low byte."
     },
@@ -2934,7 +2934,7 @@
       "addr": 191,
       "name": "zp_buf_dest_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_temp",
       "access": "rw",
       "description": "Destination pointer for buffer copies, high byte."
     },
@@ -2942,7 +2942,7 @@
       "addr": 192,
       "name": "zp_name_ptr_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Pointer to the filename being matched, low byte."
     },
@@ -2950,7 +2950,7 @@
       "addr": 193,
       "name": "zp_name_ptr_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Pointer to the filename being matched, high byte."
     },
@@ -2958,7 +2958,7 @@
       "addr": 194,
       "name": "zp_save_y",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Scratch save slot for the Y register (also reused to hold a file handle)."
     },
@@ -2966,7 +2966,7 @@
       "addr": 195,
       "name": "zp_save_x",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Scratch save slot for the X register (zero-page pointer base)."
     },
@@ -2974,7 +2974,7 @@
       "addr": 196,
       "name": "zp_osfind_y",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Saved Y register across OSFIND processing."
     },
@@ -2982,7 +2982,7 @@
       "addr": 197,
       "name": "zp_osfind_x",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Saved X register across OSFIND processing."
     },
@@ -2990,7 +2990,7 @@
       "addr": 198,
       "name": "zp_gspb_ptr_lo",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Pointer to the OSGBPB control block, low byte. The free-space-map compaction code at [&A069](address:A069) reuses this location as a scratch map index."
     },
@@ -2998,7 +2998,7 @@
       "addr": 199,
       "name": "zp_gspb_ptr_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Pointer to the OSGBPB control block, high byte."
     },
@@ -3006,7 +3006,7 @@
       "addr": 200,
       "name": "zp_temp_ptr",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Temporary 4-byte pointer (byte 0) used for disc-sector address arithmetic, e.g. adding or subtracting a PTR offset."
     },
@@ -3014,7 +3014,7 @@
       "addr": 201,
       "name": "zp_temp_ptr_1",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "r",
       "description": "Temporary 4-byte pointer, byte 1."
     },
@@ -3022,7 +3022,7 @@
       "addr": 202,
       "name": "zp_temp_ptr_2",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "r",
       "description": "Temporary 4-byte pointer, byte 2."
     },
@@ -3030,7 +3030,7 @@
       "addr": 203,
       "name": "zp_temp_ptr_3",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "r",
       "description": "Temporary 4-byte pointer, byte 3."
     },
@@ -3038,7 +3038,7 @@
       "addr": 204,
       "name": "zp_scsi_status",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Holds a SCSI status byte read back from the host adapter while waiting for the bus to settle."
     },
@@ -3046,7 +3046,7 @@
       "addr": 205,
       "name": "zp_adfs_flags",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Primary ADFS state flags, the most heavily consulted flag byte. Bit 6 = Tube in use; also records Tube presence and other per-operation conditions."
     },
@@ -3054,7 +3054,7 @@
       "addr": 206,
       "name": "zp_retry_count",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Retry counter for disc operations, decremented on each failed attempt."
     },
@@ -3062,7 +3062,7 @@
       "addr": 207,
       "name": "zp_channel_offset",
       "length": 1,
-      "group": "zero_page",
+      "group": "fs_workspace_persistent",
       "access": "rw",
       "description": "Index of the current open-file channel within the channel tables."
     },
@@ -3070,7 +3070,7 @@
       "addr": 239,
       "name": "zp_osbyte_last_a",
       "length": 1,
-      "group": "zero_page",
+      "group": "mos_zero_page",
       "access": "r",
       "description": "MOS scratch: A on entry to the last OSBYTE / OSWORD. ADFS reads the OSWORD routine number here when dispatching OSWORD &72."
     },
@@ -3078,7 +3078,7 @@
       "addr": 240,
       "name": "zp_osword_pb_ptr",
       "length": 1,
-      "group": "zero_page",
+      "group": "mos_zero_page",
       "access": "rw",
       "description": "MOS scratch (X on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, low byte. ADFS reads the disc-access control-block address here."
     },
@@ -3086,7 +3086,7 @@
       "addr": 241,
       "name": "zp_osword_pb_ptr_hi",
       "length": 1,
-      "group": "zero_page",
+      "group": "mos_zero_page",
       "access": "r",
       "description": "MOS scratch (Y on the last OSBYTE / OSWORD): pointer to the OSWORD parameter block, high byte."
     },
@@ -3094,7 +3094,7 @@
       "addr": 242,
       "name": "os_text_ptr",
       "length": 2,
-      "group": "zero_page",
+      "group": "mos_zero_page",
       "access": "r",
       "description": "MOS command-line text pointer (&F2/&F3). ADFS reads through it to fetch each character of a *command tail."
     },
@@ -3102,7 +3102,7 @@
       "addr": 244,
       "name": "romsel_copy",
       "length": 1,
-      "group": "zero_page",
+      "group": "mos_zero_page",
       "access": "rw",
       "description": "MOS RAM copy of the paged-ROM select latch. ADFS reads it to discover its own ROM bank number."
     },
@@ -3110,7 +3110,7 @@
       "addr": 246,
       "name": "osrdsc_ptr",
       "length": 2,
-      "group": "zero_page",
+      "group": "mos_zero_page",
       "access": "rw",
       "description": "MOS address pointer (&F6/&F7) used with paged-ROM / OSRDSC access."
     },
@@ -3118,7 +3118,7 @@
       "addr": 255,
       "name": "zp_escape_flag",
       "length": 1,
-      "group": "zero_page",
+      "group": "mos_zero_page",
       "access": "r",
       "description": "MOS Escape flag (bit 7 set when an Escape is pending); ADFS polls it during long operations."
     },
@@ -3190,7 +3190,7 @@
       "addr": 3338,
       "name": "nmi_rw_code",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "w",
       "description": "Relocated NMI transfer handler. ADFS copies its sector read/write routine into the page-&0D NMI workspace and patches it at runtime; this is the routine's working area."
     },
@@ -3198,7 +3198,7 @@
       "addr": 3339,
       "name": "nmi_write_addr_lo",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "Patch site in the NMI handler: host buffer address for sector WRITES, low byte."
     },
@@ -3206,7 +3206,7 @@
       "addr": 3340,
       "name": "nmi_write_addr_hi",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "Patch site in the NMI handler: host buffer address for sector WRITES, high byte."
     },
@@ -3214,7 +3214,7 @@
       "addr": 3342,
       "name": "nmi_read_addr_lo",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "Patch site in the NMI handler: host buffer address for sector READS, low byte."
     },
@@ -3222,7 +3222,7 @@
       "addr": 3343,
       "name": "nmi_read_addr_hi",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "Patch site in the NMI handler: host buffer address for sector READS, high byte."
     },
@@ -3230,7 +3230,7 @@
       "addr": 3414,
       "name": "nmi_step_rate",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "NMI workspace: drive step-rate / side-select bits for the current transfer."
     },
@@ -3238,7 +3238,7 @@
       "addr": 3415,
       "name": "nmi_tracks_remaining",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "NMI workspace: number of whole tracks still to transfer."
     },
@@ -3246,7 +3246,7 @@
       "addr": 3416,
       "name": "nmi_secs_this_track",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "NMI workspace: sectors to transfer on the current track."
     },
@@ -3254,7 +3254,7 @@
       "addr": 3417,
       "name": "nmi_secs_last_track",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "NMI workspace: sectors to transfer on the final track."
     },
@@ -3262,7 +3262,7 @@
       "addr": 3418,
       "name": "nmi_sec_position",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "NMI workspace: current sector position within the transfer."
     },
@@ -3270,7 +3270,7 @@
       "addr": 3420,
       "name": "nmi_drive_cmd",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "NMI workspace: drive command byte, with the drive-select bits OR'd in."
     },
@@ -3278,7 +3278,7 @@
       "addr": 3421,
       "name": "nmi_adfs_flags",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "NMI workspace: copy of the ADFS flags consulted by the NMI handler."
     },
@@ -3286,7 +3286,7 @@
       "addr": 3422,
       "name": "nmi_drive_ctrl",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "rw",
       "description": "NMI workspace: drive-control byte for the current transfer."
     },
@@ -3294,7 +3294,7 @@
       "addr": 3423,
       "name": "nmi_completion",
       "length": 1,
-      "group": "page_d_workspace",
+      "group": "nmi_workspace",
       "access": "w",
       "description": "NMI workspace: completion flag the handler sets when the transfer finishes."
     },
@@ -3302,29 +3302,33 @@
       "addr": 3568,
       "name": "rom_wksp_table",
       "length": 1,
-      "group": "page_d_workspace",
-      "access": "rw"
+      "group": "rom_wksp_table",
+      "access": "rw",
+      "description": "Base of the sideways-ROM private workspace table (&0DF0-&0DFF, one byte per ROM bank holding the high byte of that ROM's private RAM). ADFS reads and updates its own bank's entry."
     },
     {
       "addr": 3578,
       "name": "fsm_s0_pre6",
       "length": 1,
-      "group": "page_d_workspace",
-      "access": "r"
+      "group": "rom_wksp_table",
+      "access": "r",
+      "description": "Byte at &0DFA in the sideways-ROM workspace table; the free-space-map compaction code reaches it as the sixth byte below FSM sector 0 ([&0E00](address:0E00)), the notional slot before the first entry."
     },
     {
       "addr": 3581,
       "name": "fsm_s0_pre3",
       "length": 1,
-      "group": "page_d_workspace",
-      "access": "rw"
+      "group": "rom_wksp_table",
+      "access": "rw",
+      "description": "Byte at &0DFD in the sideways-ROM workspace table, read by FSM compaction as the third byte below sector 0 ([&0E00](address:0E00)) - the start of the notional entry preceding the first."
     },
     {
       "addr": 3583,
       "name": "fsm_s0_pre1",
       "length": 1,
-      "group": "page_d_workspace",
-      "access": "r"
+      "group": "rom_wksp_table",
+      "access": "r",
+      "description": "Byte at &0DFF in the sideways-ROM workspace table, read by FSM compaction as the byte immediately below sector 0 ([&0E00](address:0E00))."
     },
     {
       "addr": 3584,

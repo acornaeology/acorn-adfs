@@ -204,13 +204,13 @@ nmi_drive_ctrl             = &0d5e  ; NMI workspace: drive-control byte for the 
 ; &0d5e referenced 11 times by &ba74, &ba9b, &bd19, &bd1e, &bd22, &bd27, &beb0, &bec3, &bf25, &bf32, &bfb9
 nmi_completion             = &0d5f  ; NMI workspace: completion flag the handler sets when the transfer finishes.
 ; &0d5f referenced 1 time by &bc24
-rom_wksp_table             = &0df0
+rom_wksp_table             = &0df0  ; Base of the sideways-ROM private workspace table (&0DF0-&0DFF, one byte per ROM bank holding the high byte of that ROM's private RAM). ADFS reads and updates its own bank's entry.
 ; &0df0 referenced 7 times by &9aa8, &9aad, &9ab0, &9ae0, &9af2, &a329, &a710
-fsm_s0_pre6                = &0dfa
+fsm_s0_pre6                = &0dfa  ; Byte at &0DFA in the sideways-ROM workspace table; the free-space-map compaction code reaches it as the sixth byte below FSM sector 0 (&0E00), the notional slot before the first entry.
 ; &0dfa referenced 1 time by &985c
-fsm_s0_pre3                = &0dfd
+fsm_s0_pre3                = &0dfd  ; Byte at &0DFD in the sideways-ROM workspace table, read by FSM compaction as the third byte below sector 0 (&0E00) - the start of the notional entry preceding the first.
 ; &0dfd referenced 7 times by &850d, &855e, &8591, &868e, &8694, &86e5, &902f
-fsm_s0_pre1                = &0dff
+fsm_s0_pre1                = &0dff  ; Byte at &0DFF in the sideways-ROM workspace table, read by FSM compaction as the byte immediately below sector 0 (&0E00).
 ; &0dff referenced 2 times by &9010, &9060
 fsm_sector_0               = &0e00  ; Free space map sector 0 (&0E00-&0EFF), the RAM image of on-disc sector 0. Holds the START sector address of each free-space fragment, 3 bytes per fragment, lowest first.
 ; &0e00 referenced 13 times by &848f, &84d0, &84f4, &855b, &8572, &85dd, &85f1, &867f, &86d2, &86e2, &9040, &9840, &a06e
