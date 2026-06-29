@@ -2724,38 +2724,6 @@
   },
   "memory_map": [
     {
-      "addr": 0,
-      "name": "zp_user_ptr_0",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw",
-      "description": "Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers."
-    },
-    {
-      "addr": 1,
-      "name": "zp_user_ptr_1",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw",
-      "description": "Caller's zero-page pointer, byte 1 (X-indexed base+1)."
-    },
-    {
-      "addr": 2,
-      "name": "zp_user_ptr_2",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw",
-      "description": "Caller's zero-page pointer, byte 2 (X-indexed base+2)."
-    },
-    {
-      "addr": 3,
-      "name": "zp_user_ptr_3",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw",
-      "description": "Caller's zero-page pointer, byte 3 (X-indexed base+3)."
-    },
-    {
       "addr": 160,
       "name": "zp_floppy_error",
       "length": 1,
@@ -3321,7 +3289,7 @@
       "length": 1,
       "group": "rom_wksp_table",
       "access": "rw",
-      "description": "Byte at &0DFD in the sideways-ROM workspace table, read by FSM compaction as the third byte below sector 0 ([&0E00](address:0E00)) - the start of the notional entry preceding the first."
+      "description": "Byte at &0DFD in the sideways-ROM workspace table. FSM compaction addresses it as the third byte below sector 0 ([&0E00](address:0E00)) - the notional entry preceding the first - both reading it and, when entries shift down, writing through it (hence read/write, unlike the read-only fsm_s0_pre6 and fsm_s0_pre1)."
     },
     {
       "addr": 3583,

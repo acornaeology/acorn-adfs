@@ -131,13 +131,19 @@ d.constant(0xDF, 'err_eof')
 d.constant(0xFD, 'err_wild_cards')
 d.constant(0xFE, 'err_bad_command')
 
-d.label(0x0000, 'zp_user_ptr_0', length=1, group='zero_page', access='rw', description="Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers.")
+# &00-&03 are NOT locations ADFS owns: every access is zero-page-indexed
+# (`zp_user_ptr_0,x`), where X is the caller's control-block pointer (in
+# the &B0-&CF workspace or the caller's own zero page), never zero. These
+# bare labels only give the `,x` operand base a readable name; they carry
+# no memory-map metadata so they don't appear as fixed locations on the
+# Memory Map.
+d.label(0x0000, 'zp_user_ptr_0')
 
-d.label(0x0001, 'zp_user_ptr_1', length=1, group='zero_page', access='rw', description="Caller's zero-page pointer, byte 1 (X-indexed base+1).")
+d.label(0x0001, 'zp_user_ptr_1')
 
-d.label(0x0002, 'zp_user_ptr_2', length=1, group='zero_page', access='rw', description="Caller's zero-page pointer, byte 2 (X-indexed base+2).")
+d.label(0x0002, 'zp_user_ptr_2')
 
-d.label(0x0003, 'zp_user_ptr_3', length=1, group='zero_page', access='rw', description="Caller's zero-page pointer, byte 3 (X-indexed base+3).")
+d.label(0x0003, 'zp_user_ptr_3')
 
 d.label(0x00EF, 'zp_osbyte_last_a', length=1, group='mos_zero_page', access='r', description="MOS scratch: A on entry to the last OSBYTE / OSWORD. ADFS reads the OSWORD routine number here when dispatching OSWORD &72.")
 
@@ -748,7 +754,7 @@ d.label(0x0DF0, 'rom_wksp_table', length=1, group='rom_wksp_table', access='rw',
 
 d.label(0x0DFA, 'fsm_s0_pre6', length=1, group='rom_wksp_table', access='r', description="Byte at &0DFA in the sideways-ROM workspace table; the free-space-map compaction code reaches it as the sixth byte below FSM sector 0 ([&0E00](address:0E00)), the notional slot before the first entry.")
 
-d.label(0x0DFD, 'fsm_s0_pre3', length=1, group='rom_wksp_table', access='rw', description="Byte at &0DFD in the sideways-ROM workspace table, read by FSM compaction as the third byte below sector 0 ([&0E00](address:0E00)) - the start of the notional entry preceding the first.")
+d.label(0x0DFD, 'fsm_s0_pre3', length=1, group='rom_wksp_table', access='rw', description="Byte at &0DFD in the sideways-ROM workspace table. FSM compaction addresses it as the third byte below sector 0 ([&0E00](address:0E00)) - the notional entry preceding the first - both reading it and, when entries shift down, writing through it (hence read/write, unlike the read-only fsm_s0_pre6 and fsm_s0_pre1).")
 
 d.label(0x0DFF, 'fsm_s0_pre1', length=1, group='rom_wksp_table', access='r', description="Byte at &0DFF in the sideways-ROM workspace table, read by FSM compaction as the byte immediately below sector 0 ([&0E00](address:0E00)).")
 

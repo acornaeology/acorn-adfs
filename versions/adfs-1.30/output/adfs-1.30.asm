@@ -59,13 +59,13 @@ osword_read_clock                        = &01
 osbyte_startup_options                   = &ff
 
 ; Memory locations
-zp_user_ptr_0              = &00  ; Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers.
+zp_user_ptr_0              = &00
 ; &00 referenced 9 times by &a96a, &a9ac, &a9d1, &a9ec, &aa0b, &aa1e, &aa4e, &aa6f, &aa8a
-zp_user_ptr_1              = &01  ; Caller's zero-page pointer, byte 1 (X-indexed base+1).
+zp_user_ptr_1              = &01
 ; &01 referenced 9 times by &a96f, &a9b1, &a9d6, &a9f1, &aa10, &aa23, &aa53, &aa74, &aa8f
-zp_user_ptr_2              = &02  ; Caller's zero-page pointer, byte 2 (X-indexed base+2).
+zp_user_ptr_2              = &02
 ; &02 referenced 9 times by &a972, &a9b6, &a9db, &a9f6, &aa15, &aa28, &aa58, &aa79, &aa94
-zp_user_ptr_3              = &03  ; Caller's zero-page pointer, byte 3 (X-indexed base+3).
+zp_user_ptr_3              = &03
 ; &03 referenced 9 times by &a974, &a9bb, &a9e0, &a9fb, &aa1a, &aa2d, &aa5d, &aa7e, &aa99
 zp_floppy_error            = &a0  ; WD1770 floppy driver: result / error code from the last disc operation.
 ; &a0 referenced 7 times by &bb9d, &bc97, &bcda, &bf15, &bf68, &bf82, &bfd8
@@ -208,7 +208,7 @@ rom_wksp_table             = &0df0  ; Base of the sideways-ROM private workspace
 ; &0df0 referenced 7 times by &9aa8, &9aad, &9ab0, &9ae0, &9af2, &a329, &a710
 fsm_s0_pre6                = &0dfa  ; Byte at &0DFA in the sideways-ROM workspace table; the free-space-map compaction code reaches it as the sixth byte below FSM sector 0 (&0E00), the notional slot before the first entry.
 ; &0dfa referenced 1 time by &985c
-fsm_s0_pre3                = &0dfd  ; Byte at &0DFD in the sideways-ROM workspace table, read by FSM compaction as the third byte below sector 0 (&0E00) - the start of the notional entry preceding the first.
+fsm_s0_pre3                = &0dfd  ; Byte at &0DFD in the sideways-ROM workspace table. FSM compaction addresses it as the third byte below sector 0 (&0E00) - the notional entry preceding the first - both reading it and, when entries shift down, writing through it (hence read/write, unlike the read-only fsm_s0_pre6 and fsm_s0_pre1).
 ; &0dfd referenced 7 times by &850d, &855e, &8591, &868e, &8694, &86e5, &902f
 fsm_s0_pre1                = &0dff  ; Byte at &0DFF in the sideways-ROM workspace table, read by FSM compaction as the byte immediately below sector 0 (&0E00).
 ; &0dff referenced 2 times by &9010, &9060

@@ -4,7 +4,6 @@
     "md5": "831ee90ac5d49ba5507252faf0c12536",
     "sha256": "4f785bb4572bde31a93f12687dec501c9005b6a0decc6ac943c657447095a563",
     "memory_map_groups": {
-        "zero_page": "Zero page",
         "floppy_workspace": "WD1770 floppy driver workspace (&A0–&A6)",
         "fs_workspace_temp": "Filing-system scratch space (&B0–&BF)",
         "fs_workspace_persistent": "Filing-system workspace (&C0–&CF)",
