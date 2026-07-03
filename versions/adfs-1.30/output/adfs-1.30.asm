@@ -210,7 +210,7 @@ fsm_sector_0               = &0e00  ; Free space map sector 0 (&0E00-&0EFF), the
 ; &0e00 used as index base 13 times by &848f, &84d0, &84f4, &855b, &8572, &85dd, &85f1, &867f, &86d2, &86e2, &9040, &9840, &a06e
 fsm_s0_start_1             = &0e03  ; Start-address slot for free-space fragment 1 (sector 0, offset 3). The fragment list is kept sorted and is compacted three bytes at a time.
 ; &0e03 used as index base 1 time by &85e0
-fsm_s0_reserved            = &0efa  ; Reserved byte in FSM sector 0, just below the total-disc-size field.
+fsm_s0_reserved            = &0efa  ; Reserved byte in FSM sector 0, just below the total-disc-size field. The compaction also reaches it as fsm_sector_1-6 (the notional entry before the first length entry).
 ; &0efa used as index base 1 time by &985f
 fsm_s0_pre_disc_size       = &0efb  ; Byte just below the total-disc-size field in FSM sector 0; read by the Y-indexed loop that fetches the size.
 ; &0efb used as index base 1 time by &a031

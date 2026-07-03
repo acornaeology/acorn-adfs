@@ -3294,7 +3294,7 @@
       "length": 1,
       "group": "free_space_map",
       "access": "r",
-      "description": "Reserved byte in FSM sector 0, just below the total-disc-size field."
+      "description": "Reserved byte in FSM sector 0, just below the total-disc-size field. The compaction also reaches it as fsm_sector_1-6 (the notional entry before the first length entry)."
     },
     {
       "addr": 3835,

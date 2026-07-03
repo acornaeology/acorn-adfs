@@ -270,7 +270,15 @@ d.index_region(0x0E00, 'fsm_sector_0', window=(-6, 0))
 
 d.label(0x0F00, 'fsm_sector_1', length=1, group='free_space_map', access='rw', description="Free space map sector 1 (&0F00-&0FFF), the RAM image of on-disc sector 1. Holds the LENGTH in sectors of each free-space fragment, 3 bytes each, paired by index with the start addresses in [sector 0](address:0E00).")
 
-d.label(0x0EFA, 'fsm_s0_reserved', length=1, group='free_space_map', access='r', description="Reserved byte in FSM sector 0, just below the total-disc-size field.")
+# Sector 0's trailer (&0EFA-&0EFF: reserved, disc-size, checksum) physically
+# coincides with FSM sector 1's notional "pre-entry" slots: &0EFA/&0EFD/&0EFE/
+# &0EFF are fsm_sector_1-6/-3/-2/-1. So the compaction loops read these bytes
+# as `fsm_s0_disc_size_mid,x` etc. with X>=1 - reaching the length-map entries
+# in sector 1 (&0F00+), not the disc size. They keep their disc-size / checksum
+# names (unlike the pure-scratch sector-0 pre-slots, which the fsm_sector_0
+# region renders arithmetically) because these bytes ARE real on-disc structure
+# read as the disc size via [fsm_s0_pre_disc_size](address:0EFB).
+d.label(0x0EFA, 'fsm_s0_reserved', length=1, group='free_space_map', access='r', description="Reserved byte in FSM sector 0, just below the total-disc-size field. The compaction also reaches it as fsm_sector_1-6 (the notional entry before the first length entry).")
 
 d.label(0x0EFB, 'fsm_s0_pre_disc_size', length=1, group='free_space_map', access='r', description="Byte just below the total-disc-size field in FSM sector 0; read by the Y-indexed loop that fetches the size.")
 
