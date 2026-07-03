@@ -261,6 +261,13 @@ d.label(0x00CF, 'zp_channel_offset', length=1, group='fs_workspace_persistent', 
 
 d.label(0x0E00, 'fsm_sector_0', length=1, group='free_space_map', access='rw', description="Free space map sector 0 (&0E00-&0EFF), the RAM image of on-disc sector 0. Holds the START sector address of each free-space fragment, 3 bytes per fragment, lowest first.")
 
+# Region for the sector-0 "pre-entry" slots below &0E00: the compaction code
+# reaches the notional entry before the first via base-relative indexing, so
+# &0DFA/&0DFD/&0DFF render as fsm_sector_0-6/-3/-1,x rather than as separately
+# named bytes (Stardot map discussion, viewtopic p487268). Explicit labels in
+# the window (e.g. the fsm_sector_0 anchor itself) always win over the region.
+d.index_region(0x0E00, 'fsm_sector_0', window=(-6, 0))
+
 d.label(0x0F00, 'fsm_sector_1', length=1, group='free_space_map', access='rw', description="Free space map sector 1 (&0F00-&0FFF), the RAM image of on-disc sector 1. Holds the LENGTH in sectors of each free-space fragment, 3 bytes each, paired by index with the start addresses in [sector 0](address:0E00).")
 
 d.label(0x0EFA, 'fsm_s0_reserved', length=1, group='free_space_map', access='r', description="Reserved byte in FSM sector 0, just below the total-disc-size field.")
@@ -770,11 +777,14 @@ d.label(0x0D5F, 'nmi_completion', length=1, group='nmi_workspace', access='w', d
 
 d.label(0x0DF0, 'rom_wksp_table', length=1, group='rom_wksp_table', access='rw', description="Base of the sideways-ROM private workspace table (&0DF0-&0DFF, one byte per ROM bank holding the high byte of that ROM's private RAM). ADFS reads and updates its own bank's entry.")
 
-d.label(0x0DFA, 'fsm_s0_pre6', length=1, group='rom_wksp_table', access='r', description="Byte at &0DFA in the sideways-ROM workspace table; the free-space-map compaction code reaches it as the sixth byte below FSM sector 0 ([&0E00](address:0E00)), the notional slot before the first entry.")
-
-d.label(0x0DFD, 'fsm_s0_pre3', length=1, group='rom_wksp_table', access='rw', description="Byte at &0DFD in the sideways-ROM workspace table. FSM compaction addresses it as the third byte below sector 0 ([&0E00](address:0E00)) - the notional entry preceding the first - both reading it and, when entries shift down, writing through it (hence read/write, unlike the read-only fsm_s0_pre6 and fsm_s0_pre1).")
-
-d.label(0x0DFF, 'fsm_s0_pre1', length=1, group='rom_wksp_table', access='r', description="Byte at &0DFF in the sideways-ROM workspace table, read by FSM compaction as the byte immediately below sector 0 ([&0E00](address:0E00)).")
+# &0DFA/&0DFD/&0DFF are the FSM sector-0 "pre-entry" slots at &0E00-6/-3/-1.
+# They are declared by the fsm_sector_0 index_region (see above), which renders
+# the compaction operands as `fsm_sector_0-6/-3/-1,x` - making the "reach the
+# notional entry before the first" idiom visible, per the Stardot map discussion
+# (viewtopic p487268). They physically fall in the sideways-ROM workspace table
+# [rom_wksp_table](address:0DF0) above; the -3 slot is also written through when
+# entries shift down. Every reference is base-relative and X-indexed, so the
+# literal bytes are only ever reached as fsm_sector_0 minus a displacement.
 
 # The filing-system vector block (&0212-&021F). When ADFS is selected
 # it claims these MOS vectors by writing its own handler addresses, so

@@ -2395,9 +2395,6 @@
     "nmi_drive_ctrl": 3422,
     "nmi_completion": 3423,
     "rom_wksp_table": 3568,
-    "fsm_s0_pre6": 3578,
-    "fsm_s0_pre3": 3581,
-    "fsm_s0_pre1": 3583,
     "fsm_sector_0": 3584,
     "fsm_s0_start_1": 3587,
     "fsm_s0_reserved": 3834,
@@ -3274,30 +3271,6 @@
       "group": "rom_wksp_table",
       "access": "rw",
       "description": "Base of the sideways-ROM private workspace table (&0DF0-&0DFF, one byte per ROM bank holding the high byte of that ROM's private RAM). ADFS reads and updates its own bank's entry."
-    },
-    {
-      "addr": 3578,
-      "name": "fsm_s0_pre6",
-      "length": 1,
-      "group": "rom_wksp_table",
-      "access": "r",
-      "description": "Byte at &0DFA in the sideways-ROM workspace table; the free-space-map compaction code reaches it as the sixth byte below FSM sector 0 ([&0E00](address:0E00)), the notional slot before the first entry."
-    },
-    {
-      "addr": 3581,
-      "name": "fsm_s0_pre3",
-      "length": 1,
-      "group": "rom_wksp_table",
-      "access": "rw",
-      "description": "Byte at &0DFD in the sideways-ROM workspace table. FSM compaction addresses it as the third byte below sector 0 ([&0E00](address:0E00)) - the notional entry preceding the first - both reading it and, when entries shift down, writing through it (hence read/write, unlike the read-only fsm_s0_pre6 and fsm_s0_pre1)."
-    },
-    {
-      "addr": 3583,
-      "name": "fsm_s0_pre1",
-      "length": 1,
-      "group": "rom_wksp_table",
-      "access": "r",
-      "description": "Byte at &0DFF in the sideways-ROM workspace table, read by FSM compaction as the byte immediately below sector 0 ([&0E00](address:0E00))."
     },
     {
       "addr": 3584,
@@ -5194,7 +5167,17 @@
       "description": "Index base for setting the CSD sector during subdirectory traversal: written as base+Y with Y=&16-&18, landing on wksp_csd_sector at &1114-&1116."
     }
   ],
-  "regions": [],
+  "regions": [
+    {
+      "anchor": 3584,
+      "name": "fsm_sector_0",
+      "window": [
+        -6,
+        0
+      ],
+      "named_slots": false
+    }
+  ],
   "items": [
     {
       "addr": 32768,
@@ -13681,9 +13664,8 @@
       "comment_inline": "Get prev entry address byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fsm_s0_pre3,x",
-      "target": 3581,
-      "target_label": "fsm_s0_pre3"
+      "operand": "fsm_sector_0-3,x",
+      "target": 3581
     },
     {
       "addr": 34064,
@@ -14196,9 +14178,8 @@
       "comment_inline": "Store over current (shift down)",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fsm_s0_pre3,x",
-      "target": 3581,
-      "target_label": "fsm_s0_pre3"
+      "operand": "fsm_sector_0-3,x",
+      "target": 3581
     },
     {
       "addr": 34145,
@@ -14569,9 +14550,8 @@
       "comment_inline": "Get prev entry address byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fsm_s0_pre3,x",
-      "target": 3581,
-      "target_label": "fsm_s0_pre3"
+      "operand": "fsm_sector_0-3,x",
+      "target": 3581
     },
     {
       "addr": 34196,
@@ -16060,9 +16040,8 @@
       "comment_inline": "Get entry address byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fsm_s0_pre3,x",
-      "target": 3581,
-      "target_label": "fsm_s0_pre3"
+      "operand": "fsm_sector_0-3,x",
+      "target": 3581
     },
     {
       "addr": 34449,
@@ -16088,9 +16067,8 @@
       "comment_inline": "Store updated entry address",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fsm_s0_pre3,x",
-      "target": 3581,
-      "target_label": "fsm_s0_pre3"
+      "operand": "fsm_sector_0-3,x",
+      "target": 3581
     },
     {
       "addr": 34455,
@@ -16642,9 +16620,8 @@
       "comment_inline": "Store 3 bytes lower (addresses)",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "fsm_s0_pre3,x",
-      "target": 3581,
-      "target_label": "fsm_s0_pre3"
+      "operand": "fsm_sector_0-3,x",
+      "target": 3581
     },
     {
       "addr": 34536,
@@ -31772,9 +31749,8 @@
       ],
       "type": "code",
       "mnemonic": "ora",
-      "operand": "fsm_s0_pre1,x",
-      "target": 3583,
-      "target_label": "fsm_s0_pre1"
+      "operand": "fsm_sector_0-1,x",
+      "target": 3583
     },
     {
       "addr": 36883,
@@ -31977,9 +31953,8 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fsm_s0_pre3,x",
-      "target": 3581,
-      "target_label": "fsm_s0_pre3"
+      "operand": "fsm_sector_0-3,x",
+      "target": 3581
     },
     {
       "addr": 36914,
@@ -32348,9 +32323,8 @@
       ],
       "type": "code",
       "mnemonic": "adc",
-      "operand": "fsm_s0_pre1,y",
-      "target": 3583,
-      "target_label": "fsm_s0_pre1"
+      "operand": "fsm_sector_0-1,y",
+      "target": 3583
     },
     {
       "addr": 36963,
@@ -44881,9 +44855,8 @@
       "comment_inline": "Get previous entry end address",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fsm_s0_pre6,x",
-      "target": 3578,
-      "target_label": "fsm_s0_pre6"
+      "operand": "fsm_sector_0-6,x",
+      "target": 3578
     },
     {
       "addr": 39007,

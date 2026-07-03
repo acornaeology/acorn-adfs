@@ -206,12 +206,6 @@ nmi_completion             = &0d5f  ; NMI workspace: completion flag the handler
 ; &0d5f referenced 1 time by &bc24
 rom_wksp_table             = &0df0  ; Base of the sideways-ROM private workspace table (&0DF0-&0DFF, one byte per ROM bank holding the high byte of that ROM's private RAM). ADFS reads and updates its own bank's entry.
 ; &0df0 used as index base 7 times by &9aa8, &9aad, &9ab0, &9ae0, &9af2, &a329, &a710
-fsm_s0_pre6                = &0dfa  ; Byte at &0DFA in the sideways-ROM workspace table; the free-space-map compaction code reaches it as the sixth byte below FSM sector 0 (&0E00), the notional slot before the first entry.
-; &0dfa used as index base 1 time by &985c
-fsm_s0_pre3                = &0dfd  ; Byte at &0DFD in the sideways-ROM workspace table. FSM compaction addresses it as the third byte below sector 0 (&0E00) - the notional entry preceding the first - both reading it and, when entries shift down, writing through it (hence read/write, unlike the read-only fsm_s0_pre6 and fsm_s0_pre1).
-; &0dfd used as index base 7 times by &850d, &855e, &8591, &868e, &8694, &86e5, &902f
-fsm_s0_pre1                = &0dff  ; Byte at &0DFF in the sideways-ROM workspace table, read by FSM compaction as the byte immediately below sector 0 (&0E00).
-; &0dff used as index base 2 times by &9010, &9060
 fsm_sector_0               = &0e00  ; Free space map sector 0 (&0E00-&0EFF), the RAM image of on-disc sector 0. Holds the START sector address of each free-space fragment, 3 bytes per fragment, lowest first.
 ; &0e00 used as index base 13 times by &848f, &84d0, &84f4, &855b, &8572, &85dd, &85f1, &867f, &86d2, &86e2, &9040, &9840, &a06e
 fsm_s0_start_1             = &0e03  ; Start-address slot for free-space fragment 1 (sector 0, offset 3). The fragment list is kept sorted and is compacted three bytes at a time.
@@ -2089,7 +2083,7 @@ nmi_saved_rom = sub_c0d33+1
 ; &850c referenced 1 time by &8523
 .check_adjacent_to_prev_loop
     plp                                                               ; 850c: 28          (        ; Restore carry
-    lda fsm_s0_pre3,x                                                 ; 850d: bd fd 0d    ...      ; Get prev entry address byte
+    lda fsm_sector_0-3,x                                              ; 850d: bd fd 0d    ...      ; Get prev entry address byte
     adc fsm_s0_disc_size_mid,x                                        ; 8510: 7d fd 0e    }..      ; Add prev entry length byte
     php                                                               ; 8513: 08          .        ; Save carry
     cmp wksp_object_sector,y                                          ; 8514: d9 34 10    .4.      ; Compare prev+size with object sector
@@ -2138,7 +2132,7 @@ nmi_saved_rom = sub_c0d33+1
     lda fsm_sector_1,x                                                ; 8555: bd 00 0f    ...      ; Get next entry length
     sta fsm_s0_disc_size_mid,x                                        ; 8558: 9d fd 0e    ...      ; Store over current (shift down)
     lda fsm_sector_0,x                                                ; 855b: bd 00 0e    ...      ; Get next entry address
-    sta fsm_s0_pre3,x                                                 ; 855e: 9d fd 0d    ...      ; Store over current (shift down)
+    sta fsm_sector_0-3,x                                              ; 855e: 9d fd 0d    ...      ; Store over current (shift down)
     inx                                                               ; 8561: e8          .        ; Next entry
     bne shift_entries_down_loop                                       ; 8562: d0 ec       ..       ; Loop shifting entries
 ; &8564 referenced 1 time by &8553
@@ -2191,7 +2185,7 @@ nmi_saved_rom = sub_c0d33+1
 ; &8590 referenced 1 time by &85a5
 .compare_prev_plus_size_loop
     plp                                                               ; 8590: 28          (        ; Restore carry
-    lda fsm_s0_pre3,x                                                 ; 8591: bd fd 0d    ...      ; Get prev entry address byte
+    lda fsm_sector_0-3,x                                              ; 8591: bd fd 0d    ...      ; Get prev entry address byte
     adc fsm_s0_disc_size_mid,x                                        ; 8594: 7d fd 0e    }..      ; Add prev entry length byte
     php                                                               ; 8597: 08          .        ; Save carry
     cmp wksp_object_sector,y                                          ; 8598: d9 34 10    .4.      ; Compare with object sector byte
@@ -2362,9 +2356,9 @@ nmi_saved_rom = sub_c0d33+1
 ; &868d referenced 1 time by &869c
 .advance_entry_addr_loop
     plp                                                               ; 868d: 28          (        ; Restore carry
-    lda fsm_s0_pre3,x                                                 ; 868e: bd fd 0d    ...      ; Get entry address byte
+    lda fsm_sector_0-3,x                                              ; 868e: bd fd 0d    ...      ; Get entry address byte
     adc wksp_alloc_size,y                                             ; 8691: 79 3d 10    y=.      ; Add requested size to advance addr
-    sta fsm_s0_pre3,x                                                 ; 8694: 9d fd 0d    ...      ; Store updated entry address
+    sta fsm_sector_0-3,x                                              ; 8694: 9d fd 0d    ...      ; Store updated entry address
     php                                                               ; 8697: 08          .        ; Save carry
     inx                                                               ; 8698: e8          .        ; Next entry byte
     iny                                                               ; 8699: c8          .        ; Next requested byte
@@ -2419,7 +2413,7 @@ nmi_saved_rom = sub_c0d33+1
     cpx fsm_s1_end_of_list_ptr                                        ; 86dd: ec fe 0f    ...      ; Past end of entries?
     bcs shrink_list_after_exact                                       ; 86e0: b0 0f       ..       ; Yes: shrink list
     lda fsm_sector_0,x                                                ; 86e2: bd 00 0e    ...      ; Shift entries down
-    sta fsm_s0_pre3,x                                                 ; 86e5: 9d fd 0d    ...      ; Store 3 bytes lower (addresses)
+    sta fsm_sector_0-3,x                                              ; 86e5: 9d fd 0d    ...      ; Store 3 bytes lower (addresses)
     lda fsm_sector_1,x                                                ; 86e8: bd 00 0f    ...      ; Get length entry to shift
     sta fsm_s0_disc_size_mid,x                                        ; 86eb: 9d fd 0e    ...      ; Store 3 bytes lower (lengths)
     inx                                                               ; 86ee: e8          .        ; Next entry
@@ -4303,7 +4297,7 @@ nmi_saved_rom = sub_c0d33+1
     lda #0                                                            ; 900e: a9 00       ..       ; A=0: init check accumulator
 ; &9010 referenced 1 time by &901d
 .check_fsm_entry_loop
-    ora fsm_s0_pre1,x                                                 ; 9010: 1d ff 0d    ...      ; OR entry address high byte
+    ora fsm_sector_0-1,x                                              ; 9010: 1d ff 0d    ...      ; OR entry address high byte
     ora fsm_s0_checksum,x                                             ; 9013: 1d ff 0e    ...      ; OR entry length high byte
     dex                                                               ; 9016: ca          .        ; Back up one
     beq bad_fs_map_error                                              ; 9017: f0 e1       ..       ; At entry 0: bad FS map
@@ -4323,7 +4317,7 @@ nmi_saved_rom = sub_c0d33+1
     clc                                                               ; 902e: 18          .        ; Clear carry for addition
 ; &902f referenced 1 time by &9038
 .add_entry_size_loop
-    lda fsm_s0_pre3,x                                                 ; 902f: bd fd 0d    ...      ; Get prev entry address byte
+    lda fsm_sector_0-3,x                                              ; 902f: bd fd 0d    ...      ; Get prev entry address byte
     adc fsm_s0_disc_size_mid,x                                        ; 9032: 7d fd 0e    }..      ; Add prev entry length byte
     pha                                                               ; 9035: 48          H        ; Push result on stack
     inx                                                               ; 9036: e8          .        ; Next byte
@@ -4371,7 +4365,7 @@ nmi_saved_rom = sub_c0d33+1
     tya                                                               ; 905f: 98          .     
 ; &9060 referenced 1 time by &9064
 .checksum_s0_loop
-    adc fsm_s0_pre1,y                                                 ; 9060: 79 ff 0d    y..      ; Add FSM sector 0 byte
+    adc fsm_sector_0-1,y                                              ; 9060: 79 ff 0d    y..      ; Add FSM sector 0 byte
     dey                                                               ; 9063: 88          .        ; Next byte
     bne checksum_s0_loop                                              ; 9064: d0 fa       ..       ; Loop for 255 bytes
     tax                                                               ; 9066: aa          .        ; Save sector 0 checksum in X
@@ -5778,7 +5772,7 @@ nmi_saved_rom = sub_c0d33+1
 ; &985b referenced 1 time by &9870
 .init_workspace_for_root
     plp                                                               ; 985b: 28          (        ; Restore carry
-    lda fsm_s0_pre6,x                                                 ; 985c: bd fa 0d    ...      ; Get previous entry end address
+    lda fsm_sector_0-6,x                                              ; 985c: bd fa 0d    ...      ; Get previous entry end address
     adc fsm_s0_reserved,x                                             ; 985f: 7d fa 0e    }..      ; Add previous entry length
     php                                                               ; 9862: 08          .        ; Save carry
     cmp wksp_copy_read_sector,y                                       ; 9863: d9 a2 10    ...      ; Compare with source sector
@@ -12543,7 +12537,7 @@ save pydis_start, pydis_end
 ;     bad_fs_map_error:                          7
 ;     command_done:                              7
 ;     floppy_error:                              7
-;     fsm_s0_pre3:                               7
+;     fsm_sector_0-3:                            7
 ;     os_text_ptr:                               7
 ;     osnewl:                                    7
 ;     rom_wksp_table:                            7
@@ -12866,8 +12860,8 @@ save pydis_start, pydis_end
 ;     flush_all_channels:                        2
 ;     format_init_dir:                           2
 ;     format_init_fsm:                           2
-;     fsm_s0_pre1:                               2
 ;     fsm_s1_checksum:                           2
+;     fsm_sector_0-1:                            2
 ;     generate_error_no_suffix:                  2
 ;     generate_error_suffix_x:                   2
 ;     get_function_and_set_ptr:                  2
@@ -13384,11 +13378,11 @@ save pydis_start, pydis_end
 ;     fscv_dispatch_hi:                          1
 ;     fscv_dispatch_lo:                          1
 ;     fsm_s0_disc_size_hi:                       1
-;     fsm_s0_pre6:                               1
 ;     fsm_s0_pre_disc_size:                      1
 ;     fsm_s0_reserved:                           1
 ;     fsm_s0_start_1:                            1
 ;     fsm_s1_length_1:                           1
+;     fsm_sector_0-6:                            1
 ;     full_pathname_parser:                      1
 ;     generate_error_skip_no_suffix:             1
 ;     get_first_path_char:                       1
