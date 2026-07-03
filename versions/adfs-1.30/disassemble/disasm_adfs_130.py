@@ -133,17 +133,22 @@ d.constant(0xFE, 'err_bad_command')
 
 # &00-&03 are NOT locations ADFS owns: every access is zero-page-indexed
 # (`zp_user_ptr_0,x`), where X is the caller's control-block pointer (in
-# the &B0-&CF workspace or the caller's own zero page), never zero. These
-# bare labels only give the `,x` operand base a readable name; they carry
-# no memory-map metadata so they don't appear as fixed locations on the
-# Memory Map.
-d.label(0x0000, 'zp_user_ptr_0')
+# the &B0-&CF workspace or the caller's own zero page), never zero, so the
+# literal bytes &00-&03 are never read or written. index_base() keeps the
+# name/description (so the `,x` operand base stays documented) while
+# keeping them off the fixed-location Memory Map, and renders the
+# cross-reference honestly as "used as index base".
+d.index_base(0x0000, 'zp_user_ptr_0', group='zero_page',
+             description="Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers, where X is the caller's control-block pointer (never 0).")
 
-d.label(0x0001, 'zp_user_ptr_1')
+d.index_base(0x0001, 'zp_user_ptr_1', group='zero_page',
+             description="Caller's zero-page pointer, byte 1 (X-indexed base+1).")
 
-d.label(0x0002, 'zp_user_ptr_2')
+d.index_base(0x0002, 'zp_user_ptr_2', group='zero_page',
+             description="Caller's zero-page pointer, byte 2 (X-indexed base+2).")
 
-d.label(0x0003, 'zp_user_ptr_3')
+d.index_base(0x0003, 'zp_user_ptr_3', group='zero_page',
+             description="Caller's zero-page pointer, byte 3 (X-indexed base+3).")
 
 d.label(0x00EF, 'zp_osbyte_last_a', length=1, group='mos_zero_page', access='r', description="MOS scratch: A on entry to the last OSBYTE / OSWORD. ADFS reads the OSWORD routine number here when dispatching OSWORD &72.")
 
@@ -296,9 +301,16 @@ d.label(0x1008, 'wksp_buf_flag_1', length=1, group='ram_workspace', access='w')
 
 d.label(0x100C, 'wksp_buf_flag_2', length=1, group='ram_workspace', access='w')
 
-d.label(0x100D, 'wksp_entry_field_base', length=1, group='ram_workspace', access='r', description="Base of the directory-entry field copy used when reading or writing an entry's load/exec/length/attribute fields.")
+# &100D/&100E are index bases, not stored locations: the disc-op block
+# (&1015+) is read via `wksp_entry_field_base,Y` where Y is a directory-
+# entry field offset (&0A-&15), so base+Y lands on &1017-&1022 - the same
+# Y that walks the 26-byte entry via (zp_entry_ptr),Y. The literal bytes
+# &100D/&100E (Y=0) are never accessed (every reference has Y >= &0A).
+d.index_base(0x100D, 'wksp_entry_field_base', group='ram_workspace',
+             description="Index base for the directory-entry field copy: an entry's load/exec/length/attribute fields are read/written as base+Y with Y a field offset (&0A-&15), landing in the disc-op block at &1017-&1022.")
 
-d.label(0x100E, 'wksp_entry_len_base', length=1, group='ram_workspace', access='w')
+d.index_base(0x100E, 'wksp_entry_len_base', group='ram_workspace',
+             description="Index base for writing the entry length field (accessed as base+Y with Y a directory-entry field offset >= &12).")
 
 d.label(0x1010, 'wksp_osword_block', length=1, group='ram_workspace', access='w', description="OSWORD parameter block used to issue low-level disc operations.")
 
@@ -680,7 +692,13 @@ d.label(0x10E7, 'wksp_stack_save', length=1, group='ram_workspace', access='rw',
 
 d.label(0x10E8, 'wksp_fdc_cmd_step', length=1, group='ram_workspace', access='rw', description="WD1770 command step-rate setting.")
 
-d.label(0x10FE, 'wksp_alt_csd_sector', length=1, group='ram_workspace', access='w', description="Alternative CSD sector store.")
+# &10FE is an index base, not a stored location: the current-directory
+# (CSD) sector is written via `wksp_alt_csd_sector,Y` with Y=&16-&18,
+# landing on wksp_csd_sector at &1114-&1116 (base = &1114-&16). The offset
+# lets the store reuse the entry-pointer index Y that reads the source, so
+# the literal byte &10FE is never accessed.
+d.index_base(0x10FE, 'wksp_alt_csd_sector', group='ram_workspace',
+             description="Index base for setting the CSD sector during subdirectory traversal: written as base+Y with Y=&16-&18, landing on wksp_csd_sector at &1114-&1116.")
 
 d.label(0x1200, 'dir_buffer', length=1, group='dir_buffer', access='rw', description="Directory buffer (&1200-&16FF, five sectors). Holds the currently loaded directory - a header, up to 47 26-byte entries, and a footer. This is the start of the header.")
 

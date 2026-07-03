@@ -3472,21 +3472,6 @@
       "access": "w"
     },
     {
-      "addr": 4109,
-      "name": "wksp_entry_field_base",
-      "length": 1,
-      "group": "ram_workspace",
-      "access": "r",
-      "description": "Base of the directory-entry field copy used when reading or writing an entry's load/exec/length/attribute fields."
-    },
-    {
-      "addr": 4110,
-      "name": "wksp_entry_len_base",
-      "length": 1,
-      "group": "ram_workspace",
-      "access": "w"
-    },
-    {
       "addr": 4112,
       "name": "wksp_osword_block",
       "length": 1,
@@ -4604,14 +4589,6 @@
       "description": "WD1770 command step-rate setting."
     },
     {
-      "addr": 4350,
-      "name": "wksp_alt_csd_sector",
-      "length": 1,
-      "group": "ram_workspace",
-      "access": "w",
-      "description": "Alternative CSD sector store."
-    },
-    {
       "addr": 4352,
       "name": "wksp_csd_name",
       "length": 1,
@@ -5173,6 +5150,51 @@
       "description": "Tube FIFO register 3 data port. When a second processor is attached, ADFS streams file data through Tube R3 rather than moving it through host memory."
     }
   ],
+  "index_bases": [
+    {
+      "addr": 0,
+      "name": "zp_user_ptr_0",
+      "group": "zero_page",
+      "description": "Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers, where X is the caller's control-block pointer (never 0)."
+    },
+    {
+      "addr": 1,
+      "name": "zp_user_ptr_1",
+      "group": "zero_page",
+      "description": "Caller's zero-page pointer, byte 1 (X-indexed base+1)."
+    },
+    {
+      "addr": 2,
+      "name": "zp_user_ptr_2",
+      "group": "zero_page",
+      "description": "Caller's zero-page pointer, byte 2 (X-indexed base+2)."
+    },
+    {
+      "addr": 3,
+      "name": "zp_user_ptr_3",
+      "group": "zero_page",
+      "description": "Caller's zero-page pointer, byte 3 (X-indexed base+3)."
+    },
+    {
+      "addr": 4109,
+      "name": "wksp_entry_field_base",
+      "group": "ram_workspace",
+      "description": "Index base for the directory-entry field copy: an entry's load/exec/length/attribute fields are read/written as base+Y with Y a field offset (&0A-&15), landing in the disc-op block at &1017-&1022."
+    },
+    {
+      "addr": 4110,
+      "name": "wksp_entry_len_base",
+      "group": "ram_workspace",
+      "description": "Index base for writing the entry length field (accessed as base+Y with Y a directory-entry field offset >= &12)."
+    },
+    {
+      "addr": 4350,
+      "name": "wksp_alt_csd_sector",
+      "group": "ram_workspace",
+      "description": "Index base for setting the CSD sector during subdirectory traversal: written as base+Y with Y=&16-&18, landing on wksp_csd_sector at &1114-&1116."
+    }
+  ],
+  "regions": [],
   "items": [
     {
       "addr": 32768,
@@ -12013,7 +12035,7 @@
         "str_at"
       ],
       "xref_summaries": [
-        "&841c referenced 1 time by &8386"
+        "&841c used as index base 1 time by &8386"
       ],
       "references": [
         33670
@@ -12041,7 +12063,7 @@
         "str_on_channel"
       ],
       "xref_summaries": [
-        "&8421 referenced 1 time by &83c3"
+        "&8421 used as index base 1 time by &83c3"
       ],
       "references": [
         33731
@@ -12950,7 +12972,7 @@
       ],
       "comment_inline": "CR + \"SEY\": reversed \"YES\" + CR",
       "xref_summaries": [
-        "&84ac referenced 1 time by &9a18"
+        "&84ac used as index base 1 time by &9a18"
       ],
       "references": [
         39448
@@ -12978,7 +13000,7 @@
       ],
       "comment_inline": "NUL + \"Hugo\": directory identity",
       "xref_summaries": [
-        "&84b0 referenced 2 times by &95f9, &a6f1"
+        "&84b0 used as index base 2 times by &95f9, &a6f1"
       ],
       "references": [
         38393,
@@ -18796,7 +18818,7 @@
       ],
       "comment_inline": "Padding: &00 (for 12-byte copy from &1014)",
       "xref_summaries": [
-        "&8816 referenced 2 times by &a7d6, &a7f7"
+        "&8816 used as index base 2 times by &a7d6, &a7f7"
       ],
       "references": [
         42966,
@@ -18817,7 +18839,7 @@
       ],
       "comment_inline": "Result: &01 (default)",
       "xref_summaries": [
-        "&8817 referenced 4 times by &89b1, &89f4, &8f8e, &94aa"
+        "&8817 used as index base 4 times by &89b1, &89f4, &8f8e, &94aa"
       ],
       "references": [
         35249,
@@ -28270,7 +28292,7 @@
       ],
       "comment_inline": "DEL (&7F, control character)",
       "xref_summaries": [
-        "&8ded referenced 1 time by &8db2"
+        "&8ded used as index base 1 time by &8db2"
       ],
       "references": [
         36274
@@ -35486,7 +35508,7 @@
       ],
       "comment_inline": "A=0 lo-1: OSFILE save",
       "xref_summaries": [
-        "&9269 referenced 1 time by &9256"
+        "&9269 used as index base 1 time by &9256"
       ],
       "references": [
         37462
@@ -35509,7 +35531,7 @@
       ],
       "comment_inline": "A=0 hi-1: OSFILE save",
       "xref_summaries": [
-        "&926a referenced 1 time by &9252"
+        "&926a used as index base 1 time by &9252"
       ],
       "references": [
         37458
@@ -36754,7 +36776,7 @@
         "tbl_access_chars"
       ],
       "xref_summaries": [
-        "&9316 referenced 2 times by &92ef, &99a7"
+        "&9316 used as index base 2 times by &92ef, &99a7"
       ],
       "references": [
         37615,
@@ -38194,7 +38216,7 @@
         "l941f"
       ],
       "xref_summaries": [
-        "&941f referenced 1 time by &9381"
+        "&941f used as index base 1 time by &9381"
       ],
       "references": [
         37761
@@ -41465,7 +41487,7 @@
       ],
       "comment_inline": "Load address: &00000000 (not used)",
       "xref_summaries": [
-        "&9632 referenced 1 time by &9579"
+        "&9632 used as index base 1 time by &9579"
       ],
       "references": [
         38265
@@ -47977,7 +47999,7 @@
       ],
       "comment_inline": "'$' + 9 spaces: default CSD name",
       "xref_summaries": [
-        "&9a46 referenced 1 time by &9aff"
+        "&9a46 used as index base 1 time by &9aff"
       ],
       "references": [
         39679
@@ -48246,7 +48268,7 @@
       ],
       "comment_inline": "Return",
       "xref_summaries": [
-        "&9a77 referenced 2 times by &9a68, &9c9c"
+        "&9a77 referenced 1 time by &9a68; also used as index base 1 time by &9c9c"
       ],
       "references": [
         39528,
@@ -48356,7 +48378,7 @@
         "service_dispatch_lo"
       ],
       "xref_summaries": [
-        "&9a8f referenced 1 time by &9ac7"
+        "&9a8f used as index base 1 time by &9ac7"
       ],
       "references": [
         39623
@@ -48495,7 +48517,7 @@
         "service_dispatch_hi"
       ],
       "xref_summaries": [
-        "&9a99 referenced 1 time by &9ac3"
+        "&9a99 used as index base 1 time by &9ac3"
       ],
       "references": [
         39619
@@ -51939,7 +51961,7 @@
       ],
       "comment_inline": "FILEV: &FF1B (OSFILE)",
       "xref_summaries": [
-        "&9cb3 referenced 1 time by &9b9c"
+        "&9cb3 used as index base 1 time by &9b9c"
       ],
       "references": [
         39836
@@ -52032,7 +52054,7 @@
       ],
       "comment_inline": "FILEV: osfile_handler (&923E)",
       "xref_summaries": [
-        "&9cc1 referenced 1 time by &9bb2"
+        "&9cc1 used as index base 1 time by &9bb2"
       ],
       "references": [
         39858
@@ -52203,7 +52225,7 @@
         "str_filing_system_name"
       ],
       "xref_summaries": [
-        "&9cd6 referenced 2 times by &9cf7, &9df9"
+        "&9cd6 used as index base 2 times by &9cf7, &9df9"
       ],
       "references": [
         40183,
@@ -54649,7 +54671,7 @@
       ],
       "comment_inline": "(no parameter)",
       "xref_summaries": [
-        "&9e48 referenced 1 time by &9280"
+        "&9e48 used as index base 1 time by &9280"
       ],
       "references": [
         37504
@@ -54960,7 +54982,7 @@
         "fscv_dispatch_lo"
       ],
       "xref_summaries": [
-        "&9e6d referenced 1 time by &9e64"
+        "&9e6d used as index base 1 time by &9e64"
       ],
       "references": [
         40548
@@ -55086,7 +55108,7 @@
         "fscv_dispatch_hi"
       ],
       "xref_summaries": [
-        "&9e76 referenced 1 time by &9e60"
+        "&9e76 used as index base 1 time by &9e60"
       ],
       "references": [
         40544
@@ -55910,9 +55932,9 @@
       },
       "comment_inline": "\"ACCESS\" command name",
       "xref_summaries": [
-        "&9ee3 referenced 5 times by &9e0d, &9e19, &9e95, &9ea6, &9eda",
-        "&9ee4 referenced 1 time by &9ede",
-        "&9ee5 referenced 1 time by &9e2d"
+        "&9ee3 used as index base 5 times by &9e0d, &9e19, &9e95, &9ea6, &9eda",
+        "&9ee4 used as index base 1 time by &9ede",
+        "&9ee5 used as index base 1 time by &9e2d"
       ],
       "references": [
         40461,
@@ -59402,7 +59424,7 @@
       },
       "comment_inline": "Loop for 10 bytes",
       "xref_summaries": [
-        "&a154 referenced 1 time by &a14b"
+        "&a154 used as index base 1 time by &a14b"
       ],
       "type": "code",
       "mnemonic": "bpl",
@@ -101363,7 +101385,7 @@
       ],
       "comment_inline": "Save A (NMI must preserve all regs)",
       "xref_summaries": [
-        "&bc79 referenced 1 time by &bbf6"
+        "&bc79 used as index base 1 time by &bbf6"
       ],
       "references": [
         48118
@@ -101456,7 +101478,7 @@
       },
       "comment_inline": "Read byte from WD1770 data register",
       "xref_summaries": [
-        "&bc83 referenced 3 times by &bc49, &bc55, &bc65",
+        "&bc83 used as index base 3 times by &bc49, &bc55, &bc65",
         "&bc84 referenced 3 times by &0d10[2], &ba43, &bc6f",
         "&bc85 referenced 3 times by &0d15[2], &ba48, &bc75"
       ],
@@ -102168,7 +102190,7 @@
       },
       "comment_inline": "Read byte from transfer address",
       "xref_summaries": [
-        "&bcdf referenced 3 times by &bc49, &bc55, &bc65",
+        "&bcdf used as index base 3 times by &bc49, &bc55, &bc65",
         "&bce0 referenced 3 times by &0d10[2], &ba43, &bc6f",
         "&bce1 referenced 3 times by &0d15[2], &ba48, &bc75"
       ],
@@ -102275,7 +102297,7 @@
       },
       "comment_inline": "Read byte from Tube R3",
       "xref_summaries": [
-        "&bced referenced 3 times by &bc49, &bc55, &bc65",
+        "&bced used as index base 3 times by &bc49, &bc55, &bc65",
         "&bcee referenced 3 times by &0d10[2], &ba43, &bc6f",
         "&bcef referenced 3 times by &0d15[2], &ba48, &bc75"
       ],
@@ -102352,7 +102374,7 @@
       },
       "comment_inline": "Read byte from WD1770",
       "xref_summaries": [
-        "&bcf5 referenced 3 times by &bc49, &bc55, &bc65",
+        "&bcf5 used as index base 3 times by &bc49, &bc55, &bc65",
         "&bcf6 referenced 3 times by &0d10[2], &ba43, &bc6f",
         "&bcf7 referenced 3 times by &0d15[2], &ba48, &bc75"
       ],

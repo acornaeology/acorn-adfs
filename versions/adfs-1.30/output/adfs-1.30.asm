@@ -59,14 +59,14 @@ osword_read_clock                        = &01
 osbyte_startup_options                   = &ff
 
 ; Memory locations
-zp_user_ptr_0              = &00
-; &00 referenced 9 times by &a96a, &a9ac, &a9d1, &a9ec, &aa0b, &aa1e, &aa4e, &aa6f, &aa8a
-zp_user_ptr_1              = &01
-; &01 referenced 9 times by &a96f, &a9b1, &a9d6, &a9f1, &aa10, &aa23, &aa53, &aa74, &aa8f
-zp_user_ptr_2              = &02
-; &02 referenced 9 times by &a972, &a9b6, &a9db, &a9f6, &aa15, &aa28, &aa58, &aa79, &aa94
-zp_user_ptr_3              = &03
-; &03 referenced 9 times by &a974, &a9bb, &a9e0, &a9fb, &aa1a, &aa2d, &aa5d, &aa7e, &aa99
+zp_user_ptr_0              = &00  ; Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers, where X is the caller's control-block pointer (never 0).
+; &00 used as index base 9 times by &a96a, &a9ac, &a9d1, &a9ec, &aa0b, &aa1e, &aa4e, &aa6f, &aa8a
+zp_user_ptr_1              = &01  ; Caller's zero-page pointer, byte 1 (X-indexed base+1).
+; &01 used as index base 9 times by &a96f, &a9b1, &a9d6, &a9f1, &aa10, &aa23, &aa53, &aa74, &aa8f
+zp_user_ptr_2              = &02  ; Caller's zero-page pointer, byte 2 (X-indexed base+2).
+; &02 used as index base 9 times by &a972, &a9b6, &a9db, &a9f6, &aa15, &aa28, &aa58, &aa79, &aa94
+zp_user_ptr_3              = &03  ; Caller's zero-page pointer, byte 3 (X-indexed base+3).
+; &03 used as index base 9 times by &a974, &a9bb, &a9e0, &a9fb, &aa1a, &aa2d, &aa5d, &aa7e, &aa99
 zp_floppy_error            = &a0  ; WD1770 floppy driver: result / error code from the last disc operation.
 ; &a0 referenced 7 times by &bb9d, &bc97, &bcda, &bf15, &bf68, &bf82, &bfd8
 zp_floppy_control          = &a1  ; WD1770 floppy driver: control flags for the current operation (read vs write direction, etc.).
@@ -74,7 +74,7 @@ zp_floppy_control          = &a1  ; WD1770 floppy driver: control flags for the 
 zp_floppy_state            = &a2  ; WD1770 floppy driver: transfer state-machine flags, rotated through as the operation proceeds.
 ; &a2 referenced 20 times by &bb9f, &bc9e, &bca1, &bca5, &bcc2, &bd2b, &bd2e, &bd31, &bd35, &bd38, &bd3c, &bda9, &bdad, &be36, &be4e, &be72, &be75, &bec9, &becf, &bed3
 zp_floppy_track            = &a3  ; WD1770 floppy driver: target track for the current operation.
-; &a3 referenced 18 times by &baa7, &bab3, &bad6, &baf6, &bb09, &bd01, &bd41, &bd69, &bd78, &bd85, &bd9b, &bda3, &be4a, &be5a, &bebe, &bf3e, &bf4a, &bfbd
+; &a3 referenced 17 times by &baa7, &bab3, &bad6, &baf6, &bd01, &bd41, &bd69, &bd78, &bd85, &bd9b, &bda3, &be4a, &be5a, &bebe, &bf3e, &bf4a, &bfbd; also used as index base 1 time by &bb09
 zp_floppy_sector           = &a4  ; WD1770 floppy driver: target sector for the current operation.
 ; &a4 referenced 7 times by &ba8c, &bd7d, &bde1, &bee1, &bef2, &bef4, &bf93
 zp_floppy_track_num        = &a5  ; WD1770 floppy driver: physical track number, adjusted for the selected head / side.
@@ -90,11 +90,11 @@ zp_mem_ptr_lo              = &b2  ; Pointer to the host memory address for the c
 zp_mem_ptr_hi              = &b3  ; Pointer to the host memory address for the current data transfer, high byte.
 ; &b3 referenced 19 times by &8101, &8173, &81cd, &81d9, &8357, &845a, &8460, &8464, &8634, &863c, &8689, &86a1, &86fa, &8701, &8b51, &b858, &b86d, &b9c4, &bb50
 zp_text_ptr_lo             = &b4  ; Pointer to the command / text string being parsed, low byte.
-; &b4 referenced 100 times by &8708, &871a, &87d3, &8905, &890d, &890f, &891a, &8928, &8995, &8997, &8bca, &8cac, &8ccd, &8cf0, &8dc0, &8e2b, &8e37, &8e49, &8e4b, &8e4d, &8e59, &8e5f, &8e67, &8e71, &910c, &9260, &9451, &9473, &9582, &95b7, &960d, &9806, &9819, &98c3, &98f3, &9914, &996a, &9979, &9988, &99e6, &99fb, &9a27, &9a39, &9baa, &9bbb, &9c3d, &9e50, &9e68, &9e9a, &9ea0, &9eab, &9eb7, &9ec5, &9ec7, &9ed0, &9fdd, &a104, &a170, &a25d, &a27b, &a2af, &a2b5, &a2c0, &a2ca, &a2e0, &a36b, &a373, &a37a, &a399, &a3ab, &a3bc, &a4c7, &a4c9, &a4d3, &a4ed, &a4ef, &a4f8, &a503, &a523, &a52c, &a581, &a59f, &a5a6, &a5b6, &a5b8, &a5c9, &a670, &a6a5, &a7c3, &a841, &ad3a, &b1bc, &b366, &b87f, &b8f1, &b915, &b952, &b956, &b960, &b965
+; &b4 referenced 99 times by &8708, &871a, &87d3, &8905, &890d, &890f, &891a, &8928, &8995, &8997, &8bca, &8cac, &8ccd, &8cf0, &8dc0, &8e2b, &8e37, &8e4b, &8e4d, &8e59, &8e5f, &8e67, &8e71, &910c, &9260, &9451, &9473, &9582, &95b7, &960d, &9806, &9819, &98c3, &98f3, &9914, &996a, &9979, &9988, &99e6, &99fb, &9a27, &9a39, &9baa, &9bbb, &9c3d, &9e50, &9e68, &9e9a, &9ea0, &9eab, &9eb7, &9ec5, &9ec7, &9ed0, &9fdd, &a104, &a170, &a25d, &a27b, &a2af, &a2b5, &a2c0, &a2ca, &a2e0, &a36b, &a373, &a37a, &a399, &a3ab, &a3bc, &a4c7, &a4c9, &a4d3, &a4ed, &a4ef, &a4f8, &a503, &a523, &a52c, &a581, &a59f, &a5a6, &a5b6, &a5b8, &a5c9, &a670, &a6a5, &a7c3, &a841, &ad3a, &b1bc, &b366, &b87f, &b8f1, &b915, &b952, &b956, &b960, &b965; also used as index base 1 time by &8e49
 zp_text_ptr_hi             = &b5  ; Pointer to the command / text string being parsed, high byte.
 ; &b5 referenced 59 times by &870c, &8908, &8913, &8915, &891f, &8925, &899b, &8cb1, &8cd2, &8e30, &8e3b, &8e53, &8e5d, &8e6c, &9111, &9265, &9587, &980a, &981d, &98c7, &98fb, &9918, &99e9, &99f8, &9a2a, &9a36, &9bac, &9c41, &9e52, &9e6a, &9ecb, &9ed5, &a000, &a174, &a368, &a380, &a39d, &a3af, &a3c1, &a4cd, &a4f3, &a506, &a527, &a57d, &a59c, &a5bc, &a66d, &a6a9, &a7c8, &a846, &ad50, &b1c5, &b1de, &b36b, &b3a8, &b8f5, &b919, &b950, &b969
 zp_entry_ptr_lo            = &b6  ; Pointer to the current directory entry being scanned in the directory buffer, low byte.
-; &b6 referenced 173 times by &8746, &87f2, &87fd, &8801, &88f1, &892e, &8952, &895f, &8963, &896b, &8977, &897d, &89be, &8bc1, &8bec, &8c0c, &8c27, &8c43, &8c50, &8c69, &8c86, &8cba, &8d09, &8d12, &8d4c, &8dfc, &8e03, &8e0f, &8e4f, &8e85, &8ea0, &8eab, &8eb2, &8eba, &8ec2, &8ec8, &8ed0, &8ed4, &8ef1, &8ef8, &8f1b, &8f27, &8f30, &8f41, &8f44, &8f47, &8f5f, &90a2, &90c3, &90d8, &90eb, &90f2, &912d, &9172, &9179, &9185, &9190, &9214, &921f, &9221, &9223, &9229, &9283, &9289, &92a1, &92a8, &92b9, &92c7, &92d8, &92ea, &9309, &932f, &935e, &9384, &939b, &93b5, &93c7, &93de, &93f9, &93fd, &943b, &9443, &9447, &945b, &9469, &9486, &94b7, &9509, &950e, &951f, &95c5, &95cf, &95d3, &95db, &95df, &97c3, &97df, &97ef, &97fb, &9804, &980c, &9811, &981b, &9877, &987c, &989f, &98df, &98e5, &98f1, &9929, &992c, &9930, &9947, &994b, &9956, &995b, &9961, &9963, &999a, &999e, &99cd, &99d1, &9c4a, &9c59, &9c6a, &a3c8, &a3cd, &a3d6, &a3eb, &a3ee, &a3f1, &a413, &a417, &a519, &a55c, &a58e, &a5c2, &a5da, &a5f2, &a5f6, &a5ff, &a618, &a623, &a635, &a651, &a658, &a687, &a699, &a7d2, &a837, &a885, &a888, &a894, &a8a3, &a8a9, &a8af, &a8ca, &b243, &b252, &b25d, &b263, &b269, &b26f, &b278, &b27e, &b284, &b28a, &b290, &b296, &b29c, &b2a5, &b2f4, &b30b
+; &b6 referenced 172 times by &8746, &87f2, &87fd, &8801, &88f1, &892e, &8952, &895f, &8963, &896b, &8977, &897d, &89be, &8bc1, &8bec, &8c0c, &8c27, &8c43, &8c50, &8c69, &8c86, &8cba, &8d09, &8d12, &8d4c, &8dfc, &8e03, &8e0f, &8e4f, &8e85, &8ea0, &8eab, &8eb2, &8eba, &8ec2, &8ec8, &8ed0, &8ed4, &8ef1, &8ef8, &8f1b, &8f27, &8f30, &8f41, &8f44, &8f47, &8f5f, &90a2, &90c3, &90d8, &90eb, &90f2, &912d, &9172, &9179, &9185, &9190, &9214, &921f, &9223, &9229, &9283, &9289, &92a1, &92a8, &92b9, &92c7, &92d8, &92ea, &9309, &932f, &935e, &9384, &939b, &93b5, &93c7, &93de, &93f9, &93fd, &943b, &9443, &9447, &945b, &9469, &9486, &94b7, &9509, &950e, &951f, &95c5, &95cf, &95d3, &95db, &95df, &97c3, &97df, &97ef, &97fb, &9804, &980c, &9811, &981b, &9877, &987c, &989f, &98df, &98e5, &98f1, &9929, &992c, &9930, &9947, &994b, &9956, &995b, &9961, &9963, &999a, &999e, &99cd, &99d1, &9c4a, &9c59, &9c6a, &a3c8, &a3cd, &a3d6, &a3eb, &a3ee, &a3f1, &a413, &a417, &a519, &a55c, &a58e, &a5c2, &a5da, &a5f2, &a5f6, &a5ff, &a618, &a623, &a635, &a651, &a658, &a687, &a699, &a7d2, &a837, &a885, &a888, &a894, &a8a3, &a8a9, &a8af, &a8ca, &b243, &b252, &b25d, &b263, &b269, &b26f, &b278, &b27e, &b284, &b28a, &b290, &b296, &b29c, &b2a5, &b2f4, &b30b; also used as index base 1 time by &9221
 zp_entry_ptr_hi            = &b7  ; Pointer to the current directory entry being scanned in the directory buffer, high byte.
 ; &b7 referenced 36 times by &8805, &88f5, &8967, &8e55, &8eb5, &8ebe, &8ed8, &8eee, &9227, &922f, &927e, &92a4, &92be, &92ca, &92d5, &9333, &9362, &9388, &939f, &93b9, &93cb, &9401, &944b, &945f, &946d, &94c3, &9808, &9815, &981f, &98f9, &9923, &9934, &a3d8, &a7cd, &a83c, &a899
 zp_osfile_ptr_lo           = &b8  ; Pointer to the OSFILE control block, low byte.
@@ -120,7 +120,7 @@ zp_name_ptr_hi             = &c1  ; Pointer to the filename being matched, high 
 zp_save_y                  = &c2  ; Scratch save slot for the Y register (also reused to hold a file handle).
 ; &c2 referenced 6 times by &a9c4, &acfe, &ad85, &adbf, &b11e, &b5dd
 zp_save_x                  = &c3  ; Scratch save slot for the X register (zero-page pointer base).
-; &c3 referenced 17 times by &a962, &a976, &a998, &a9a7, &a9c2, &a9cf, &a9e8, &aa03, &aa49, &aa65, &aa86, &ad63, &ad87, &adc1, &b08f, &b120, &b5eb
+; &c3 referenced 16 times by &a962, &a976, &a998, &a9a7, &a9c2, &a9cf, &a9e8, &aa03, &aa49, &aa65, &aa86, &ad63, &ad87, &adc1, &b08f, &b120; also used as index base 1 time by &b5eb
 zp_osfind_y                = &c4  ; Saved Y register across OSFIND processing.
 ; &c4 referenced 4 times by &b1c0, &b2de, &b383, &b3ec
 zp_osfind_x                = &c5  ; Saved X register across OSFIND processing.
@@ -130,9 +130,9 @@ zp_gspb_ptr_lo             = &c6  ; Pointer to the OSGBPB control block, low byt
 zp_gspb_ptr_hi             = &c7  ; Pointer to the OSGBPB control block, high byte.
 ; &c7 referenced 2 times by &b588, &b71d
 zp_temp_ptr                = &c8  ; Temporary 4-byte pointer (byte 0) used for disc-sector address arithmetic, e.g. adding or subtracting a PTR offset.
-; &c8 referenced 5 times by &b5d5, &b656, &b6c4, &b6f1, &b789
+; &c8 referenced 4 times by &b656, &b6c4, &b6f1, &b789; also used as index base 1 time by &b5d5
 zp_temp_ptr_1              = &c9  ; Temporary 4-byte pointer, byte 1.
-; &c9 referenced 4 times by &b65e, &b6d1, &b700, &b790
+; &c9 referenced 3 times by &b65e, &b6d1, &b790; also used as index base 1 time by &b700
 zp_temp_ptr_2              = &ca  ; Temporary 4-byte pointer, byte 2.
 ; &ca referenced 3 times by &b666, &b6d9, &b798
 zp_temp_ptr_3              = &cb  ; Temporary 4-byte pointer, byte 3.
@@ -159,17 +159,17 @@ osrdsc_ptr                 = &f6  ; MOS address pointer (&F6/&F7) used with page
 zp_escape_flag             = &ff  ; MOS Escape flag (bit 7 set when an Escape is pending); ADFS polls it during long operations.
 ; &ff referenced 2 times by &80af, &bccf
 brk_error_block            = &0100
-; &0100 referenced 11 times by &8364, &836e, &8389, &839a, &83a0, &83b8, &83c7, &83fc, &8419, &843a, &8471
+; &0100 referenced 2 times by &83fc, &8419; also used as index base 9 times by &8364, &836e, &8389, &839a, &83a0, &83b8, &83c7, &843a, &8471
 brk_error_block_1          = &0101
-; &0101 referenced 4 times by &83ff, &8405, &a77f, &a788
+; &0101 referenced 1 time by &8405; also used as index base 3 times by &83ff, &a77f, &a788
 brk_error_block_2          = &0102
-; &0102 referenced 1 time by &a78d
+; &0102 used as index base 1 time by &a78d
 brk_error_block_3          = &0103
-; &0103 referenced 1 time by &a77c
+; &0103 used as index base 1 time by &a77c
 brk_error_block_4          = &0104
-; &0104 referenced 1 time by &92ce
+; &0104 used as index base 1 time by &92ce
 filev                      = &0212  ; MOS FILEV vector (OSFILE). ADFS points it at its own OSFILE handler when the filing system is selected.
-; &0212 referenced 1 time by &9b9f
+; &0212 used as index base 1 time by &9b9f
 argsv                      = &0214  ; MOS ARGSV vector (OSARGS), claimed by ADFS on selection.
 bgetv                      = &0216  ; MOS BGETV vector (OSBGET), claimed by ADFS on selection.
 bputv                      = &0218  ; MOS BPUTV vector (OSBPUT), claimed by ADFS on selection.
@@ -205,32 +205,32 @@ nmi_drive_ctrl             = &0d5e  ; NMI workspace: drive-control byte for the 
 nmi_completion             = &0d5f  ; NMI workspace: completion flag the handler sets when the transfer finishes.
 ; &0d5f referenced 1 time by &bc24
 rom_wksp_table             = &0df0  ; Base of the sideways-ROM private workspace table (&0DF0-&0DFF, one byte per ROM bank holding the high byte of that ROM's private RAM). ADFS reads and updates its own bank's entry.
-; &0df0 referenced 7 times by &9aa8, &9aad, &9ab0, &9ae0, &9af2, &a329, &a710
+; &0df0 used as index base 7 times by &9aa8, &9aad, &9ab0, &9ae0, &9af2, &a329, &a710
 fsm_s0_pre6                = &0dfa  ; Byte at &0DFA in the sideways-ROM workspace table; the free-space-map compaction code reaches it as the sixth byte below FSM sector 0 (&0E00), the notional slot before the first entry.
-; &0dfa referenced 1 time by &985c
+; &0dfa used as index base 1 time by &985c
 fsm_s0_pre3                = &0dfd  ; Byte at &0DFD in the sideways-ROM workspace table. FSM compaction addresses it as the third byte below sector 0 (&0E00) - the notional entry preceding the first - both reading it and, when entries shift down, writing through it (hence read/write, unlike the read-only fsm_s0_pre6 and fsm_s0_pre1).
-; &0dfd referenced 7 times by &850d, &855e, &8591, &868e, &8694, &86e5, &902f
+; &0dfd used as index base 7 times by &850d, &855e, &8591, &868e, &8694, &86e5, &902f
 fsm_s0_pre1                = &0dff  ; Byte at &0DFF in the sideways-ROM workspace table, read by FSM compaction as the byte immediately below sector 0 (&0E00).
-; &0dff referenced 2 times by &9010, &9060
+; &0dff used as index base 2 times by &9010, &9060
 fsm_sector_0               = &0e00  ; Free space map sector 0 (&0E00-&0EFF), the RAM image of on-disc sector 0. Holds the START sector address of each free-space fragment, 3 bytes per fragment, lowest first.
-; &0e00 referenced 13 times by &848f, &84d0, &84f4, &855b, &8572, &85dd, &85f1, &867f, &86d2, &86e2, &9040, &9840, &a06e
+; &0e00 used as index base 13 times by &848f, &84d0, &84f4, &855b, &8572, &85dd, &85f1, &867f, &86d2, &86e2, &9040, &9840, &a06e
 fsm_s0_start_1             = &0e03  ; Start-address slot for free-space fragment 1 (sector 0, offset 3). The fragment list is kept sorted and is compacted three bytes at a time.
-; &0e03 referenced 1 time by &85e0
+; &0e03 used as index base 1 time by &85e0
 fsm_s0_reserved            = &0efa  ; Reserved byte in FSM sector 0, just below the total-disc-size field.
-; &0efa referenced 1 time by &985f
+; &0efa used as index base 1 time by &985f
 fsm_s0_pre_disc_size       = &0efb  ; Byte just below the total-disc-size field in FSM sector 0; read by the Y-indexed loop that fetches the size.
-; &0efb referenced 1 time by &a031
+; &0efb used as index base 1 time by &a031
 fsm_s0_disc_size_lo        = &0efc  ; Total number of sectors on the disc (3-byte little-endian), low byte, in FSM sector 0.
 fsm_s0_disc_size_mid       = &0efd  ; Total number of sectors on the disc, middle byte.
-; &0efd referenced 14 times by &8510, &852d, &8533, &8543, &8549, &8558, &8594, &85af, &85b5, &86a6, &86ac, &86eb, &9032, &b327
+; &0efd used as index base 14 times by &8510, &852d, &8533, &8543, &8549, &8558, &8594, &85af, &85b5, &86a6, &86ac, &86eb, &9032, &b327
 fsm_s0_disc_size_hi        = &0efe  ; Total number of sectors on the disc, high byte.
-; &0efe referenced 1 time by &b321
+; &0efe used as index base 1 time by &b321
 fsm_s0_checksum            = &0eff  ; Checksum byte of FSM sector 0 (validates the free-space start-address map).
-; &0eff referenced 5 times by &8fc9, &8ff5, &9013, &906a, &b324
+; &0eff referenced 2 times by &8fc9, &8ff5; also used as index base 3 times by &9013, &906a, &b324
 fsm_sector_1               = &0f00  ; Free space map sector 1 (&0F00-&0FFF), the RAM image of on-disc sector 1. Holds the LENGTH in sectors of each free-space fragment, 3 bytes each, paired by index with the start addresses in sector 0.
-; &0f00 referenced 11 times by &848c, &8546, &8555, &8576, &857c, &85e3, &85f7, &861e, &86c0, &86e8, &a084
+; &0f00 used as index base 11 times by &848c, &8546, &8555, &8576, &857c, &85e3, &85f7, &861e, &86c0, &86e8, &a084
 fsm_s1_length_1            = &0f03  ; Length slot for free-space fragment 1 (sector 1, offset 3).
-; &0f03 referenced 1 time by &85e6
+; &0f03 used as index base 1 time by &85e6
 fsm_s1_disc_id_lo          = &0ffb  ; Disc identifier (random 16-bit value assigned at format), low byte, in FSM sector 1.
 ; &0ffb referenced 3 times by &8fc3, &b482, &b497
 fsm_s1_disc_id_hi          = &0ffc  ; Disc identifier, high byte.
@@ -244,31 +244,31 @@ fsm_s1_checksum            = &0fff  ; Checksum byte of FSM sector 1 (validates t
 wksp                       = &1000  ; Base of ADFS's private workspace (&1000-&11FF); holds the default retry count.
 ; &1000 referenced 2 times by &8080, &9b97
 wksp_buf_sec_lo            = &1001  ; Sector address of the data currently in the sector buffer, low byte (mid/high at &1002/&1003).
-; &1001 referenced 7 times by &aae0, &ab18, &abed, &ac71, &b03b, &b050, &ba7e
+; &1001 used as index base 7 times by &aae0, &ab18, &abed, &ac71, &b03b, &b050, &ba7e
 wksp_buf_sec_mid           = &1002
-; &1002 referenced 7 times by &aada, &ab1e, &abf5, &ac7a, &b043, &b055, &ba82
+; &1002 used as index base 7 times by &aada, &ab1e, &abf5, &ac7a, &b043, &b055, &ba82
 wksp_buf_sec_hi            = &1003
-; &1003 referenced 9 times by &aad1, &ab24, &ab38, &abfd, &ac83, &aca1, &b04b, &b05a, &ba57
+; &1003 used as index base 9 times by &aad1, &ab24, &ab38, &abfd, &ac83, &aca1, &b04b, &b05a, &ba57
 wksp_buf_flag              = &1004  ; Sector-buffer state flag.
-; &1004 referenced 27 times by &8b36, &9bdf, &a75a, &a983, &a98c, &aaa8, &aab5, &aaba, &aaf6, &ab08, &ab0d, &abde, &abe8, &ac0c, &ac17, &ac1f, &ac26, &ac34, &ac38, &ac45, &ac4f, &ac58, &ac5c, &acd1, &acd9, &b02f, &b032
+; &1004 referenced 2 times by &9bdf, &a98c; also used as index base 25 times by &8b36, &a75a, &a983, &aaa8, &aab5, &aaba, &aaf6, &ab08, &ab0d, &abde, &abe8, &ac0c, &ac17, &ac1f, &ac26, &ac34, &ac38, &ac45, &ac4f, &ac58, &ac5c, &acd1, &acd9, &b02f, &b032
 wksp_buf_flag_1            = &1008
 ; &1008 referenced 1 time by &9bd2
 wksp_buf_flag_2            = &100c
 ; &100c referenced 1 time by &9bd5
-wksp_entry_field_base      = &100d  ; Base of the directory-entry field copy used when reading or writing an entry's load/exec/length/attribute fields.
-; &100d referenced 2 times by &8e9d, &8ea8
-wksp_entry_len_base        = &100e
-; &100e referenced 1 time by &8f1d
+wksp_entry_field_base      = &100d  ; Index base for the directory-entry field copy: an entry's load/exec/length/attribute fields are read/written as base+Y with Y a field offset (&0A-&15), landing in the disc-op block at &1017-&1022.
+; &100d used as index base 2 times by &8e9d, &8ea8
+wksp_entry_len_base        = &100e  ; Index base for writing the entry length field (accessed as base+Y with Y a directory-entry field offset >= &12).
+; &100e used as index base 1 time by &8f1d
 wksp_osword_block          = &1010  ; OSWORD parameter block used to issue low-level disc operations.
 ; &1010 referenced 1 time by &9bd8
 wksp_entry_calc_base       = &1011
-; &1011 referenced 1 time by &8e9a
+; &1011 used as index base 1 time by &8e9a
 wksp_disc_op_block         = &1014  ; Low-level disc-operation control block: the result, transfer address, command, sector, count and control fields follow.
-; &1014 referenced 4 times by &8c19, &9bdb, &a7d9, &a7fa
+; &1014 referenced 1 time by &9bdb; also used as index base 3 times by &8c19, &a7d9, &a7fa
 wksp_disc_op_result        = &1015  ; Disc-operation result / status byte.
-; &1015 referenced 28 times by &89b4, &89f7, &8c29, &8c32, &8c6b, &8c76, &8e8f, &8efc, &8f04, &8f6c, &8f91, &9094, &909f, &90b5, &90c0, &94ad, &9d37, &9d9d, &a034, &a037, &a1ae, &a1f5, &a2ab, &a2ea, &a2f8, &a309, &a35a, &b76d
+; &1015 referenced 5 times by &8c32, &8efc, &a1f5, &a2ab, &b76d; also used as index base 23 times by &89b4, &89f7, &8c29, &8c6b, &8c76, &8e8f, &8f04, &8f6c, &8f91, &9094, &909f, &90b5, &90c0, &94ad, &9d37, &9d9d, &a034, &a037, &a1ae, &a2ea, &a2f8, &a309, &a35a
 wksp_disc_op_mem_addr      = &1016  ; Host transfer address for the disc operation, byte 0 (4-byte address &1016-&1019).
-; &1016 referenced 9 times by &8b49, &96dc, &a1bf, &a1d2, &a1f8, &a2b1, &a361, &b775, &bd6c
+; &1016 referenced 6 times by &8b49, &96dc, &a1d2, &a1f8, &a2b1, &bd6c; also used as index base 3 times by &a1bf, &a361, &b775
 wksp_disc_op_mem_addr_1    = &1017
 ; &1017 referenced 13 times by &8a7c, &8a7f, &8ae5, &8ae8, &8b4e, &96d7, &9786, &a1cc, &a1fb, &a2c6, &a2d3, &a2db, &bd71
 wksp_disc_op_mem_addr_2    = &1018
@@ -276,41 +276,41 @@ wksp_disc_op_mem_addr_2    = &1018
 wksp_disc_op_mem_addr_3    = &1019
 ; &1019 referenced 4 times by &8a89, &8af2, &8b5a, &96e3
 wksp_disc_op_command       = &101a  ; Disc-operation command byte (read / write / verify, etc.).
-; &101a referenced 14 times by &8a45, &8b6f, &8b74, &8c37, &8c45, &8f0c, &8f99, &970d, &9727, &978b, &9d3d, &a7eb, &a80c, &b784
+; &101a referenced 10 times by &8a45, &8b6f, &8c37, &8f0c, &8f99, &970d, &9727, &978b, &9d3d, &b784; also used as index base 4 times by &8b74, &8c45, &a7eb, &a80c
 wksp_disc_op_sector        = &101b  ; Target sector for the disc operation, byte 0 (3-byte sector &101B-&101D).
-; &101b referenced 13 times by &89c0, &8a00, &8a9c, &8ade, &8b0f, &8b12, &8b1e, &8fab, &94b9, &971f, &9739, &979d, &b7a2
+; &101b referenced 11 times by &8a00, &8a9c, &8ade, &8b0f, &8b12, &8b1e, &8fab, &971f, &9739, &979d, &b7a2; also used as index base 2 times by &89c0, &94b9
 wksp_disc_op_sector_mid    = &101c
 ; &101c referenced 9 times by &8a09, &8a97, &8ad9, &8b27, &8fa5, &9719, &9733, &9797, &b79a
 wksp_disc_op_sector_lo     = &101d
 ; &101d referenced 11 times by &8a12, &8a8f, &8a92, &8ad1, &8ad4, &8b2d, &8f9f, &9713, &972d, &9791, &b792
 wksp_disc_op_sector_count  = &101e  ; Number of sectors to transfer in the disc operation.
-; &101e referenced 16 times by &8a69, &8abc, &8aca, &8b64, &8b6a, &8f01, &8f11, &96d1, &9708, &974a, &97a2, &9d57, &ae41, &b7b3, &bd90, &bd97
+; &101e referenced 14 times by &8a69, &8abc, &8aca, &8b64, &8b6a, &8f11, &96d1, &9708, &974a, &97a2, &9d57, &b7b3, &bd90, &bd97; also used as index base 2 times by &8f01, &ae41
 wksp_disc_op_control       = &101f  ; Disc-operation control byte.
-; &101f referenced 4 times by &8c3c, &8c52, &8f16, &b7b6
+; &101f referenced 3 times by &8c3c, &8f16, &b7b6; also used as index base 1 time by &8c52
 wksp_disc_op_transfer_len  = &1020  ; Partial-transfer byte count for the disc operation (4 bytes).
 ; &1020 referenced 4 times by &8a4c, &8a53, &8ac4, &b7b9
 wksp_disc_op_xfer_len_1    = &1021
-; &1021 referenced 7 times by &8a56, &8a9f, &8aa5, &8ab7, &8acd, &8ae1, &b7c2
+; &1021 referenced 6 times by &8a56, &8a9f, &8aa5, &8ab7, &8acd, &8ae1; also used as index base 1 time by &b7c2
 wksp_disc_op_xfer_len_2    = &1022
 ; &1022 referenced 4 times by &8a5b, &8a6f, &8aaa, &8ab2
 wksp_disc_op_xfer_len_3    = &1023
 ; &1023 referenced 7 times by &8a60, &8a6c, &8aaf, &907c, &9087, &90a8, &90c9
 wksp_entry_size_base       = &1024  ; Scratch for an object's sector count during directory-entry processing.
-; &1024 referenced 3 times by &8e05, &917b, &9886
+; &1024 used as index base 3 times by &8e05, &917b, &9886
 wksp_tube_transfer_addr    = &1026  ; Tube transfer address for the current operation (4 bytes), when data is moving via the Tube.
-; &1026 referenced 1 time by &802f
+; &1026 used as index base 1 time by &802f
 wksp_tube_transfer_addr_1  = &1027
-; &1027 referenced 3 times by &8e2d, &8e64, &a1b1
+; &1027 referenced 2 times by &8e2d, &8e64; also used as index base 1 time by &a1b1
 wksp_tube_xfer_addr_2      = &1028
 ; &1028 referenced 3 times by &81dd, &8e32, &8e69
 wksp_tube_xfer_addr_3      = &1029
 ; &1029 referenced 1 time by &81e2
 wksp_csd_drive_temp        = &102a  ; Temporary current-selected-directory (CSD) drive number.
-; &102a referenced 3 times by &81e7, &8f32, &9883
+; &102a referenced 1 time by &81e7; also used as index base 2 times by &8f32, &9883
 wksp_csd_sector_temp       = &102b  ; Temporary CSD sector.
-; &102b referenced 24 times by &847a, &8760, &8776, &8c81, &8c89, &8c8f, &8c99, &8ca0, &90d3, &90dc, &90df, &90e2, &90ee, &93d9, &93e5, &93ec, &9405, &9965, &998c, &99a0, &99ac, &a5c6, &a5d7, &b7aa
+; &102b referenced 22 times by &8760, &8776, &8c81, &8c89, &8c8f, &8c99, &8ca0, &90d3, &90dc, &90df, &90e2, &90ee, &93d9, &93e5, &93ec, &9405, &9965, &998c, &99a0, &99ac, &a5c6, &a5d7; also used as index base 2 times by &847a, &b7aa
 wksp_csd_drive_sector      = &102c  ; CSD drive+sector working copy.
-; &102c referenced 21 times by &833c, &889b, &89a9, &8a0c, &9133, &9153, &91a5, &94a2, &955c, &9653, &9660, &9c17, &a46b, &a478, &a49c, &a573, &a85e, &ade3, &adfa, &ae66, &b088
+; &102c referenced 2 times by &8a0c, &ade3; also used as index base 19 times by &833c, &889b, &89a9, &9133, &9153, &91a5, &94a2, &955c, &9653, &9660, &9c17, &a46b, &a478, &a49c, &a573, &a85e, &adfa, &ae66, &b088
 wksp_csd_drive_sector_mid  = &102d
 ; &102d referenced 2 times by &8a03, &ade9
 wksp_alt_sector_hi         = &102e
@@ -318,39 +318,39 @@ wksp_alt_sector_hi         = &102e
 wksp_saved_drive           = &102f  ; Saved drive number.
 ; &102f referenced 23 times by &8291, &832b, &8345, &885d, &8866, &89d4, &89e0, &9141, &9194, &954d, &956a, &9642, &addd, &ae03, &ae5e, &ae74, &b080, &b541, &b548, &b55e, &b564, &b7d5, &b7dd
 wksp_temp_sector           = &1030  ; Temporary sector store.
-; &1030 referenced 6 times by &9136, &9150, &a465, &a475, &adca, &adf7
+; &1030 used as index base 6 times by &9136, &9150, &a465, &a475, &adca, &adf7
 wksp_last_access_drive     = &1033  ; Drive of the most recent disc access.
-; &1033 referenced 5 times by &8e43, &a1e8, &a216, &add3, &ae00
+; &1033 referenced 4 times by &a1e8, &a216, &add3, &ae00; also used as index base 1 time by &8e43
 wksp_object_sector         = &1034  ; Sector address of the object (file or directory) being processed, low byte (3 bytes).
-; &1034 referenced 24 times by &84d3, &84ed, &8514, &856f, &8598, &85ee, &8e11, &9187, &91a2, &91cc, &91fa, &988c, &a560, &a590, &a679, &ae0e, &af66, &afc5, &afdf, &afef, &aff2, &b038, &b3f9, &b3ff
+; &1034 referenced 8 times by &ae0e, &afc5, &afdf, &afef, &aff2, &b038, &b3f9, &b3ff; also used as index base 16 times by &84d3, &84ed, &8514, &856f, &8598, &85ee, &8e11, &9187, &91a2, &91cc, &91fa, &988c, &a560, &a590, &a679, &af66
 wksp_object_sector_mid     = &1035
 ; &1035 referenced 8 times by &ae14, &afce, &afe4, &afec, &affa, &b040, &b402, &b408
 wksp_object_sector_hi      = &1036
 ; &1036 referenced 7 times by &ae1c, &afd7, &afe9, &b002, &b048, &b40b, &b411
 wksp_object_size           = &1037  ; Size in bytes of the object being processed, low byte (3 bytes).
-; &1037 referenced 12 times by &84b5, &84f0, &8530, &8579, &85b2, &85f4, &9599, &a5eb, &aee4, &af78, &b41f, &b439
+; &1037 referenced 6 times by &84b5, &9599, &a5eb, &aee4, &b41f, &b439; also used as index base 6 times by &84f0, &8530, &8579, &85b2, &85f4, &af78
 wksp_object_size_mid       = &1038
-; &1038 referenced 6 times by &84b8, &959c, &a601, &aeec, &b428, &b43e
+; &1038 referenced 5 times by &84b8, &959c, &aeec, &b428, &b43e; also used as index base 1 time by &a601
 wksp_object_size_hi        = &1039
 ; &1039 referenced 5 times by &84bb, &959f, &aef4, &b431, &b443
 wksp_alloc_sector          = &103a  ; Start sector of a newly allocated region.
-; &103a referenced 10 times by &8682, &86d5, &8f5c, &8f69, &989c, &a637, &a8e7, &af31, &af6c, &af72
+; &103a referenced 1 time by &af31; also used as index base 9 times by &8682, &86d5, &8f5c, &8f69, &989c, &a637, &a8e7, &af6c, &af72
 wksp_saved_count           = &103b  ; Saved sector / entry count.
-; &103b referenced 3 times by &af3a, &b636, &b67a
+; &103b referenced 1 time by &af3a; also used as index base 2 times by &b636, &b67a
 wksp_saved_count_1         = &103c
-; &103c referenced 2 times by &a61a, &af43
+; &103c referenced 1 time by &af43; also used as index base 1 time by &a61a
 wksp_alloc_size            = &103d  ; Size of a newly allocated region, low byte (3 bytes).
-; &103d referenced 6 times by &864d, &8691, &86a9, &86c3, &a8ed, &aef9
+; &103d referenced 1 time by &aef9; also used as index base 5 times by &864d, &8691, &86a9, &86c3, &a8ed
 wksp_alloc_size_mid        = &103e
 ; &103e referenced 1 time by &aeff
 wksp_alloc_size_hi         = &103f
-; &103f referenced 2 times by &af05, &b6b9
+; &103f referenced 1 time by &af05; also used as index base 1 time by &b6b9
 wksp_osfile_block          = &1040  ; OSFILE control block built and parsed here: filename pointer, load/exec/start/end addresses and attributes.
-; &1040 referenced 14 times by &910e, &9584, &a1ef, &a205, &a20f, &a223, &a37c, &b1b9, &b363, &b658, &b743, &b749, &b750, &b755
+; &1040 referenced 8 times by &910e, &9584, &a37c, &b1b9, &b363, &b658, &b743, &b749; also used as index base 6 times by &a1ef, &a205, &a20f, &a223, &b750, &b755
 wksp_osfile_block_1        = &1041
-; &1041 referenced 8 times by &9113, &9589, &a382, &b1c2, &b368, &b660, &b75d, &b7bf
+; &1041 referenced 7 times by &9113, &9589, &a382, &b1c2, &b368, &b660, &b75d; also used as index base 1 time by &b7bf
 wksp_osfile_load_addr      = &1042  ; OSFILE load address (4 bytes).
-; &1042 referenced 4 times by &957c, &b316, &b668, &b760
+; &1042 referenced 2 times by &b668, &b760; also used as index base 2 times by &957c, &b316
 wksp_osfile_load_addr_1    = &1043
 ; &1043 referenced 2 times by &b670, &b763
 wksp_osfile_exec_addr      = &1046  ; OSFILE execution address (4 bytes).
@@ -374,13 +374,13 @@ wksp_osfile_end_addr_1     = &104f
 wksp_osfile_end_addr_2     = &1050
 ; &1050 referenced 1 time by &b33e
 wksp_osfile_attr           = &1052  ; Object attributes (access bits) in the OSFILE block.
-; &1052 referenced 3 times by &98ba, &98ce, &9906
+; &1052 referenced 1 time by &98ba; also used as index base 2 times by &98ce, &9906
 wksp_osfile_attr_1         = &1053
 ; &1053 referenced 1 time by &98b2
 wksp_osfile_attr_2         = &1054
 ; &1054 referenced 1 time by &98b5
 wksp_access_accum          = &105d  ; Accumulator for summing free space and sizes, low byte (3 bytes).
-; &105d referenced 7 times by &860b, &8621, &8624, &864a, &a1bc, &a626, &a654
+; &105d referenced 3 times by &860b, &a626, &a654; also used as index base 4 times by &8621, &8624, &864a, &a1bc
 wksp_access_accum_1        = &105e
 ; &105e referenced 1 time by &860e
 wksp_free_space_total      = &105f  ; Running total of free space (high byte of the accumulator).
@@ -390,19 +390,19 @@ wksp_compact_start_page    = &1060  ; Start page of the buffer used during *COMP
 wksp_compact_length        = &1061  ; Length of data held in the compaction buffer.
 ; &1061 referenced 12 times by &96c9, &96ce, &96ea, &9705, &974d, &9756, &976a, &a295, &a324, &a338, &a908, &af5f
 wksp_object_name           = &1062  ; Name of the object being processed (10 bytes).
-; &1062 referenced 4 times by &874a, &8757, &87a9, &88e7
+; &1062 referenced 1 time by &88e7; also used as index base 3 times by &874a, &8757, &87a9
 wksp_object_name_1         = &1063
 ; &1063 referenced 1 time by &88ec
 wksp_saved_dir_sector      = &106c  ; Saved directory sector.
-; &106c referenced 2 times by &a7e1, &a850
+; &106c used as index base 2 times by &a7e1, &a850
 wksp_drive_number          = &106f  ; Working drive number (e.g. for *MOUNT).
 ; &106f referenced 9 times by &9c91, &a0ff, &a10d, &a120, &a135, &a161, &a17c, &a18c, &a911
 wksp_new_parent_sector     = &1070  ; New parent-directory sector for a created or moved object.
-; &1070 referenced 4 times by &a691, &a6bb, &a802, &a87a
+; &1070 used as index base 4 times by &a691, &a6bb, &a802, &a87a
 wksp_dest_drive            = &1073  ; Destination drive for *COPY / *RENAME.
 ; &1073 referenced 1 time by &a91a
 wksp_dest_name             = &1074  ; Destination object name (for *COPY / *RENAME).
-; &1074 referenced 3 times by &a69d, &a6b0, &a8ce
+; &1074 used as index base 3 times by &a69d, &a6b0, &a8ce
 wksp_dest_filename_end     = &107e  ; End marker of the destination filename.
 ; &107e referenced 1 time by &a8d6
 wksp_copy_name_ptr         = &107f  ; Pointer to the source name during *COPY, low byte (high at &1080).
@@ -410,21 +410,21 @@ wksp_copy_name_ptr         = &107f  ; Pointer to the source name during *COPY, l
 wksp_copy_name_ptr_hi      = &1080
 ; &1080 referenced 1 time by &a82c
 wksp_copy_osfile_params    = &1089  ; Saved source OSFILE parameters during *COPY.
-; &1089 referenced 2 times by &a8bb, &a8c2
+; &1089 used as index base 2 times by &a8bb, &a8c2
 wksp_copy_osfile_exec      = &108c
-; &108c referenced 2 times by &97ec, &97fd
+; &108c used as index base 2 times by &97ec, &97fd
 wksp_copy_dest_params      = &108d  ; Destination OSFILE parameters during *COPY.
-; &108d referenced 1 time by &a8be
+; &108d used as index base 1 time by &a8be
 wksp_filename_save         = &1091  ; Saved filename pointer, low byte (high at &1092).
 ; &1091 referenced 2 times by &a7c0, &a843
 wksp_filename_save_hi      = &1092
-; &1092 referenced 3 times by &9880, &a7c5, &a848
+; &1092 referenced 2 times by &a7c5, &a848; also used as index base 1 time by &9880
 wksp_entry_save            = &1093  ; Saved directory-entry pointer, low byte (high at &1094).
 ; &1093 referenced 3 times by &a7cf, &a839, &a896
 wksp_entry_save_hi         = &1094
 ; &1094 referenced 3 times by &a7ca, &a83e, &a89b
 wksp_osgbpb_end_ptr        = &1095  ; OSGBPB working end pointer.
-; &1095 referenced 5 times by &97dc, &abda, &abe5, &ac6b, &b5ee
+; &1095 referenced 3 times by &abda, &abe5, &ac6b; also used as index base 2 times by &97dc, &b5ee
 wksp_osgbpb_sector_lo      = &1096  ; OSGBPB working sector, low byte (3 bytes).
 ; &1096 referenced 9 times by &abf0, &ac6e, &ad96, &af98, &aff5, &b010, &b0f7, &b6d3, &b7f4
 wksp_osgbpb_sector_mid     = &1097
@@ -434,7 +434,7 @@ wksp_osgbpb_sector_hi      = &1098
 wksp_new_ptr_lo            = &109a  ; Newly computed file PTR, low byte (multi-byte).
 ; &109a referenced 12 times by &a9d3, &aa71, &ae94, &aeb4, &afda, &b062, &b0c8, &b606, &b688, &b707, &b7e3, &b819
 wksp_new_ptr_mid           = &109b
-; &109b referenced 11 times by &a9d8, &aa76, &ae8c, &aeac, &afbe, &b068, &b0d0, &b60f, &b694, &b6fd, &b7f1
+; &109b referenced 10 times by &a9d8, &aa76, &ae8c, &aeac, &afbe, &b068, &b0d0, &b60f, &b694, &b7f1; also used as index base 1 time by &b6fd
 wksp_new_ptr_mid_hi        = &109c
 ; &109c referenced 11 times by &a9dd, &aa7b, &ae84, &aea4, &aec4, &afc8, &b06e, &b0d8, &b618, &b6a0, &b7fa
 wksp_new_ptr_hi            = &109d
@@ -448,25 +448,25 @@ wksp_ch_buf_sector         = &10a0  ; Current sector held in the channel buffer.
 wksp_ch_buf_sector_1       = &10a1
 ; &10a1 referenced 2 times by &abca, &b02a
 wksp_copy_read_sector      = &10a2  ; *COPY source (read) sector, byte 0.
-; &10a2 referenced 18 times by &88d8, &894d, &8991, &9650, &9670, &9690, &9710, &9753, &9759, &97b5, &97c7, &9823, &9843, &9863, &9889, &a3be, &a8a5, &af69
+; &10a2 referenced 10 times by &88d8, &894d, &8991, &9710, &9753, &9759, &97b5, &97c7, &a3be, &a8a5; also used as index base 8 times by &9650, &9670, &9690, &9823, &9843, &9863, &9889, &af69
 wksp_copy_read_sector_1    = &10a3
 ; &10a3 referenced 6 times by &9716, &975e, &97b8, &97ca, &a3c3, &a8ab
 wksp_copy_read_sector_2    = &10a4
 ; &10a4 referenced 7 times by &971c, &9763, &97bb, &97cd, &a8b4, &a914, &a917
 wksp_copy_write_sector     = &10a5  ; *COPY destination (write) sector, byte 0.
-; &10a5 referenced 8 times by &96b8, &96c6, &96e7, &96ed, &9702, &973f, &a8f0, &af7b
+; &10a5 referenced 6 times by &96b8, &96c6, &96e7, &96ed, &9702, &973f; also used as index base 2 times by &a8f0, &af7b
 wksp_copy_write_sector_1   = &10a6
 ; &10a6 referenced 5 times by &96b5, &96c1, &96f0, &96f5, &9742
 wksp_copy_write_sector_2   = &10a7
 ; &10a7 referenced 5 times by &96b2, &96be, &96f8, &96fd, &9745
 wksp_copy_src_sector       = &10a8  ; *COPY source sector working copy.
-; &10a8 referenced 11 times by &965d, &967d, &969d, &972a, &9767, &976d, &98a1, &a403, &a431, &a8ea, &af75
+; &10a8 referenced 5 times by &972a, &9767, &976d, &a403, &a431; also used as index base 6 times by &965d, &967d, &969d, &98a1, &a8ea, &af75
 wksp_copy_src_sector_1     = &10a9
 ; &10a9 referenced 2 times by &9730, &9772
 wksp_copy_src_sector_2     = &10aa
 ; &10aa referenced 5 times by &9736, &9777, &a428, &a91d, &a920
 wksp_copy_dest_sector      = &10ab  ; *COPY destination sector working copy.
-; &10ab referenced 3 times by &97aa, &9826, &a421
+; &10ab referenced 2 times by &97aa, &a421; also used as index base 1 time by &9826
 wksp_copy_dest_sector_1    = &10ac
 ; &10ac referenced 1 time by &97ad
 wksp_copy_dest_sector_2    = &10ad
@@ -478,17 +478,17 @@ wksp_osgbpb_mode           = &10b5  ; OSGBPB open mode / extension flag.
 wksp_osgbpb_start          = &10b6  ; OSGBPB transfer start position.
 ; &10b6 referenced 8 times by &b6f3, &b726, &b729, &b746, &b816, &b980, &b9ba, &b9cb
 wksp_osgbpb_end            = &10b7  ; OSGBPB transfer end position.
-; &10b7 referenced 6 times by &b592, &b6f8, &b70a, &b81c, &b983, &b9f5
+; &10b7 referenced 5 times by &b6f8, &b70a, &b81c, &b983, &b9f5; also used as index base 1 time by &b592
 wksp_osgbpb_data_addr      = &10b8  ; OSGBPB cumulative data transfer address (4 bytes).
-; &10b8 referenced 5 times by &b72d, &b730, &b772, &b850, &b9b6
+; &10b8 referenced 4 times by &b72d, &b730, &b850, &b9b6; also used as index base 1 time by &b772
 wksp_osgbpb_data_addr_1    = &10b9
-; &10b9 referenced 5 times by &b735, &b7c5, &b7c8, &b855, &b9bf
+; &10b9 referenced 3 times by &b735, &b855, &b9bf; also used as index base 2 times by &b7c5, &b7c8
 wksp_osgbpb_data_addr_2    = &10ba
 ; &10ba referenced 3 times by &b73a, &b829, &b98f
 wksp_osgbpb_data_addr_3    = &10bb
 ; &10bb referenced 3 times by &b73f, &b830, &b996
 wksp_osgbpb_wksp_bc        = &10bc
-; &10bc referenced 2 times by &ae69, &b085
+; &10bc used as index base 2 times by &ae69, &b085
 wksp_osgbpb_byte_count     = &10bd  ; OSGBPB byte count for the transfer.
 wksp_osgbpb_name_offset    = &10be  ; OSGBPB offset into the name being read or written.
 wksp_saved_drive_2         = &10bf  ; Second saved drive number.
@@ -500,9 +500,9 @@ wksp_workspace_checksum    = &10c1  ; Checksum of critical workspace, validated 
 wksp_drive_change_mask     = &10c2  ; Bit mask of drives whose media may have changed.
 ; &10c2 referenced 5 times by &b4aa, &b4f1, &b501, &b518, &b531
 wksp_prev_clock            = &10c3  ; Previous clock reading, for elapsed-time comparison.
-; &10c3 referenced 2 times by &b4d1, &b4d8
+; &10c3 used as index base 2 times by &b4d1, &b4d8
 wksp_clock                 = &10c8  ; Cached system clock value, byte 0 (5-byte TIME).
-; &10c8 referenced 2 times by &b4cd, &b4d4
+; &10c8 used as index base 2 times by &b4cd, &b4d4
 wksp_clock_1               = &10c9
 ; &10c9 referenced 1 time by &b4ea
 wksp_clock_2               = &10ca
@@ -518,7 +518,7 @@ wksp_error_suppress        = &10ce  ; Flag suppressing error reporting in some c
 wksp_bput_modified         = &10cf  ; Flag: the current channel buffer was modified by OSBPUT and needs flushing.
 ; &10cf referenced 4 times by &adb7, &b097, &b0e8, &b12a
 wksp_err_sector            = &10d0  ; Sector associated with the last disc error, low byte (3 bytes).
-; &10d0 referenced 7 times by &80e5, &8258, &83ac, &8b30, &9d77, &ab1b, &ac74
+; &10d0 referenced 4 times by &80e5, &8b30, &ab1b, &ac74; also used as index base 3 times by &8258, &83ac, &9d77
 wksp_err_sector_mid        = &10d1
 ; &10d1 referenced 4 times by &80df, &8b2a, &ab21, &ac7d
 wksp_err_sector_hi         = &10d2
@@ -553,16 +553,16 @@ wksp_stack_save            = &10e7  ; Saved stack pointer for error recovery.
 ; &10e7 referenced 4 times by &ba31, &bb15, &bb29, &bfae
 wksp_fdc_cmd_step          = &10e8  ; WD1770 command step-rate setting.
 ; &10e8 referenced 3 times by &bb95, &bbb9, &bbcc
-wksp_alt_csd_sector        = &10fe  ; Alternative CSD sector store.
-; &10fe referenced 2 times by &89c3, &94bc
+wksp_alt_csd_sector        = &10fe  ; Index base for setting the CSD sector during subdirectory traversal: written as base+Y with Y=&16-&18, landing on wksp_csd_sector at &1114-&1116.
+; &10fe used as index base 2 times by &89c3, &94bc
 wksp_csd_name              = &1100  ; Name of the current selected directory (CSD), 10 characters.
-; &1100 referenced 7 times by &8a27, &8a2f, &9547, &9be6, &9bee, &a14e, &a4b0
+; &1100 referenced 1 time by &8a2f; also used as index base 6 times by &8a27, &9547, &9be6, &9bee, &a14e, &a4b0
 wksp_lib_name              = &110a  ; Name of the library directory, 10 characters.
-; &110a referenced 2 times by &9c6e, &a44c
+; &110a used as index base 2 times by &9c6e, &a44c
 wksp_csd_sector            = &1113  ; CSD sector marker / validity byte.
-; &1113 referenced 4 times by &847d, &a563, &a595, &b7a7
+; &1113 used as index base 4 times by &847d, &a563, &a595, &b7a7
 wksp_csd_sector_lo         = &1114  ; Sector of the current selected directory, low byte (3 bytes).
-; &1114 referenced 25 times by &8339, &8898, &88aa, &89a6, &8a0f, &8d35, &8f9c, &949f, &9602, &978e, &9903, &9c14, &a454, &a462, &a49f, &a570, &a68e, &a7e4, &a805, &a84d, &a85b, &a877, &adc7, &b22c, &b2aa
+; &1114 referenced 7 times by &88aa, &8a0f, &8d35, &8f9c, &978e, &b22c, &b2aa; also used as index base 18 times by &8339, &8898, &89a6, &949f, &9602, &9903, &9c14, &a454, &a462, &a49f, &a570, &a68e, &a7e4, &a805, &a84d, &a85b, &a877, &adc7
 wksp_csd_sector_mid        = &1115
 ; &1115 referenced 7 times by &88af, &8a06, &8d3d, &8fa2, &9794, &b234, &b2b0
 wksp_csd_sector_hi         = &1116
@@ -570,7 +570,7 @@ wksp_csd_sector_hi         = &1116
 wksp_current_drive         = &1117  ; Current default drive number.
 ; &1117 referenced 61 times by &80d6, &80f1, &811e, &8294, &8342, &8863, &886f, &8875, &887b, &89db, &8b0c, &8b21, &8d2d, &8fb1, &919b, &91c2, &91f0, &9350, &9479, &9554, &9645, &9669, &9689, &9c20, &9c62, &9c8b, &9d4a, &9d4f, &a0c3, &a0d0, &a0da, &a0e0, &a0e6, &a0f8, &a132, &a13c, &a164, &a6c7, &a8b1, &a923, &a929, &a930, &a943, &add0, &af49, &b224, &b29e, &b474, &b47c, &b491, &b4f8, &b53b, &b54e, &b557, &b561, &b568, &b7b0, &b7d8, &b8d1, &b8e9, &bf03
 wksp_lib_sector            = &1118  ; Library directory sector marker / validity byte.
-; &1118 referenced 7 times by &91cf, &9673, &9680, &9c29, &9c5b, &a457, &a468
+; &1118 referenced 1 time by &9c29; also used as index base 6 times by &91cf, &9673, &9680, &9c5b, &a457, &a468
 wksp_lib_sector_lo         = &1119  ; Sector of the library directory, low byte (3 bytes).
 ; &1119 referenced 1 time by &9c30
 wksp_lib_sector_mid        = &111a
@@ -578,7 +578,7 @@ wksp_lib_sector_mid        = &111a
 wksp_lib_sector_hi         = &111b
 ; &111b referenced 7 times by &91c5, &9666, &9c36, &9c65, &a189, &a196, &b90d
 wksp_prev_dir_sector       = &111c  ; Previous directory (^) sector marker / validity byte.
-; &111c referenced 7 times by &91fd, &9207, &955f, &9693, &96a0, &a499, &a4a2
+; &111c referenced 1 time by &9207; also used as index base 6 times by &91fd, &955f, &9693, &96a0, &a499, &a4a2
 wksp_prev_dir_sector_lo    = &111d  ; Sector of the previous directory, low byte (3 bytes).
 ; &111d referenced 1 time by &920c
 wksp_prev_dir_sector_mid   = &111e
@@ -588,9 +588,9 @@ wksp_prev_dir_sector_hi    = &111f
 wksp_flags_save            = &1120  ; Saved status flags.
 ; &1120 referenced 2 times by &8a1f, &9bf1
 wksp_disc_id_lo            = &1121  ; Cached disc identifier, low byte (high at &1122).
-; &1121 referenced 3 times by &8fc0, &b485, &b49a
+; &1121 used as index base 3 times by &8fc0, &b485, &b49a
 wksp_disc_id_hi            = &1122
-; &1122 referenced 3 times by &8fba, &b48b, &b4a2
+; &1122 used as index base 3 times by &8fba, &b48b, &b4a2
 wksp_scsi_status           = &1131  ; Combined SCSI status from the last hard-disc operation.
 ; &1131 referenced 3 times by &ab9f, &aba5, &abac
 wksp_exec_handle           = &1132  ; File handle of the current *EXEC file.
@@ -598,80 +598,80 @@ wksp_exec_handle           = &1132  ; File handle of the current *EXEC file.
 wksp_current_drive_hi      = &1133  ; Current drive / LUN combined byte for the hard disc.
 ; &1133 referenced 6 times by &8121, &8244, &825e, &8b15, &8b41, &aad4
 wksp_ch_ext_h              = &1134  ; Channel table - file EXTENT (length), high byte. One byte per open channel.
-; &1134 referenced 18 times by &aa17, &aa5a, &aa9b, &ad18, &ae99, &afa4, &b077, &b153, &b171, &b1ab, &b271, &b37d, &b3dc, &b40e, &b42e, &b459, &b66b, &b6a9
+; &1134 used as index base 18 times by &aa17, &aa5a, &aa9b, &ad18, &ae99, &afa4, &b077, &b153, &b171, &b1ab, &b271, &b37d, &b3dc, &b40e, &b42e, &b459, &b66b, &b6a9
 wksp_ch_ext_mh             = &113e  ; Channel table - file EXTENT, mid-high byte (per channel).
-; &113e referenced 18 times by &aa12, &aa55, &aa96, &ad20, &aea1, &af9b, &b071, &b14d, &b16b, &b1a5, &b26b, &b37a, &b3d4, &b405, &b425, &b453, &b663, &b69d
+; &113e used as index base 18 times by &aa12, &aa55, &aa96, &ad20, &aea1, &af9b, &b071, &b14d, &b16b, &b1a5, &b26b, &b37a, &b3d4, &b405, &b425, &b453, &b663, &b69d
 wksp_ch_ext_ml             = &1148  ; Channel table - file EXTENT, mid-low byte (per channel).
-; &1148 referenced 18 times by &aa0d, &aa50, &aa91, &ad28, &aea9, &af92, &b06b, &b147, &b165, &b19f, &b265, &b377, &b3cc, &b3fc, &b41c, &b44d, &b65b, &b691
+; &1148 used as index base 18 times by &aa0d, &aa50, &aa91, &ad28, &aea9, &af92, &b06b, &b147, &b165, &b19f, &b265, &b377, &b3cc, &b3fc, &b41c, &b44d, &b65b, &b691
 wksp_ch_ext_l              = &1152  ; Channel table - file EXTENT, low byte (per channel).
-; &1152 referenced 17 times by &aa08, &aa4b, &aa8c, &ad30, &aeb1, &afb4, &b065, &b15b, &b199, &b25f, &b374, &b3c4, &b3f4, &b434, &b446, &b653, &b685
+; &1152 used as index base 17 times by &aa08, &aa4b, &aa8c, &ad30, &aeb1, &afb4, &b065, &b15b, &b199, &b25f, &b374, &b3c4, &b3f4, &b434, &b446, &b653, &b685
 wksp_ch_ptr_h              = &115c  ; Channel table - file PTR (sequential position), high byte (per channel).
-; &115c referenced 13 times by &a9b8, &a9fd, &aa2f, &ad1b, &ada5, &b0db, &b106, &b13c, &b150, &b1a8, &b2c7, &b624, &b6af
+; &115c used as index base 13 times by &a9b8, &a9fd, &aa2f, &ad1b, &ada5, &b0db, &b106, &b13c, &b150, &b1a8, &b2c7, &b624, &b6af
 wksp_ch_ptr_mh             = &1166  ; Channel table - file PTR, mid-high byte (per channel).
-; &1166 referenced 13 times by &a9b3, &a9f8, &aa2a, &ad23, &ad9c, &b0d3, &b0fd, &b137, &b14a, &b1a2, &b2c4, &b61b, &b6a3
+; &1166 used as index base 13 times by &a9b3, &a9f8, &aa2a, &ad23, &ad9c, &b0d3, &b0fd, &b137, &b14a, &b1a2, &b2c4, &b61b, &b6a3
 wksp_ch_ptr_ml             = &1170  ; Channel table - file PTR, mid-low byte (per channel).
-; &1170 referenced 13 times by &a9ae, &a9f3, &aa25, &ad2b, &ad93, &b0cb, &b0f4, &b132, &b144, &b19c, &b2c1, &b612, &b697
+; &1170 used as index base 13 times by &a9ae, &a9f3, &aa25, &ad2b, &ad93, &b0cb, &b0f4, &b132, &b144, &b19c, &b2c1, &b612, &b697
 wksp_ch_ptr_l              = &117a  ; Channel table - file PTR, low byte (per channel).
-; &117a referenced 13 times by &a9a9, &a9ee, &aa20, &ad33, &adb2, &b0c2, &b113, &b125, &b158, &b196, &b2be, &b609, &b68b
+; &117a used as index base 13 times by &a9a9, &a9ee, &aa20, &ad33, &adb2, &b0c2, &b113, &b125, &b158, &b196, &b2be, &b609, &b68b
 wksp_ch_alloc_pad          = &1183  ; Channel table - allocated size, padding / first byte (per channel).
-; &1183 referenced 1 time by &a79b
+; &1183 used as index base 1 time by &a79b
 wksp_ch_alloc_h            = &1184  ; Channel table - allocated size, high byte (per channel).
-; &1184 referenced 7 times by &ae79, &aeef, &af2e, &b174, &b28c, &b3df, &b42b
+; &1184 used as index base 7 times by &ae79, &aeef, &af2e, &b174, &b28c, &b3df, &b42b
 wksp_ch_alloc_mh           = &118e  ; Channel table - allocated size, mid-high byte (per channel).
-; &118e referenced 7 times by &ae81, &aee7, &af25, &b16e, &b286, &b3d7, &b422
+; &118e used as index base 7 times by &ae81, &aee7, &af25, &b16e, &b286, &b3d7, &b422
 wksp_ch_alloc_ml           = &1198  ; Channel table - allocated size, mid-low byte (per channel).
-; &1198 referenced 7 times by &ae89, &aedf, &af1c, &b168, &b280, &b3cf, &b419
+; &1198 used as index base 7 times by &ae89, &aedf, &af1c, &b168, &b280, &b3cf, &b419
 wksp_ch_alloc_l            = &11a2  ; Channel table - allocated size, low byte (per channel).
-; &11a2 referenced 6 times by &ae91, &aeda, &af16, &b27a, &b3c7, &b414
+; &11a2 used as index base 6 times by &ae91, &aeda, &af16, &b27a, &b3c7, &b414
 wksp_ch_flags              = &11ac  ; Channel table - per-channel flags (open mode, modified, etc.).
-; &11ac referenced 20 times by &8d23, &a116, &a9ca, &aa67, &ad10, &ad53, &ad58, &ad7b, &ad82, &ae2f, &b0b5, &b188, &b18e, &b1e3, &b21a, &b2cd, &b393, &b3b9, &b3be, &b46a
+; &11ac used as index base 20 times by &8d23, &a116, &a9ca, &aa67, &ad10, &ad53, &ad58, &ad7b, &ad82, &ae2f, &b0b5, &b188, &b18e, &b1e3, &b21a, &b2cd, &b393, &b3b9, &b3be, &b46a
 wksp_ch_start_sec_h        = &11b6  ; Channel table - file's start sector, high byte (per channel).
-; &11b6 referenced 16 times by &8d28, &a11b, &ada2, &add8, &ae17, &af4c, &afa7, &afd4, &b103, &b21f, &b2a1, &b46f, &b5b5, &b6de, &b79d, &b800
+; &11b6 used as index base 16 times by &8d28, &a11b, &ada2, &add8, &ae17, &af4c, &afa7, &afd4, &b103, &b21f, &b2a1, &b46f, &b5b5, &b6de, &b79d, &b800
 wksp_ch_start_sec_mh       = &11c0  ; Channel table - file's start sector, mid-high byte (per channel).
-; &11c0 referenced 10 times by &ad99, &ae11, &af40, &af9e, &afcb, &b0fa, &b298, &b6d6, &b795, &b7f7
+; &11c0 used as index base 10 times by &ad99, &ae11, &af40, &af9e, &afcb, &b0fa, &b298, &b6d6, &b795, &b7f7
 wksp_ch_start_sec_ml       = &11ca  ; Channel table - file's start sector, mid-low byte (per channel).
-; &11ca referenced 10 times by &ad90, &ae0b, &af37, &af95, &afc2, &b0f1, &b292, &b6ce, &b78d, &b7ee
+; &11ca used as index base 10 times by &ad90, &ae0b, &af37, &af95, &afc2, &b0f1, &b292, &b6ce, &b78d, &b7ee
 wksp_ch_dir_sec_h          = &11d4  ; Channel table - parent-directory sector, high byte (per channel).
-; &11d4 referenced 4 times by &8d42, &adec, &b239, &b2b9
+; &11d4 used as index base 4 times by &8d42, &adec, &b239, &b2b9
 wksp_ch_dir_sec_mh         = &11de  ; Channel table - parent-directory sector, mid-high byte (per channel).
-; &11de referenced 4 times by &8d3a, &ade6, &b231, &b2b3
+; &11de used as index base 4 times by &8d3a, &ade6, &b231, &b2b3
 wksp_ch_dir_sec_ml         = &11e8  ; Channel table - parent-directory sector, mid-low byte (per channel).
-; &11e8 referenced 4 times by &8d32, &ade0, &b229, &b2ad
+; &11e8 used as index base 4 times by &8d32, &ade0, &b229, &b2ad
 wksp_ch_seq_num            = &11f2  ; Channel table - directory sequence number when the file was opened, for staleness checks (per channel).
-; &11f2 referenced 4 times by &8d4e, &ae39, &b245, &b2a7
+; &11f2 used as index base 4 times by &8d4e, &ae39, &b245, &b2a7
 dir_buffer                 = &1200  ; Directory buffer (&1200-&16FF, five sectors). Holds the currently loaded directory - a header, up to 47 26-byte entries, and a footer. This is the start of the header.
-; &1200 referenced 3 times by &8492, &8ee7, &a6e6
+; &1200 referenced 1 time by &8ee7; also used as index base 2 times by &8492, &a6e6
 dir_first_entry            = &1205  ; First 26-byte directory entry (offset &05 into the buffer, just past the header).
 ; &1205 referenced 1 time by &9147
 dir_last_entry_area        = &16b1  ; End of the directory entry area; the entry list is searched up to this limit when looking for a free slot.
 ; &16b1 referenced 1 time by &8e19
 dir_name                   = &16cc  ; Directory's own name, stored in the footer.
-; &16cc referenced 4 times by &9544, &a449, &a4ad, &a6b3
+; &16cc used as index base 4 times by &9544, &a449, &a4ad, &a6b3
 dir_parent_sector          = &16d6  ; Sector address of this directory's parent (3 bytes), stored in the footer.
-; &16d6 referenced 2 times by &98d1, &a6be
+; &16d6 used as index base 2 times by &98d1, &a6be
 dir_title                  = &16d9  ; Directory title string, stored in the footer.
-; &16d9 referenced 3 times by &a26b, &b8a7, &b8bb
+; &16d9 used as index base 3 times by &a26b, &b8a7, &b8bb
 dir_master_sequence        = &16fa  ; Master sequence number in the footer, bumped on each change to detect concurrent updates.
-; &16fa referenced 9 times by &8eca, &8edc, &8ee4, &8ef5, &933f, &9d85, &a6e3, &a6eb, &b928
+; &16fa referenced 8 times by &8eca, &8edc, &8ee4, &8ef5, &933f, &9d85, &a6e3, &b928; also used as index base 1 time by &a6eb
 dir_identity_string        = &16fb  ; Footer identity string ('Hugo'); must match the header's copy to validate the directory.
 ra_buffer_1                = &1700  ; General-purpose buffer page 1 (&1700). Used for sector read-ahead and as scratch during directory and free-space operations; also reused as a second directory header.
-; &1700 referenced 2 times by &95e8, &95fc
+; &1700 used as index base 2 times by &95e8, &95fc
 ra_buffer_2                = &1800  ; General-purpose buffer page 2 (&1800).
-; &1800 referenced 1 time by &95e5
+; &1800 used as index base 1 time by &95e5
 ra_buffer_3                = &1900  ; General-purpose buffer page 3 (&1900).
-; &1900 referenced 1 time by &95eb
+; &1900 used as index base 1 time by &95eb
 ra_buffer_4                = &1a00  ; General-purpose buffer page 4 (&1A00).
-; &1a00 referenced 1 time by &95ee
+; &1a00 used as index base 1 time by &95ee
 ra_buffer_5                = &1b00  ; General-purpose buffer page 5 (&1B00); also holds a second directory image when an operation works on two directories at once.
-; &1b00 referenced 1 time by &95f1
+; &1b00 used as index base 1 time by &95f1
 dir2_name                  = &1bcc  ; Footer name of the second directory held in the &1B00 buffer (used by operations that touch two directories, such as *COPY or rename across directories).
-; &1bcc referenced 1 time by &961e
+; &1bcc used as index base 1 time by &961e
 dir2_parent_sector         = &1bd6  ; Parent-directory sector of the second directory, in its footer.
-; &1bd6 referenced 1 time by &9605
+; &1bd6 used as index base 1 time by &9605
 dir2_title                 = &1bd9  ; Title of the second directory, in its footer.
-; &1bd9 referenced 2 times by &961b, &9629
+; &1bd9 used as index base 2 times by &961b, &9629
 dir2_master_sequence       = &1bfa  ; Master sequence number of the second directory, in its footer.
-; &1bfa referenced 1 time by &95ff
+; &1bfa used as index base 1 time by &95ff
 scsi_data                  = &fc40  ; SCSI data-bus register. Each read or write transfers one byte to or from the Adaptec ACB-4000 controller during the data, status, message and command phases of the SCSI handshake.
 ; &fc40 referenced 22 times by &8072, &8166, &816b, &817d, &8182, &8190, &819f, &81c7, &81d1, &8216, &822b, &8255, &826f, &8275, &8320, &8b97, &9a6c, &9a74, &ab65, &ab96, &ab9c, &acbe
 scsi_status                = &fc41  ; SCSI bus-status register. Reflects the control-bus phase lines (BSY, REQ, C/D, I/O, MSG) so the driver can step through the SCSI handshake.
@@ -689,7 +689,7 @@ fdc_1770_drive_control     = &fe80  ; WD1770 drive-control latch (external to th
 fdc_1770_command_or_status = &fe84  ; WD1770 command register (write) / status register (read).
 ; &fe84 referenced 8 times by &bae6, &bc7a, &bd13, &bd46, &be30, &be47, &be64, &be80
 fdc_1770_track             = &fe85  ; WD1770 track register — current track number under the head.
-; &fe85 referenced 5 times by &ba13, &ba16, &bb0b, &bb0e, &bea9
+; &fe85 referenced 3 times by &ba13, &ba16, &bea9; also used as index base 2 times by &bb0b, &bb0e
 fdc_1770_sector            = &fe86  ; WD1770 sector register — target sector for the next read or write.
 ; &fe86 referenced 2 times by &bef6, &bef9
 fdc_1770_data              = &fe87  ; WD1770 data register — byte transferred to or from the disc.
@@ -740,7 +740,7 @@ nmi_patched_addr           = &ffff
 ; 3. Completion (no DRQ, no error): if multi-sector mode is active (bit 6 of
 ;    zp_floppy_state), switch to ROM 0 and call the track-stepping routine to set up the
 ;    next sector. Otherwise mark transfer complete.
-; &0d00 referenced 1 time by &bbf6
+; &0d00 used as index base 1 time by &bbf6
 .nmi_workspace
     pha                                                               ; bc79: 48          H :0d00[1]          ; Save A (NMI must preserve all regs)
     lda fdc_1770_command_or_status                                    ; bc7a: ad 84 fe    ... :0d01[1]        ; Read WD1770 status register
@@ -750,7 +750,7 @@ nmi_rw_opcode = sub_c0d04+1
     and #&1f                                                          ; bc7d: 29 1f       ). :0d04[1]         ; Mask to low 5 status bits
     cmp #3                                                            ; bc7f: c9 03       .. :0d06[1]         ; Status = 3 (data request)?
     bne nmi_check_status_error                                        ; bc81: d0 10       .. :0d08[1]         ; No: check for error or completion
-; &0d0a referenced 3 times by &bc49, &bc55, &bc65
+; &0d0a used as index base 3 times by &bc49, &bc55, &bc65
 .nmi_rw_code
 ; &bc84 referenced 3 times by &ba43, &bc6f, &bce5
 nmi_write_addr_lo = nmi_rw_code+1
@@ -1813,10 +1813,10 @@ nmi_saved_rom = sub_c0d33+1
 ; Reversed string constants used when building error messages. str_at contains ': ta '
 ; (reversed ' at :') appended to disc error messages, and str_on_channel contains '
 ; lennahc no ' (reversed ' on channel') for channel-specific errors.
-; &841c referenced 1 time by &8386
+; &841c used as index base 1 time by &8386
 .str_at
     equs ": ta "                                                      ; 841c: 3a 20 74... : t...
-; &8421 referenced 1 time by &83c3
+; &8421 used as index base 1 time by &83c3
 .str_on_channel
     equs " lennahc no "                                               ; 8421: 20 6c 65...  le...
 ; ***************************************************************************************
@@ -1998,11 +1998,11 @@ nmi_saved_rom = sub_c0d33+1
 .oscli_at_x
     ldy #&84                                                          ; 84a7: a0 84       ..       ; Y=&84: high byte (string in this ROM)
     jmp oscli                                                         ; 84a9: 4c f7 ff    L..      ; Call OSCLI with (X,Y) address
-; &84ac referenced 1 time by &9a18
+; &84ac used as index base 1 time by &9a18
 .str_yes
     equb &0d                                                          ; 84ac: 0d          .        ; CR + "SEY": reversed "YES" + CR
     equs "SEY"                                                        ; 84ad: 53 45 59    SEY   
-; &84b0 referenced 2 times by &95f9, &a6f1
+; &84b0 used as index base 2 times by &95f9, &a6f1
 .str_hugo
     equb &00                                                          ; 84b0: 00          .        ; NUL + "Hugo": directory identity
     equs "Hugo"                                                       ; 84b1: 48 75 67... Hug...
@@ -2770,10 +2770,10 @@ nmi_saved_rom = sub_c0d33+1
     equb &00                                                          ; 8813: 00          .        ; Sector mid: &00
     equb &00                                                          ; 8814: 00          .        ; Sector low: &00 (sector 0)
     equb &02                                                          ; 8815: 02          .        ; Sector count: &02 (2 sectors for FSM)
-; &8816 referenced 2 times by &a7d6, &a7f7
+; &8816 used as index base 2 times by &a7d6, &a7f7
 .disc_op_tpl_padding
     equb &00                                                          ; 8816: 00          .        ; Padding: &00 (for 12-byte copy from &1014)
-; &8817 referenced 4 times by &89b1, &89f4, &8f8e, &94aa
+; &8817 used as index base 4 times by &89b1, &89f4, &8f8e, &94aa
 .disc_op_tpl_read_dir
     equb &01                                                          ; 8817: 01          .        ; Result: &01 (default)
     equb &00                                                          ; 8818: 00          .        ; Memory address low: &00
@@ -3879,7 +3879,7 @@ nmi_saved_rom = sub_c0d33+1
 ; Six characters that may not appear in ADFS filenames because they have special meaning
 ; in the pathname syntax. The path validator at set_up_directory_search loops through
 ; this table, rejecting any filename containing these characters.
-; &8ded referenced 1 time by &8db2
+; &8ded used as index base 1 time by &8db2
 .tbl_forbidden_chars
     equb &7f                                                          ; 8ded: 7f          .        ; DEL (&7F, control character)
     equs "^"                                                          ; 8dee: 5e          ^        ; Parent directory specifier
@@ -4723,10 +4723,10 @@ nmi_saved_rom = sub_c0d33+1
 ; RTS-trick dispatch table for OSFILE functions 0-7. Low bytes at &9269, high bytes at
 ; &926A, interleaved as pairs. Functions: 0=save, 1=write cat info, 2=write load addr,
 ; 3=write exec addr, 4=write attrs, 5=read cat info, 6=delete, 7=create.
-; &9269 referenced 1 time by &9256
+; &9269 used as index base 1 time by &9256
 .osfile_dispatch_lo
     equb <(osfile_save_check_existing-1)                              ; 9269: 04          .        ; A=0 lo-1: OSFILE save
-; &926a referenced 1 time by &9252
+; &926a used as index base 1 time by &9252
 .osfile_dispatch_hi
     equb >(osfile_save_check_existing-1)                              ; 926a: 8c          .        ; A=0 hi-1: OSFILE save
     equw osfile_load_handler-1                                        ; 926b: 73 8f       s.    
@@ -4914,7 +4914,7 @@ nmi_saved_rom = sub_c0d33+1
 ;
 ; Five-character table 'RWLDE' used to look up and display file access attributes.
 ; Indexed by attribute bit position.
-; &9316 referenced 2 times by &92ef, &99a7
+; &9316 used as index base 2 times by &92ef, &99a7
 .tbl_access_chars
     equs "RWLDE"                                                      ; 9316: 52 57 4c... RWL...
 ; ***************************************************************************************
@@ -5068,7 +5068,7 @@ nmi_saved_rom = sub_c0d33+1
 ; &941c referenced 2 times by &940a, &943d
 .print_cat_done
     jmp save_wksp_and_return                                          ; 941c: 4c d3 89    L..      ; Save workspace and return
-; &941f referenced 1 time by &9381
+; &941f used as index base 1 time by &9381
 .l941f
     equs "#'+/Off LoadRun Exec"                                       ; 941f: 23 27 2b... #'+...
 ; ***************************************************************************************
@@ -5456,7 +5456,7 @@ nmi_saved_rom = sub_c0d33+1
 ; directory. Sets the data region to &1700-&1BFF (the 5-page random access buffer area
 ; used as scratch space to build the new directory before writing to disc). The &FFFF
 ; prefix marks host memory (not Tube).
-; &9632 referenced 1 time by &9579
+; &9632 used as index base 1 time by &9579
 .osfile_tpl_cdir
     equb &00, &00, &00, &00                                           ; 9632: 00 00 00... ......   ; Load address: &00000000 (not used)
     equb &00, &00, &00, &00                                           ; 9636: 00 00 00... ......   ; Exec address: &00000000 (not used)
@@ -6108,7 +6108,7 @@ nmi_saved_rom = sub_c0d33+1
 ; spaces +14  wksp_csd_sector (3 bytes): sector 2 (root directory) +17
 ; wksp_current_drive: drive 0 +18  wksp_lib_sector (3 bytes): sector 2 (root directory)
 ; +1B  wksp_lib_drive: drive 0 +1C  wksp_prev_dir_sector low: sector 2
-; &9a46 referenced 1 time by &9aff
+; &9a46 used as index base 1 time by &9aff
 .default_workspace_data
     equs "$         "                                                 ; 9a46: 24 20 20... $  ...   ; '$' + 9 spaces: default CSD name
 .default_lib_name
@@ -6147,7 +6147,7 @@ nmi_saved_rom = sub_c0d33+1
     ldx #0                                                            ; 9a6f: a2 00       ..       ; X=0: clear IRQ enable register
     stx scsi_irq_enable                                               ; 9a71: 8e 43 fc    .C.      ; Disable SCSI interrupts
     cmp scsi_data                                                     ; 9a74: cd 40 fc    .@.      ; Read back: does value match?
-; &9a77 referenced 2 times by &9a68, &9c9c
+; &9a77 referenced 1 time by &9a68; also used as index base 1 time by &9c9c
 .return_22
     rts                                                               ; 9a77: 60          `        ; Return
 ; ***************************************************************************************
@@ -6176,7 +6176,7 @@ str_run_boot = str_l_boot+2
 ;
 ; RTS-trick dispatch table for MOS service calls 0-9. Low bytes at &9A8F, high bytes at
 ; &9A99, 10 entries.
-; &9a8f referenced 1 time by &9ac7
+; &9a8f used as index base 1 time by &9ac7
 .service_dispatch_lo
     equb <(service_handler_0-1)                                       ; 9a8f: b7          .     
     equb <(service_handler_1-1)                                       ; 9a90: ce          .     
@@ -6188,7 +6188,7 @@ str_run_boot = str_l_boot+2
     equb <(service_handler_0-1)                                       ; 9a96: b7          .     
     equb <(service_handler_8-1)                                       ; 9a97: 18          .     
     equb <(service_handler_9-1)                                       ; 9a98: bd          .     
-; &9a99 referenced 1 time by &9ac3
+; &9a99 used as index base 1 time by &9ac3
 .service_dispatch_hi
     equb >(service_handler_0-1)                                       ; 9a99: 9a          .     
     equb >(service_handler_1-1)                                       ; 9a9a: 9a          .     
@@ -6559,7 +6559,7 @@ str_run_boot = str_l_boot+2
 ; FILEV  &FF1B  OSFILE handler ARGSV  &FF1E  OSARGS handler BGETV  &FF21  OSBGET handler
 ; BPUTV  &FF24  OSBPUT handler GBPBV  &FF27  OSGBPB handler FINDV  &FF2A  OSFIND handler
 ; FSCV   &FF2D  Filing system control handler
-; &9cb3 referenced 1 time by &9b9c
+; &9cb3 used as index base 1 time by &9b9c
 .tbl_fs_vectors
     equw &ff1b                                                        ; 9cb3: 1b ff       ..       ; FILEV: &FF1B (OSFILE)
     equw &ff1e                                                        ; 9cb5: 1e ff       ..       ; ARGSV: &FF1E (OSARGS)
@@ -6579,7 +6579,7 @@ str_run_boot = str_l_boot+2
 ; FILEV  &923E  osfile_handler ARGSV  &A955  osargs_handler BGETV  &AD63  osbget_handler
 ; BPUTV  &B08F  osbput_handler GBPBV  &B57F  osgbpb_handler FINDV  &B1B6  osfind_handler
 ; FSCV   &9E50  fscv_handler
-; &9cc1 referenced 1 time by &9bb2
+; &9cc1 used as index base 1 time by &9bb2
 .tbl_extended_vectors
     equw osfile_handler                                               ; 9cc1: 3e 92       >.       ; FILEV: osfile_handler (&923E)
     equb &ff                                                          ; 9cc3: ff          .        ; ROM: &FF (patched at runtime)
@@ -6600,7 +6600,7 @@ str_run_boot = str_l_boot+2
 ;
 ; The string 'adfs' (reversed for stack-based comparison) used to identify the filing
 ; system during service call handling.
-; &9cd6 referenced 2 times by &9cf7, &9df9
+; &9cd6 used as index base 2 times by &9cf7, &9df9
 .str_filing_system_name
     equs "sfda"                                                       ; 9cd6: 73 66 64... sfd...
 ; ***************************************************************************************
@@ -6902,7 +6902,7 @@ str_run_boot = str_l_boot+2
 ;
 ; 0: (none)         4: (<Drive>) 1: <List Spec>    5: <SP> <LP> 2: <Ob Spec>      6:
 ; (L)(W)(R)(E) 3: <*Ob Spec*>    7: <Title>
-; &9e48 referenced 1 time by &9280
+; &9e48 used as index base 1 time by &9280
 .tbl_help_param_ptrs
     equb <(help_param_none)                                           ; 9e48: d7          .        ; (no parameter)
     equb <(help_param_list_spec)                                      ; 9e49: 8d          .        ; "<List Spec>"
@@ -6940,7 +6940,7 @@ str_run_boot = str_l_boot+2
 ; RTS-trick dispatch table for filing system control calls 0-8. Low bytes at &9E6D, high
 ; bytes at &9E76, 9 entries. FSC 0=OPT, 1=check EOF, 2=/, 3=*command, 4=*RUN, 5=*CAT,
 ; 6=new FS, 7=handle range, 8=*command (OS 1.20).
-; &9e6d referenced 1 time by &9e64
+; &9e6d used as index base 1 time by &9e64
 .fscv_dispatch_lo
     equb <(fsc0_star_opt-1)                                           ; 9e6d: dc          .     
     equb <(check_eof_for_handle-1)                                    ; 9e6e: 39          9     
@@ -6951,7 +6951,7 @@ str_run_boot = str_l_boot+2
     equb <(fsc6_new_filing_system-1)                                  ; 9e73: 3b          ;     
     equb <(fsc7_read_handle_range-1)                                  ; 9e74: d7          .     
     equb <(check_compaction_recommended-1)                            ; 9e75: 93          .     
-; &9e76 referenced 1 time by &9e60
+; &9e76 used as index base 1 time by &9e60
 .fscv_dispatch_hi
     equb >(fsc0_star_opt-1)                                           ; 9e76: 9f          .     
     equb >(check_eof_for_handle-1)                                    ; 9e77: ad          .     
@@ -7046,11 +7046,11 @@ str_run_boot = str_l_boot+2
 ; Dispatch uses the RTS trick: the high and low bytes are pushed onto the stack, then RTS
 ; pops and adds 1 to form the target address. The stored address is therefore the handler
 ; address minus one.
-; &9ee3 referenced 5 times by &9e0d, &9e19, &9e95, &9ea6, &9eda
+; &9ee3 used as index base 5 times by &9e0d, &9e19, &9e95, &9ea6, &9eda
 .tbl_commands
-; &9ee4 referenced 1 time by &9ede
+; &9ee4 used as index base 1 time by &9ede
 l9ee4 = tbl_commands+1
-; &9ee5 referenced 1 time by &9e2d
+; &9ee5 used as index base 1 time by &9e2d
 l9ee5 = tbl_commands+2
     equs "ACCESS"                                                     ; 9ee3: 41 43 43... ACC...   ; "ACCESS" command name
     equb >(star_access-1)                                             ; 9ee9: 99          .        ; Dispatch hi-1 -> star_access
@@ -7448,7 +7448,7 @@ help_param_none = help_param_title+7
     inx                                                               ; a151: e8          .        ; Next workspace byte
     dey                                                               ; a152: 88          .        ; Next table byte (backwards)
 .sub_ca153
-; &a154 referenced 1 time by &a14b
+; &a154 used as index base 1 time by &a14b
 la154 = sub_ca153+1
     bpl copy_default_name_loop                                        ; a153: 10 f6       ..       ; Loop for 10 bytes
     rts                                                               ; a155: 60          `        ; Return
