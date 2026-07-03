@@ -177,7 +177,9 @@ d.label(0x06A9, 'ext_vec_fsc_lo')
 
 d.label(0x0D18, 'nmi_transfer_done', length=1, group='nmi_workspace', access='rw')
 
-d.label(0x0E03, 'fsm_s0_start_1', length=1, group='free_space_map', access='w', description="Start-address slot for free-space fragment 1 (sector 0, offset 3). The fragment list is kept sorted and is compacted three bytes at a time.")
+# &0E03 (=fsm_sector_0+3) is the gap-open shift destination; it renders via the
+# fsm_sector_0 index_region below, so `sta fsm_sector_0+3,x` reads as "store the
+# entry 3 bytes up". Its sector-1 twin &0F03 is fsm_sector_1+3 (region below).
 
 d.label(0xFFFF, 'nmi_patched_addr')
 
@@ -266,9 +268,15 @@ d.label(0x0E00, 'fsm_sector_0', length=1, group='free_space_map', access='rw', d
 # &0DFA/&0DFD/&0DFF render as fsm_sector_0-6/-3/-1,x rather than as separately
 # named bytes (Stardot map discussion, viewtopic p487268). Explicit labels in
 # the window (e.g. the fsm_sector_0 anchor itself) always win over the region.
-d.index_region(0x0E00, 'fsm_sector_0', window=(-6, 0))
+d.index_region(0x0E00, 'fsm_sector_0', window=(-6, 3))
 
 d.label(0x0F00, 'fsm_sector_1', length=1, group='free_space_map', access='rw', description="Free space map sector 1 (&0F00-&0FFF), the RAM image of on-disc sector 1. Holds the LENGTH in sectors of each free-space fragment, 3 bytes each, paired by index with the start addresses in [sector 0](address:0E00).")
+
+# Positive-only region so the gap-open shift destination &0F03 renders as
+# fsm_sector_1+3,x ("store 3 bytes up"). The window stops at the anchor on the
+# low side, leaving sector 1's negative slots (the sector-0 disc-size/checksum
+# trailer at &0EFA-&0EFF) with their own explicit names.
+d.index_region(0x0F00, 'fsm_sector_1', window=(0, 3))
 
 # Sector 0's trailer (&0EFA-&0EFF: reserved, disc-size, checksum) physically
 # coincides with FSM sector 1's notional "pre-entry" slots: &0EFA/&0EFD/&0EFE/
@@ -290,7 +298,8 @@ d.label(0x0EFE, 'fsm_s0_disc_size_hi', length=1, group='free_space_map', access=
 
 d.label(0x0EFF, 'fsm_s0_checksum', length=1, group='free_space_map', access='rw', description="Checksum byte of FSM sector 0 (validates the free-space start-address map).")
 
-d.label(0x0F03, 'fsm_s1_length_1', length=1, group='free_space_map', access='w', description="Length slot for free-space fragment 1 (sector 1, offset 3).")
+# &0F03 (=fsm_sector_1+3) is the gap-open shift destination, rendered via the
+# fsm_sector_1 region above as `sta fsm_sector_1+3,x`.
 
 d.label(0x0FFB, 'fsm_s1_disc_id_lo', length=1, group='free_space_map', access='rw', description="Disc identifier (random 16-bit value assigned at format), low byte, in FSM sector 1.")
 
