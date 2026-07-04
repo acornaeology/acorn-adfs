@@ -1168,7 +1168,7 @@
       "addr": 48052,
       "name": "floppy_get_step_rate",
       "title": "Get floppy step rate",
-      "description": "Fetch the startup options byte via OSBYTE &FF and use\nbits 4 and 5 to set the FDC step rate and head settle\ntime in milliseconds.\n"
+      "description": "Fetch the startup options byte via OSBYTE &FF and use\nkeyboard link 3 (bit 5) to set the WD1770 stepping rate\nand link 4 (bit 4) to enable write precompensation.\n"
     },
     {
       "addr": 48113,
@@ -2386,12 +2386,12 @@
     "nmi_write_addr_hi": 3340,
     "nmi_read_addr_lo": 3342,
     "nmi_read_addr_hi": 3343,
-    "nmi_step_rate": 3414,
+    "nmi_precomp_mask": 3414,
     "nmi_tracks_remaining": 3415,
     "nmi_secs_this_track": 3416,
     "nmi_secs_last_track": 3417,
     "nmi_sec_position": 3418,
-    "nmi_drive_cmd": 3420,
+    "nmi_step_rate": 3420,
     "nmi_adfs_flags": 3421,
     "nmi_drive_ctrl": 3422,
     "nmi_completion": 3423,
@@ -3193,11 +3193,11 @@
     },
     {
       "addr": 3414,
-      "name": "nmi_step_rate",
+      "name": "nmi_precomp_mask",
       "length": 1,
       "group": "nmi_workspace",
       "access": "rw",
-      "description": "NMI workspace: drive step-rate / side-select bits for the current transfer."
+      "description": "NMI workspace: write precompensation mask (set from keyboard link 4); ORed into WD1770 write commands to enable precompensation."
     },
     {
       "addr": 3415,
@@ -3233,11 +3233,11 @@
     },
     {
       "addr": 3420,
-      "name": "nmi_drive_cmd",
+      "name": "nmi_step_rate",
       "length": 1,
       "group": "nmi_workspace",
       "access": "rw",
-      "description": "NMI workspace: drive command byte, with the drive-select bits OR'd in."
+      "description": "NMI workspace: stepping-rate mask, a copy of wksp_fdc_cmd_step (&10E8, set from keyboard link 3); ORed into WD1770 Type I seek/step/restore commands."
     },
     {
       "addr": 3421,
@@ -4542,7 +4542,7 @@
       "length": 1,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "WD1770 command step-rate setting."
+      "description": "WD1770 Type I stepping-rate setting (from keyboard link 3); copied into nmi_step_rate for the NMI transfer."
     },
     {
       "addr": 4352,
@@ -103967,12 +103967,12 @@
         92,
         13
       ],
-      "comment_inline": "OR in drive select bits",
+      "comment_inline": "OR in step-rate mask",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "nmi_drive_cmd",
+      "operand": "nmi_step_rate",
       "target": 3420,
-      "target_label": "nmi_drive_cmd"
+      "target_label": "nmi_step_rate"
     },
     {
       "addr": 47846,
@@ -105179,12 +105179,12 @@
         92,
         13
       ],
-      "comment_inline": "Store in NMI control byte",
+      "comment_inline": "Store as NMI step-rate mask",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "nmi_drive_cmd",
+      "operand": "nmi_step_rate",
       "target": 3420,
-      "target_label": "nmi_drive_cmd"
+      "target_label": "nmi_step_rate"
     },
     {
       "addr": 48027,
@@ -105333,7 +105333,7 @@
       "labels": [
         "floppy_get_step_rate"
       ],
-      "comment_inline": "Clear side select flag",
+      "comment_inline": "A=0: clear precomp mask",
       "xref_summaries": [
         "&bbb4 referenced 2 times by &ba35, &bb89"
       ],
@@ -105358,12 +105358,12 @@
         86,
         13
       ],
-      "comment_inline": "Store in NMI side select",
+      "comment_inline": "Clear NMI precomp mask",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "nmi_step_rate",
+      "operand": "nmi_precomp_mask",
       "target": 3414,
-      "target_label": "nmi_step_rate"
+      "target_label": "nmi_precomp_mask"
     },
     {
       "addr": 48057,
@@ -105542,7 +105542,7 @@
         169,
         2
       ],
-      "comment_inline": "Bit 4 set: long settle (rate=2)",
+      "comment_inline": "Link 4 set: enable write precompensation",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#2"
@@ -105554,12 +105554,12 @@
         86,
         13
       ],
-      "comment_inline": "Store in NMI workspace",
+      "comment_inline": "Store as NMI precomp mask",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "nmi_step_rate",
+      "operand": "nmi_precomp_mask",
       "target": 3414,
-      "target_label": "nmi_step_rate"
+      "target_label": "nmi_precomp_mask"
     },
     {
       "addr": 48089,
@@ -107914,12 +107914,12 @@
         86,
         13
       ],
-      "comment_inline": "OR in step rate from settings",
+      "comment_inline": "OR in write precompensation mask",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "nmi_step_rate",
+      "operand": "nmi_precomp_mask",
       "target": 3414,
-      "target_label": "nmi_step_rate"
+      "target_label": "nmi_precomp_mask"
     },
     {
       "addr": 48396,
@@ -108379,12 +108379,12 @@
         92,
         13
       ],
-      "comment_inline": "OR with drive select bits",
+      "comment_inline": "OR in step-rate mask",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "nmi_drive_cmd",
+      "operand": "nmi_step_rate",
       "target": 3420,
-      "target_label": "nmi_drive_cmd"
+      "target_label": "nmi_step_rate"
     },
     {
       "addr": 48454,
@@ -109795,12 +109795,12 @@
         86,
         13
       ],
-      "comment_inline": "OR in step rate",
+      "comment_inline": "OR in write precompensation mask",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "nmi_step_rate",
+      "operand": "nmi_precomp_mask",
       "target": 3414,
-      "target_label": "nmi_step_rate"
+      "target_label": "nmi_precomp_mask"
     },
     {
       "addr": 48677,
@@ -110017,12 +110017,12 @@
         92,
         13
       ],
-      "comment_inline": "OR in drive select bits",
+      "comment_inline": "OR in step-rate mask",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "nmi_drive_cmd",
+      "operand": "nmi_step_rate",
       "target": 3420,
-      "target_label": "nmi_drive_cmd"
+      "target_label": "nmi_step_rate"
     },
     {
       "addr": 48711,
@@ -110186,12 +110186,12 @@
         92,
         13
       ],
-      "comment_inline": "OR in drive select",
+      "comment_inline": "OR in step-rate mask",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "nmi_drive_cmd",
+      "operand": "nmi_step_rate",
       "target": 3420,
-      "target_label": "nmi_drive_cmd"
+      "target_label": "nmi_step_rate"
     },
     {
       "addr": 48740,

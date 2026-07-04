@@ -714,7 +714,7 @@ d.label(0x10E6, 'wksp_fdc_track_1', length=1, group='ram_workspace', access='rw'
 
 d.label(0x10E7, 'wksp_stack_save', length=1, group='ram_workspace', access='rw', description="Saved stack pointer for error recovery.")
 
-d.label(0x10E8, 'wksp_fdc_cmd_step', length=1, group='ram_workspace', access='rw', description="WD1770 command step-rate setting.")
+d.label(0x10E8, 'wksp_fdc_cmd_step', length=1, group='ram_workspace', access='rw', description="WD1770 Type I stepping-rate setting (from keyboard link 3); copied into nmi_step_rate for the NMI transfer.")
 
 # &10FE is an index base, not a stored location: the current-directory
 # (CSD) sector is written via `wksp_alt_csd_sector,Y` with Y=&16-&18,
@@ -774,7 +774,7 @@ d.label(0x0D0F, 'nmi_read_addr_hi', length=1, group='nmi_workspace', access='rw'
 
 d.label(0x0D34, 'nmi_saved_rom', length=1, group='nmi_workspace', access='w')
 
-d.label(0x0D56, 'nmi_step_rate', length=1, group='nmi_workspace', access='rw', description="NMI workspace: drive step-rate / side-select bits for the current transfer.")
+d.label(0x0D56, 'nmi_precomp_mask', length=1, group='nmi_workspace', access='rw', description="NMI workspace: write precompensation mask (set from keyboard link 4); ORed into WD1770 write commands to enable precompensation.")
 
 d.label(0x0D57, 'nmi_tracks_remaining', length=1, group='nmi_workspace', access='rw', description="NMI workspace: number of whole tracks still to transfer.")
 
@@ -784,7 +784,7 @@ d.label(0x0D59, 'nmi_secs_last_track', length=1, group='nmi_workspace', access='
 
 d.label(0x0D5A, 'nmi_sec_position', length=1, group='nmi_workspace', access='rw', description="NMI workspace: current sector position within the transfer.")
 
-d.label(0x0D5C, 'nmi_drive_cmd', length=1, group='nmi_workspace', access='rw', description="NMI workspace: drive command byte, with the drive-select bits OR'd in.")
+d.label(0x0D5C, 'nmi_step_rate', length=1, group='nmi_workspace', access='rw', description="NMI workspace: stepping-rate mask, a copy of wksp_fdc_cmd_step (&10E8, set from keyboard link 3); ORed into WD1770 Type I seek/step/restore commands.")
 
 d.label(0x0D5D, 'nmi_adfs_flags', length=1, group='nmi_workspace', access='rw', description="NMI workspace: copy of the ADFS flags consulted by the NMI handler.")
 
@@ -3845,7 +3845,7 @@ d.comment(0x0D10, 'Always branch: done', align=Align.INLINE, move=nmi_tube_write
 d.comment(0x0D0A, 'Read byte from WD1770', align=Align.INLINE, move=nmi_tube_read_move_id)
 d.comment(0x0D0D, 'Write to Tube R3', align=Align.INLINE, move=nmi_tube_read_move_id)
 d.comment(0x0D10, 'Always branch: done', align=Align.INLINE, move=nmi_tube_read_move_id)
-d.comment(0xBBB4, 'Clear side select flag', align=Align.INLINE)
+d.comment(0xBBB4, 'A=0: clear precomp mask', align=Align.INLINE)
 d.comment(0xBBB9, 'Clear FDC step rate command bits', align=Align.INLINE)
 d.comment(0xBBBC, 'OSBYTE &FF: read startup options', align=Align.INLINE)
 d.comment(0xBBC0, 'Y=&FF: read current value', align=Align.INLINE)
@@ -3858,8 +3858,8 @@ d.comment(0xBBCC, 'Store in FDC command step field', align=Align.INLINE)
 d.comment(0xBBCF, 'Restore startup byte', align=Align.INLINE)
 d.comment(0xBBD0, 'Test bit 4 (settle time)', align=Align.INLINE)
 d.comment(0xBBD2, 'Clear: short settle', align=Align.INLINE)
-d.comment(0xBBD4, 'Bit 4 set: long settle (rate=2)', align=Align.INLINE)
-d.comment(0xBBD6, 'Store in NMI workspace', align=Align.INLINE)
+d.comment(0xBBD4, 'Link 4 set: enable write precompensation', align=Align.INLINE)
+d.comment(0xBBD6, 'Store as NMI precomp mask', align=Align.INLINE)
 
 d.label(0x877D, 'advance_pattern_index')
 
@@ -5465,7 +5465,7 @@ d.comment(0xBAC0, 'Set up NMI handler', align=Align.INLINE)
 d.comment(0xBAC3, 'Process result/error', align=Align.INLINE)
 d.comment(0xBD3F, 'A=0: target track number = 0', align=Align.INLINE)
 d.comment(0xBD41, 'Store as target track', align=Align.INLINE)
-d.comment(0xBD43, 'OR with drive select bits', align=Align.INLINE)
+d.comment(0xBD43, 'OR in step-rate mask', align=Align.INLINE)
 d.comment(0xBD46, 'Issue restore command to WD1770', align=Align.INLINE)
 d.comment(0xBD49, 'Wait for command to complete', align=Align.INLINE)
 
@@ -7191,7 +7191,7 @@ d.comment(0xBE19, 'Write sector to FDC with verify', align=Align.INLINE)
 d.comment(0xBE1C, 'Check read/write direction', align=Align.INLINE)
 d.comment(0xBE1E, 'Reading: use read command', align=Align.INLINE)
 d.comment(0xBE20, 'A=&A0: write command base', align=Align.INLINE)
-d.comment(0xBE22, 'OR in step rate', align=Align.INLINE)
+d.comment(0xBE22, 'OR in write precompensation mask', align=Align.INLINE)
 d.comment(0xBE25, 'Branch (always non-zero)', align=Align.INLINE)
 d.comment(0xBE27, 'A=&80: read command base', align=Align.INLINE)
 d.comment(0xBE29, 'Store FDC command in workspace', align=Align.INLINE)
@@ -7205,7 +7205,7 @@ d.comment(0xBE3A, 'No step needed: check side switch', align=Align.INLINE)
 d.comment(0xBE3C, 'Clear seek flag', align=Align.INLINE)
 d.comment(0xBE3F, 'Clear track-step flag', align=Align.INLINE)
 d.comment(0xBE42, 'FDC step-in command (&54)', align=Align.INLINE)
-d.comment(0xBE44, 'OR in drive select bits', align=Align.INLINE)
+d.comment(0xBE44, 'OR in step-rate mask', align=Align.INLINE)
 d.comment(0xBE47, 'Issue step-in command', align=Align.INLINE)
 d.comment(0xBE4A, 'Increment current track', align=Align.INLINE)
 d.comment(0xBE4C, 'Continue multi-sector loop', align=Align.INLINE)
@@ -7217,7 +7217,7 @@ d.comment(0xBE57, 'Clear side-switch flag', align=Align.INLINE)
 d.comment(0xBE5A, 'Increment track for side 1', align=Align.INLINE)
 d.comment(0xBE5C, 'Select side 1', align=Align.INLINE)
 d.comment(0xBE5F, 'FDC restore command (seek to trk 0)', align=Align.INLINE)
-d.comment(0xBE61, 'OR in drive select', align=Align.INLINE)
+d.comment(0xBE61, 'OR in step-rate mask', align=Align.INLINE)
 d.comment(0xBE64, 'Issue restore command', align=Align.INLINE)
 d.comment(0xBE67, 'Continue loop (always branches)', align=Align.INLINE)
 d.comment(0xBE69, 'Clear seek flag', align=Align.INLINE)
@@ -9128,7 +9128,7 @@ d.comment(0xBD01, 'Get current track', align=Align.INLINE)
 d.comment(0xBD03, 'Track >= 20?', align=Align.INLINE)
 d.comment(0xBD05, 'A=&A0: write command base', align=Align.INLINE)
 d.comment(0xBD07, 'Track < 20: no step rate delay', align=Align.INLINE)
-d.comment(0xBD09, 'OR in step rate from settings', align=Align.INLINE)
+d.comment(0xBD09, 'OR in write precompensation mask', align=Align.INLINE)
 d.comment(0xBD0C, 'Always branch (non-zero result)', align=Align.INLINE)
 d.comment(0xBD0E, 'A=&80: read command base', align=Align.INLINE)
 d.comment(0xBD13, 'Issue FDC command', align=Align.INLINE)
@@ -9312,7 +9312,7 @@ d.comment(0xBB2C, 'Workspace page for control block', align=Align.INLINE)
 d.comment(0xBB30, 'Control block offset', align=Align.INLINE)
 d.comment(0xBB32, 'Store in (&B0)', align=Align.INLINE)
 d.comment(0xBB36, 'Clear transfer mode for format', align=Align.INLINE)
-d.comment(0xBBB6, 'Store in NMI side select', align=Align.INLINE)
+d.comment(0xBBB6, 'Clear NMI precomp mask', align=Align.INLINE)
 d.comment(0xBBBE, 'X=0: read current value', align=Align.INLINE)
 d.comment(0xBBD9, 'Return', align=Align.INLINE)
 d.comment(0xBFB1, 'Restore stack from saved pointer', align=Align.INLINE)
@@ -10381,7 +10381,7 @@ d.comment(0xBADA, 'Set head-loaded flag', align=Align.INLINE)
 d.comment(0xBADD, 'Set carry', align=Align.INLINE)
 d.comment(0xBADE, 'Restore head-loaded flag', align=Align.INLINE)
 d.comment(0xBAE1, 'FDC seek command (&14)', align=Align.INLINE)
-d.comment(0xBAE3, 'OR in drive select bits', align=Align.INLINE)
+d.comment(0xBAE3, 'OR in step-rate mask', align=Align.INLINE)
 d.comment(0xBAE6, 'Issue seek command to FDC', align=Align.INLINE)
 d.comment(0xBAEC, 'Get control flags', align=Align.INLINE)
 d.comment(0xBAEE, 'Rotate verify flag to carry', align=Align.INLINE)
@@ -10425,7 +10425,7 @@ d.comment(0xBB86, 'Restore bit 7 set', align=Align.INLINE)
 d.comment(0xBB8C, 'Set up drive select and NMI', align=Align.INLINE)
 d.comment(0xBB8F, 'Jump to floppy track setup', align=Align.INLINE)
 d.comment(0xBB95, 'Get FDC step rate setting', align=Align.INLINE)
-d.comment(0xBB98, 'Store in NMI control byte', align=Align.INLINE)
+d.comment(0xBB98, 'Store as NMI step-rate mask', align=Align.INLINE)
 d.comment(0xBB9B, 'A=0: clear error flag', align=Align.INLINE)
 d.comment(0xBB9D, 'Clear error code', align=Align.INLINE)
 d.comment(0xBB9F, 'Clear transfer state', align=Align.INLINE)
@@ -11191,8 +11191,8 @@ format operations.
 
 
 d.subroutine(0xBBB4, 'floppy_get_step_rate', title='Get floppy step rate', description="""Fetch the startup options byte via OSBYTE &FF and use
-bits 4 and 5 to set the FDC step rate and head settle
-time in milliseconds.
+keyboard link 3 (bit 5) to set the WD1770 stepping rate
+and link 4 (bit 4) to enable write precompensation.
 """)
 
 

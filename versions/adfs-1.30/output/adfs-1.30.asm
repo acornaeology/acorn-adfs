@@ -186,7 +186,7 @@ nmi_read_addr_lo           = &0d0e  ; Patch site in the NMI handler: host buffer
 ; &0d0e referenced 4 times by &ba4f, &bc00, &bc89, &bd60
 nmi_read_addr_hi           = &0d0f  ; Patch site in the NMI handler: host buffer address for sector READS, high byte.
 ; &0d0f referenced 4 times by &ba54, &bc06, &bc8e, &bd5b
-nmi_step_rate              = &0d56  ; NMI workspace: drive step-rate / side-select bits for the current transfer.
+nmi_precomp_mask           = &0d56  ; NMI workspace: write precompensation mask (set from keyboard link 4); ORed into WD1770 write commands to enable precompensation.
 ; &0d56 referenced 4 times by &bbb6, &bbd6, &bd09, &be22
 nmi_tracks_remaining       = &0d57  ; NMI workspace: number of whole tracks still to transfer.
 ; &0d57 referenced 5 times by &bdf3, &be04, &be11, &be89, &bed5
@@ -196,7 +196,7 @@ nmi_secs_last_track        = &0d59  ; NMI workspace: sectors to transfer on the 
 ; &0d59 referenced 6 times by &bdbd, &bdc9, &bdf6, &be09, &be8e, &be97
 nmi_sec_position           = &0d5a  ; NMI workspace: current sector position within the transfer.
 ; &0d5a referenced 4 times by &be0e, &be9d, &bedc, &bee7
-nmi_drive_cmd              = &0d5c  ; NMI workspace: drive command byte, with the drive-select bits OR'd in.
+nmi_step_rate              = &0d5c  ; NMI workspace: stepping-rate mask, a copy of wksp_fdc_cmd_step (&10E8, set from keyboard link 3); ORed into WD1770 Type I seek/step/restore commands.
 ; &0d5c referenced 5 times by &bae3, &bb98, &bd43, &be44, &be61
 nmi_adfs_flags             = &0d5d  ; NMI workspace: copy of the ADFS flags consulted by the NMI handler.
 ; &0d5d referenced 2 times by &bbad, &bcc8
@@ -541,7 +541,7 @@ wksp_fdc_track_1           = &10e6  ; Last known track for drive 1 (head-positio
 ; &10e6 referenced 3 times by &bab0, &bf47, &bfcd
 wksp_stack_save            = &10e7  ; Saved stack pointer for error recovery.
 ; &10e7 referenced 4 times by &ba31, &bb15, &bb29, &bfae
-wksp_fdc_cmd_step          = &10e8  ; WD1770 command step-rate setting.
+wksp_fdc_cmd_step          = &10e8  ; WD1770 Type I stepping-rate setting (from keyboard link 3); copied into nmi_step_rate for the NMI transfer.
 ; &10e8 referenced 3 times by &bb95, &bbb9, &bbcc
 wksp_alt_csd_sector        = &10fe  ; Index base for setting the CSD sector during subdirectory traversal: written as base+Y with Y=&16-&18, landing on wksp_csd_sector at &1114-&1116.
 ; &10fe used as index base 2 times by &89c3, &94bc
@@ -11512,7 +11512,7 @@ la154 = sub_ca153+1
     sec                                                               ; badd: 38          8        ; Set carry
     rol wksp_fdc_head_state                                           ; bade: 2e e4 10    ...      ; Restore head-loaded flag
     lda #&14                                                          ; bae1: a9 14       ..       ; FDC seek command (&14)
-    ora nmi_drive_cmd                                                 ; bae3: 0d 5c 0d    .\.      ; OR in drive select bits
+    ora nmi_step_rate                                                 ; bae3: 0d 5c 0d    .\.      ; OR in step-rate mask
     sta fdc_1770_command_or_status                                    ; bae6: 8d 84 fe    ...      ; Issue seek command to FDC
     jsr floppy_wait_nmi_finish                                        ; bae9: 20 c2 bc     ..   
     lda zp_floppy_control                                             ; baec: a5 a1       ..       ; Get control flags
@@ -11658,7 +11658,7 @@ la154 = sub_ca153+1
 .claim_nmi_and_init
     jsr claim_nmi                                                     ; bb92: 20 da bb     ..   
     lda wksp_fdc_cmd_step                                             ; bb95: ad e8 10    ...      ; Get FDC step rate setting
-    sta nmi_drive_cmd                                                 ; bb98: 8d 5c 0d    .\.      ; Store in NMI control byte
+    sta nmi_step_rate                                                 ; bb98: 8d 5c 0d    .\.      ; Store as NMI step-rate mask
     lda #0                                                            ; bb9b: a9 00       ..       ; A=0: clear error flag
     sta zp_floppy_error                                               ; bb9d: 85 a0       ..       ; Clear error code
     sta zp_floppy_state                                               ; bb9f: 85 a2       ..       ; Clear transfer state
@@ -11673,12 +11673,12 @@ la154 = sub_ca153+1
 ; ***************************************************************************************
 ; Get floppy step rate
 ;
-; Fetch the startup options byte via OSBYTE &FF and use bits 4 and 5 to set the FDC step
-; rate and head settle time in milliseconds.
+; Fetch the startup options byte via OSBYTE &FF and use keyboard link 3 (bit 5) to set
+; the WD1770 stepping rate and link 4 (bit 4) to enable write precompensation.
 ; &bbb4 referenced 2 times by &ba35, &bb89
 .floppy_get_step_rate
-    lda #0                                                            ; bbb4: a9 00       ..       ; Clear side select flag
-    sta nmi_step_rate                                                 ; bbb6: 8d 56 0d    .V.      ; Store in NMI side select
+    lda #0                                                            ; bbb4: a9 00       ..       ; A=0: clear precomp mask
+    sta nmi_precomp_mask                                              ; bbb6: 8d 56 0d    .V.      ; Clear NMI precomp mask
     sta wksp_fdc_cmd_step                                             ; bbb9: 8d e8 10    ...      ; Clear FDC step rate command bits
     lda #osbyte_startup_options                                       ; bbbc: a9 ff       ..       ; OSBYTE &FF: read startup options
     ldx #0                                                            ; bbbe: a2 00       ..       ; X=0: read current value
@@ -11695,8 +11695,8 @@ la154 = sub_ca153+1
     pla                                                               ; bbcf: 68          h        ; Restore startup byte
     and #&10                                                          ; bbd0: 29 10       ).       ; Test bit 4 (settle time)
     beq return_43                                                     ; bbd2: f0 05       ..       ; Clear: short settle
-    lda #2                                                            ; bbd4: a9 02       ..       ; Bit 4 set: long settle (rate=2)
-    sta nmi_step_rate                                                 ; bbd6: 8d 56 0d    .V.      ; Store in NMI workspace
+    lda #2                                                            ; bbd4: a9 02       ..       ; Link 4 set: enable write precompensation
+    sta nmi_precomp_mask                                              ; bbd6: 8d 56 0d    .V.      ; Store as NMI precomp mask
 ; &bbd9 referenced 1 time by &bbd2
 .return_43
     rts                                                               ; bbd9: 60          `        ; Return
@@ -11860,7 +11860,7 @@ la154 = sub_ca153+1
     cmp #&14                                                          ; bd03: c9 14       ..       ; Track >= 20?
     lda #&a0                                                          ; bd05: a9 a0       ..       ; A=&A0: write command base
     bcc issue_fdc_command                                             ; bd07: 90 07       ..       ; Track < 20: no step rate delay
-    ora nmi_step_rate                                                 ; bd09: 0d 56 0d    .V.      ; OR in step rate from settings
+    ora nmi_precomp_mask                                              ; bd09: 0d 56 0d    .V.      ; OR in write precompensation mask
     bne issue_fdc_command                                             ; bd0c: d0 02       ..       ; Always branch (non-zero result)
 ; &bd0e referenced 1 time by &bcff
 .set_read_command
@@ -11926,7 +11926,7 @@ la154 = sub_ca153+1
 .floppy_restore_track_0
     lda #0                                                            ; bd3f: a9 00       ..       ; A=0: target track number = 0
     sta zp_floppy_track                                               ; bd41: 85 a3       ..       ; Store as target track
-    ora nmi_drive_cmd                                                 ; bd43: 0d 5c 0d    .\.      ; OR with drive select bits
+    ora nmi_step_rate                                                 ; bd43: 0d 5c 0d    .\.      ; OR in step-rate mask
     sta fdc_1770_command_or_status                                    ; bd46: 8d 84 fe    ...      ; Issue restore command to WD1770
     jmp floppy_wait_nmi_finish                                        ; bd49: 4c c2 bc    L..      ; Wait for command to complete
 ; ***************************************************************************************
@@ -12072,7 +12072,7 @@ la154 = sub_ca153+1
     bit zp_floppy_control                                             ; be1c: 24 a1       $.       ; Check read/write direction
     bmi check_format_complete                                         ; be1e: 30 07       0.       ; Reading: use read command
     lda #&a0                                                          ; be20: a9 a0       ..       ; A=&A0: write command base
-    ora nmi_step_rate                                                 ; be22: 0d 56 0d    .V.      ; OR in step rate
+    ora nmi_precomp_mask                                              ; be22: 0d 56 0d    .V.      ; OR in write precompensation mask
     bne format_track_loop                                             ; be25: d0 02       ..       ; Branch (always non-zero)
 ; &be27 referenced 1 time by &be1e
 .check_format_complete
@@ -12092,7 +12092,7 @@ la154 = sub_ca153+1
     jsr clear_transfer_complete                                       ; be3c: 20 2b bd     +.      ; Clear seek flag
     jsr clear_seek_flag                                               ; be3f: 20 38 bd     8.      ; Clear track-step flag
     lda #&54 ; 'T'                                                    ; be42: a9 54       .T       ; FDC step-in command (&54)
-    ora nmi_drive_cmd                                                 ; be44: 0d 5c 0d    .\.      ; OR in drive select bits
+    ora nmi_step_rate                                                 ; be44: 0d 5c 0d    .\.      ; OR in step-rate mask
     sta fdc_1770_command_or_status                                    ; be47: 8d 84 fe    ...      ; Issue step-in command
     inc zp_floppy_track                                               ; be4a: e6 a3       ..       ; Increment current track
     bne wait_format_nmi_complete                                      ; be4c: d0 e5       ..       ; Continue multi-sector loop
@@ -12106,7 +12106,7 @@ la154 = sub_ca153+1
     inc zp_floppy_track                                               ; be5a: e6 a3       ..       ; Increment track for side 1
     jsr floppy_set_side_1                                             ; be5c: 20 22 bd     ".      ; Select side 1
     lda #0                                                            ; be5f: a9 00       ..       ; FDC restore command (seek to trk 0)
-    ora nmi_drive_cmd                                                 ; be61: 0d 5c 0d    .\.      ; OR in drive select
+    ora nmi_step_rate                                                 ; be61: 0d 5c 0d    .\.      ; OR in step-rate mask
     sta fdc_1770_command_or_status                                    ; be64: 8d 84 fe    ...      ; Issue restore command
     bpl wait_format_nmi_complete                                      ; be67: 10 ca       ..       ; Continue loop (always branches)
 ; ***************************************************************************************
@@ -12592,7 +12592,7 @@ save pydis_start, pydis_end
 ;     fdc_write_register_verify:                 5
 ;     fsm_s0_checksum:                           5
 ;     fsm_s1_boot_option:                        5
-;     nmi_drive_cmd:                             5
+;     nmi_step_rate:                             5
 ;     nmi_tracks_remaining:                      5
 ;     release_disc_space:                        5
 ;     release_tube:                              5
@@ -12639,10 +12639,10 @@ save pydis_start, pydis_end
 ;     get_wksp_addr_ba:                          4
 ;     init_channel_complete:                     4
 ;     multi_sector_disc_command:                 4
+;     nmi_precomp_mask:                          4
 ;     nmi_read_addr_hi:                          4
 ;     nmi_read_addr_lo:                          4
 ;     nmi_sec_position:                          4
-;     nmi_step_rate:                             4
 ;     nmi_transfer_done:                         4
 ;     parse_second_filename:                     4
 ;     read_single_hd_sector:                     4
