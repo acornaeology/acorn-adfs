@@ -37,21 +37,6 @@
             "label": "A Stardot request for a disassembly of ADFS 1.30",
             "url": "https://stardot.org.uk/forums/viewtopic.php?t=13082",
             "icon": "chat"
-        },
-        {
-            "label": "Hoglet's ADFS 1.30 disassembly (BeebAsm, byte-identical reassembly)",
-            "url": "https://github.com/hoglet67/ADFS130",
-            "icon": "ref"
-        },
-        {
-            "label": "Dominic Beesley's ADFS multi-target reassembly (ca65, multiple ADFS versions)",
-            "url": "https://github.com/dominicbeesley/ADFS-multi-target",
-            "icon": "ref"
-        },
-        {
-            "label": "J.G. Harston's ADFS disassembly (BBC BASIC, annotated)",
-            "url": "https://mdfs.net/Info/Comp/BBC/ADFS/",
-            "icon": "ref"
         }
     ]
 }

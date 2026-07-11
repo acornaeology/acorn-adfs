@@ -14,9 +14,6 @@ This repository contains annotated disassemblies of the Acorn ADFS ROM, produced
   - [Acorn ADFS 1.30 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=831ee90ac5d49ba5507252faf0c12536)
   - [Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn ADFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32796)
   - [A Stardot request for a disassembly of ADFS 1.30](https://stardot.org.uk/forums/viewtopic.php?t=13082)
-  - [Hoglet's ADFS 1.30 disassembly (BeebAsm, byte-identical reassembly)](https://github.com/hoglet67/ADFS130)
-  - [Dominic Beesley's ADFS multi-target reassembly (ca65, multiple ADFS versions)](https://github.com/dominicbeesley/ADFS-multi-target)
-  - [J.G. Harston's ADFS disassembly (BBC BASIC, annotated)](https://mdfs.net/Info/Comp/BBC/ADFS/)
 
 ## How it works
 
@@ -46,6 +43,8 @@ beebasm -i versions/adfs-1.30/output/adfs-1.30.asm -o adfs-1.30.rom
 
 ## References
 
+- [tobylobster's BBC Micro MOS disassembly](https://tobylobster.github.io/mos/)
+  tobylobster's fully annotated disassembly of the BBC Micro MOS — a reference for the OSBYTE / OSWORD / OSFILE vector semantics and zero-page / workspace names ADFS relies on.
 - [Acorn ADFS User Guide (PDF)](https://chrisacorns.computinghistory.org.uk/docs/Acorn/Manuals/Acorn_ADFSUG.pdf)
   Official Acorn user guide covering ADFS commands, disc formatting, and file operations.
 - [Acorn Winchester Disc 110/130 Service Manual (PDF)](https://chrisacorns.computinghistory.org.uk/docs/Acorn/Manuals/Acorn_WinchesterSM.pdf)
