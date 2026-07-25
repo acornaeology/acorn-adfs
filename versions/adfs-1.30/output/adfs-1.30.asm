@@ -2079,7 +2079,7 @@ nmi_saved_rom = sub_c0d33+1
 ; &850c referenced 1 time by &8523
 .check_adjacent_to_prev_loop
     plp                                                               ; 850c: 28          (        ; Restore carry
-    lda fsm_sector_0-3,x                                              ; 850d: bd fd 0d    ...      ; Get prev entry address byte
+    lda fsm_sector_0 - 3,x                                            ; 850d: bd fd 0d    ...      ; Get prev entry address byte
     adc fsm_s0_disc_size_mid,x                                        ; 8510: 7d fd 0e    }..      ; Add prev entry length byte
     php                                                               ; 8513: 08          .        ; Save carry
     cmp wksp_object_sector,y                                          ; 8514: d9 34 10    .4.      ; Compare prev+size with object sector
@@ -2128,7 +2128,7 @@ nmi_saved_rom = sub_c0d33+1
     lda fsm_sector_1,x                                                ; 8555: bd 00 0f    ...      ; Get next entry length
     sta fsm_s0_disc_size_mid,x                                        ; 8558: 9d fd 0e    ...      ; Store over current (shift down)
     lda fsm_sector_0,x                                                ; 855b: bd 00 0e    ...      ; Get next entry address
-    sta fsm_sector_0-3,x                                              ; 855e: 9d fd 0d    ...      ; Store over current (shift down)
+    sta fsm_sector_0 - 3,x                                            ; 855e: 9d fd 0d    ...      ; Store over current (shift down)
     inx                                                               ; 8561: e8          .        ; Next entry
     bne shift_entries_down_loop                                       ; 8562: d0 ec       ..       ; Loop shifting entries
 ; &8564 referenced 1 time by &8553
@@ -2181,7 +2181,7 @@ nmi_saved_rom = sub_c0d33+1
 ; &8590 referenced 1 time by &85a5
 .compare_prev_plus_size_loop
     plp                                                               ; 8590: 28          (        ; Restore carry
-    lda fsm_sector_0-3,x                                              ; 8591: bd fd 0d    ...      ; Get prev entry address byte
+    lda fsm_sector_0 - 3,x                                            ; 8591: bd fd 0d    ...      ; Get prev entry address byte
     adc fsm_s0_disc_size_mid,x                                        ; 8594: 7d fd 0e    }..      ; Add prev entry length byte
     php                                                               ; 8597: 08          .        ; Save carry
     cmp wksp_object_sector,y                                          ; 8598: d9 34 10    .4.      ; Compare with object sector byte
@@ -2242,9 +2242,9 @@ nmi_saved_rom = sub_c0d33+1
     beq store_new_entry                                               ; 85da: f0 10       ..       ; Yes: insert here
     dex                                                               ; 85dc: ca          .        ; Shift entries up by 3 bytes
     lda fsm_sector_0,x                                                ; 85dd: bd 00 0e    ...      ; Get FSM address byte to shift
-    sta fsm_sector_0+3,x                                              ; 85e0: 9d 03 0e    ...      ; Store 3 bytes higher
+    sta fsm_sector_0 + 3,x                                            ; 85e0: 9d 03 0e    ...      ; Store 3 bytes higher
     lda fsm_sector_1,x                                                ; 85e3: bd 00 0f    ...      ; Get FSM length byte to shift
-    sta fsm_sector_1+3,x                                              ; 85e6: 9d 03 0f    ...      ; Store 3 bytes higher
+    sta fsm_sector_1 + 3,x                                            ; 85e6: 9d 03 0f    ...      ; Store 3 bytes higher
     jmp shift_entries_up_loop                                         ; 85e9: 4c d8 85    L..      ; Continue shifting
 ; &85ec referenced 1 time by &85da
 .store_new_entry
@@ -2352,9 +2352,9 @@ nmi_saved_rom = sub_c0d33+1
 ; &868d referenced 1 time by &869c
 .advance_entry_addr_loop
     plp                                                               ; 868d: 28          (        ; Restore carry
-    lda fsm_sector_0-3,x                                              ; 868e: bd fd 0d    ...      ; Get entry address byte
+    lda fsm_sector_0 - 3,x                                            ; 868e: bd fd 0d    ...      ; Get entry address byte
     adc wksp_alloc_size,y                                             ; 8691: 79 3d 10    y=.      ; Add requested size to advance addr
-    sta fsm_sector_0-3,x                                              ; 8694: 9d fd 0d    ...      ; Store updated entry address
+    sta fsm_sector_0 - 3,x                                            ; 8694: 9d fd 0d    ...      ; Store updated entry address
     php                                                               ; 8697: 08          .        ; Save carry
     inx                                                               ; 8698: e8          .        ; Next entry byte
     iny                                                               ; 8699: c8          .        ; Next requested byte
@@ -2409,7 +2409,7 @@ nmi_saved_rom = sub_c0d33+1
     cpx fsm_s1_end_of_list_ptr                                        ; 86dd: ec fe 0f    ...      ; Past end of entries?
     bcs shrink_list_after_exact                                       ; 86e0: b0 0f       ..       ; Yes: shrink list
     lda fsm_sector_0,x                                                ; 86e2: bd 00 0e    ...      ; Shift entries down
-    sta fsm_sector_0-3,x                                              ; 86e5: 9d fd 0d    ...      ; Store 3 bytes lower (addresses)
+    sta fsm_sector_0 - 3,x                                            ; 86e5: 9d fd 0d    ...      ; Store 3 bytes lower (addresses)
     lda fsm_sector_1,x                                                ; 86e8: bd 00 0f    ...      ; Get length entry to shift
     sta fsm_s0_disc_size_mid,x                                        ; 86eb: 9d fd 0e    ...      ; Store 3 bytes lower (lengths)
     inx                                                               ; 86ee: e8          .        ; Next entry
@@ -4293,7 +4293,7 @@ nmi_saved_rom = sub_c0d33+1
     lda #0                                                            ; 900e: a9 00       ..       ; A=0: init check accumulator
 ; &9010 referenced 1 time by &901d
 .check_fsm_entry_loop
-    ora fsm_sector_0-1,x                                              ; 9010: 1d ff 0d    ...      ; OR entry address high byte
+    ora fsm_sector_0 - 1,x                                            ; 9010: 1d ff 0d    ...      ; OR entry address high byte
     ora fsm_s0_checksum,x                                             ; 9013: 1d ff 0e    ...      ; OR entry length high byte
     dex                                                               ; 9016: ca          .        ; Back up one
     beq bad_fs_map_error                                              ; 9017: f0 e1       ..       ; At entry 0: bad FS map
@@ -4313,7 +4313,7 @@ nmi_saved_rom = sub_c0d33+1
     clc                                                               ; 902e: 18          .        ; Clear carry for addition
 ; &902f referenced 1 time by &9038
 .add_entry_size_loop
-    lda fsm_sector_0-3,x                                              ; 902f: bd fd 0d    ...      ; Get prev entry address byte
+    lda fsm_sector_0 - 3,x                                            ; 902f: bd fd 0d    ...      ; Get prev entry address byte
     adc fsm_s0_disc_size_mid,x                                        ; 9032: 7d fd 0e    }..      ; Add prev entry length byte
     pha                                                               ; 9035: 48          H        ; Push result on stack
     inx                                                               ; 9036: e8          .        ; Next byte
@@ -4361,7 +4361,7 @@ nmi_saved_rom = sub_c0d33+1
     tya                                                               ; 905f: 98          .     
 ; &9060 referenced 1 time by &9064
 .checksum_s0_loop
-    adc fsm_sector_0-1,y                                              ; 9060: 79 ff 0d    y..      ; Add FSM sector 0 byte
+    adc fsm_sector_0 - 1,y                                            ; 9060: 79 ff 0d    y..      ; Add FSM sector 0 byte
     dey                                                               ; 9063: 88          .        ; Next byte
     bne checksum_s0_loop                                              ; 9064: d0 fa       ..       ; Loop for 255 bytes
     tax                                                               ; 9066: aa          .        ; Save sector 0 checksum in X
@@ -4715,18 +4715,18 @@ nmi_saved_rom = sub_c0d33+1
 ; 3=write exec addr, 4=write attrs, 5=read cat info, 6=delete, 7=create.
 ; &9269 used as index base 1 time by &9256
 .osfile_dispatch_lo
-    equb <(osfile_save_check_existing-1)                              ; 9269: 04          .        ; A=0 lo-1: OSFILE save
+    equb <(osfile_save_check_existing - 1)                            ; 9269: 04          .        ; A=0 lo-1: OSFILE save
 ; &926a used as index base 1 time by &9252
 .osfile_dispatch_hi
-    equb >(osfile_save_check_existing-1)                              ; 926a: 8c          .        ; A=0 hi-1: OSFILE save
-    equw osfile_load_handler-1                                        ; 926b: 73 8f       s.    
-    equw osfile_write_load_addr-1                                     ; 926d: 7b 90       {.    
-    equw osfile_write_load_addr-1                                     ; 926f: 7b 90       {.    
-    equw osfile_write_load_addr-1                                     ; 9271: 7b 90       {.    
-    equw osfile_delete_handler-1                                      ; 9273: 00 91       ..    
-    equw osfile_save_handler-1                                        ; 9275: a7 8c       ..    
-    equw search_and_delete_entry-1                                    ; 9277: 1d 91       ..    
-    equw osfile_read_cat_info-1                                       ; 9279: 7c 8f       |.    
+    equb >(osfile_save_check_existing - 1)                            ; 926a: 8c          .        ; A=0 hi-1: OSFILE save
+    equw osfile_load_handler - 1                                      ; 926b: 73 8f       s.    
+    equw osfile_write_load_addr - 1                                   ; 926d: 7b 90       {.    
+    equw osfile_write_load_addr - 1                                   ; 926f: 7b 90       {.    
+    equw osfile_write_load_addr - 1                                   ; 9271: 7b 90       {.    
+    equw osfile_delete_handler - 1                                    ; 9273: 00 91       ..    
+    equw osfile_save_handler - 1                                      ; 9275: a7 8c       ..    
+    equw search_and_delete_entry - 1                                  ; 9277: 1d 91       ..    
+    equw osfile_read_cat_info - 1                                     ; 9279: 7c 8f       |.    
 ; ***************************************************************************************
 ; Set up pointer to *HELP parameter format string
 ;
@@ -5768,7 +5768,7 @@ nmi_saved_rom = sub_c0d33+1
 ; &985b referenced 1 time by &9870
 .init_workspace_for_root
     plp                                                               ; 985b: 28          (        ; Restore carry
-    lda fsm_sector_0-6,x                                              ; 985c: bd fa 0d    ...      ; Get previous entry end address
+    lda fsm_sector_0 - 6,x                                            ; 985c: bd fa 0d    ...      ; Get previous entry end address
     adc fsm_s0_reserved,x                                             ; 985f: 7d fa 0e    }..      ; Add previous entry length
     php                                                               ; 9862: 08          .        ; Save carry
     cmp wksp_copy_read_sector,y                                       ; 9863: d9 a2 10    ...      ; Compare with source sector
@@ -6168,28 +6168,28 @@ str_run_boot = str_l_boot+2
 ; &9A99, 10 entries.
 ; &9a8f used as index base 1 time by &9ac7
 .service_dispatch_lo
-    equb <(service_handler_0-1)                                       ; 9a8f: b7          .     
-    equb <(service_handler_1-1)                                       ; 9a90: ce          .     
-    equb <(service_handler_2-1)                                       ; 9a91: f0          .     
-    equb <(service_handler_3-1)                                       ; 9a92: 40          @     
-    equb <(service_handler_4-1)                                       ; 9a93: d9          .     
-    equb <(svc5_irq-1)                                                ; 9a94: 77          w     
-    equb <(service_handler_0-1)                                       ; 9a95: b7          .     
-    equb <(service_handler_0-1)                                       ; 9a96: b7          .     
-    equb <(service_handler_8-1)                                       ; 9a97: 18          .     
-    equb <(service_handler_9-1)                                       ; 9a98: bd          .     
+    equb <(service_handler_0 - 1)                                     ; 9a8f: b7          .     
+    equb <(service_handler_1 - 1)                                     ; 9a90: ce          .     
+    equb <(service_handler_2 - 1)                                     ; 9a91: f0          .     
+    equb <(service_handler_3 - 1)                                     ; 9a92: 40          @     
+    equb <(service_handler_4 - 1)                                     ; 9a93: d9          .     
+    equb <(svc5_irq - 1)                                              ; 9a94: 77          w     
+    equb <(service_handler_0 - 1)                                     ; 9a95: b7          .     
+    equb <(service_handler_0 - 1)                                     ; 9a96: b7          .     
+    equb <(service_handler_8 - 1)                                     ; 9a97: 18          .     
+    equb <(service_handler_9 - 1)                                     ; 9a98: bd          .     
 ; &9a99 used as index base 1 time by &9ac3
 .service_dispatch_hi
-    equb >(service_handler_0-1)                                       ; 9a99: 9a          .     
-    equb >(service_handler_1-1)                                       ; 9a9a: 9a          .     
-    equb >(service_handler_2-1)                                       ; 9a9b: 9a          .     
-    equb >(service_handler_3-1)                                       ; 9a9c: 9b          .     
-    equb >(service_handler_4-1)                                       ; 9a9d: 9c          .     
-    equb >(svc5_irq-1)                                                ; 9a9e: ab          .     
-    equb >(service_handler_0-1)                                       ; 9a9f: 9a          .     
-    equb >(service_handler_0-1)                                       ; 9aa0: 9a          .     
-    equb >(service_handler_8-1)                                       ; 9aa1: 9d          .     
-    equb >(service_handler_9-1)                                       ; 9aa2: 9d          .     
+    equb >(service_handler_0 - 1)                                     ; 9a99: 9a          .     
+    equb >(service_handler_1 - 1)                                     ; 9a9a: 9a          .     
+    equb >(service_handler_2 - 1)                                     ; 9a9b: 9a          .     
+    equb >(service_handler_3 - 1)                                     ; 9a9c: 9b          .     
+    equb >(service_handler_4 - 1)                                     ; 9a9d: 9c          .     
+    equb >(svc5_irq - 1)                                              ; 9a9e: ab          .     
+    equb >(service_handler_0 - 1)                                     ; 9a9f: 9a          .     
+    equb >(service_handler_0 - 1)                                     ; 9aa0: 9a          .     
+    equb >(service_handler_8 - 1)                                     ; 9aa1: 9d          .     
+    equb >(service_handler_9 - 1)                                     ; 9aa2: 9d          .     
 ; ***************************************************************************************
 ; ROM service call handler
 ;
@@ -6932,26 +6932,26 @@ str_run_boot = str_l_boot+2
 ; 6=new FS, 7=handle range, 8=*command (OS 1.20).
 ; &9e6d used as index base 1 time by &9e64
 .fscv_dispatch_lo
-    equb <(fsc0_star_opt-1)                                           ; 9e6d: dc          .     
-    equb <(check_eof_for_handle-1)                                    ; 9e6e: 39          9     
-    equb <(star_run-1)                                                ; 9e6f: 98          .     
-    equb <(star_cmd-1)                                                ; 9e70: 7e          ~     
-    equb <(star_run-1)                                                ; 9e71: 98          .     
-    equb <(print_catalogue_entries-1)                                 ; 9e72: cd          .     
-    equb <(fsc6_new_filing_system-1)                                  ; 9e73: 3b          ;     
-    equb <(fsc7_read_handle_range-1)                                  ; 9e74: d7          .     
-    equb <(check_compaction_recommended-1)                            ; 9e75: 93          .     
+    equb <(fsc0_star_opt - 1)                                         ; 9e6d: dc          .     
+    equb <(check_eof_for_handle - 1)                                  ; 9e6e: 39          9     
+    equb <(star_run - 1)                                              ; 9e6f: 98          .     
+    equb <(star_cmd - 1)                                              ; 9e70: 7e          ~     
+    equb <(star_run - 1)                                              ; 9e71: 98          .     
+    equb <(print_catalogue_entries - 1)                               ; 9e72: cd          .     
+    equb <(fsc6_new_filing_system - 1)                                ; 9e73: 3b          ;     
+    equb <(fsc7_read_handle_range - 1)                                ; 9e74: d7          .     
+    equb <(check_compaction_recommended - 1)                          ; 9e75: 93          .     
 ; &9e76 used as index base 1 time by &9e60
 .fscv_dispatch_hi
-    equb >(fsc0_star_opt-1)                                           ; 9e76: 9f          .     
-    equb >(check_eof_for_handle-1)                                    ; 9e77: ad          .     
-    equb >(star_run-1)                                                ; 9e78: a3          .     
-    equb >(star_cmd-1)                                                ; 9e79: 9e          .     
-    equb >(star_run-1)                                                ; 9e7a: a3          .     
-    equb >(print_catalogue_entries-1)                                 ; 9e7b: 93          .     
-    equb >(fsc6_new_filing_system-1)                                  ; 9e7c: a9          .     
-    equb >(fsc7_read_handle_range-1)                                  ; 9e7d: 9f          .     
-    equb >(check_compaction_recommended-1)                            ; 9e7e: a0          .     
+    equb >(fsc0_star_opt - 1)                                         ; 9e76: 9f          .     
+    equb >(check_eof_for_handle - 1)                                  ; 9e77: ad          .     
+    equb >(star_run - 1)                                              ; 9e78: a3          .     
+    equb >(star_cmd - 1)                                              ; 9e79: 9e          .     
+    equb >(star_run - 1)                                              ; 9e7a: a3          .     
+    equb >(print_catalogue_entries - 1)                               ; 9e7b: 93          .     
+    equb >(fsc6_new_filing_system - 1)                                ; 9e7c: a9          .     
+    equb >(fsc7_read_handle_range - 1)                                ; 9e7d: 9f          .     
+    equb >(check_compaction_recommended - 1)                          ; 9e7e: a0          .     
 ; ***************************************************************************************
 ; Parse and dispatch star command
 ;
@@ -7043,95 +7043,95 @@ l9ee4 = tbl_commands+1
 ; &9ee5 used as index base 1 time by &9e2d
 l9ee5 = tbl_commands+2
     equs "ACCESS"                                                     ; 9ee3: 41 43 43... ACC...   ; "ACCESS" command name
-    equb >(star_access-1)                                             ; 9ee9: 99          .        ; Dispatch hi-1 -> star_access
-    equb <(star_access-1)                                             ; 9eea: 3c          <        ; Dispatch lo-1 -> star_access
+    equb >(star_access - 1)                                           ; 9ee9: 99          .        ; Dispatch hi-1 -> star_access
+    equb <(star_access - 1)                                           ; 9eea: 3c          <        ; Dispatch lo-1 -> star_access
     equb &16                                                          ; 9eeb: 16          .        ; Params &16: <List Spec> (L)(W)(R)(E)
     equs "BACK"                                                       ; 9eec: 42 41 43... BAC...   ; "BACK" command name
-    equb >(star_back-1)                                               ; 9ef0: a4          .        ; Dispatch hi-1 -> star_back
-    equb <(star_back-1)                                               ; 9ef1: 96          .        ; Dispatch lo-1 -> star_back
+    equb >(star_back - 1)                                             ; 9ef0: a4          .        ; Dispatch hi-1 -> star_back
+    equb <(star_back - 1)                                             ; 9ef1: 96          .        ; Dispatch lo-1 -> star_back
     equb &00                                                          ; 9ef2: 00          .        ; Params &00: (none)
     equs "BYE"                                                        ; 9ef3: 42 59 45    BYE      ; "BYE" command name
-    equb >(star_bye-1)                                                ; 9ef6: a0          .        ; Dispatch hi-1 -> star_bye
-    equb <(star_bye-1)                                                ; 9ef7: c2          .        ; Dispatch lo-1 -> star_bye
+    equb >(star_bye - 1)                                              ; 9ef6: a0          .        ; Dispatch hi-1 -> star_bye
+    equb <(star_bye - 1)                                              ; 9ef7: c2          .        ; Dispatch lo-1 -> star_bye
     equb &00                                                          ; 9ef8: 00          .        ; Params &00: (none)
     equs "CDIR"                                                       ; 9ef9: 43 44 49... CDI...   ; "CDIR" command name
-    equb >(star_cdir-1)                                               ; 9efd: 95          .        ; Dispatch hi-1 -> star_cdir
-    equb <(star_cdir-1)                                               ; 9efe: 6f          o        ; Dispatch lo-1 -> star_cdir
+    equb >(star_cdir - 1)                                             ; 9efd: 95          .        ; Dispatch hi-1 -> star_cdir
+    equb <(star_cdir - 1)                                             ; 9efe: 6f          o        ; Dispatch lo-1 -> star_cdir
     equb &20                                                          ; 9eff: 20                   ; Params &20: <Ob Spec>
     equs "CLOSE"                                                      ; 9f00: 43 4c 4f... CLO...   ; "CLOSE" command name
-    equb >(star_close-1)                                              ; 9f05: b1          .        ; Dispatch hi-1 -> star_close
-    equb <(star_close-1)                                              ; 9f06: b2          .        ; Dispatch lo-1 -> star_close
+    equb >(star_close - 1)                                            ; 9f05: b1          .        ; Dispatch hi-1 -> star_close
+    equb <(star_close - 1)                                            ; 9f06: b2          .        ; Dispatch lo-1 -> star_close
     equb &00                                                          ; 9f07: 00          .        ; Params &00: (none)
     equs "COMPACT"                                                    ; 9f08: 43 4f 4d... COM...   ; "COMPACT" command name
-    equb >(star_compact-1)                                            ; 9f0f: a2          .        ; Dispatch hi-1 -> star_compact
-    equb <(star_compact-1)                                            ; 9f10: 75          u        ; Dispatch lo-1 -> star_compact
+    equb >(star_compact - 1)                                          ; 9f0f: a2          .        ; Dispatch hi-1 -> star_compact
+    equb <(star_compact - 1)                                          ; 9f10: 75          u        ; Dispatch lo-1 -> star_compact
     equb &50                                                          ; 9f11: 50          P        ; Params &50: <SP> <LP>
     equs "COPY"                                                       ; 9f12: 43 4f 50... COP...   ; "COPY" command name
-    equb >(star_copy-1)                                               ; 9f16: a8          .        ; Dispatch hi-1 -> star_copy
-    equb <(star_copy-1)                                               ; 9f17: 1c          .        ; Dispatch lo-1 -> star_copy
+    equb >(star_copy - 1)                                             ; 9f16: a8          .        ; Dispatch hi-1 -> star_copy
+    equb <(star_copy - 1)                                             ; 9f17: 1c          .        ; Dispatch lo-1 -> star_copy
     equb &13                                                          ; 9f18: 13          .        ; Params &13: <List Spec> <*Ob Spec*>
     equs "DELETE"                                                     ; 9f19: 44 45 4c... DEL...   ; "DELETE" command name
-    equb >(star_delete-1)                                             ; 9f1f: a0          .        ; Dispatch hi-1 -> star_delete
-    equb <(star_delete-1)                                             ; 9f20: ba          .        ; Dispatch lo-1 -> star_delete
+    equb >(star_delete - 1)                                           ; 9f1f: a0          .        ; Dispatch hi-1 -> star_delete
+    equb <(star_delete - 1)                                           ; 9f20: ba          .        ; Dispatch lo-1 -> star_delete
     equb &20                                                          ; 9f21: 20                   ; Params &20: <Ob Spec>
     equs "DESTROY"                                                    ; 9f22: 44 45 53... DES...   ; "DESTROY" command name
-    equb >(star_destroy-1)                                            ; 9f29: 99          .        ; Dispatch hi-1 -> star_destroy
-    equb <(star_destroy-1)                                            ; 9f2a: e5          .        ; Dispatch lo-1 -> star_destroy
+    equb >(star_destroy - 1)                                          ; 9f29: 99          .        ; Dispatch hi-1 -> star_destroy
+    equb <(star_destroy - 1)                                          ; 9f2a: e5          .        ; Dispatch lo-1 -> star_destroy
     equb &10                                                          ; 9f2b: 10          .        ; Params &10: <List Spec>
     equs "DIR"                                                        ; 9f2c: 44 49 52    DIR      ; "DIR" command name
-    equb >(star_dir-1)                                                ; 9f2f: 95          .        ; Dispatch hi-1 -> star_dir
-    equb <(star_dir-1)                                                ; 9f30: 3e          >        ; Dispatch lo-1 -> star_dir
+    equb >(star_dir - 1)                                              ; 9f2f: 95          .        ; Dispatch hi-1 -> star_dir
+    equb <(star_dir - 1)                                              ; 9f30: 3e          >        ; Dispatch lo-1 -> star_dir
     equb &20                                                          ; 9f31: 20                   ; Params &20: <Ob Spec>
     equs "DISMOUNT"                                                   ; 9f32: 44 49 53... DIS...   ; "DISMOUNT" command name
-    equb >(star_dismount-1)                                           ; 9f3a: a1          .        ; Dispatch hi-1 -> star_dismount
-    equb <(star_dismount-1)                                           ; 9f3b: 10          .        ; Dispatch lo-1 -> star_dismount
+    equb >(star_dismount - 1)                                         ; 9f3a: a1          .        ; Dispatch hi-1 -> star_dismount
+    equb <(star_dismount - 1)                                         ; 9f3b: 10          .        ; Dispatch lo-1 -> star_dismount
     equb &40                                                          ; 9f3c: 40          @        ; Params &40: (<Drive>)
     equs "EX"                                                         ; 9f3d: 45 58       EX       ; "EX" command name
-    equb >(star_ex-1)                                                 ; 9f3f: 94          .        ; Dispatch hi-1 -> star_ex
-    equb <(star_ex-1)                                                 ; 9f40: 32          2        ; Dispatch lo-1 -> star_ex
+    equb >(star_ex - 1)                                               ; 9f3f: 94          .        ; Dispatch hi-1 -> star_ex
+    equb <(star_ex - 1)                                               ; 9f40: 32          2        ; Dispatch lo-1 -> star_ex
     equb &30                                                          ; 9f41: 30          0        ; Params &30: <*Ob Spec*>
     equs "FREE"                                                       ; 9f42: 46 52 45... FRE...   ; "FREE" command name
-    equb >(star_free-1)                                               ; 9f46: a0          .        ; Dispatch hi-1 -> star_free
-    equb <(star_free-1)                                               ; 9f47: 1a          .        ; Dispatch lo-1 -> star_free
+    equb >(star_free - 1)                                             ; 9f46: a0          .        ; Dispatch hi-1 -> star_free
+    equb <(star_free - 1)                                             ; 9f47: 1a          .        ; Dispatch lo-1 -> star_free
     equb &00                                                          ; 9f48: 00          .        ; Params &00: (none)
     equs "INFO"                                                       ; 9f49: 49 4e 46... INF...   ; "INFO" command name
-    equb >(star_info-1)                                               ; 9f4d: 94          .        ; Dispatch hi-1 -> star_info
-    equb <(star_info-1)                                               ; 9f4e: e6          .        ; Dispatch lo-1 -> star_info
+    equb >(star_info - 1)                                             ; 9f4d: 94          .        ; Dispatch hi-1 -> star_info
+    equb <(star_info - 1)                                             ; 9f4e: e6          .        ; Dispatch lo-1 -> star_info
     equb &10                                                          ; 9f4f: 10          .        ; Params &10: <List Spec>
     equs "LCAT"                                                       ; 9f50: 4c 43 41... LCA...   ; "LCAT" command name
-    equb >(star_lcat-1)                                               ; 9f54: a4          .        ; Dispatch hi-1 -> star_lcat
-    equb <(star_lcat-1)                                               ; 9f55: 7e          ~        ; Dispatch lo-1 -> star_lcat
+    equb >(star_lcat - 1)                                             ; 9f54: a4          .        ; Dispatch hi-1 -> star_lcat
+    equb <(star_lcat - 1)                                             ; 9f55: 7e          ~        ; Dispatch lo-1 -> star_lcat
     equb &00                                                          ; 9f56: 00          .        ; Params &00: (none)
     equs "LEX"                                                        ; 9f57: 4c 45 58    LEX      ; "LEX" command name
-    equb >(star_lex-1)                                                ; 9f5a: a4          .        ; Dispatch hi-1 -> star_lex
-    equb <(star_lex-1)                                                ; 9f5b: 8a          .        ; Dispatch lo-1 -> star_lex
+    equb >(star_lex - 1)                                              ; 9f5a: a4          .        ; Dispatch hi-1 -> star_lex
+    equb <(star_lex - 1)                                              ; 9f5b: 8a          .        ; Dispatch lo-1 -> star_lex
     equb &00                                                          ; 9f5c: 00          .        ; Params &00: (none)
     equs "LIB"                                                        ; 9f5d: 4c 49 42    LIB      ; "LIB" command name
-    equb >(star_lib-1)                                                ; 9f60: a4          .        ; Dispatch hi-1 -> star_lib
-    equb <(star_lib-1)                                                ; 9f61: 43          C        ; Dispatch lo-1 -> star_lib
+    equb >(star_lib - 1)                                              ; 9f60: a4          .        ; Dispatch hi-1 -> star_lib
+    equb <(star_lib - 1)                                              ; 9f61: 43          C        ; Dispatch lo-1 -> star_lib
     equb &30                                                          ; 9f62: 30          0        ; Params &30: <*Ob Spec*>
     equs "MAP"                                                        ; 9f63: 4d 41 50    MAP      ; "MAP" command name
-    equb >(star_map-1)                                                ; 9f66: a0          .        ; Dispatch hi-1 -> star_map
-    equb <(star_map-1)                                                ; 9f67: 49          I        ; Dispatch lo-1 -> star_map
+    equb >(star_map - 1)                                              ; 9f66: a0          .        ; Dispatch hi-1 -> star_map
+    equb <(star_map - 1)                                              ; 9f67: 49          I        ; Dispatch lo-1 -> star_map
     equb &00                                                          ; 9f68: 00          .        ; Params &00: (none)
     equs "MOUNT"                                                      ; 9f69: 4d 4f 55... MOU...   ; "MOUNT" command name
-    equb >(star_mount-1)                                              ; 9f6e: a1          .        ; Dispatch hi-1 -> star_mount
-    equb <(star_mount-1)                                              ; 9f6f: 5d          ]        ; Dispatch lo-1 -> star_mount
+    equb >(star_mount - 1)                                            ; 9f6e: a1          .        ; Dispatch hi-1 -> star_mount
+    equb <(star_mount - 1)                                            ; 9f6f: 5d          ]        ; Dispatch lo-1 -> star_mount
     equb &40                                                          ; 9f70: 40          @        ; Params &40: (<Drive>)
     equs "REMOVE"                                                     ; 9f71: 52 45 4d... REM...   ; "REMOVE" command name
-    equb >(star_remove-1)                                             ; 9f77: 91          .        ; Dispatch hi-1 -> star_remove
-    equb <(star_remove-1)                                             ; 9f78: 08          .        ; Dispatch lo-1 -> star_remove
+    equb >(star_remove - 1)                                           ; 9f77: 91          .        ; Dispatch hi-1 -> star_remove
+    equb <(star_remove - 1)                                           ; 9f78: 08          .        ; Dispatch lo-1 -> star_remove
     equb &20                                                          ; 9f79: 20                   ; Params &20: <Ob Spec>
     equs "RENAME"                                                     ; 9f7a: 52 45 4e... REN...   ; "RENAME" command name
-    equb >(star_rename-1)                                             ; 9f80: a5          .        ; Dispatch hi-1 -> star_rename
-    equb <(star_rename-1)                                             ; 9f81: 02          .        ; Dispatch lo-1 -> star_rename
+    equb >(star_rename - 1)                                           ; 9f80: a5          .        ; Dispatch hi-1 -> star_rename
+    equb <(star_rename - 1)                                           ; 9f81: 02          .        ; Dispatch lo-1 -> star_rename
     equb &22                                                          ; 9f82: 22          "        ; Params &22: <Ob Spec> <Ob Spec>
     equs "TITLE"                                                      ; 9f83: 54 49 54... TIT...   ; "TITLE" command name
-    equb >(star_title-1)                                              ; 9f88: a2          .        ; Dispatch hi-1 -> star_title
-    equb <(star_title-1)                                              ; 9f89: 51          Q        ; Dispatch lo-1 -> star_title
+    equb >(star_title - 1)                                            ; 9f88: a2          .        ; Dispatch hi-1 -> star_title
+    equb <(star_title - 1)                                            ; 9f89: 51          Q        ; Dispatch lo-1 -> star_title
     equb &70                                                          ; 9f8a: 70          p        ; Params &70: <Title>
-    equb HI(star_run-1)                                               ; 9f8b: a3          .        ; End: dispatch hi-1 -> star_run
-    equb LO(star_run-1)                                               ; 9f8c: 98          .        ; End: dispatch lo-1 -> star_run
+    equb >(star_run - 1)                                              ; 9f8b: a3          .        ; End: dispatch hi-1 -> star_run
+    equb <(star_run - 1)                                              ; 9f8c: 98          .        ; End: dispatch lo-1 -> star_run
 ; ***************************************************************************************
 ; *HELP parameter format strings
 ;
@@ -12533,7 +12533,7 @@ save pydis_start, pydis_end
 ;     bad_fs_map_error:                          7
 ;     command_done:                              7
 ;     floppy_error:                              7
-;     fsm_sector_0-3:                            7
+;     fsm_sector_0 - 3:                          7
 ;     os_text_ptr:                               7
 ;     osnewl:                                    7
 ;     rom_wksp_table:                            7
@@ -12857,7 +12857,7 @@ save pydis_start, pydis_end
 ;     format_init_dir:                           2
 ;     format_init_fsm:                           2
 ;     fsm_s1_checksum:                           2
-;     fsm_sector_0-1:                            2
+;     fsm_sector_0 - 1:                          2
 ;     generate_error_no_suffix:                  2
 ;     generate_error_suffix_x:                   2
 ;     get_function_and_set_ptr:                  2
@@ -13376,9 +13376,9 @@ save pydis_start, pydis_end
 ;     fsm_s0_disc_size_hi:                       1
 ;     fsm_s0_pre_disc_size:                      1
 ;     fsm_s0_reserved:                           1
-;     fsm_sector_0+3:                            1
-;     fsm_sector_0-6:                            1
-;     fsm_sector_1+3:                            1
+;     fsm_sector_0 + 3:                          1
+;     fsm_sector_0 - 6:                          1
+;     fsm_sector_1 + 3:                          1
 ;     full_pathname_parser:                      1
 ;     generate_error_skip_no_suffix:             1
 ;     get_first_path_char:                       1
