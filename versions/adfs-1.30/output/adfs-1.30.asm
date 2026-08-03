@@ -6195,24 +6195,28 @@ str_run_boot = str_l_boot+2
 ;
 ; Main entry point for MOS service calls. Dispatches to individual handlers based on the
 ; service call number in A.
+;
+; Service 1 first clears bit 6 of our rom_wksp_table entry, so hardware detection runs
+; again on every hard reset. If that bit is set, no ADFS hardware was found and every
+; service call is passed straight on unchanged.
 ; &9aa3 referenced 1 time by &8003
 .service_handler
 .service_call_handler
     pha                                                               ; 9aa3: 48          H        ; Save service call number
     cmp #1                                                            ; 9aa4: c9 01       ..       ; Service 1: absolute workspace claim?
-    bne check_workspace_claimed                                       ; 9aa6: d0 08       ..       ; Not service 1, continue
+    bne check_adfs_disabled                                           ; 9aa6: d0 08       ..       ; Not service 1, continue
     lda rom_wksp_table,x                                              ; 9aa8: bd f0 0d    ...      ; Read our ROM status byte
-    and #&bf                                                          ; 9aab: 29 bf       ).       ; Clear bit 6 (ADFS workspace claimed)
+    and #&bf                                                          ; 9aab: 29 bf       ).       ; Clear bit 6: re-enable ADFS for re-detection
     sta rom_wksp_table,x                                              ; 9aad: 9d f0 0d    ...      ; Store updated status
 ; &9ab0 referenced 1 time by &9aa6
-.check_workspace_claimed
+.check_adfs_disabled
     lda rom_wksp_table,x                                              ; 9ab0: bd f0 0d    ...      ; Read ROM status byte
-    cmp #&40 ; '@'                                                    ; 9ab3: c9 40       .@       ; Bit 6 set (workspace claimed)?
-    bcc dispatch_service_call                                         ; 9ab5: 90 02       ..       ; No, continue with dispatch
-    pla                                                               ; 9ab7: 68          h        ; Yes, discard call and return
+    cmp #&40 ; '@'                                                    ; 9ab3: c9 40       .@       ; Bit 6 set (ADFS disabled, no hardware)?
+    bcc dispatch_service_call                                         ; 9ab5: 90 02       ..       ; No, dispatch the service call
+    pla                                                               ; 9ab7: 68          h        ; Yes, drop the call, A/Y unchanged
 ; &9ab8 referenced 1 time by &9ac0
 .service_handler_0
-    rts                                                               ; 9ab8: 60          `        ; Return (service not claimed)
+    rts                                                               ; 9ab8: 60          `        ; Return with A unchanged: call passed on
 ; &9ab9 referenced 1 time by &9ab5
 .dispatch_service_call
     pla                                                               ; 9ab9: 68          h        ; Restore service call number
@@ -6231,43 +6235,80 @@ str_run_boot = str_l_boot+2
 ; ***************************************************************************************
 ; Service 1: absolute workspace claim
 ;
-; Initialise ADFS on a ROM filing system init service call. Checks for floppy and hard
-; drive hardware. If either is present, claims the ROM workspace slot and raises PAGE to
-; make room for ADFS workspace.
+; Y holds the lowest page of absolute workspace still free. A ROM needing absolute
+; workspace raises Y and passes the call on with A preserved; the call is never claimed.
+;
+; Probe for a WD1770 with a drive selected, and failing that for a SCSI hard drive. If
+; either is present, raise Y to at least &1C so that ADFS gets &0D00-&1BFF. If neither is
+; present, leave Y alone and set bit 6 of our entry in rom_wksp_table, which makes
+; service_call_handler ignore every later service call until the next hard reset.
+;
+; On Entry:
+;     X: our ROM number
+;     Y: lowest free page of absolute workspace
+;
+; On Exit:
+;     A: 1 (service call number, passed on)
+;     X: our ROM number
+;     Y: raised to &1C if ADFS hardware is present
 ; &9acf referenced 1 time by &9ad3
 .service_handler_1
-    jsr floppy_check_present                                          ; 9acf: 20 11 ba     ..      ; Check if floppy hardware present
-    inx                                                               ; 9ad2: e8          .        ; Increment result counter
-    bpl service_handler_1                                             ; 9ad3: 10 fa       ..    
-    bcc adfs_hardware_found                                           ; 9ad5: 90 0f       ..       ; No floppy, check hard drive
-    jsr hd_init_detect                                                ; 9ad7: 20 63 9a     c.      ; Check if hard drive present
-    beq adfs_hardware_found                                           ; 9ada: f0 0a       ..       ; Not present, skip ADFS init
-    lda #&40 ; '@'                                                    ; 9adc: a9 40       .@       ; Mark ROM as having ADFS workspace
-    ldx romsel_copy                                                   ; 9ade: a6 f4       ..       ; Get our ROM number
-    sta rom_wksp_table,x                                              ; 9ae0: 9d f0 0d    ...      ; Store flag in ROM status table
-    lda #1                                                            ; 9ae3: a9 01       ..       ; Return A=1: service handled
-    rts                                                               ; 9ae5: 60          `        ; Return A=1 (claim 1 page)
+    jsr floppy_check_present                                          ; 9acf: 20 11 ba     ..      ; Probe for a WD1770 and a selected drive
+    inx                                                               ; 9ad2: e8          .        ; Count the probe (X starts at our ROM number)
+    bpl service_handler_1                                             ; 9ad3: 10 fa       ..       ; Re-probe until X reaches &80; C from last try
+    bcc svc1_claim_absolute_workspace                                 ; 9ad5: 90 0f       ..       ; C=0: floppy present, claim workspace
+    jsr hd_init_detect                                                ; 9ad7: 20 63 9a     c.      ; No floppy: check for a SCSI hard drive
+    beq svc1_claim_absolute_workspace                                 ; 9ada: f0 0a       ..       ; Z=1: hard drive present, claim workspace
+    lda #&40 ; '@'                                                    ; 9adc: a9 40       .@       ; A=&40: no ADFS hardware at all
+    ldx romsel_copy                                                   ; 9ade: a6 f4       ..       ; Get our ROM number (X corrupted by probes)
+    sta rom_wksp_table,x                                              ; 9ae0: 9d f0 0d    ...      ; Set bit 6: disable ADFS until next hard reset
+    lda #1                                                            ; 9ae3: a9 01       ..       ; A=1: restore the service call number
+    rts                                                               ; 9ae5: 60          `        ; Return with Y unchanged: no workspace wanted
 ; ***************************************************************************************
-; Claim workspace for ADFS
+; Raise the absolute workspace claim to &1C00
 ;
-; Return A=1 to claim one workspace page and set Y=&1C to raise PAGE to &1D00 for ADFS
-; workspace.
+; ADFS hardware is present, so ADFS needs absolute workspace up to &1BFF. Raise Y to &1C
+; unless an earlier ROM has already claimed at least that much, then pass service 1 on
+; with A restored to the call number.
+;
+; On Entry:
+;     Y: lowest free page of absolute workspace
+;
+; On Exit:
+;     A: 1 (service call number, passed on)
+;     X: our ROM number
+;     Y: the greater of the incoming value and &1C
 ; &9ae6 referenced 2 times by &9ad5, &9ada
-.adfs_hardware_found
-    lda #1                                                            ; 9ae6: a9 01       ..       ; Return A=1: claim 1 page
-    ldx romsel_copy                                                   ; 9ae8: a6 f4       ..       ; Get our ROM number
-    cpy #&1c                                                          ; 9aea: c0 1c       ..       ; Y < &1C (PAGE already high enough)?
-    bcs return_23                                                     ; 9aec: b0 02       ..       ; Yes, don't change PAGE
-    ldy #&1c                                                          ; 9aee: a0 1c       ..       ; Y=&1C: ADFS PAGE value high byte
+.svc1_claim_absolute_workspace
+    lda #1                                                            ; 9ae6: a9 01       ..       ; A=1: restore the service call number
+    ldx romsel_copy                                                   ; 9ae8: a6 f4       ..       ; Get our ROM number (X corrupted by probes)
+    cpy #&1c                                                          ; 9aea: c0 1c       ..       ; Is the claim already at or above &1C00?
+    bcs return_23                                                     ; 9aec: b0 02       ..       ; Yes, leave the higher claim alone
+    ldy #&1c                                                          ; 9aee: a0 1c       ..       ; No, raise the claim to &1C00
 ; &9af0 referenced 1 time by &9aec
 .return_23
-    rts                                                               ; 9af0: 60          `        ; Return
+    rts                                                               ; 9af0: 60          `        ; Return with the claim in Y for the next ROM
 ; ***************************************************************************************
 ; Service 2: private workspace claim
 ;
-; Claim private workspace pages. On hard break, initialises the workspace with default
-; values (CSD name, directory sector pointers, checksum). On soft break, preserves
-; existing workspace. Sets up the filing system vectors and checks for Tube presence.
+; Y holds the first free page of private workspace. Record it in our rom_wksp_table
+; entry, take one page, and pass the call on with Y incremented and A restored to the
+; call number. With service 1 having claimed up to &1BFF, this page is &1C00 and PAGE
+; ends up at &1D00.
+;
+; On a hard break the page is filled from the default workspace table (CSD name,
+; directory sector pointers, checksum); on a soft break the existing contents are kept if
+; the checksum still matches. Also sets up the filing system vectors and checks for Tube
+; presence.
+;
+; On Entry:
+;     X: our ROM number
+;     Y: first free page of private workspace
+;
+; On Exit:
+;     A: 2 (service call number, passed on)
+;     X: our ROM number
+;     Y: incremented past the page we took
 .service_handler_2
     tya                                                               ; 9af1: 98          .        ; Save workspace page in ROM table
     sta rom_wksp_table,x                                              ; 9af2: 9d f0 0d    ...      ; Store workspace page in ROM table
@@ -6310,8 +6351,8 @@ str_run_boot = str_l_boot+2
     pla                                                               ; 9b30: 68          h        ; Restore Y (original service param)
     tay                                                               ; 9b31: a8          .        ; Restore Y
     ldx romsel_copy                                                   ; 9b32: a6 f4       ..       ; Get our ROM number
-    iny                                                               ; 9b34: c8          .        ; Increment Y (next workspace page)
-    lda #2                                                            ; 9b35: a9 02       ..       ; A=2: return service 2 handled
+    iny                                                               ; 9b34: c8          .        ; Y=next free page: we took one page
+    lda #2                                                            ; 9b35: a9 02       ..       ; A=2: restore the service call number
 ; &9b37 referenced 1 time by &9b3a
 .return_24
     rts                                                               ; 9b37: 60          `        ; Return
@@ -12778,7 +12819,6 @@ save pydis_start, pydis_end
 ;     zp_temp_ptr_2:                             3
 ;     zp_temp_ptr_3:                             3
 ;     add_size_to_existing_entry:                2
-;     adfs_hardware_found:                       2
 ;     advance_access_bit:                        2
 ;     advance_channel_sector:                    2
 ;     advance_fill_sector:                       2
@@ -12966,6 +13006,7 @@ save pydis_start, pydis_end
 ;     str_filing_system_name:                    2
 ;     str_hugo:                                  2
 ;     sum_free_space:                            2
+;     svc1_claim_absolute_workspace:             2
 ;     switch_to_channel_drive:                   2
 ;     tbl_access_chars:                          2
 ;     tube_start_xfer_sei:                       2
@@ -13067,6 +13108,7 @@ save pydis_start, pydis_end
 ;     channel_on_same_drive:                     1
 ;     check_4byte_addrs:                         1
 ;     check_access_is_dir_loop:                  1
+;     check_adfs_disabled:                       1
 ;     check_adfs_prefix:                         1
 ;     check_adjacent_to_next_loop:               1
 ;     check_adjacent_to_prev_loop:               1
@@ -13141,7 +13183,6 @@ save pydis_start, pydis_end
 ;     check_tube_for_copy:                       1
 ;     check_tube_for_nmi:                        1
 ;     check_tube_present:                        1
-;     check_workspace_claimed:                   1
 ;     check_workspace_initialised:               1
 ;     check_write_ext:                           1
 ;     check_write_or_read:                       1

@@ -4527,11 +4527,11 @@ d.label(0x9A3E, 'all_files_deleted')
 
 d.label(0x9A6C, 'scsi_write_read_test')
 
-d.label(0x9AB0, 'check_workspace_claimed')
+d.label(0x9AB0, 'check_adfs_disabled')
 
 d.label(0x9AB9, 'dispatch_service_call')
 
-d.label(0x9AE6, 'adfs_hardware_found')
+d.label(0x9AE6, 'svc1_claim_absolute_workspace')
 
 d.label(0x9AFF, 'copy_default_workspace_loop')
 
@@ -8743,12 +8743,12 @@ d.label(0xBFF1, 'return_error_code')
 d.comment(0x9AA3, 'Save service call number', align=Align.INLINE)
 d.comment(0x9AA4, 'Service 1: absolute workspace claim?', align=Align.INLINE)
 d.comment(0x9AA8, 'Read our ROM status byte', align=Align.INLINE)
-d.comment(0x9AAB, 'Clear bit 6 (ADFS workspace claimed)', align=Align.INLINE)
+d.comment(0x9AAB, 'Clear bit 6: re-enable ADFS for re-detection', align=Align.INLINE)
 d.comment(0x9AAD, 'Store updated status', align=Align.INLINE)
 d.comment(0x9AB0, 'Read ROM status byte', align=Align.INLINE)
-d.comment(0x9AB3, 'Bit 6 set (workspace claimed)?', align=Align.INLINE)
-d.comment(0x9AB5, 'No, continue with dispatch', align=Align.INLINE)
-d.comment(0x9AB7, 'Yes, discard call and return', align=Align.INLINE)
+d.comment(0x9AB3, 'Bit 6 set (ADFS disabled, no hardware)?', align=Align.INLINE)
+d.comment(0x9AB5, 'No, dispatch the service call', align=Align.INLINE)
+d.comment(0x9AB7, 'Yes, drop the call, A/Y unchanged', align=Align.INLINE)
 d.comment(0x9AB9, 'Restore service call number', align=Align.INLINE)
 d.comment(0x9ABA, 'Service &12: select filing system?', align=Align.INLINE)
 d.comment(0x9ABC, 'Yes, handle FS selection', align=Align.INLINE)
@@ -8760,19 +8760,20 @@ d.comment(0x9AC7, 'Get dispatch address low byte', align=Align.INLINE)
 d.comment(0x9ACB, 'Restore service number to A', align=Align.INLINE)
 d.comment(0x9ACC, 'Get our ROM number', align=Align.INLINE)
 d.comment(0x9ACE, 'RTS-dispatch to service handler', align=Align.INLINE)
-d.comment(0x9ACF, 'Check if floppy hardware present', align=Align.INLINE)
-d.comment(0x9AD2, 'Increment result counter', align=Align.INLINE)
-d.comment(0x9AD5, 'No floppy, check hard drive', align=Align.INLINE)
-d.comment(0x9AD7, 'Check if hard drive present', align=Align.INLINE)
-d.comment(0x9ADA, 'Not present, skip ADFS init', align=Align.INLINE)
-d.comment(0x9ADC, 'Mark ROM as having ADFS workspace', align=Align.INLINE)
-d.comment(0x9ADE, 'Get our ROM number', align=Align.INLINE)
-d.comment(0x9AE0, 'Store flag in ROM status table', align=Align.INLINE)
-d.comment(0x9AE3, 'Return A=1: service handled', align=Align.INLINE)
-d.comment(0x9AE6, 'Return A=1: claim 1 page', align=Align.INLINE)
-d.comment(0x9AEA, 'Y < &1C (PAGE already high enough)?', align=Align.INLINE)
-d.comment(0x9AEC, "Yes, don't change PAGE", align=Align.INLINE)
-d.comment(0x9AEE, 'Y=&1C: ADFS PAGE value high byte', align=Align.INLINE)
+d.comment(0x9ACF, 'Probe for a WD1770 and a selected drive', align=Align.INLINE)
+d.comment(0x9AD2, 'Count the probe (X starts at our ROM number)', align=Align.INLINE)
+d.comment(0x9AD3, 'Re-probe until X reaches &80; C from last try', align=Align.INLINE)
+d.comment(0x9AD5, 'C=0: floppy present, claim workspace', align=Align.INLINE)
+d.comment(0x9AD7, 'No floppy: check for a SCSI hard drive', align=Align.INLINE)
+d.comment(0x9ADA, 'Z=1: hard drive present, claim workspace', align=Align.INLINE)
+d.comment(0x9ADC, 'A=&40: no ADFS hardware at all', align=Align.INLINE)
+d.comment(0x9ADE, 'Get our ROM number (X corrupted by probes)', align=Align.INLINE)
+d.comment(0x9AE0, 'Set bit 6: disable ADFS until next hard reset', align=Align.INLINE)
+d.comment(0x9AE3, 'A=1: restore the service call number', align=Align.INLINE)
+d.comment(0x9AE6, 'A=1: restore the service call number', align=Align.INLINE)
+d.comment(0x9AEA, 'Is the claim already at or above &1C00?', align=Align.INLINE)
+d.comment(0x9AEC, 'Yes, leave the higher claim alone', align=Align.INLINE)
+d.comment(0x9AEE, 'No, raise the claim to &1C00', align=Align.INLINE)
 d.comment(0x9AF1, 'Save workspace page in ROM table', align=Align.INLINE)
 d.comment(0x9AF5, 'Save Y on stack', align=Align.INLINE)
 d.comment(0x9AF6, 'Check break type', align=Align.INLINE)
@@ -8790,8 +8791,8 @@ d.comment(0x9B16, 'Is it &FF (uninitialised)?', align=Align.INLINE)
 d.comment(0x9B18, 'No, workspace valid from soft break', align=Align.INLINE)
 d.comment(0x9B30, 'Restore Y (original service param)', align=Align.INLINE)
 d.comment(0x9B32, 'Get our ROM number', align=Align.INLINE)
-d.comment(0x9B34, 'Increment Y (next workspace page)', align=Align.INLINE)
-d.comment(0x9B35, 'A=2: return service 2 handled', align=Align.INLINE)
+d.comment(0x9B34, 'Y=next free page: we took one page', align=Align.INLINE)
+d.comment(0x9B35, 'A=2: restore the service call number', align=Align.INLINE)
 d.comment(0x9B38, 'Service &12: select filing system?', align=Align.INLINE)
 d.comment(0x9B3A, 'No, return', align=Align.INLINE)
 d.comment(0x9B3C, 'Y=8: ADFS filing system number', align=Align.INLINE)
@@ -9215,12 +9216,12 @@ d.comment(0x952E, 'Print second padding space', align=Align.INLINE)
 d.comment(0x9532, 'Clear carry for addition', align=Align.INLINE)
 d.comment(0x9535, 'Transfer new Y offset', align=Align.INLINE)
 d.comment(0x9AA6, 'Not service 1, continue', align=Align.INLINE)
-d.comment(0x9AB8, 'Return (service not claimed)', align=Align.INLINE)
+d.comment(0x9AB8, 'Return with A unchanged: call passed on', align=Align.INLINE)
 d.comment(0x9AC6, 'Push dispatch high byte', align=Align.INLINE)
 d.comment(0x9ACA, 'Push dispatch low byte', align=Align.INLINE)
-d.comment(0x9AE5, 'Return A=1 (claim 1 page)', align=Align.INLINE)
-d.comment(0x9AE8, 'Get our ROM number', align=Align.INLINE)
-d.comment(0x9AF0, 'Return', align=Align.INLINE)
+d.comment(0x9AE5, 'Return with Y unchanged: no workspace wanted', align=Align.INLINE)
+d.comment(0x9AE8, 'Get our ROM number (X corrupted by probes)', align=Align.INLINE)
+d.comment(0x9AF0, 'Return with the claim in Y for the next ROM', align=Align.INLINE)
 d.comment(0x9E52, 'Store text pointer high', align=Align.INLINE)
 d.comment(0x9E59, 'FSC >= 9: not for us', align=Align.INLINE)
 d.comment(0x9E5D, 'Clear current channel', align=Align.INLINE)
@@ -10772,6 +10773,11 @@ returns to caller.
 
 d.subroutine(0x9AA3, 'service_call_handler', title='ROM service call handler', description="""Main entry point for MOS service calls. Dispatches to
 individual handlers based on the service call number in A.
+
+Service 1 first clears bit 6 of our rom_wksp_table entry,
+so hardware detection runs again on every hard reset. If
+that bit is set, no ADFS hardware was found and every
+service call is passed straight on unchanged.
 """)
 
 
@@ -10916,19 +10922,31 @@ leading zeros.
 """, on_entry={'a': 'byte value to convert to decimal', 'y': 'index into brk_error_block'}, on_exit={'a': 'corrupted', 'x': 'corrupted', 'y': 'advanced past decimal digits'})
 
 
-d.subroutine(0x9ACF, 'service_handler_1', title='Service 1: absolute workspace claim', description="""Initialise ADFS on a ROM filing system init service call.
-Checks for floppy and hard drive hardware. If either is
-present, claims the ROM workspace slot and raises PAGE
-to make room for ADFS workspace.
-""")
+d.subroutine(0x9ACF, 'service_handler_1', title='Service 1: absolute workspace claim', description="""Y holds the lowest page of absolute workspace still free.
+A ROM needing absolute workspace raises Y and passes the
+call on with A preserved; the call is never claimed.
+
+Probe for a WD1770 with a drive selected, and failing that
+for a SCSI hard drive. If either is present, raise Y to
+at least &1C so that ADFS gets &0D00-&1BFF. If neither is
+present, leave Y alone and set bit 6 of our entry in
+rom_wksp_table, which makes service_call_handler ignore
+every later service call until the next hard reset.
+""", on_entry={'x': 'our ROM number', 'y': 'lowest free page of absolute workspace'}, on_exit={'a': '1 (service call number, passed on)', 'x': 'our ROM number', 'y': 'raised to &1C if ADFS hardware is present'})
 
 
-d.subroutine(0x9AF1, 'service_handler_2', title='Service 2: private workspace claim', description="""Claim private workspace pages. On hard break, initialises
-the workspace with default values (CSD name, directory
-sector pointers, checksum). On soft break, preserves
-existing workspace. Sets up the filing system vectors
-and checks for Tube presence.
-""")
+d.subroutine(0x9AF1, 'service_handler_2', title='Service 2: private workspace claim', description="""Y holds the first free page of private workspace. Record
+it in our rom_wksp_table entry, take one page, and pass
+the call on with Y incremented and A restored to the call
+number. With service 1 having claimed up to &1BFF, this
+page is &1C00 and PAGE ends up at &1D00.
+
+On a hard break the page is filled from the default
+workspace table (CSD name, directory sector pointers,
+checksum); on a soft break the existing contents are kept
+if the checksum still matches. Also sets up the filing
+system vectors and checks for Tube presence.
+""", on_entry={'x': 'our ROM number', 'y': 'first free page of private workspace'}, on_exit={'a': '2 (service call number, passed on)', 'x': 'our ROM number', 'y': 'incremented past the page we took'})
 
 
 d.subroutine(0x9B41, 'service_handler_3', title='Service 3: auto-boot', description="""Handle auto-boot on power-on or Ctrl+Break. Scans the
@@ -11879,9 +11897,11 @@ string to set appropriate flags including E and D.
 """)
 
 
-d.subroutine(0x9AE6, 'adfs_hardware_found', title='Claim workspace for ADFS', description="""Return A=1 to claim one workspace page and set Y=&1C
-to raise PAGE to &1D00 for ADFS workspace.
-""")
+d.subroutine(0x9AE6, 'svc1_claim_absolute_workspace', title='Raise the absolute workspace claim to &1C00', description="""ADFS hardware is present, so ADFS needs absolute
+workspace up to &1BFF. Raise Y to &1C unless an earlier
+ROM has already claimed at least that much, then pass
+service 1 on with A restored to the call number.
+""", on_entry={'y': 'lowest free page of absolute workspace'}, on_exit={'a': '1 (service call number, passed on)', 'x': 'our ROM number', 'y': 'the greater of the incoming value and &1C'})
 
 
 d.subroutine(0xAB63, 'scsi_write_page', title='Write 256 bytes to SCSI bus', description="""Transfer a page from (zp_buf_src) to the SCSI data
