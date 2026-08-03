@@ -57125,12 +57125,12 @@
         240,
         10
       ],
-      "comment_inline": "Yes, match succeeded",
+      "comment_inline": "Yes, abbreviation accepted as a match",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "service4_not_matched",
+      "operand": "service4_skip_spaces",
       "target": 40191,
-      "target_label": "service4_not_matched"
+      "target_label": "service4_skip_spaces"
     },
     {
       "addr": 40181,
@@ -57199,7 +57199,7 @@
         242
       ],
       "labels": [
-        "service4_not_matched"
+        "service4_skip_spaces"
       ],
       "comment_inline": "Skip spaces after 'ADFS'",
       "xref_summaries": [
@@ -57250,9 +57250,9 @@
       "comment_inline": "Yes, skip more spaces",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "service4_not_matched",
+      "operand": "service4_skip_spaces",
       "target": 40191,
-      "target_label": "service4_not_matched"
+      "target_label": "service4_skip_spaces"
     },
     {
       "addr": 40198,

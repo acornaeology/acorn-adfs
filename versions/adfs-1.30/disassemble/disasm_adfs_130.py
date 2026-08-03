@@ -4589,7 +4589,7 @@ d.label(0x9CEC, 'check_adfs_prefix')
 
 d.label(0x9CEE, 'match_command_loop')
 
-d.label(0x9CFF, 'service4_not_matched')
+d.label(0x9CFF, 'service4_skip_spaces')
 
 d.label(0x9D11, 'service4_decline')
 
@@ -8395,7 +8395,7 @@ d.comment(0x9CEC, "X=3: match 4 chars of 'ADFS'", align=Align.INLINE)
 d.comment(0x9CEE, 'Get next command character', align=Align.INLINE)
 d.comment(0x9CF0, 'Advance text pointer', align=Align.INLINE)
 d.comment(0x9CF1, 'Is it a dot (abbreviation)?', align=Align.INLINE)
-d.comment(0x9CF3, 'Yes, match succeeded', align=Align.INLINE)
+d.comment(0x9CF3, 'Yes, abbreviation accepted as a match', align=Align.INLINE)
 d.comment(0x9CF5, 'Convert to lowercase for compare', align=Align.INLINE)
 d.comment(0x9CF7, 'Compare with "adfs" (backwards)', align=Align.INLINE)
 d.comment(0x9CFA, 'No match, not for us', align=Align.INLINE)

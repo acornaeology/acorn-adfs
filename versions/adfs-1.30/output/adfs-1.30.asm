@@ -6678,18 +6678,18 @@ str_run_boot = str_l_boot+2
     lda (os_text_ptr),y                                               ; 9cee: b1 f2       ..       ; Get next command character
     iny                                                               ; 9cf0: c8          .        ; Advance text pointer
     cmp #&2e ; '.'                                                    ; 9cf1: c9 2e       ..       ; Is it a dot (abbreviation)?
-    beq service4_not_matched                                          ; 9cf3: f0 0a       ..       ; Yes, match succeeded
+    beq service4_skip_spaces                                          ; 9cf3: f0 0a       ..       ; Yes, abbreviation accepted as a match
     ora #&20 ; ' '                                                    ; 9cf5: 09 20       .        ; Convert to lowercase for compare
     cmp str_filing_system_name,x                                      ; 9cf7: dd d6 9c    ...      ; Compare with "adfs" (backwards)
     bne service4_decline                                              ; 9cfa: d0 15       ..       ; No match, not for us
     dex                                                               ; 9cfc: ca          .        ; Next char in 'ADFS'
     bpl match_command_loop                                            ; 9cfd: 10 ef       ..       ; Loop for 4 characters
 ; &9cff referenced 2 times by &9cf3, &9d04
-.service4_not_matched
+.service4_skip_spaces
     lda (os_text_ptr),y                                               ; 9cff: b1 f2       ..       ; Skip spaces after 'ADFS'
     iny                                                               ; 9d01: c8          .        ; Advance past matched space
     cmp #&20 ; ' '                                                    ; 9d02: c9 20       .        ; Space?
-    beq service4_not_matched                                          ; 9d04: f0 f9       ..       ; Yes, skip more spaces
+    beq service4_skip_spaces                                          ; 9d04: f0 f9       ..       ; Yes, skip more spaces
     bcs service4_decline                                              ; 9d06: b0 09       ..       ; Printable: more text follows, fail
     pla                                                               ; 9d08: 68          h        ; Get prefix flag
     tax                                                               ; 9d09: aa          .        ; Transfer prefix flag to X
@@ -12995,7 +12995,7 @@ save pydis_start, pydis_end
 ;     search_for_osfile_target:                  2
 ;     select_fdc_rw_command:                     2
 ;     service4_decline:                          2
-;     service4_not_matched:                      2
+;     service4_skip_spaces:                      2
 ;     set_cdir_parent_sector:                    2
 ;     set_default_dir_for_boot:                  2
 ;     set_file_attributes:                       2
