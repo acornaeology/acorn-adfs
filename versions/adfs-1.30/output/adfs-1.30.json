@@ -105690,9 +105690,9 @@
       "comment_inline": "Always branch (high byte non-zero)",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "get_sector_count",
+      "operand": "bput_get_drive_byte",
       "target": 47703,
-      "target_label": "get_sector_count"
+      "target_label": "bput_get_drive_byte"
     },
     {
       "addr": 47693,
@@ -105768,9 +105768,9 @@
         16
       ],
       "labels": [
-        "get_sector_count"
+        "bput_get_drive_byte"
       ],
-      "comment_inline": "Get sector count from control block",
+      "comment_inline": "Top sector-address byte: holds the drive",
       "xref_summaries": [
         "&ba57 referenced 1 time by &ba4b"
       ],
@@ -105791,7 +105791,7 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Save sector count on stack",
+      "comment_inline": "Save it for the drive tests",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -105801,7 +105801,7 @@
         41,
         31
       ],
-      "comment_inline": "Check drive number bits",
+      "comment_inline": "Bits 0-4 must be clear: only drives 0 and 1",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&1f"
@@ -105812,12 +105812,12 @@
         240,
         4
       ],
-      "comment_inline": "Drive 0: continue",
+      "comment_inline": "Clear: a valid drive, carry on",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "set_drive_1_select",
+      "operand": "bput_check_drive_valid",
       "target": 47715,
-      "target_label": "set_drive_1_select"
+      "target_label": "bput_check_drive_valid"
     },
     {
       "addr": 47711,
@@ -105825,7 +105825,7 @@
         104
       ],
       "labels": [
-        "check_drive_number"
+        "bput_bad_drive_error"
       ],
       "comment_inline": "Pop and discard",
       "xref_summaries": [
@@ -105860,9 +105860,9 @@
         104
       ],
       "labels": [
-        "set_drive_1_select"
+        "bput_check_drive_valid"
       ],
-      "comment_inline": "Pop sector count",
+      "comment_inline": "Pop the drive byte",
       "xref_summaries": [
         "&ba63 referenced 1 time by &ba5d"
       ],
@@ -105880,7 +105880,7 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Re-push for later",
+      "comment_inline": "Re-push it for the drive-select test",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -105890,7 +105890,7 @@
         41,
         64
       ],
-      "comment_inline": "Check format bit",
+      "comment_inline": "Bit 6 set: not a drive this ROM can reach",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&40"
@@ -105901,19 +105901,19 @@
         208,
         246
       ],
-      "comment_inline": "Non-zero format bit: error",
+      "comment_inline": "Yes: bad drive error",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "check_drive_number",
+      "operand": "bput_bad_drive_error",
       "target": 47711,
-      "target_label": "check_drive_number"
+      "target_label": "bput_bad_drive_error"
     },
     {
       "addr": 47721,
       "bytes": [
         104
       ],
-      "comment_inline": "Pop sector count",
+      "comment_inline": "Pop the drive byte again",
       "type": "code",
       "mnemonic": "pla"
     },
@@ -105923,7 +105923,7 @@
         41,
         32
       ],
-      "comment_inline": "Check verify bit",
+      "comment_inline": "Bit 5: is it drive 1?",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&20"
@@ -105934,12 +105934,12 @@
         208,
         4
       ],
-      "comment_inline": "Non-zero verify bit: use verify cmd",
+      "comment_inline": "Yes: select drive 1",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "check_format_command",
+      "operand": "bput_select_drive_1",
       "target": 47730,
-      "target_label": "check_format_command"
+      "target_label": "bput_select_drive_1"
     },
     {
       "addr": 47726,
@@ -105947,7 +105947,7 @@
         169,
         33
       ],
-      "comment_inline": "Not verify: seek+read (&21)",
+      "comment_inline": "Drive 0: latch value &21 (bit 0)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&21"
@@ -105960,9 +105960,9 @@
       ],
       "type": "code",
       "mnemonic": "bne",
-      "operand": "set_read_write_command",
+      "operand": "bput_store_drive_latch",
       "target": 47732,
-      "target_label": "set_read_write_command"
+      "target_label": "bput_store_drive_latch"
     },
     {
       "addr": 47730,
@@ -105971,9 +105971,9 @@
         34
       ],
       "labels": [
-        "check_format_command"
+        "bput_select_drive_1"
       ],
-      "comment_inline": "Verify: seek+read (&22)",
+      "comment_inline": "Drive 1: latch value &22 (bit 1)",
       "xref_summaries": [
         "&ba72 referenced 1 time by &ba6c"
       ],
@@ -105995,9 +105995,9 @@
         13
       ],
       "labels": [
-        "set_read_write_command"
+        "bput_store_drive_latch"
       ],
-      "comment_inline": "Store in NMI control byte",
+      "comment_inline": "Store in the drive-control latch shadow",
       "xref_summaries": [
         "&ba74 referenced 1 time by &ba70"
       ],
@@ -114039,7 +114039,7 @@
         133,
         166
       ],
-      "comment_inline": "Store as drive control byte",
+      "comment_inline": "Stash the combined drive byte",
       "type": "code",
       "mnemonic": "sta",
       "operand": "zp_floppy_dest_page",
@@ -114052,7 +114052,7 @@
         41,
         31
       ],
-      "comment_inline": "Isolate drive number bits",
+      "comment_inline": "Bits 0-4 must be clear: only drives 0 and 1",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&1f"
@@ -114063,12 +114063,12 @@
         240,
         3
       ],
-      "comment_inline": "Drive 0? OK",
+      "comment_inline": "Clear: a valid drive, carry on",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "get_sector_from_block",
+      "operand": "rw_check_drive_reachable",
       "target": 48911,
-      "target_label": "get_sector_from_block"
+      "target_label": "rw_check_drive_reachable"
     },
     {
       "addr": 48908,
@@ -114091,9 +114091,9 @@
         166
       ],
       "labels": [
-        "get_sector_from_block"
+        "rw_check_drive_reachable"
       ],
-      "comment_inline": "Check drive select bits",
+      "comment_inline": "Test bit 6 of the drive byte",
       "xref_summaries": [
         "&bf0f referenced 1 time by &bf0a"
       ],
@@ -114115,12 +114115,12 @@
         80,
         6
       ],
-      "comment_inline": "Bit 6: invalid drive?",
+      "comment_inline": "Clear: reachable drive, select it",
       "type": "code",
       "mnemonic": "bvc",
-      "operand": "adjust_for_partial_sector",
+      "operand": "rw_select_drive",
       "target": 48921,
-      "target_label": "adjust_for_partial_sector"
+      "target_label": "rw_select_drive"
     },
     {
       "addr": 48915,
@@ -114166,9 +114166,9 @@
         166
       ],
       "labels": [
-        "adjust_for_partial_sector"
+        "rw_select_drive"
       ],
-      "comment_inline": "Get drive control byte",
+      "comment_inline": "Get the drive byte back",
       "xref_summaries": [
         "&bf19 referenced 1 time by &bf11"
       ],
@@ -114190,7 +114190,7 @@
         41,
         32
       ],
-      "comment_inline": "Check bit 5 (drive 1 select)",
+      "comment_inline": "Bit 5: is it drive 1?",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&20"
@@ -114201,12 +114201,12 @@
         208,
         4
       ],
-      "comment_inline": "Not set: drive 0, use &21",
+      "comment_inline": "Yes: select drive 1",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "check_sectors_remaining",
+      "operand": "rw_select_drive_1",
       "target": 48931,
-      "target_label": "check_sectors_remaining"
+      "target_label": "rw_select_drive_1"
     },
     {
       "addr": 48927,
@@ -114214,7 +114214,7 @@
         169,
         33
       ],
-      "comment_inline": "Drive 1: control byte &21",
+      "comment_inline": "Drive 0: latch value &21 (bit 0)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&21"
@@ -114228,9 +114228,9 @@
       "comment_inline": "Branch (always)",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "issue_multi_sector_rw",
+      "operand": "rw_store_drive_latch",
       "target": 48933,
-      "target_label": "issue_multi_sector_rw"
+      "target_label": "rw_store_drive_latch"
     },
     {
       "addr": 48931,
@@ -114239,9 +114239,9 @@
         34
       ],
       "labels": [
-        "check_sectors_remaining"
+        "rw_select_drive_1"
       ],
-      "comment_inline": "Drive 0: control byte &22",
+      "comment_inline": "Drive 1: latch value &22 (bit 1)",
       "xref_summaries": [
         "&bf23 referenced 1 time by &bf1d"
       ],
@@ -114263,9 +114263,9 @@
         13
       ],
       "labels": [
-        "issue_multi_sector_rw"
+        "rw_store_drive_latch"
       ],
-      "comment_inline": "Store in NMI drive control",
+      "comment_inline": "Store in the drive-control latch shadow",
       "xref_summaries": [
         "&bf25 referenced 1 time by &bf21"
       ],

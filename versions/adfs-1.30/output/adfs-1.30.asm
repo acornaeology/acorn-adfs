@@ -11505,7 +11505,7 @@ la154 = sub_ca153+1
     sta nmi_write_addr_lo                                             ; ba43: 8d 0b 0d    ...      ; Patch NMI handler buffer addr low
     lda zp_buf_src_hi                                                 ; ba46: a5 bd       ..       ; Buffer address high byte
     sta nmi_write_addr_hi                                             ; ba48: 8d 0c 0d    ...      ; Patch NMI handler buffer addr high
-    bne get_sector_count                                              ; ba4b: d0 0a       ..       ; Always branch (high byte non-zero)
+    bne bput_get_drive_byte                                           ; ba4b: d0 0a       ..       ; Always branch (high byte non-zero)
 ; &ba4d referenced 1 time by &ba3f
 .set_buffer_addr_for_read
     lda zp_buf_dest_lo                                                ; ba4d: a5 be       ..       ; Reading: use zp_be,bf as buffer
@@ -11513,32 +11513,32 @@ la154 = sub_ca153+1
     lda zp_buf_dest_hi                                                ; ba52: a5 bf       ..       ; Get read buffer addr high
     sta nmi_read_addr_hi                                              ; ba54: 8d 0f 0d    ...      ; Patch NMI read buffer addr high
 ; &ba57 referenced 1 time by &ba4b
-.get_sector_count
-    lda wksp_buf_sec_hi,x                                             ; ba57: bd 03 10    ...      ; Get sector count from control block
-    pha                                                               ; ba5a: 48          H        ; Save sector count on stack
-    and #&1f                                                          ; ba5b: 29 1f       ).       ; Check drive number bits
-    beq set_drive_1_select                                            ; ba5d: f0 04       ..       ; Drive 0: continue
+.bput_get_drive_byte
+    lda wksp_buf_sec_hi,x                                             ; ba57: bd 03 10    ...      ; Top sector-address byte: holds the drive
+    pha                                                               ; ba5a: 48          H        ; Save it for the drive tests
+    and #&1f                                                          ; ba5b: 29 1f       ).       ; Bits 0-4 must be clear: only drives 0 and 1
+    beq bput_check_drive_valid                                        ; ba5d: f0 04       ..       ; Clear: a valid drive, carry on
 ; &ba5f referenced 1 time by &ba67
-.check_drive_number
+.bput_bad_drive_error
     pla                                                               ; ba5f: 68          h        ; Pop and discard
     jmp bad_address_error                                             ; ba60: 4c 66 bf    Lf.      ; Jump to error: bad drive number
 ; &ba63 referenced 1 time by &ba5d
-.set_drive_1_select
-    pla                                                               ; ba63: 68          h        ; Pop sector count
-    pha                                                               ; ba64: 48          H        ; Re-push for later
-    and #&40 ; '@'                                                    ; ba65: 29 40       )@       ; Check format bit
-    bne check_drive_number                                            ; ba67: d0 f6       ..       ; Non-zero format bit: error
-    pla                                                               ; ba69: 68          h        ; Pop sector count
-    and #&20 ; ' '                                                    ; ba6a: 29 20       )        ; Check verify bit
-    bne check_format_command                                          ; ba6c: d0 04       ..       ; Non-zero verify bit: use verify cmd
-    lda #&21 ; '!'                                                    ; ba6e: a9 21       .!       ; Not verify: seek+read (&21)
-    bne set_read_write_command                                        ; ba70: d0 02       ..    
+.bput_check_drive_valid
+    pla                                                               ; ba63: 68          h        ; Pop the drive byte
+    pha                                                               ; ba64: 48          H        ; Re-push it for the drive-select test
+    and #&40 ; '@'                                                    ; ba65: 29 40       )@       ; Bit 6 set: not a drive this ROM can reach
+    bne bput_bad_drive_error                                          ; ba67: d0 f6       ..       ; Yes: bad drive error
+    pla                                                               ; ba69: 68          h        ; Pop the drive byte again
+    and #&20 ; ' '                                                    ; ba6a: 29 20       )        ; Bit 5: is it drive 1?
+    bne bput_select_drive_1                                           ; ba6c: d0 04       ..       ; Yes: select drive 1
+    lda #&21 ; '!'                                                    ; ba6e: a9 21       .!       ; Drive 0: latch value &21 (bit 0)
+    bne bput_store_drive_latch                                        ; ba70: d0 02       ..    
 ; &ba72 referenced 1 time by &ba6c
-.check_format_command
-    lda #&22                                                          ; ba72: a9 22       ."       ; Verify: seek+read (&22)
+.bput_select_drive_1
+    lda #&22                                                          ; ba72: a9 22       ."       ; Drive 1: latch value &22 (bit 1)
 ; &ba74 referenced 1 time by &ba70
-.set_read_write_command
-    sta nmi_drive_ctrl                                                ; ba74: 8d 5e 0d    .^.      ; Store in NMI control byte
+.bput_store_drive_latch
+    sta nmi_drive_ctrl                                                ; ba74: 8d 5e 0d    .^.      ; Store in the drive-control latch shadow
     ror wksp_fdc_head_state                                           ; ba77: 6e e4 10    n..      ; Set head-loaded flag in state
     sec                                                               ; ba7a: 38          8        ; Set carry
     rol wksp_fdc_head_state                                           ; ba7b: 2e e4 10    ...      ; Restore head-loaded flag
@@ -12308,30 +12308,30 @@ la154 = sub_ca153+1
     ldy #6                                                            ; beff: a0 06       ..       ; Y=6: get drive+sector from block
     lda (zp_ctrl_blk_lo),y                                            ; bf01: b1 b0       ..       ; Get drive+sector byte
     ora wksp_current_drive                                            ; bf03: 0d 17 11    ...      ; OR with current drive
-    sta zp_floppy_dest_page                                           ; bf06: 85 a6       ..       ; Store as drive control byte
-    and #&1f                                                          ; bf08: 29 1f       ).       ; Isolate drive number bits
-    beq get_sector_from_block                                         ; bf0a: f0 03       ..       ; Drive 0? OK
+    sta zp_floppy_dest_page                                           ; bf06: 85 a6       ..       ; Stash the combined drive byte
+    and #&1f                                                          ; bf08: 29 1f       ).       ; Bits 0-4 must be clear: only drives 0 and 1
+    beq rw_check_drive_reachable                                      ; bf0a: f0 03       ..       ; Clear: a valid drive, carry on
     jmp bad_address_error                                             ; bf0c: 4c 66 bf    Lf.      ; Non-zero: bad drive error
 ; &bf0f referenced 1 time by &bf0a
-.get_sector_from_block
-    bit zp_floppy_dest_page                                           ; bf0f: 24 a6       $.       ; Check drive select bits
-    bvc adjust_for_partial_sector                                     ; bf11: 50 06       P.       ; Bit 6: invalid drive?
+.rw_check_drive_reachable
+    bit zp_floppy_dest_page                                           ; bf0f: 24 a6       $.       ; Test bit 6 of the drive byte
+    bvc rw_select_drive                                               ; bf11: 50 06       P.       ; Clear: reachable drive, select it
     lda #&65 ; 'e'                                                    ; bf13: a9 65       .e       ; Error &65: volume error (bad drive)
     sta zp_floppy_error                                               ; bf15: 85 a0       ..       ; Store error code
     bne branch_to_floppy_error                                        ; bf17: d0 51       .Q       ; Branch to floppy error
 ; &bf19 referenced 1 time by &bf11
-.adjust_for_partial_sector
-    lda zp_floppy_dest_page                                           ; bf19: a5 a6       ..       ; Get drive control byte
-    and #&20 ; ' '                                                    ; bf1b: 29 20       )        ; Check bit 5 (drive 1 select)
-    bne check_sectors_remaining                                       ; bf1d: d0 04       ..       ; Not set: drive 0, use &21
-    lda #&21 ; '!'                                                    ; bf1f: a9 21       .!       ; Drive 1: control byte &21
-    bne issue_multi_sector_rw                                         ; bf21: d0 02       ..       ; Branch (always)
+.rw_select_drive
+    lda zp_floppy_dest_page                                           ; bf19: a5 a6       ..       ; Get the drive byte back
+    and #&20 ; ' '                                                    ; bf1b: 29 20       )        ; Bit 5: is it drive 1?
+    bne rw_select_drive_1                                             ; bf1d: d0 04       ..       ; Yes: select drive 1
+    lda #&21 ; '!'                                                    ; bf1f: a9 21       .!       ; Drive 0: latch value &21 (bit 0)
+    bne rw_store_drive_latch                                          ; bf21: d0 02       ..       ; Branch (always)
 ; &bf23 referenced 1 time by &bf1d
-.check_sectors_remaining
-    lda #&22                                                          ; bf23: a9 22       ."       ; Drive 0: control byte &22
+.rw_select_drive_1
+    lda #&22                                                          ; bf23: a9 22       ."       ; Drive 1: latch value &22 (bit 1)
 ; &bf25 referenced 1 time by &bf21
-.issue_multi_sector_rw
-    sta nmi_drive_ctrl                                                ; bf25: 8d 5e 0d    .^.      ; Store in NMI drive control
+.rw_store_drive_latch
+    sta nmi_drive_ctrl                                                ; bf25: 8d 5e 0d    .^.      ; Store in the drive-control latch shadow
     ror wksp_fdc_head_state                                           ; bf28: 6e e4 10    n..      ; Set head-loaded flag
     sec                                                               ; bf2b: 38          8        ; Set carry
     rol wksp_fdc_head_state                                           ; bf2c: 2e e4 10    ...      ; Restore head-loaded flag
@@ -13108,7 +13108,6 @@ save pydis_start, pydis_end
 ;     add_size_to_prev_loop:                     1
 ;     adjacent_next_byte:                        1
 ;     adjacent_prev_byte:                        1
-;     adjust_for_partial_sector:                 1
 ;     adjust_partial_transfer:                   1
 ;     advance_and_continue:                      1
 ;     advance_cat_entry:                         1
@@ -13142,6 +13141,11 @@ save pydis_start, pydis_end
 ;     boot_key_f_no_autoboot:                    1
 ;     boot_load_from_disc:                       1
 ;     boot_set_page:                             1
+;     bput_bad_drive_error:                      1
+;     bput_check_drive_valid:                    1
+;     bput_get_drive_byte:                       1
+;     bput_select_drive_1:                       1
+;     bput_store_drive_latch:                    1
 ;     branch_to_floppy_error:                    1
 ;     brk_error_block_2:                         1
 ;     brk_error_block_3:                         1
@@ -13179,13 +13183,11 @@ save pydis_start, pydis_end
 ;     check_dot_in_dest:                         1
 ;     check_dot_separator:                       1
 ;     check_drive_initialised:                   1
-;     check_drive_number:                        1
 ;     check_escape_condition:                    1
 ;     check_exact_match:                         1
 ;     check_ext_vs_allocation:                   1
 ;     check_field_boundary:                      1
 ;     check_for_on_channel:                      1
-;     check_format_command:                      1
 ;     check_format_complete:                     1
 ;     check_fsm_entry_loop:                      1
 ;     check_fsm_ordering:                        1
@@ -13221,7 +13223,6 @@ save pydis_start, pydis_end
 ;     check_scsi_error_bit:                      1
 ;     check_sector_low:                          1
 ;     check_sector_mid:                          1
-;     check_sectors_remaining:                   1
 ;     check_seek_error:                          1
 ;     check_special_chars_loop:                  1
 ;     check_special_dir:                         1
@@ -13472,8 +13473,6 @@ save pydis_start, pydis_end
 ;     full_pathname_parser:                      1
 ;     generate_error_skip_no_suffix:             1
 ;     get_first_path_char:                       1
-;     get_sector_count:                          1
-;     get_sector_from_block:                     1
 ;     gsinit_scan_loop:                          1
 ;     handle_buffer_mismatch:                    1
 ;     handle_eof_write:                          1
@@ -13494,7 +13493,6 @@ save pydis_start, pydis_end
 ;     insert_new_fsm_entry:                      1
 ;     invalidate_sectors_loop:                   1
 ;     issue_fdc_track_command:                   1
-;     issue_multi_sector_rw:                     1
 ;     issue_step_command:                        1
 ;     jmp_indirect_fscv:                         1
 ;     l941f:                                     1
@@ -13688,6 +13686,10 @@ save pydis_start, pydis_end
 ;     run_exec_or_spool:                         1
 ;     run_set_exec_addr:                         1
 ;     run_tube_transfer:                         1
+;     rw_check_drive_reachable:                  1
+;     rw_select_drive:                           1
+;     rw_select_drive_1:                         1
+;     rw_store_drive_latch:                      1
 ;     save_and_clear_count_loop:                 1
 ;     save_and_restore_drive:                    1
 ;     save_component_length:                     1
@@ -13753,7 +13755,6 @@ save pydis_start, pydis_end
 ;     set_channel_and_dispatch:                  1
 ;     set_default_csd:                           1
 ;     set_dir_parent_sector:                     1
-;     set_drive_1_select:                        1
 ;     set_entry_access_from_osfile:              1
 ;     set_entry_dir_attribute:                   1
 ;     set_entry_pointer:                         1
@@ -13768,7 +13769,6 @@ save pydis_start, pydis_end
 ;     set_ptr_complete:                          1
 ;     set_ptr_from_temp:                         1
 ;     set_read_command:                          1
-;     set_read_write_command:                    1
 ;     set_root_as_csd:                           1
 ;     set_root_dir_entry:                        1
 ;     set_root_identity_loop:                    1
