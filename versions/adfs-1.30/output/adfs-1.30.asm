@@ -557,7 +557,7 @@ wksp_csd_sector_mid        = &1115
 ; &1115 referenced 7 times by &88af, &8a06, &8d3d, &8fa2, &9794, &b234, &b2b0
 wksp_csd_sector_hi         = &1116
 ; &1116 referenced 8 times by &88b2, &89fd, &8d45, &8fa8, &979a, &a13f, &b23c, &b2b6
-wksp_current_drive         = &1117  ; Current default drive number.
+wksp_current_drive         = &1117  ; Current default drive, held as a drive ID: the drive number shifted left five places, so drives 0-3 are &00, &20, &40 and &60. close_all_drives walks them by subtracting &20 at &A0DE. &FF means no drive has been selected yet. Stored in this form so it can be ORed straight into the top bits of a disc address, where bits 5-6 carry the drive and bits 0-4 are sector-address bits 16-20.
 ; &1117 referenced 61 times by &80d6, &80f1, &811e, &8294, &8342, &8863, &886f, &8875, &887b, &89db, &8b0c, &8b21, &8d2d, &8fb1, &919b, &91c2, &91f0, &9350, &9479, &9554, &9645, &9669, &9689, &9c20, &9c62, &9c8b, &9d4a, &9d4f, &a0c3, &a0d0, &a0da, &a0e0, &a0e6, &a0f8, &a132, &a13c, &a164, &a6c7, &a8b1, &a923, &a929, &a930, &a943, &add0, &af49, &b224, &b29e, &b474, &b47c, &b491, &b4f8, &b53b, &b54e, &b557, &b561, &b568, &b7b0, &b7d8, &b8d1, &b8e9, &bf03
 wksp_lib_sector            = &1118  ; Library directory sector marker / validity byte.
 ; &1118 referenced 1 time by &9c29; also used as index base 6 times by &91cf, &9673, &9680, &9c5b, &a457, &a468
@@ -11516,20 +11516,20 @@ la154 = sub_ca153+1
 .bput_get_drive_byte
     lda wksp_buf_sec_hi,x                                             ; ba57: bd 03 10    ...      ; Top sector-address byte: holds the drive
     pha                                                               ; ba5a: 48          H        ; Save it for the drive tests
-    and #&1f                                                          ; ba5b: 29 1f       ).       ; Bits 0-4 must be clear: only drives 0 and 1
-    beq bput_check_drive_valid                                        ; ba5d: f0 04       ..       ; Clear: a valid drive, carry on
+    and #&1f                                                          ; ba5b: 29 1f       ).       ; Sector-address bits 16-20 must be clear
+    beq bput_check_drive_valid                                        ; ba5d: f0 04       ..       ; Clear: address fits a floppy, carry on
 ; &ba5f referenced 1 time by &ba67
 .bput_bad_drive_error
     pla                                                               ; ba5f: 68          h        ; Pop and discard
-    jmp bad_address_error                                             ; ba60: 4c 66 bf    Lf.      ; Jump to error: bad drive number
+    jmp bad_address_error                                             ; ba60: 4c 66 bf    Lf.      ; Error &61: bad address
 ; &ba63 referenced 1 time by &ba5d
 .bput_check_drive_valid
     pla                                                               ; ba63: 68          h        ; Pop the drive byte
     pha                                                               ; ba64: 48          H        ; Re-push it for the drive-select test
-    and #&40 ; '@'                                                    ; ba65: 29 40       )@       ; Bit 6 set: not a drive this ROM can reach
-    bne bput_bad_drive_error                                          ; ba67: d0 f6       ..       ; Yes: bad drive error
+    and #&40 ; '@'                                                    ; ba65: 29 40       )@       ; Drive bit 6 set: drive 2 or 3, not on a 1770
+    bne bput_bad_drive_error                                          ; ba67: d0 f6       ..       ; Yes: reject it as a bad address
     pla                                                               ; ba69: 68          h        ; Pop the drive byte again
-    and #&20 ; ' '                                                    ; ba6a: 29 20       )        ; Bit 5: is it drive 1?
+    and #&20 ; ' '                                                    ; ba6a: 29 20       )        ; Drive bit 5: drive 1 rather than drive 0?
     bne bput_select_drive_1                                           ; ba6c: d0 04       ..       ; Yes: select drive 1
     lda #&21 ; '!'                                                    ; ba6e: a9 21       .!       ; Drive 0: latch value &21 (bit 0)
     bne bput_store_drive_latch                                        ; ba70: d0 02       ..    
@@ -12306,17 +12306,17 @@ la154 = sub_ca153+1
 ; &beff referenced 1 time by &bb8f
 .setup_track_for_rw
     ldy #6                                                            ; beff: a0 06       ..       ; Y=6: get drive+sector from block
-    lda (zp_ctrl_blk_lo),y                                            ; bf01: b1 b0       ..       ; Get drive+sector byte
-    ora wksp_current_drive                                            ; bf03: 0d 17 11    ...      ; OR with current drive
+    lda (zp_ctrl_blk_lo),y                                            ; bf01: b1 b0       ..       ; Top byte of the disc address
+    ora wksp_current_drive                                            ; bf03: 0d 17 11    ...      ; Merge in the current drive ID (bits 5-6)
     sta zp_floppy_scratch                                             ; bf06: 85 a6       ..       ; Scratch: hold the combined drive byte
-    and #&1f                                                          ; bf08: 29 1f       ).       ; Bits 0-4 must be clear: only drives 0 and 1
-    beq rw_check_drive_reachable                                      ; bf0a: f0 03       ..       ; Clear: a valid drive, carry on
-    jmp bad_address_error                                             ; bf0c: 4c 66 bf    Lf.      ; Non-zero: bad drive error
+    and #&1f                                                          ; bf08: 29 1f       ).       ; Sector-address bits 16-20 must be clear
+    beq rw_check_drive_reachable                                      ; bf0a: f0 03       ..       ; Clear: address fits a floppy, carry on
+    jmp bad_address_error                                             ; bf0c: 4c 66 bf    Lf.      ; Error &61: bad address
 ; &bf0f referenced 1 time by &bf0a
 .rw_check_drive_reachable
-    bit zp_floppy_scratch                                             ; bf0f: 24 a6       $.       ; Test bit 6 of the drive byte
-    bvc rw_select_drive                                               ; bf11: 50 06       P.       ; Clear: reachable drive, select it
-    lda #&65 ; 'e'                                                    ; bf13: a9 65       .e       ; Error &65: volume error (bad drive)
+    bit zp_floppy_scratch                                             ; bf0f: 24 a6       $.       ; Test drive bit 6 into V
+    bvc rw_select_drive                                               ; bf11: 50 06       P.       ; Clear: drive 0 or 1, go and select it
+    lda #&65 ; 'e'                                                    ; bf13: a9 65       .e       ; Drive 2 or 3: error &65, volume (drive) error
     sta zp_floppy_error                                               ; bf15: 85 a0       ..       ; Store error code
     bne branch_to_floppy_error                                        ; bf17: d0 51       .Q       ; Branch to floppy error
 ; &bf19 referenced 1 time by &bf11
