@@ -4545,9 +4545,9 @@ d.label(0x9B38, 'select_adfs_filing_system')
 
 d.label(0x9B57, 'check_boot_option')
 
-d.label(0x9B6B, 'check_boot_key')
+d.label(0x9B6B, 'boot_key_f_no_autoboot')
 
-d.label(0x9B6E, 'boot_shift_pressed')
+d.label(0x9B6E, 'boot_select_adfs')
 
 d.label(0x9B87, 'boot_run_option')
 
@@ -8799,17 +8799,17 @@ d.comment(0x9B3C, 'Y=8: ADFS filing system number', align=Align.INLINE)
 d.comment(0x9B3D, 'Save on stack twice for later', align=Align.INLINE)
 d.comment(0x9B3F, 'Always branch to FS init code', align=Align.INLINE)
 d.comment(0x9B41, 'Save Y (boot flag)', align=Align.INLINE)
-d.comment(0x9B43, 'OSBYTE &7A: keyboard scan', align=Align.INLINE)
-d.comment(0x9B48, 'Key pressed? (X=-1 means no)', align=Align.INLINE)
-d.comment(0x9B49, 'Yes, key pressed - check which', align=Align.INLINE)
-d.comment(0x9B4B, 'No key: try hard drive boot', align=Align.INLINE)
-d.comment(0x9B4E, 'Hard drive found?', align=Align.INLINE)
-d.comment(0x9B50, 'Check break type', align=Align.INLINE)
-d.comment(0x9B53, 'Power-on break? Skip to boot', align=Align.INLINE)
-d.comment(0x9B55, 'X=&44: floppy drive 4 default', align=Align.INLINE)
-d.comment(0x9B57, 'Adjust key code', align=Align.INLINE)
-d.comment(0x9B58, 'Shift (key 122-1)?', align=Align.INLINE)
-d.comment(0x9B5C, 'A (key 66-1)?', align=Align.INLINE)
+d.comment(0x9B43, 'OSBYTE &7A: keyboard scan from key 16', align=Align.INLINE)
+d.comment(0x9B48, 'X=&FF if no key is held: add 1 to test for it', align=Align.INLINE)
+d.comment(0x9B49, 'A key is held: work out which', align=Align.INLINE)
+d.comment(0x9B4B, 'No key: is a hard drive fitted?', align=Align.INLINE)
+d.comment(0x9B4E, 'Yes: select ADFS with X=0, no boot key', align=Align.INLINE)
+d.comment(0x9B50, 'No hard drive: check the break type', align=Align.INLINE)
+d.comment(0x9B53, 'Soft break: select ADFS with X=0', align=Align.INLINE)
+d.comment(0x9B55, 'Hard break: pretend F is held (&43 after DEX)', align=Align.INLINE)
+d.comment(0x9B57, 'Undo the INX at &9B48, recovering the key number', align=Align.INLINE)
+d.comment(0x9B58, 'RIGHT held (key &79, INKEY -122)?', align=Align.INLINE)
+d.comment(0x9B5C, 'A held (key &41, INKEY -66)?', align=Align.INLINE)
 d.comment(0x829A, 'Error code &25 = drive not present?', align=Align.INLINE)
 d.comment(0x829C, 'Yes, restore drive and raise error', align=Align.INLINE)
 d.comment(0x829E, 'Error code &65 = volume error?', align=Align.INLINE)
@@ -9536,15 +9536,15 @@ d.comment(0x8C5F, 'Save workspace and return', align=Align.INLINE)
 d.comment(0x9B42, 'Push Y on stack', align=Align.INLINE)
 d.comment(0x9B5A, 'Shift+Break: boot from floppy', align=Align.INLINE)
 d.comment(0x9B5E, 'A+Break: boot from hard drive', align=Align.INLINE)
-d.comment(0x9B60, 'Ctrl+Break?', align=Align.INLINE)
-d.comment(0x9B62, 'Yes, handle Ctrl+Break boot', align=Align.INLINE)
+d.comment(0x9B60, 'F held (key &43, INKEY -68)?', align=Align.INLINE)
+d.comment(0x9B62, 'Yes: select ADFS but suppress auto-boot', align=Align.INLINE)
 d.comment(0x9B64, 'Unrecognised key: pass on service', align=Align.INLINE)
 d.comment(0x9B65, 'Restore Y', align=Align.INLINE)
 d.comment(0x9B66, 'Get our ROM number', align=Align.INLINE)
 d.comment(0x9B68, 'A=3: service not claimed', align=Align.INLINE)
 d.comment(0x9B6A, 'Return', align=Align.INLINE)
-d.comment(0x9B6B, 'Ctrl+Break: discard saved Y', align=Align.INLINE)
-d.comment(0x9B6C, 'Push key code instead', align=Align.INLINE)
+d.comment(0x9B6B, 'Drop the boot flag so &9C89 skips auto-boot', align=Align.INLINE)
+d.comment(0x9B6C, 'Push the key code in its place', align=Align.INLINE)
 d.comment(0x9B6D, 'Push key code on stack', align=Align.INLINE)
 d.comment(0x9B6E, 'Enable interrupts for OSBYTE', align=Align.INLINE)
 d.comment(0x9B6F, 'Transfer key code to A', align=Align.INLINE)
@@ -9604,8 +9604,8 @@ d.comment(0x9C06, 'Y=-1 (will be &FF after DEY)', align=Align.INLINE)
 d.comment(0x9C07, 'Transfer to A', align=Align.INLINE)
 d.comment(0x9C08, 'Store &FF in workspace (marking done)', align=Align.INLINE)
 d.comment(0x9C0A, 'Retrieve key code from stack', align=Align.INLINE)
-d.comment(0x9C0B, 'Was it Ctrl+Break (key C = &43)?', align=Align.INLINE)
-d.comment(0x9C0D, 'No, do normal boot sequence', align=Align.INLINE)
+d.comment(0x9C0B, 'F held, or a floppy-only hard break?', align=Align.INLINE)
+d.comment(0x9C0D, 'No, keep the cached map and directory', align=Align.INLINE)
 d.comment(0x9C12, 'Y=3: copy CSD sector to workspace', align=Align.INLINE)
 d.comment(0x9C14, 'Get CSD sector byte', align=Align.INLINE)
 d.comment(0x9C17, 'Copy to CSD drive sector', align=Align.INLINE)
@@ -10949,11 +10949,23 @@ system vectors and checks for Tube presence.
 """, on_entry={'x': 'our ROM number', 'y': 'first free page of private workspace'}, on_exit={'a': '2 (service call number, passed on)', 'x': 'our ROM number', 'y': 'incremented past the page we took'})
 
 
-d.subroutine(0x9B41, 'service_handler_3', title='Service 3: auto-boot', description="""Handle auto-boot on power-on or Ctrl+Break. Scans the
-keyboard for Shift+Break (floppy boot) or A+Break
-(hard drive boot). Selects ADFS as the filing system
-and executes the boot file if configured.
-""")
+d.subroutine(0x9B41, 'service_handler_3', title='Service 3: auto-boot', description="""Y=0 on entry means the MOS wants an auto-boot (SHIFT was
+held over BREAK); any other value means boot is suppressed.
+
+OSBYTE &7A scans the keyboard from key 16, returning &FF if
+nothing is held. Because it starts at 16 it can never report
+SHIFT (&00) or CTRL (&01), so the keys tested here are
+RIGHT (&79), A (&41) and F (&43); anything else declines the
+call. Holding F additionally throws away the MOS boot flag,
+so ADFS is selected without auto-booting, and the cached
+free space map and directory are invalidated. A hard break
+with no hard drive fitted synthesises the same F code, which
+is what forces a floppy-only machine to re-read its map.
+
+Selecting ADFS runs the shared boot_run_option code, which
+installs the filing system vectors and, if a boot is wanted,
+obeys the *OPT 4 boot command from the free space map.
+""", on_entry={'x': 'our ROM number', 'y': '0 to auto-boot, non-zero to suppress it'}, on_exit={'a': '0 if ADFS was selected (claimed), else 3'})
 
 
 d.subroutine(0x9CDA, 'service_handler_4', title='Service 4: unrecognised star command', description="""Handle unrecognised star commands passed to filing system

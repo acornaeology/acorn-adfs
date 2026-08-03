@@ -855,7 +855,14 @@
       "addr": 39745,
       "name": "service_handler_3",
       "title": "Service 3: auto-boot",
-      "description": "Handle auto-boot on power-on or Ctrl+Break. Scans the\nkeyboard for Shift+Break (floppy boot) or A+Break\n(hard drive boot). Selects ADFS as the filing system\nand executes the boot file if configured.\n"
+      "description": "Y=0 on entry means the MOS wants an auto-boot (SHIFT was\nheld over BREAK); any other value means boot is suppressed.\n\nOSBYTE &7A scans the keyboard from key 16, returning &FF if\nnothing is held. Because it starts at 16 it can never report\nSHIFT (&00) or CTRL (&01), so the keys tested here are\nRIGHT (&79), A (&41) and F (&43); anything else declines the\ncall. Holding F additionally throws away the MOS boot flag,\nso ADFS is selected without auto-booting, and the cached\nfree space map and directory are invalidated. A hard break\nwith no hard drive fitted synthesises the same F code, which\nis what forces a floppy-only machine to re-read its map.\n\nSelecting ADFS runs the shared boot_run_option code, which\ninstalls the filing system vectors and, if a boot is wanted,\nobeys the *OPT 4 boot command from the free space map.\n",
+      "on_entry": {
+        "x": "our ROM number",
+        "y": "0 to auto-boot, non-zero to suppress it"
+      },
+      "on_exit": {
+        "a": "0 if ADFS was selected (claimed), else 3"
+      }
     },
     {
       "addr": 40154,
@@ -54314,7 +54321,7 @@
         169,
         122
       ],
-      "comment_inline": "OSBYTE &7A: keyboard scan",
+      "comment_inline": "OSBYTE &7A: keyboard scan from key 16",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#osbyte_scan_keyboard_from_16",
@@ -54344,7 +54351,7 @@
       "bytes": [
         232
       ],
-      "comment_inline": "Key pressed? (X=-1 means no)",
+      "comment_inline": "X=&FF if no key is held: add 1 to test for it",
       "type": "code",
       "mnemonic": "inx"
     },
@@ -54354,7 +54361,7 @@
         208,
         12
       ],
-      "comment_inline": "Yes, key pressed - check which",
+      "comment_inline": "A key is held: work out which",
       "type": "code",
       "mnemonic": "bne",
       "operand": "check_boot_option",
@@ -54368,7 +54375,7 @@
         99,
         154
       ],
-      "comment_inline": "No key: try hard drive boot",
+      "comment_inline": "No key: is a hard drive fitted?",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "hd_init_detect",
@@ -54381,12 +54388,12 @@
         240,
         30
       ],
-      "comment_inline": "Hard drive found?",
+      "comment_inline": "Yes: select ADFS with X=0, no boot key",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "boot_shift_pressed",
+      "operand": "boot_select_adfs",
       "target": 39790,
-      "target_label": "boot_shift_pressed"
+      "target_label": "boot_select_adfs"
     },
     {
       "addr": 39760,
@@ -54395,7 +54402,7 @@
         141,
         2
       ],
-      "comment_inline": "Check break type",
+      "comment_inline": "No hard drive: check the break type",
       "type": "code",
       "mnemonic": "lda",
       "operand": "last_break_type",
@@ -54408,12 +54415,12 @@
         240,
         25
       ],
-      "comment_inline": "Power-on break? Skip to boot",
+      "comment_inline": "Soft break: select ADFS with X=0",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "boot_shift_pressed",
+      "operand": "boot_select_adfs",
       "target": 39790,
-      "target_label": "boot_shift_pressed"
+      "target_label": "boot_select_adfs"
     },
     {
       "addr": 39765,
@@ -54421,7 +54428,7 @@
         162,
         68
       ],
-      "comment_inline": "X=&44: floppy drive 4 default",
+      "comment_inline": "Hard break: pretend F is held (&43 after DEX)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&44"
@@ -54434,7 +54441,7 @@
       "labels": [
         "check_boot_option"
       ],
-      "comment_inline": "Adjust key code",
+      "comment_inline": "Undo the INX at &9B48, recovering the key number",
       "xref_summaries": [
         "&9b57 referenced 1 time by &9b49"
       ],
@@ -54453,7 +54460,7 @@
         224,
         121
       ],
-      "comment_inline": "Shift (key 122-1)?",
+      "comment_inline": "RIGHT held (key &79, INKEY -122)?",
       "type": "code",
       "mnemonic": "cpx",
       "operand": "#&79"
@@ -54467,9 +54474,9 @@
       "comment_inline": "Shift+Break: boot from floppy",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "boot_shift_pressed",
+      "operand": "boot_select_adfs",
       "target": 39790,
-      "target_label": "boot_shift_pressed"
+      "target_label": "boot_select_adfs"
     },
     {
       "addr": 39772,
@@ -54477,7 +54484,7 @@
         224,
         65
       ],
-      "comment_inline": "A (key 66-1)?",
+      "comment_inline": "A held (key &41, INKEY -66)?",
       "type": "code",
       "mnemonic": "cpx",
       "operand": "#&41"
@@ -54491,9 +54498,9 @@
       "comment_inline": "A+Break: boot from hard drive",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "boot_shift_pressed",
+      "operand": "boot_select_adfs",
       "target": 39790,
-      "target_label": "boot_shift_pressed"
+      "target_label": "boot_select_adfs"
     },
     {
       "addr": 39776,
@@ -54501,7 +54508,7 @@
         224,
         67
       ],
-      "comment_inline": "Ctrl+Break?",
+      "comment_inline": "F held (key &43, INKEY -68)?",
       "type": "code",
       "mnemonic": "cpx",
       "operand": "#&43"
@@ -54512,12 +54519,12 @@
         240,
         7
       ],
-      "comment_inline": "Yes, handle Ctrl+Break boot",
+      "comment_inline": "Yes: select ADFS but suppress auto-boot",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "check_boot_key",
+      "operand": "boot_key_f_no_autoboot",
       "target": 39787,
-      "target_label": "check_boot_key"
+      "target_label": "boot_key_f_no_autoboot"
     },
     {
       "addr": 39780,
@@ -54576,9 +54583,9 @@
         104
       ],
       "labels": [
-        "check_boot_key"
+        "boot_key_f_no_autoboot"
       ],
-      "comment_inline": "Ctrl+Break: discard saved Y",
+      "comment_inline": "Drop the boot flag so &9C89 skips auto-boot",
       "xref_summaries": [
         "&9b6b referenced 1 time by &9b62"
       ],
@@ -54596,7 +54603,7 @@
       "bytes": [
         138
       ],
-      "comment_inline": "Push key code instead",
+      "comment_inline": "Push the key code in its place",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -54615,7 +54622,7 @@
         88
       ],
       "labels": [
-        "boot_shift_pressed"
+        "boot_select_adfs"
       ],
       "comment_inline": "Enable interrupts for OSBYTE",
       "xref_summaries": [
@@ -55557,7 +55564,7 @@
         201,
         67
       ],
-      "comment_inline": "Was it Ctrl+Break (key C = &43)?",
+      "comment_inline": "F held, or a floppy-only hard break?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&43"
@@ -55568,7 +55575,7 @@
         208,
         3
       ],
-      "comment_inline": "No, do normal boot sequence",
+      "comment_inline": "No, keep the cached map and directory",
       "type": "code",
       "mnemonic": "bne",
       "operand": "boot_set_page",

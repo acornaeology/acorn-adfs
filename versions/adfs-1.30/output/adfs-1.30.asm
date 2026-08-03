@@ -6367,42 +6367,60 @@ str_run_boot = str_l_boot+2
 ; ***************************************************************************************
 ; Service 3: auto-boot
 ;
-; Handle auto-boot on power-on or Ctrl+Break. Scans the keyboard for Shift+Break (floppy
-; boot) or A+Break (hard drive boot). Selects ADFS as the filing system and executes the
-; boot file if configured.
+; Y=0 on entry means the MOS wants an auto-boot (SHIFT was held over BREAK); any other
+; value means boot is suppressed.
+;
+; OSBYTE &7A scans the keyboard from key 16, returning &FF if nothing is held. Because it
+; starts at 16 it can never report SHIFT (&00) or CTRL (&01), so the keys tested here are
+; RIGHT (&79), A (&41) and F (&43); anything else declines the call. Holding F
+; additionally throws away the MOS boot flag, so ADFS is selected without auto-booting,
+; and the cached free space map and directory are invalidated. A hard break with no hard
+; drive fitted synthesises the same F code, which is what forces a floppy-only machine to
+; re-read its map.
+;
+; Selecting ADFS runs the shared boot_run_option code, which installs the filing system
+; vectors and, if a boot is wanted, obeys the *OPT 4 boot command from the free space
+; map.
+;
+; On Entry:
+;     X: our ROM number
+;     Y: 0 to auto-boot, non-zero to suppress it
+;
+; On Exit:
+;     A: 0 if ADFS was selected (claimed), else 3
 .service_handler_3
     tya                                                               ; 9b41: 98          .        ; Save Y (boot flag)
     pha                                                               ; 9b42: 48          H        ; Push Y on stack
-    lda #osbyte_scan_keyboard_from_16                                 ; 9b43: a9 7a       .z       ; OSBYTE &7A: keyboard scan
+    lda #osbyte_scan_keyboard_from_16                                 ; 9b43: a9 7a       .z       ; OSBYTE &7A: keyboard scan from key 16
     jsr osbyte                                                        ; 9b45: 20 f4 ff     ..      ; Scan keyboard from key 16
-    inx                                                               ; 9b48: e8          .        ; Key pressed? (X=-1 means no)
-    bne check_boot_option                                             ; 9b49: d0 0c       ..       ; Yes, key pressed - check which
-    jsr hd_init_detect                                                ; 9b4b: 20 63 9a     c.      ; No key: try hard drive boot
-    beq boot_shift_pressed                                            ; 9b4e: f0 1e       ..       ; Hard drive found?
-    lda last_break_type                                               ; 9b50: ad 8d 02    ...      ; Check break type
-    beq boot_shift_pressed                                            ; 9b53: f0 19       ..       ; Power-on break? Skip to boot
-    ldx #&44 ; 'D'                                                    ; 9b55: a2 44       .D       ; X=&44: floppy drive 4 default
+    inx                                                               ; 9b48: e8          .        ; X=&FF if no key is held: add 1 to test for it
+    bne check_boot_option                                             ; 9b49: d0 0c       ..       ; A key is held: work out which
+    jsr hd_init_detect                                                ; 9b4b: 20 63 9a     c.      ; No key: is a hard drive fitted?
+    beq boot_select_adfs                                              ; 9b4e: f0 1e       ..       ; Yes: select ADFS with X=0, no boot key
+    lda last_break_type                                               ; 9b50: ad 8d 02    ...      ; No hard drive: check the break type
+    beq boot_select_adfs                                              ; 9b53: f0 19       ..       ; Soft break: select ADFS with X=0
+    ldx #&44 ; 'D'                                                    ; 9b55: a2 44       .D       ; Hard break: pretend F is held (&43 after DEX)
 ; &9b57 referenced 1 time by &9b49
 .check_boot_option
-    dex                                                               ; 9b57: ca          .        ; Adjust key code
-    cpx #&79 ; 'y'                                                    ; 9b58: e0 79       .y       ; Shift (key 122-1)?
-    beq boot_shift_pressed                                            ; 9b5a: f0 12       ..       ; Shift+Break: boot from floppy
-    cpx #&41 ; 'A'                                                    ; 9b5c: e0 41       .A       ; A (key 66-1)?
-    beq boot_shift_pressed                                            ; 9b5e: f0 0e       ..       ; A+Break: boot from hard drive
-    cpx #&43 ; 'C'                                                    ; 9b60: e0 43       .C       ; Ctrl+Break?
-    beq check_boot_key                                                ; 9b62: f0 07       ..       ; Yes, handle Ctrl+Break boot
+    dex                                                               ; 9b57: ca          .        ; Undo the INX at &9B48, recovering the key number
+    cpx #&79 ; 'y'                                                    ; 9b58: e0 79       .y       ; RIGHT held (key &79, INKEY -122)?
+    beq boot_select_adfs                                              ; 9b5a: f0 12       ..       ; Shift+Break: boot from floppy
+    cpx #&41 ; 'A'                                                    ; 9b5c: e0 41       .A       ; A held (key &41, INKEY -66)?
+    beq boot_select_adfs                                              ; 9b5e: f0 0e       ..       ; A+Break: boot from hard drive
+    cpx #&43 ; 'C'                                                    ; 9b60: e0 43       .C       ; F held (key &43, INKEY -68)?
+    beq boot_key_f_no_autoboot                                        ; 9b62: f0 07       ..       ; Yes: select ADFS but suppress auto-boot
     pla                                                               ; 9b64: 68          h        ; Unrecognised key: pass on service
     tay                                                               ; 9b65: a8          .        ; Restore Y
     ldx romsel_copy                                                   ; 9b66: a6 f4       ..       ; Get our ROM number
     lda #3                                                            ; 9b68: a9 03       ..       ; A=3: service not claimed
     rts                                                               ; 9b6a: 60          `        ; Return
 ; &9b6b referenced 1 time by &9b62
-.check_boot_key
-    pla                                                               ; 9b6b: 68          h        ; Ctrl+Break: discard saved Y
-    txa                                                               ; 9b6c: 8a          .        ; Push key code instead
+.boot_key_f_no_autoboot
+    pla                                                               ; 9b6b: 68          h        ; Drop the boot flag so &9C89 skips auto-boot
+    txa                                                               ; 9b6c: 8a          .        ; Push the key code in its place
     pha                                                               ; 9b6d: 48          H        ; Push key code on stack
 ; &9b6e referenced 4 times by &9b4e, &9b53, &9b5a, &9b5e
-.boot_shift_pressed
+.boot_select_adfs
     cli                                                               ; 9b6e: 58          X        ; Enable interrupts for OSBYTE
     txa                                                               ; 9b6f: 8a          .        ; Transfer key code to A
     pha                                                               ; 9b70: 48          H        ; Push key code for later
@@ -6483,8 +6501,8 @@ str_run_boot = str_l_boot+2
     tya                                                               ; 9c07: 98          .        ; Transfer to A
     sta (zp_wksp_ptr_lo),y                                            ; 9c08: 91 ba       ..       ; Store &FF in workspace (marking done)
     pla                                                               ; 9c0a: 68          h        ; Retrieve key code from stack
-    cmp #&43 ; 'C'                                                    ; 9c0b: c9 43       .C       ; Was it Ctrl+Break (key C = &43)?
-    bne boot_set_page                                                 ; 9c0d: d0 03       ..       ; No, do normal boot sequence
+    cmp #&43 ; 'C'                                                    ; 9c0b: c9 43       .C       ; F held, or a floppy-only hard break?
+    bne boot_set_page                                                 ; 9c0d: d0 03       ..       ; No, keep the cached map and directory
     jsr invalidate_fsm_and_dir                                        ; 9c0f: 20 76 84     v.   
 ; &9c12 referenced 1 time by &9c0d
 .boot_set_page
@@ -12661,7 +12679,7 @@ save pydis_start, pydis_end
 ;     zp_temp_ptr:                               5
 ;     bad_drive_name:                            4
 ;     bad_name_in_path:                          4
-;     boot_shift_pressed:                        4
+;     boot_select_adfs:                          4
 ;     brk_error_block_1:                         4
 ;     check_drive_and_reload_fsm:                4
 ;     claim_tube_retry:                          4
@@ -13090,6 +13108,7 @@ save pydis_start, pydis_end
 ;     begin_format_operation:                    1
 ;     begin_pathname_scan:                       1
 ;     begin_step_sequence:                       1
+;     boot_key_f_no_autoboot:                    1
 ;     boot_load_from_disc:                       1
 ;     boot_set_page:                             1
 ;     branch_to_floppy_error:                    1
@@ -13118,7 +13137,6 @@ save pydis_start, pydis_end
 ;     check_at_sign:                             1
 ;     check_attr_terminator:                     1
 ;     check_bad_name_char:                       1
-;     check_boot_key:                            1
 ;     check_boot_option:                         1
 ;     check_buffer_state:                        1
 ;     check_channels_on_drive:                   1
