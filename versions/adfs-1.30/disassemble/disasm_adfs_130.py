@@ -4603,9 +4603,9 @@ d.label(0x9D57, 'store_osword_result')
 
 d.label(0x9D5F, 'copy_result_sector_loop')
 
-d.label(0x9D63, 'set_result_error_code')
+d.label(0x9D63, 'service_claim_and_return')
 
-d.label(0x9D6A, 'store_result_byte')
+d.label(0x9D6A, 'service8_decline')
 
 d.label(0x9D71, 'check_transfer_complete')
 
@@ -6957,7 +6957,7 @@ d.comment(0xAB96, 'Read SCSI status byte', align=Align.INLINE)
 d.comment(0xAB99, 'Wait for message phase', align=Align.INLINE)
 d.comment(0xAB9C, 'OR with final status byte', align=Align.INLINE)
 d.comment(0xAB9F, 'Store combined status', align=Align.INLINE)
-d.comment(0xABA2, 'Return to service dispatcher', align=Align.INLINE)
+d.comment(0xABA2, 'Claim the service call and return', align=Align.INLINE)
 d.comment(0xABA5, 'Check for pending data lost error', align=Align.INLINE)
 d.comment(0xABA8, 'Zero: no error, return', align=Align.INLINE)
 d.comment(0xABAA, 'Clear pending error', align=Align.INLINE)
@@ -8439,7 +8439,7 @@ d.comment(0x9D61, 'Write result back to control block', align=Align.INLINE)
 d.comment(0x9D63, 'Restore ROM number', align=Align.INLINE)
 d.comment(0x9D65, 'Restore Y', align=Align.INLINE)
 d.comment(0x9D67, 'A=0: service call claimed', align=Align.INLINE)
-d.comment(0x9D6A, 'Not our filing system', align=Align.INLINE)
+d.comment(0x9D6A, 'Not ours: restore our ROM number', align=Align.INLINE)
 d.comment(0x9D6E, 'A=8: pass on to next ROM', align=Align.INLINE)
 d.comment(0x9D71, 'OSWORD &73 (read last error)?', align=Align.INLINE)
 d.comment(0x9D73, 'No, check next', align=Align.INLINE)
@@ -11842,6 +11842,19 @@ claim NMI, and set up the track.
 d.subroutine(0x9D11, 'service4_decline', title='Decline service 4 and pass on', description="""Clean up stack and return A=4 to pass the unrecognised
 command to the next ROM in the service chain.
 """)
+
+
+d.subroutine(0x9D63, 'service_claim_and_return', title='Claim the service call and return', description="""Shared exit for the OSWORD calls ADFS handles and for the
+SCSI completion path of svc5_irq. Restore our ROM number
+and the caller's Y, then return A=0 so the MOS stops
+offering the call to later ROMs.
+""", on_exit={'a': '0 (service call claimed)', 'x': 'our ROM number', 'y': 'restored from the stack'})
+
+
+d.subroutine(0x9D6A, 'service8_decline', title='Decline service 8 and pass on', description="""Exit taken when ADFS is not the current filing system, or
+when the OSWORD number is not one of &70-&73. Return A=8
+so the call carries on down the service chain.
+""", on_exit={'a': '8 (service call number, passed on)', 'x': 'our ROM number', 'y': 'restored from the stack'})
 
 
 d.subroutine(0x856B, 'add_size_to_existing_entry', title='Add released size to FSM entry', description="""Copy the object sector address and add the released

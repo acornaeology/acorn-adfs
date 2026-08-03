@@ -1966,6 +1966,29 @@
       "description": "Clean up stack and return A=4 to pass the unrecognised\ncommand to the next ROM in the service chain.\n"
     },
     {
+      "addr": 40291,
+      "name": "service_claim_and_return",
+      "title": "Claim the service call and return",
+      "description": "Shared exit for the OSWORD calls ADFS handles and for the\nSCSI completion path of svc5_irq. Restore our ROM number\nand the caller's Y, then return A=0 so the MOS stops\noffering the call to later ROMs.\n",
+      "on_exit": {
+        "a": "0 (service call claimed)",
+        "x": "our ROM number",
+        "y": "restored from the stack"
+      }
+    },
+    {
+      "addr": 40298,
+      "name": "service8_decline",
+      "title": "Decline service 8 and pass on",
+      "description": "Exit taken when ADFS is not the current filing system, or\nwhen the OSWORD number is not one of &70-&73. Return A=8\nso the call carries on down the service chain.\n",
+      "on_exit": {
+        "a": "8 (service call number, passed on)",
+        "x": "our ROM number",
+        "y": "restored from the stack"
+      },
+      "fall_through": true
+    },
+    {
       "addr": 34155,
       "name": "add_size_to_existing_entry",
       "title": "Add released size to FSM entry",
@@ -57488,9 +57511,9 @@
       "comment_inline": "No, pass on to next ROM",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "store_result_byte",
+      "operand": "service8_decline",
       "target": 40298,
-      "target_label": "store_result_byte"
+      "target_label": "service8_decline"
     },
     {
       "addr": 40229,
@@ -57912,7 +57935,7 @@
         244
       ],
       "labels": [
-        "set_result_error_code"
+        "service_claim_and_return"
       ],
       "comment_inline": "Restore ROM number",
       "xref_summaries": [
@@ -57987,9 +58010,9 @@
         244
       ],
       "labels": [
-        "store_result_byte"
+        "service8_decline"
       ],
-      "comment_inline": "Not our filing system",
+      "comment_inline": "Not ours: restore our ROM number",
       "xref_summaries": [
         "&9d6a referenced 2 times by &9d23, &9d96"
       ],
@@ -58164,9 +58187,9 @@
       "comment_inline": "Return as claimed",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "set_result_error_code",
+      "operand": "service_claim_and_return",
       "target": 40291,
-      "target_label": "set_result_error_code"
+      "target_label": "service_claim_and_return"
     },
     {
       "addr": 40321,
@@ -58286,9 +58309,9 @@
       "comment_inline": "Return as claimed",
       "type": "code",
       "mnemonic": "jmp",
-      "operand": "set_result_error_code",
+      "operand": "service_claim_and_return",
       "target": 40291,
-      "target_label": "set_result_error_code"
+      "target_label": "service_claim_and_return"
     },
     {
       "addr": 40340,
@@ -58322,9 +58345,9 @@
       "comment_inline": "No, not for us",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "store_result_byte",
+      "operand": "service8_decline",
       "target": 40298,
-      "target_label": "store_result_byte"
+      "target_label": "service8_decline"
     },
     {
       "addr": 40344,
@@ -58421,9 +58444,9 @@
       "comment_inline": "Return as claimed",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "set_result_error_code",
+      "operand": "service_claim_and_return",
       "target": 40291,
-      "target_label": "set_result_error_code"
+      "target_label": "service_claim_and_return"
     },
     {
       "addr": 40359,
@@ -82427,12 +82450,12 @@
         99,
         157
       ],
-      "comment_inline": "Return to service dispatcher",
+      "comment_inline": "Claim the service call and return",
       "type": "code",
       "mnemonic": "jmp",
-      "operand": "set_result_error_code",
+      "operand": "service_claim_and_return",
       "target": 40291,
-      "target_label": "set_result_error_code"
+      "target_label": "service_claim_and_return"
     },
     {
       "addr": 43941,

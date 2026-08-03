@@ -6737,7 +6737,7 @@ str_run_boot = str_l_boot+2
 ; | 10 | Videodisc filing system   |
     jsr osargs                                                        ; 9d1e: 20 da ff     ..      ; Get current filing system number  Get filing system number (A=0, Y=0)
     cmp #8                                                            ; 9d21: c9 08       ..       ; Is it ADFS (filing system 8)?
-    bne store_result_byte                                             ; 9d23: d0 45       .E       ; No, pass on to next ROM
+    bne service8_decline                                              ; 9d23: d0 45       .E       ; No, pass on to next ROM
     lda zp_osbyte_last_a                                              ; 9d25: a5 ef       ..       ; Get OSWORD number from &EF
     cmp #&72 ; 'r'                                                    ; 9d27: c9 72       .r       ; Is it OSWORD &72 (disc access)?
     bne check_transfer_complete                                       ; 9d29: d0 46       .F       ; No, check other OSWORD numbers
@@ -6776,16 +6776,37 @@ str_run_boot = str_l_boot+2
 .copy_result_sector_loop
     ldy #0                                                            ; 9d5f: a0 00       ..       ; Y=0: store result at block+0
     sta (zp_wksp_ptr_lo),y                                            ; 9d61: 91 ba       ..       ; Write result back to control block
+; ***************************************************************************************
+; Claim the service call and return
+;
+; Shared exit for the OSWORD calls ADFS handles and for the SCSI completion path of
+; svc5_irq. Restore our ROM number and the caller's Y, then return A=0 so the MOS stops
+; offering the call to later ROMs.
+;
+; On Exit:
+;     A: 0 (service call claimed)
+;     X: our ROM number
+;     Y: restored from the stack
 ; &9d63 referenced 4 times by &9d7f, &9d91, &9da5, &aba2
-.set_result_error_code
+.service_claim_and_return
     ldx romsel_copy                                                   ; 9d63: a6 f4       ..       ; Restore ROM number
     pla                                                               ; 9d65: 68          h        ; Restore Y
     tay                                                               ; 9d66: a8          .        ; Restore Y
     lda #0                                                            ; 9d67: a9 00       ..       ; A=0: service call claimed
     rts                                                               ; 9d69: 60          `        ; Return (service claimed)
+; ***************************************************************************************
+; Decline service 8 and pass on
+;
+; Exit taken when ADFS is not the current filing system, or when the OSWORD number is not
+; one of &70-&73. Return A=8 so the call carries on down the service chain.
+;
+; On Exit:
+;     A: 8 (service call number, passed on)
+;     X: our ROM number
+;     Y: restored from the stack
 ; &9d6a referenced 2 times by &9d23, &9d96
-.store_result_byte
-    ldx romsel_copy                                                   ; 9d6a: a6 f4       ..       ; Not our filing system
+.service8_decline
+    ldx romsel_copy                                                   ; 9d6a: a6 f4       ..       ; Not ours: restore our ROM number
     pla                                                               ; 9d6c: 68          h        ; Restore Y
     tay                                                               ; 9d6d: a8          .        ; Transfer to Y
     lda #8                                                            ; 9d6e: a9 08       ..       ; A=8: pass on to next ROM
@@ -6801,7 +6822,7 @@ str_run_boot = str_l_boot+2
     sta (zp_osword_pb_ptr),y                                          ; 9d7a: 91 f0       ..       ; Store error byte in control block
     dey                                                               ; 9d7c: 88          .        ; Next byte
     bpl copy_transfer_count_loop                                      ; 9d7d: 10 f8       ..       ; Loop for 5 error bytes
-    bmi set_result_error_code                                         ; 9d7f: 30 e2       0.       ; Return as claimed
+    bmi service_claim_and_return                                      ; 9d7f: 30 e2       0.       ; Return as claimed
 ; &9d81 referenced 1 time by &9d73
 .adjust_partial_transfer
     cmp #&70 ; 'p'                                                    ; 9d81: c9 70       .p       ; OSWORD &70 (read dir state)?
@@ -6812,11 +6833,11 @@ str_run_boot = str_l_boot+2
     lda zp_adfs_flags                                                 ; 9d8c: a5 cd       ..       ; Get ADFS flags
     iny                                                               ; 9d8e: c8          .     
     sta (zp_osword_pb_ptr),y                                          ; 9d8f: 91 f0       ..       ; Write flags to block+1
-    jmp set_result_error_code                                         ; 9d91: 4c 63 9d    Lc.      ; Return as claimed
+    jmp service_claim_and_return                                      ; 9d91: 4c 63 9d    Lc.      ; Return as claimed
 ; &9d94 referenced 1 time by &9d83
 .store_adjusted_count
     cmp #&71 ; 'q'                                                    ; 9d94: c9 71       .q       ; OSWORD &71 (read free space)?
-    bne store_result_byte                                             ; 9d96: d0 d2       ..       ; No, not for us
+    bne service8_decline                                              ; 9d96: d0 d2       ..       ; No, not for us
     jsr calc_total_free_space                                         ; 9d98: 20 aa a1     ..      ; Calculate free space on disc
     ldy #3                                                            ; 9d9b: a0 03       ..       ; Y=3: copy 4 bytes of result
 ; &9d9d referenced 1 time by &9da3
@@ -6825,7 +6846,7 @@ str_run_boot = str_l_boot+2
     sta (zp_osword_pb_ptr),y                                          ; 9da0: 91 f0       ..       ; Store free space byte
     dey                                                               ; 9da2: 88          .        ; Next byte
     bpl copy_adjusted_bytes_loop                                      ; 9da3: 10 f8       ..       ; Loop for 4 bytes
-    bmi set_result_error_code                                         ; 9da5: 30 bc       0.       ; Return as claimed
+    bmi service_claim_and_return                                      ; 9da5: 30 bc       0.       ; Return as claimed
 ; ***************************************************************************************
 ; Print *HELP version header line
 ;
@@ -9240,7 +9261,7 @@ la154 = sub_ca153+1
     jsr scsi_wait_for_req                                             ; ab99: 20 0f 83     ..      ; Wait for message phase
     ora scsi_data                                                     ; ab9c: 0d 40 fc    .@.      ; OR with final status byte
     sta wksp_scsi_status                                              ; ab9f: 8d 31 11    .1.      ; Store combined status
-    jmp set_result_error_code                                         ; aba2: 4c 63 9d    Lc.      ; Return to service dispatcher
+    jmp service_claim_and_return                                      ; aba2: 4c 63 9d    Lc.      ; Claim the service call and return
 ; &aba5 referenced 1 time by &aaf3
 .ensure_channel_buffer
     lda wksp_scsi_status                                              ; aba5: ad 31 11    .1.      ; Check for pending data lost error
@@ -12709,7 +12730,7 @@ save pydis_start, pydis_end
 ;     return_17:                                 4
 ;     return_27:                                 4
 ;     return_38:                                 4
-;     set_result_error_code:                     4
+;     service_claim_and_return:                  4
 ;     setup_osgbpb_output_buffer:                4
 ;     star_match_succeeded:                      4
 ;     update_dir_entry_on_close:                 4
@@ -12996,6 +13017,7 @@ save pydis_start, pydis_end
 ;     select_fdc_rw_command:                     2
 ;     service4_decline:                          2
 ;     service4_skip_spaces:                      2
+;     service8_decline:                          2
 ;     set_cdir_parent_sector:                    2
 ;     set_default_dir_for_boot:                  2
 ;     set_file_attributes:                       2
@@ -13019,7 +13041,6 @@ save pydis_start, pydis_end
 ;     steps_remaining_check:                     2
 ;     store_channel_flags:                       2
 ;     store_entry_4byte_sector:                  2
-;     store_result_byte:                         2
 ;     store_wksp_checksum_ba_y:                  2
 ;     str_filing_system_name:                    2
 ;     str_hugo:                                  2
