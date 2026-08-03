@@ -6378,6 +6378,16 @@ str_run_boot = str_l_boot+2
 ; drive fitted synthesises the same F code, which is what forces a floppy-only machine to
 ; re-read its map.
 ;
+; ADFS selects itself when no key is held, so RIGHT and A are overrides rather than the
+; usual route in: they keep ADFS when a key is down that would otherwise reach the
+; decline at &9B64 and let another filing system take the call. The key code is only ever
+; compared against &43, so RIGHT and A have identical effect - both preserve the boot
+; flag and the cached map and directory. That matters on a hard break with no hard drive,
+; where holding either one avoids the cache invalidation the no-key path would perform.
+;
+; Why the ROM accepts RIGHT as well as the mnemonic A is not settled; nothing in the code
+; distinguishes them.
+;
 ; Selecting ADFS runs the shared boot_run_option code, which installs the filing system
 ; vectors and, if a boot is wanted, obeys the *OPT 4 boot command from the free space
 ; map.
