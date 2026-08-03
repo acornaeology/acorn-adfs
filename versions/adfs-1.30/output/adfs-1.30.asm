@@ -200,7 +200,7 @@ nmi_step_rate              = &0d5c  ; NMI workspace: stepping-rate mask, a copy 
 ; &0d5c referenced 5 times by &bae3, &bb98, &bd43, &be44, &be61
 nmi_adfs_flags             = &0d5d  ; NMI workspace: copy of the ADFS flags consulted by the NMI handler.
 ; &0d5d referenced 2 times by &bbad, &bcc8
-nmi_drive_ctrl             = &0d5e  ; NMI workspace: drive-control byte for the current transfer.
+nmi_drive_ctrl             = &0d5e  ; NMI workspace: shadow copy of the fdc_1770_drive_control latch (&FE80) for the current transfer, written out to it before each operation. Drive and side select live here rather than in any WD1770 command byte, because the 1770 has neither: bit 0 selects drive 0 and bit 1 drive 1 (latch values &21 and &22), bit 2 selects side 1, and bit 5 holds the controller out of reset. Contrast the i8271, which carries drive select in the command byte itself.
 ; &0d5e referenced 11 times by &ba74, &ba9b, &bd19, &bd1e, &bd22, &bd27, &beb0, &bec3, &bf25, &bf32, &bfb9
 nmi_completion             = &0d5f  ; NMI workspace: completion flag the handler sets when the transfer finishes.
 ; &0d5f referenced 1 time by &bc24

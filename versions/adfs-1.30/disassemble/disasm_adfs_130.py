@@ -788,7 +788,7 @@ d.label(0x0D5C, 'nmi_step_rate', length=1, group='nmi_workspace', access='rw', d
 
 d.label(0x0D5D, 'nmi_adfs_flags', length=1, group='nmi_workspace', access='rw', description="NMI workspace: copy of the ADFS flags consulted by the NMI handler.")
 
-d.label(0x0D5E, 'nmi_drive_ctrl', length=1, group='nmi_workspace', access='rw', description="NMI workspace: drive-control byte for the current transfer.")
+d.label(0x0D5E, 'nmi_drive_ctrl', length=1, group='nmi_workspace', access='rw', description="NMI workspace: shadow copy of the fdc_1770_drive_control latch (&FE80) for the current transfer, written out to it before each operation. Drive and side select live here rather than in any WD1770 command byte, because the 1770 has neither: bit 0 selects drive 0 and bit 1 drive 1 (latch values &21 and &22), bit 2 selects side 1, and bit 5 holds the controller out of reset. Contrast the i8271, which carries drive select in the command byte itself.")
 
 d.label(0x0D5F, 'nmi_completion', length=1, group='nmi_workspace', access='w', description="NMI workspace: completion flag the handler sets when the transfer finishes.")
 
