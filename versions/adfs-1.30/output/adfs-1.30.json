@@ -2363,7 +2363,7 @@
     "zp_floppy_track": 163,
     "zp_floppy_sector": 164,
     "zp_floppy_track_num": 165,
-    "zp_floppy_dest_page": 166,
+    "zp_floppy_scratch": 166,
     "zp_ctrl_blk_lo": 176,
     "zp_ctrl_blk_hi": 177,
     "zp_mem_ptr_lo": 178,
@@ -2881,14 +2881,14 @@
     },
     {
       "addr": 166,
-      "name": "zp_floppy_dest_page",
+      "name": "zp_floppy_scratch",
       "length": 1,
       "group": "floppy_workspace",
       "access": [
         "r",
         "w"
       ],
-      "description": "WD1770 floppy driver: high byte of the host transfer address (destination page)."
+      "description": "WD1770 floppy driver: scratch byte, reused for three unrelated purposes. floppy_format_track holds the copy destination's high byte here; the format and multi-sector loops save the FDC read/write command byte here across the NMI wait; setup_track_for_rw holds the combined drive byte here while validating it. floppy_format_track likewise reuses zp_floppy_track, zp_floppy_sector and zp_floppy_track_num as a pair of copy pointers."
     },
     {
       "addr": 176,
@@ -111411,12 +111411,12 @@
         133,
         166
       ],
-      "comment_inline": "Store as dest address high",
+      "comment_inline": "Scratch: copy destination high byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "zp_floppy_dest_page",
+      "operand": "zp_floppy_scratch",
       "target": 166,
-      "target_label": "zp_floppy_dest_page"
+      "target_label": "zp_floppy_scratch"
     },
     {
       "addr": 48502,
@@ -112584,7 +112584,7 @@
       "labels": [
         "format_track_loop"
       ],
-      "comment_inline": "Store FDC command in workspace",
+      "comment_inline": "Scratch: save the FDC command over the NMI wait",
       "xref_summaries": [
         "&be29 referenced 1 time by &be25"
       ],
@@ -112596,9 +112596,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "zp_floppy_dest_page",
+      "operand": "zp_floppy_scratch",
       "target": 166,
-      "target_label": "zp_floppy_dest_page"
+      "target_label": "zp_floppy_scratch"
     },
     {
       "addr": 48683,
@@ -112620,12 +112620,12 @@
         165,
         166
       ],
-      "comment_inline": "Get FDC command",
+      "comment_inline": "Recover the saved FDC command",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "zp_floppy_dest_page",
+      "operand": "zp_floppy_scratch",
       "target": 166,
-      "target_label": "zp_floppy_dest_page"
+      "target_label": "zp_floppy_scratch"
     },
     {
       "addr": 48688,
@@ -113096,12 +113096,12 @@
         165,
         166
       ],
-      "comment_inline": "Get FDC command",
+      "comment_inline": "Recover the saved FDC command",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "zp_floppy_dest_page",
+      "operand": "zp_floppy_scratch",
       "target": 166,
-      "target_label": "zp_floppy_dest_page"
+      "target_label": "zp_floppy_scratch"
     },
     {
       "addr": 48765,
@@ -114039,12 +114039,12 @@
         133,
         166
       ],
-      "comment_inline": "Stash the combined drive byte",
+      "comment_inline": "Scratch: hold the combined drive byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "zp_floppy_dest_page",
+      "operand": "zp_floppy_scratch",
       "target": 166,
-      "target_label": "zp_floppy_dest_page"
+      "target_label": "zp_floppy_scratch"
     },
     {
       "addr": 48904,
@@ -114105,9 +114105,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "zp_floppy_dest_page",
+      "operand": "zp_floppy_scratch",
       "target": 166,
-      "target_label": "zp_floppy_dest_page"
+      "target_label": "zp_floppy_scratch"
     },
     {
       "addr": 48913,
@@ -114180,9 +114180,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "zp_floppy_dest_page",
+      "operand": "zp_floppy_scratch",
       "target": 166,
-      "target_label": "zp_floppy_dest_page"
+      "target_label": "zp_floppy_scratch"
     },
     {
       "addr": 48923,

@@ -79,7 +79,7 @@ zp_floppy_sector           = &a4  ; WD1770 floppy driver: target sector for the 
 ; &a4 referenced 7 times by &ba8c, &bd7d, &bde1, &bee1, &bef2, &bef4, &bf93
 zp_floppy_track_num        = &a5  ; WD1770 floppy driver: physical track number, adjusted for the selected head / side.
 ; &a5 referenced 7 times by &ba8e, &ba96, &baf4, &bd6f, &bd9d, &bf95, &bf9d
-zp_floppy_dest_page        = &a6  ; WD1770 floppy driver: high byte of the host transfer address (destination page).
+zp_floppy_scratch          = &a6  ; WD1770 floppy driver: scratch byte, reused for three unrelated purposes. floppy_format_track holds the copy destination's high byte here; the format and multi-sector loops save the FDC read/write command byte here across the NMI wait; setup_track_for_rw holds the combined drive byte here while validating it. floppy_format_track likewise reuses zp_floppy_track, zp_floppy_sector and zp_floppy_track_num as a pair of copy pointers.
 ; &a6 referenced 7 times by &bd74, &be29, &be2e, &be7b, &bf06, &bf0f, &bf19
 zp_ctrl_blk_lo             = &b0  ; Pointer to the current OSWORD &72 disc-access control block, low byte.
 ; &b0 referenced 48 times by &802d, &808c, &8095, &80d4, &80dd, &80e3, &80ef, &80fa, &80ff, &8104, &810b, &8116, &811c, &8127, &8138, &81b1, &8b08, &ac94, &ac99, &accb, &b931, &b96d, &b973, &bafe, &bb32, &bb49, &bb4e, &bb53, &bb57, &bb6c, &bbfe, &bc04, &bc6d, &bc73, &bdb1, &bdb7, &bdbb, &bdda, &bde6, &bdfd, &bf01, &bf57, &bf60, &bf74, &bf78, &bf88, &bf8c, &bfe3
@@ -12060,7 +12060,7 @@ la154 = sub_ca153+1
     lda wksp_disc_op_mem_addr                                         ; bd6c: ad 16 10    ...      ; Get transfer address low
     sta zp_floppy_track_num                                           ; bd6f: 85 a5       ..       ; Store as dest address low
     lda wksp_disc_op_mem_addr_1                                       ; bd71: ad 17 10    ...      ; Get transfer address high
-    sta zp_floppy_dest_page                                           ; bd74: 85 a6       ..       ; Store as dest address high
+    sta zp_floppy_scratch                                             ; bd74: 85 a6       ..       ; Scratch: copy destination high byte
     lda #0                                                            ; bd76: a9 00       ..       ; Source address low = 0
     sta zp_floppy_track                                               ; bd78: 85 a3       ..       ; Store source low
     lda wksp_format_page                                              ; bd7a: ad e2 10    ...      ; Get format buffer page
@@ -12169,9 +12169,9 @@ la154 = sub_ca153+1
     lda #&80                                                          ; be27: a9 80       ..       ; A=&80: read command base
 ; &be29 referenced 1 time by &be25
 .format_track_loop
-    sta zp_floppy_dest_page                                           ; be29: 85 a6       ..       ; Store FDC command in workspace
+    sta zp_floppy_scratch                                             ; be29: 85 a6       ..       ; Scratch: save the FDC command over the NMI wait
     jsr clear_transfer_complete                                       ; be2b: 20 2b bd     +.      ; Clear seek flag
-    lda zp_floppy_dest_page                                           ; be2e: a5 a6       ..       ; Get FDC command
+    lda zp_floppy_scratch                                             ; be2e: a5 a6       ..       ; Recover the saved FDC command
     sta fdc_1770_command_or_status                                    ; be30: 8d 84 fe    ...      ; Issue command to FDC
 ; &be33 referenced 2 times by &be4c, &be67
 .wait_format_nmi_complete
@@ -12219,7 +12219,7 @@ la154 = sub_ca153+1
 ; &be78 referenced 1 time by &be70
 .clear_verify_seek_flag
     jsr clear_seek_flag                                               ; be78: 20 38 bd     8.      ; Clear track-step flag
-    lda zp_floppy_dest_page                                           ; be7b: a5 a6       ..       ; Get FDC command
+    lda zp_floppy_scratch                                             ; be7b: a5 a6       ..       ; Recover the saved FDC command
     jsr apply_head_load_flag                                          ; be7d: 20 4c bd     L.      ; Apply head load delay
     sta fdc_1770_command_or_status                                    ; be80: 8d 84 fe    ...      ; Issue FDC command
 ; &be83 referenced 1 time by &be52
@@ -12308,20 +12308,20 @@ la154 = sub_ca153+1
     ldy #6                                                            ; beff: a0 06       ..       ; Y=6: get drive+sector from block
     lda (zp_ctrl_blk_lo),y                                            ; bf01: b1 b0       ..       ; Get drive+sector byte
     ora wksp_current_drive                                            ; bf03: 0d 17 11    ...      ; OR with current drive
-    sta zp_floppy_dest_page                                           ; bf06: 85 a6       ..       ; Stash the combined drive byte
+    sta zp_floppy_scratch                                             ; bf06: 85 a6       ..       ; Scratch: hold the combined drive byte
     and #&1f                                                          ; bf08: 29 1f       ).       ; Bits 0-4 must be clear: only drives 0 and 1
     beq rw_check_drive_reachable                                      ; bf0a: f0 03       ..       ; Clear: a valid drive, carry on
     jmp bad_address_error                                             ; bf0c: 4c 66 bf    Lf.      ; Non-zero: bad drive error
 ; &bf0f referenced 1 time by &bf0a
 .rw_check_drive_reachable
-    bit zp_floppy_dest_page                                           ; bf0f: 24 a6       $.       ; Test bit 6 of the drive byte
+    bit zp_floppy_scratch                                             ; bf0f: 24 a6       $.       ; Test bit 6 of the drive byte
     bvc rw_select_drive                                               ; bf11: 50 06       P.       ; Clear: reachable drive, select it
     lda #&65 ; 'e'                                                    ; bf13: a9 65       .e       ; Error &65: volume error (bad drive)
     sta zp_floppy_error                                               ; bf15: 85 a0       ..       ; Store error code
     bne branch_to_floppy_error                                        ; bf17: d0 51       .Q       ; Branch to floppy error
 ; &bf19 referenced 1 time by &bf11
 .rw_select_drive
-    lda zp_floppy_dest_page                                           ; bf19: a5 a6       ..       ; Get the drive byte back
+    lda zp_floppy_scratch                                             ; bf19: a5 a6       ..       ; Get the drive byte back
     and #&20 ; ' '                                                    ; bf1b: 29 20       )        ; Bit 5: is it drive 1?
     bne rw_select_drive_1                                             ; bf1d: d0 04       ..       ; Yes: select drive 1
     lda #&21 ; '!'                                                    ; bf1f: a9 21       .!       ; Drive 0: latch value &21 (bit 0)
@@ -12644,8 +12644,8 @@ save pydis_start, pydis_end
 ;     wksp_lib_sector_hi:                        7
 ;     wksp_object_sector_hi:                     7
 ;     wksp_prev_dir_sector:                      7
-;     zp_floppy_dest_page:                       7
 ;     zp_floppy_error:                           7
+;     zp_floppy_scratch:                         7
 ;     zp_floppy_sector:                          7
 ;     zp_floppy_track_num:                       7
 ;     zp_name_ptr_hi:                            7
