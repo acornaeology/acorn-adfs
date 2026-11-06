@@ -1174,7 +1174,7 @@ d.label(0xBBB4, 'floppy_get_step_rate')
 d.entry(0xBBF1)
 
 d.label(0xBBF1, 'copy_code_to_nmi_space')
-nmi_main_move_id = d.add_move(0x0D00, 0xBC79, 0x49)
+nmi_main_move_id = d.add_move(0x0D00, 0xBC79, 0x49, name="nmi_main")
 with nmi_main_move_id:
     d.entry(0x0D00)
     d.entry(0x0D0A)
@@ -1188,13 +1188,13 @@ with nmi_main_move_id:
 d.entry(0xBCC2)
 
 d.label(0xBCC2, 'floppy_wait_nmi_finish')
-nmi_write_move_id = d.add_move(0x0D0A, 0xBCDF, 14)
+nmi_write_move_id = d.add_move(0x0D0A, 0xBCDF, 14, name="nmi_write")
 with nmi_write_move_id:
     d.entry(0x0D0A)
-nmi_tube_write_move_id = d.add_move(0x0D0A, 0xBCED, 8)
+nmi_tube_write_move_id = d.add_move(0x0D0A, 0xBCED, 8, name="nmi_tube_write")
 with nmi_tube_write_move_id:
     d.entry(0x0D0A)
-nmi_tube_read_move_id = d.add_move(0x0D0A, 0xBCF5, 8)
+nmi_tube_read_move_id = d.add_move(0x0D0A, 0xBCF5, 8, name="nmi_tube_read")
 with nmi_tube_read_move_id:
     d.entry(0x0D0A)
 
