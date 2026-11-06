@@ -2,7 +2,40 @@
   "meta": {
     "schema_version": 4,
     "load_addr": 32768,
-    "end_addr": 49152
+    "end_addr": 49152,
+    "images": [
+      {
+        "name": "adfs-1.30.rom",
+        "load_addr": 32768,
+        "end_addr": 49152
+      }
+    ],
+    "moves": [
+      {
+        "name": "move_1",
+        "dest": 3328,
+        "src": 48249,
+        "length": 73
+      },
+      {
+        "name": "move_2",
+        "dest": 3338,
+        "src": 48351,
+        "length": 14
+      },
+      {
+        "name": "move_3",
+        "dest": 3338,
+        "src": 48365,
+        "length": 8
+      },
+      {
+        "name": "move_4",
+        "dest": 3338,
+        "src": 48373,
+        "length": 8
+      }
+    ]
   },
   "constants": [
     {
@@ -2251,6 +2284,7 @@
     },
     {
       "addr": 48249,
+      "move": "move_1",
       "name": "nmi_handler_rom",
       "title": "NMI handler code (copied to &0D00)",
       "description": "NMI handler for floppy disc byte-by-byte data transfer.\nCopied from ROM to the NMI workspace at &0D00 before each\nfloppy operation. The WD1770 fires an NMI on each byte\ntransferred (DRQ) and on command completion.\n\nThe handler has three paths:\n  1. DRQ (status & &1F = 3): transfer one byte between\n     the WD1770 data register and memory. The code at\n     &0D0A-&0D17 is patched with one of three variants:\n     nmi_write_code (direct memory write to disc),\n     nmi_tube_write_code (Tube to disc), or\n     nmi_tube_read_code (disc to Tube). The default\n     (nmi_code_rw) is direct memory read from disc.\n  2. Error (status & &58 != 0): store the error status\n     and set bit 0 of zp_floppy_control and\n     zp_floppy_state to signal the error to the caller.\n  3. Completion (no DRQ, no error): if multi-sector mode\n     is active (bit 6 of zp_floppy_state), switch to\n     ROM 0 and call the track-stepping routine to set up\n     the next sector. Otherwise mark transfer complete.\n"
@@ -2258,6 +2292,7 @@
     {
       "addr": 3354,
       "binary_addr": 48275,
+      "move": "move_1",
       "name": "nmi_check_status_error",
       "title": "NMI status/error handler",
       "description": "Not a DRQ: check WD1770 status for error bits. Bits 6\n(write protect), 4 (record not found), and 3 (CRC error)\nare tested via AND #&58. If any are set, store the error\ncode and set the error flag in the control byte.\n"
@@ -2265,12 +2300,14 @@
     {
       "addr": 3372,
       "binary_addr": 48293,
+      "move": "move_1",
       "name": "nmi_check_end_of_operation",
       "title": "NMI end-of-operation handler",
       "description": "No error and no DRQ: the WD1770 command has completed.\nIf multi-sector mode (bit 6 of zp_floppy_state) is not\nactive, just mark the transfer complete. Otherwise, save\nthe current ROM state, switch to ROM 0, and call the\ntrack-stepping routine to prepare the next sector for\ntransfer.\n"
     },
     {
       "addr": 48351,
+      "move": "move_2",
       "name": "nmi_write_code",
       "title": "NMI patch: write memory to disc",
       "description": "Patched into &0D0A when writing to floppy disc from host\nmemory. Reads a byte from the self-modifying transfer\naddress and writes it to the WD1770 data register.\n",
@@ -2278,6 +2315,7 @@
     },
     {
       "addr": 48365,
+      "move": "move_3",
       "name": "nmi_tube_write_code",
       "title": "NMI patch: write Tube to disc",
       "description": "Patched into &0D0A when writing to floppy disc via the\nTube. Reads a byte from Tube data register 3 and writes\nit to the WD1770 data register.\n",
@@ -2285,6 +2323,7 @@
     },
     {
       "addr": 48373,
+      "move": "move_4",
       "name": "nmi_tube_read_code",
       "title": "NMI patch: read disc to Tube",
       "description": "Patched into &0D0A when reading from floppy disc via the\nTube. Reads a byte from the WD1770 data register and\nwrites it to Tube data register 3.\n",
@@ -65472,7 +65511,7 @@
         246
       ],
       "labels": [
-        "sub_ca153"
+        "ca153"
       ],
       "sub_labels": {
         "41300": [
@@ -108524,6 +108563,7 @@
       "mnemonic": "sta",
       "operand": "nmi_workspace,y",
       "target": 3328,
+      "target_move": "move_1",
       "target_label": "nmi_workspace"
     },
     {
@@ -108670,6 +108710,7 @@
       "mnemonic": "sta",
       "operand": "nmi_rw_opcode",
       "target": 3333,
+      "target_move": "move_1",
       "target_label": "nmi_rw_opcode"
     },
     {
@@ -108851,6 +108892,7 @@
       "mnemonic": "sta",
       "operand": "nmi_saved_rom",
       "target": 3380,
+      "target_move": "move_1",
       "target_label": "nmi_saved_rom"
     },
     {
@@ -109414,6 +109456,7 @@
         72
       ],
       "binary_addr": 48249,
+      "move": "move_1",
       "labels": [
         "nmi_workspace"
       ],
@@ -109438,6 +109481,7 @@
         254
       ],
       "binary_addr": 48250,
+      "move": "move_1",
       "comment_inline": "Read WD1770 status register",
       "type": "code",
       "mnemonic": "lda",
@@ -109452,8 +109496,9 @@
         31
       ],
       "binary_addr": 48253,
+      "move": "move_1",
       "labels": [
-        "sub_c0d04"
+        "c0d04"
       ],
       "sub_labels": {
         "3333": [
@@ -109475,6 +109520,7 @@
         3
       ],
       "binary_addr": 48255,
+      "move": "move_1",
       "comment_inline": "Status = 3 (data request)?",
       "type": "code",
       "mnemonic": "cmp",
@@ -109487,11 +109533,13 @@
         16
       ],
       "binary_addr": 48257,
+      "move": "move_1",
       "comment_inline": "No: check for error or completion",
       "type": "code",
       "mnemonic": "bne",
       "operand": "nmi_check_status_error",
       "target": 3354,
+      "target_move": "move_1",
       "target_label": "nmi_check_status_error"
     },
     {
@@ -109502,6 +109550,7 @@
         254
       ],
       "binary_addr": 48259,
+      "move": "move_1",
       "labels": [
         "nmi_rw_code"
       ],
@@ -109547,6 +109596,7 @@
         255
       ],
       "binary_addr": 48262,
+      "move": "move_1",
       "sub_labels": {
         "3342": [
           "nmi_read_addr_lo"
@@ -109574,11 +109624,13 @@
         13
       ],
       "binary_addr": 48265,
+      "move": "move_1",
       "comment_inline": "Increment transfer address low byte",
       "type": "code",
       "mnemonic": "inc",
       "operand": "nmi_read_addr_lo",
       "target": 3342,
+      "target_move": "move_1",
       "target_label": "nmi_read_addr_lo"
     },
     {
@@ -109588,11 +109640,13 @@
         3
       ],
       "binary_addr": 48268,
+      "move": "move_1",
       "comment_inline": "No page crossing: skip high byte",
       "type": "code",
       "mnemonic": "bne",
       "operand": "nmi_transfer_done",
       "target": 3352,
+      "target_move": "move_1",
       "target_label": "nmi_transfer_done"
     },
     {
@@ -109603,11 +109657,13 @@
         13
       ],
       "binary_addr": 48270,
+      "move": "move_1",
       "comment_inline": "Increment transfer address high byte",
       "type": "code",
       "mnemonic": "inc",
       "operand": "nmi_read_addr_hi",
       "target": 3343,
+      "target_move": "move_1",
       "target_label": "nmi_read_addr_hi"
     },
     {
@@ -109616,6 +109672,7 @@
         104
       ],
       "binary_addr": 48273,
+      "move": "move_1",
       "labels": [
         "nmi_transfer_done"
       ],
@@ -109627,21 +109684,25 @@
         {
           "addr": 3344,
           "kind": "direct",
+          "move": "move_3",
           "move_id": 3
         },
         {
           "addr": 3344,
           "kind": "direct",
+          "move": "move_4",
           "move_id": 4
         },
         {
           "addr": 3347,
           "kind": "direct",
+          "move": "move_1",
           "move_id": 1
         },
         {
           "addr": 3347,
           "kind": "direct",
+          "move": "move_2",
           "move_id": 2
         }
       ],
@@ -109654,6 +109715,7 @@
         64
       ],
       "binary_addr": 48274,
+      "move": "move_1",
       "comment_inline": "Return from NMI",
       "type": "code",
       "mnemonic": "rti"
@@ -109665,6 +109727,7 @@
         88
       ],
       "binary_addr": 48275,
+      "move": "move_1",
       "labels": [
         "nmi_check_status_error"
       ],
@@ -109676,6 +109739,7 @@
         {
           "addr": 3336,
           "kind": "direct",
+          "move": "move_1",
           "move_id": 1
         }
       ],
@@ -109690,11 +109754,13 @@
         14
       ],
       "binary_addr": 48277,
+      "move": "move_1",
       "comment_inline": "No errors: check for end of operation",
       "type": "code",
       "mnemonic": "beq",
       "operand": "nmi_check_end_of_operation",
       "target": 3372,
+      "target_move": "move_1",
       "target_label": "nmi_check_end_of_operation"
     },
     {
@@ -109704,6 +109770,7 @@
         160
       ],
       "binary_addr": 48279,
+      "move": "move_1",
       "comment_inline": "Store error status for caller",
       "type": "code",
       "mnemonic": "sta",
@@ -109718,6 +109785,7 @@
         161
       ],
       "binary_addr": 48281,
+      "move": "move_1",
       "comment_inline": "Rotate control flags right",
       "type": "code",
       "mnemonic": "ror",
@@ -109731,6 +109799,7 @@
         56
       ],
       "binary_addr": 48283,
+      "move": "move_1",
       "comment_inline": "Set carry for error flag",
       "type": "code",
       "mnemonic": "sec"
@@ -109742,6 +109811,7 @@
         161
       ],
       "binary_addr": 48284,
+      "move": "move_1",
       "comment_inline": "Set bit 0: error occurred",
       "type": "code",
       "mnemonic": "rol",
@@ -109756,6 +109826,7 @@
         162
       ],
       "binary_addr": 48286,
+      "move": "move_1",
       "labels": [
         "nmi_set_transfer_complete"
       ],
@@ -109767,6 +109838,7 @@
         {
           "addr": 3374,
           "kind": "direct",
+          "move": "move_1",
           "move_id": 1
         }
       ],
@@ -109782,6 +109854,7 @@
         56
       ],
       "binary_addr": 48288,
+      "move": "move_1",
       "comment_inline": "Set carry for complete flag",
       "type": "code",
       "mnemonic": "sec"
@@ -109793,6 +109866,7 @@
         162
       ],
       "binary_addr": 48289,
+      "move": "move_1",
       "comment_inline": "Set bit 0: transfer complete",
       "type": "code",
       "mnemonic": "rol",
@@ -109806,6 +109880,7 @@
         104
       ],
       "binary_addr": 48291,
+      "move": "move_1",
       "comment_inline": "Restore A",
       "type": "code",
       "mnemonic": "pla"
@@ -109816,6 +109891,7 @@
         64
       ],
       "binary_addr": 48292,
+      "move": "move_1",
       "comment_inline": "Return from NMI",
       "type": "code",
       "mnemonic": "rti"
@@ -109827,6 +109903,7 @@
         162
       ],
       "binary_addr": 48293,
+      "move": "move_1",
       "labels": [
         "nmi_check_end_of_operation"
       ],
@@ -109838,6 +109915,7 @@
         {
           "addr": 3356,
           "kind": "direct",
+          "move": "move_1",
           "move_id": 1
         }
       ],
@@ -109854,11 +109932,13 @@
         245
       ],
       "binary_addr": 48295,
+      "move": "move_1",
       "comment_inline": "No: mark complete and return",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "nmi_set_transfer_complete",
       "target": 3365,
+      "target_move": "move_1",
       "target_label": "nmi_set_transfer_complete"
     },
     {
@@ -109868,6 +109948,7 @@
         244
       ],
       "binary_addr": 48297,
+      "move": "move_1",
       "comment_inline": "Save current ROM bank number",
       "type": "code",
       "mnemonic": "lda",
@@ -109881,6 +109962,7 @@
         72
       ],
       "binary_addr": 48299,
+      "move": "move_1",
       "comment_inline": "Push onto stack",
       "type": "code",
       "mnemonic": "pha"
@@ -109892,8 +109974,9 @@
         0
       ],
       "binary_addr": 48300,
+      "move": "move_1",
       "labels": [
-        "sub_c0d33"
+        "c0d33"
       ],
       "sub_labels": {
         "3380": [
@@ -109915,6 +109998,7 @@
         244
       ],
       "binary_addr": 48302,
+      "move": "move_1",
       "comment_inline": "Update ROM select shadow copy",
       "type": "code",
       "mnemonic": "sta",
@@ -109930,6 +110014,7 @@
         254
       ],
       "binary_addr": 48304,
+      "move": "move_1",
       "comment_inline": "Switch to ROM bank 0",
       "type": "code",
       "mnemonic": "sta",
@@ -109943,6 +110028,7 @@
         138
       ],
       "binary_addr": 48307,
+      "move": "move_1",
       "comment_inline": "Save X register",
       "type": "code",
       "mnemonic": "txa"
@@ -109953,6 +110039,7 @@
         72
       ],
       "binary_addr": 48308,
+      "move": "move_1",
       "comment_inline": "Push onto stack",
       "type": "code",
       "mnemonic": "pha"
@@ -109965,6 +110052,7 @@
         190
       ],
       "binary_addr": 48309,
+      "move": "move_1",
       "comment_inline": "Advance to next sector",
       "type": "code",
       "mnemonic": "jsr",
@@ -109978,6 +110066,7 @@
         104
       ],
       "binary_addr": 48312,
+      "move": "move_1",
       "comment_inline": "Restore X register",
       "type": "code",
       "mnemonic": "pla"
@@ -109988,6 +110077,7 @@
         170
       ],
       "binary_addr": 48313,
+      "move": "move_1",
       "comment_inline": "Pull from stack",
       "type": "code",
       "mnemonic": "tax"
@@ -109998,6 +110088,7 @@
         104
       ],
       "binary_addr": 48314,
+      "move": "move_1",
       "comment_inline": "Restore original ROM bank",
       "type": "code",
       "mnemonic": "pla"
@@ -110009,6 +110100,7 @@
         244
       ],
       "binary_addr": 48315,
+      "move": "move_1",
       "comment_inline": "Update ROM select shadow copy",
       "type": "code",
       "mnemonic": "sta",
@@ -110024,6 +110116,7 @@
         254
       ],
       "binary_addr": 48317,
+      "move": "move_1",
       "comment_inline": "Switch back to original ROM bank",
       "type": "code",
       "mnemonic": "sta",
@@ -110037,6 +110130,7 @@
         104
       ],
       "binary_addr": 48320,
+      "move": "move_1",
       "comment_inline": "Restore A",
       "type": "code",
       "mnemonic": "pla"
@@ -110047,6 +110141,7 @@
         64
       ],
       "binary_addr": 48321,
+      "move": "move_1",
       "comment_inline": "Return from NMI",
       "type": "code",
       "mnemonic": "rti"
@@ -110274,6 +110369,7 @@
         255
       ],
       "binary_addr": 48351,
+      "move": "move_2",
       "labels": [
         "nmi_rw_code"
       ],
@@ -110319,6 +110415,7 @@
         254
       ],
       "binary_addr": 48354,
+      "move": "move_2",
       "sub_labels": {
         "3342": [
           "nmi_read_addr_lo"
@@ -110346,11 +110443,13 @@
         13
       ],
       "binary_addr": 48357,
+      "move": "move_2",
       "comment_inline": "Increment transfer address low",
       "type": "code",
       "mnemonic": "inc",
       "operand": "nmi_write_addr_lo",
       "target": 3339,
+      "target_move": "move_2",
       "target_label": "nmi_write_addr_lo"
     },
     {
@@ -110360,11 +110459,13 @@
         3
       ],
       "binary_addr": 48360,
+      "move": "move_2",
       "comment_inline": "No page crossing: done",
       "type": "code",
       "mnemonic": "bne",
       "operand": "nmi_transfer_done",
       "target": 3352,
+      "target_move": "move_1",
       "target_label": "nmi_transfer_done"
     },
     {
@@ -110375,11 +110476,13 @@
         13
       ],
       "binary_addr": 48362,
+      "move": "move_2",
       "comment_inline": "Increment transfer address high",
       "type": "code",
       "mnemonic": "inc",
       "operand": "nmi_write_addr_hi",
       "target": 3340,
+      "target_move": "move_2",
       "target_label": "nmi_write_addr_hi"
     },
     {
@@ -110390,6 +110493,7 @@
         254
       ],
       "binary_addr": 48365,
+      "move": "move_3",
       "labels": [
         "nmi_rw_code"
       ],
@@ -110435,6 +110539,7 @@
         254
       ],
       "binary_addr": 48368,
+      "move": "move_3",
       "sub_labels": {
         "3342": [
           "nmi_read_addr_lo"
@@ -110461,11 +110566,13 @@
         6
       ],
       "binary_addr": 48371,
+      "move": "move_3",
       "comment_inline": "Always branch: done",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "nmi_transfer_done",
       "target": 3352,
+      "target_move": "move_1",
       "target_label": "nmi_transfer_done"
     },
     {
@@ -110476,6 +110583,7 @@
         254
       ],
       "binary_addr": 48373,
+      "move": "move_4",
       "labels": [
         "nmi_rw_code"
       ],
@@ -110521,6 +110629,7 @@
         254
       ],
       "binary_addr": 48376,
+      "move": "move_4",
       "sub_labels": {
         "3342": [
           "nmi_read_addr_lo"
@@ -110547,11 +110656,13 @@
         6
       ],
       "binary_addr": 48379,
+      "move": "move_4",
       "comment_inline": "Always branch: done",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "nmi_transfer_done",
       "target": 3352,
+      "target_move": "move_1",
       "target_label": "nmi_transfer_done"
     },
     {
@@ -112975,6 +113086,7 @@
         {
           "addr": 3388,
           "kind": "direct",
+          "move": "move_1",
           "move_id": 1
         }
       ],
