@@ -3,7 +3,7 @@ adfs_filing_system_number                = &08
 osbyte_issue_service_request             = &8f
 osbyte_read_address_of_rom_pointer_table = &a8
 osbyte_read_vdu_driver_screen_bank       = &ba
-osbyte_read_write_startup_options        = &ff
+osbyte_startup_options                   = &ff
 osword_disc_access                       = &72
 service_auto_boot                        = &03
 service_unrecognised_command             = &04
@@ -56,7 +56,6 @@ osbyte_read_himem                        = &84
 osbyte_read_oshwm                        = &83
 osbyte_close_spool_exec                  = &77
 osword_read_clock                        = &01
-osbyte_startup_options                   = &ff
 
 ; Memory locations
 zp_user_ptr_0              = &00  ; Caller's zero-page pointer, byte 0. ADFS copies a 32-bit address / file PTR to and from this X-indexed location (base+0..+3) when servicing transfers, where X is the caller's control-block pointer (never 0).

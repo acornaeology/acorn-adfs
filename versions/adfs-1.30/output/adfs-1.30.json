@@ -55,7 +55,7 @@
       "value": 186
     },
     {
-      "name": "osbyte_read_write_startup_options",
+      "name": "osbyte_startup_options",
       "value": 255
     },
     {
@@ -265,10 +265,6 @@
     {
       "name": "osword_read_clock",
       "value": 1
-    },
-    {
-      "name": "osbyte_startup_options",
-      "value": 255
     }
   ],
   "macros": [],
